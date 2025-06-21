@@ -35,59 +35,54 @@ on:
         type: choice
         options:
           - all
-          - example
-          - users
+          - restful-booker
 
 jobs:
   api-test:
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
-        
-    - name: Create environment file
-      run: |
-        cp .env.example .env.testing
-        echo "NODE_ENV=${{ github.event.inputs.environment || 'testing' }}" >> .env.testing
-        echo "API_BASE_URL=https://restful-booker.herokuapp.com" >> .env.testing
-        echo "CI=true" >> .env.testing
+      - name: Install dependencies
+        run: npm ci
+          
+      - name: Create environment file
+        run: |
+          cp .env.example .env.testing
+          echo "NODE_ENV=${{ github.event.inputs.environment || 'testing' }}" >> .env.testing
+          echo "API_BASE_URL=https://restful-booker.herokuapp.com" >> .env.testing
+          echo "CI=true" >> .env.testing
 
-    - name: Run API tests
-      env:
-        NODE_ENV: ${{ github.event.inputs.environment || 'testing' }}
-      run: |
-        if [ "${{ github.event.inputs.test_suite }}" = "all" ]; then
-          npm run test:api:serial
-        else
-          npm run test:api:booker
-        fi
+      - name: Run API tests
+        env:
+          NODE_ENV: ${{ github.event.inputs.environment || 'testing' }}
+        run: npm run test:api:serial
 
-    - name: Upload API Report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: api-report
-        path: api-report/
-        retention-days: 30
+      - name: Upload API Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-report
+          path: api-report/
+          retention-days: 30
 
-    - name: Upload API Test Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: api-test-results
-        path: |
-          test-results/api/
-          api-results/
-        retention-days: 30
+      - name: Upload API Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-test-results
+          path: |
+            test-results/api/
+            api-results/
+          retention-days: 30
 
   publish-api-report:
     name: Publish API HTML Report
@@ -95,19 +90,19 @@ jobs:
     needs: api-test
     runs-on: ubuntu-latest
     steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: api-report
-        path: api-report
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: api-report
+          path: api-report
 
-    - name: Publish HTML Report
-      uses: peaceiris/actions-gh-pages@v3
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./api-report
-        destination_dir: api-reports/${{ github.run_number }}
+      - name: Publish HTML Report
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./api-report
+          destination_dir: api-reports/${{ github.run_number }}
 
   notify:
     name: Notification
@@ -115,12 +110,12 @@ jobs:
     needs: api-test
     runs-on: ubuntu-latest
     steps:
-    - name: Notify on Success
-      if: needs.api-test.result == 'success'
-      run: echo "✅ All API tests passed successfully!"
-      
-    - name: Notify on Failure
-      if: needs.api-test.result == 'failure'
-      run: |
-        echo "❌ API Tests failed!"
-        echo "Check the test reports for details."
+      - name: Notify on Success
+        if: needs.api-test.result == 'success'
+        run: echo "✅ All API tests passed successfully!"
+        
+      - name: Notify on Failure
+        if: needs.api-test.result == 'failure'
+        run: |
+          echo "❌ API Tests failed!"
+          echo "Check the test reports for details."

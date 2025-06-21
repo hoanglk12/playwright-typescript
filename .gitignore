@@ -27,6 +27,8 @@ test-summary.txt
 /reports/
 /junit-results/
 /html-report/
+/api-report/
+/api-results/
 
 # Authentication states
 .auth/
