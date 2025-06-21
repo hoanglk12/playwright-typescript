@@ -1,0 +1,266 @@
+trigger:
+  branches:
+    include:
+      - main
+      - master
+      - develop
+  paths:
+    include:
+      - src/**
+      - tests/**
+      - '*.config.ts'
+      - package.json
+      - azure-pipelines.yml
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+      - develop
+  paths:
+    include:
+      - src/**
+      - tests/**
+      - '*.config.ts'
+      - package.json
+
+variables:
+  nodeVersion: '20.x'
+  CI: true
+
+stages:
+- stage: Install
+  displayName: 'Install Dependencies'
+  jobs:
+  - job: Install
+    displayName: 'Install Node.js and Dependencies'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+      displayName: 'Install Node.js'
+
+    - task: Cache@2
+      inputs:
+        key: 'npm | "$(Agent.OS)" | package-lock.json'
+        restoreKeys: |
+          npm | "$(Agent.OS)"
+        path: ~/.npm
+      displayName: 'Cache npm'
+
+    - script: |
+        npm ci
+        npx playwright install --with-deps
+      displayName: 'Install dependencies and Playwright browsers'
+
+    - publish: node_modules
+      artifact: node_modules
+      displayName: 'Publish node_modules'
+
+- stage: UITests
+  displayName: 'UI Tests'
+  dependsOn: Install
+  condition: or(eq(variables['Build.Reason'], 'Manual'), contains(variables['Build.SourceVersionMessage'], 'ui'), succeeded())
+  jobs:
+  - job: UITests
+    displayName: 'Run UI Tests'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+      displayName: 'Install Node.js'
+
+    - download: current
+      artifact: node_modules
+      displayName: 'Download node_modules'
+
+    - script: |
+        cp -r $(Pipeline.Workspace)/node_modules ./
+        cp .env.example .env.testing
+        echo "NODE_ENV=testing" >> .env.testing
+        echo "CI=true" >> .env.testing
+      displayName: 'Setup environment'
+
+    - script: npm run test:simple
+      displayName: 'Run UI tests'
+      continueOnError: true
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/results.xml'
+        searchFolder: 'test-results'
+        mergeTestResults: true
+        testRunTitle: 'UI Tests'
+      condition: always()
+      displayName: 'Publish UI test results'
+
+    - task: PublishHtmlReport@1
+      inputs:
+        reportDir: 'playwright-report'
+        tabName: 'UI Test Report'
+      condition: always()
+      displayName: 'Publish UI HTML report'
+
+    - publish: playwright-report
+      artifact: ui-test-report
+      condition: always()
+      displayName: 'Publish UI test artifacts'
+
+- stage: APITests
+  displayName: 'API Tests'
+  dependsOn: Install
+  condition: or(eq(variables['Build.Reason'], 'Manual'), contains(variables['Build.SourceVersionMessage'], 'api'), succeeded())
+  jobs:
+  - job: APITests
+    displayName: 'Run API Tests'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+      displayName: 'Install Node.js'
+
+    - download: current
+      artifact: node_modules
+      displayName: 'Download node_modules'
+
+    - script: |
+        cp -r $(Pipeline.Workspace)/node_modules ./
+        cp .env.example .env.testing
+        echo "NODE_ENV=testing" >> .env.testing
+        echo "API_BASE_URL=https://restful-booker.herokuapp.com" >> .env.testing
+        echo "CI=true" >> .env.testing
+      displayName: 'Setup environment'
+
+    - script: npm run test:api:serial
+      displayName: 'Run API tests in serial mode'
+      continueOnError: true
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/results.xml'
+        searchFolder: 'api-results'
+        mergeTestResults: true
+        testRunTitle: 'API Tests'
+      condition: always()
+      displayName: 'Publish API test results'
+
+    - task: PublishHtmlReport@1
+      inputs:
+        reportDir: 'api-report'
+        tabName: 'API Test Report'
+      condition: always()
+      displayName: 'Publish API HTML report'
+
+    - publish: api-report
+      artifact: api-test-report
+      condition: always()
+      displayName: 'Publish API test artifacts'
+
+- stage: Publish
+  displayName: 'Publish Reports'
+  dependsOn: 
+    - UITests
+    - APITests
+  condition: always()
+  jobs:
+  - job: PublishReports
+    displayName: 'Combine and Publish All Reports'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - download: current
+      artifact: ui-test-report
+      displayName: 'Download UI reports'
+      continueOnError: true
+
+    - download: current
+      artifact: api-test-report
+      displayName: 'Download API reports'
+      continueOnError: true
+
+    - script: |
+        mkdir -p combined-reports/ui
+        mkdir -p combined-reports/api
+        cp -r $(Pipeline.Workspace)/ui-test-report/* combined-reports/ui/ 2>/dev/null || true
+        cp -r $(Pipeline.Workspace)/api-test-report/* combined-reports/api/ 2>/dev/null || true
+        
+        cat > combined-reports/index.html << EOF
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Playwright Test Reports - Build $(Build.BuildNumber)</title>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f5f5; }
+                .container { max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .header { text-align: center; margin-bottom: 40px; }
+                .build-info { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+                .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+                .report-card { 
+                    border: 1px solid #e0e0e0; 
+                    border-radius: 8px; 
+                    padding: 24px; 
+                    text-decoration: none; 
+                    color: #333;
+                    transition: all 0.2s;
+                    background: #fff;
+                }
+                .report-card:hover { 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+                    transform: translateY(-2px);
+                    text-decoration: none;
+                    color: #333;
+                }
+                .report-icon { font-size: 48px; margin-bottom: 16px; }
+                .report-title { color: #1976d2; margin: 0 0 12px 0; font-size: 20px; }
+                .report-desc { color: #666; margin: 0; line-height: 1.5; }
+                .meta { text-align: center; margin-top: 30px; color: #888; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🎭 Playwright Test Reports</h1>
+                    <p>Comprehensive test results for UI and API testing</p>
+                </div>
+                
+                <div class="build-info">
+                    <strong>Build:</strong> $(Build.BuildNumber) | 
+                    <strong>Branch:</strong> $(Build.SourceBranchName) | 
+                    <strong>Commit:</strong> $(Build.SourceVersion) |
+                    <strong>Date:</strong> $(Build.QueueTime)
+                </div>
+                
+                <div class="report-grid">
+                    <a href="ui/" class="report-card">
+                        <div class="report-icon">🖥️</div>
+                        <h2 class="report-title">UI Tests</h2>
+                        <p class="report-desc">Browser-based end-to-end tests covering user interactions and workflows</p>
+                    </a>
+                    <a href="api/" class="report-card">
+                        <div class="report-icon">🔌</div>
+                        <h2 class="report-title">API Tests</h2>
+                        <p class="report-desc">RESTful API integration tests for Restful Booker service</p>
+                    </a>
+                </div>
+                
+                <div class="meta">
+                    <p>Generated by Azure DevOps Pipeline on $(date)</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        EOF
+      displayName: 'Create combined report index'
+
+    - publish: combined-reports
+      artifact: combined-test-reports
+      displayName: 'Publish combined reports'

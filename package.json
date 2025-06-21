@@ -1,0 +1,60 @@
+{
+  "name": "playwright-bankguru-framework",
+  "version": "1.0.0",
+  "description": "Playwright TypeScript framework converted from Maven hybrid framework for BankGuru testing",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:serial": "playwright test --workers=1",
+    "test:simple": "playwright test --workers=1 --project=chromium",
+    "test:simple:admin": "playwright test tests/admin --workers=1 --project=chromium",
+    "test:simple:login": "playwright test tests/admin/login.spec.ts --workers=1 --project=chromium",
+    "test:simple:headed": "playwright test --workers=1 --project=chromium --headed",
+    "test:simple:debug": "playwright test --workers=1 --project=chromium --headed --debug",
+    "test:parallel": "cross-env WORKERS=50% npm test",
+    "test:parallel:max": "cross-env WORKERS=100% npm test",
+    "test:parallel:all": "cross-env WORKERS=50% playwright test --project=chromium --project=firefox --project=webkit",
+    "test:testing": "cross-env NODE_ENV=testing npm test",
+    "test:development": "cross-env NODE_ENV=development npm test",
+    "test:staging": "cross-env NODE_ENV=staging npm test",
+    "test:production": "cross-env NODE_ENV=production npm test",
+    "clean": "rimraf test-results api-results playwright-report api-report blob-report .auth",
+    "clean:api": "rimraf test-results/api api-results api-report",
+    "report": "playwright show-report",
+    "report:open": "npx playwright show-report --port 9323",
+    "report:api": "npx playwright show-report api-report --port 9324",
+    "test:api": "cross-env NODE_ENV=testing playwright test --config=api.config.ts",
+    "test:api:debug": "cross-env NODE_ENV=testing playwright test --config=api.config.ts --debug",
+    "test:api:ui": "cross-env NODE_ENV=testing playwright test --config=api.config.ts --ui",
+    "test:api:serial": "cross-env NODE_ENV=testing playwright test --config=api.config.ts --workers=1 --project=api",
+    "test:api:booker": "cross-env NODE_ENV=testing playwright test tests/api/restful-booker.spec.ts --config=api.config.ts --workers=1",
+    "install:browsers": "npx playwright install",
+    "install:browsers:deps": "npx playwright install --with-deps",
+    "codegen": "npx playwright codegen",
+    "lint": "tsc --noEmit",
+    "clean:install": "npm run clean && npm ci && npm run install:browsers"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "testing",
+    "e2e",
+    "bankguru",
+    "automation"
+  ],
+  "author": "Converted Framework",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.53.1",
+    "@types/node": "^20.10.0",
+    "cross-env": "^7.0.3",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0"
+  }
+}
