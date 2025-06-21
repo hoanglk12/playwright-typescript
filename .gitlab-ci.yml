@@ -1,0 +1,142 @@
+stages:
+  - install
+  - test
+  - report
+
+variables:
+  NODE_VERSION: "20"
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+
+# Cache node_modules to speed up builds
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - node_modules/
+    - ~/.cache/ms-playwright/
+
+# Install dependencies
+install:
+  stage: install
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npx playwright install --with-deps
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+
+# Run UI tests
+ui-tests:
+  stage: test
+  image: node:${NODE_VERSION}
+  dependencies:
+    - install
+  script:
+    - cp .env.example .env.testing
+    - echo "NODE_ENV=testing" >> .env.testing
+    - echo "CI=true" >> .env.testing
+    - npm run test:simple
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    reports:
+      junit: test-results/results.xml
+    expire_in: 1 week
+  only:
+    changes:
+      - "src/ui/**/*"
+      - "tests/**/*"
+      - "playwright.config.ts"
+      - "package.json"
+      - ".gitlab-ci.yml"
+
+# Run API tests
+api-tests:
+  stage: test
+  image: node:${NODE_VERSION}
+  dependencies:
+    - install
+  script:
+    - cp .env.example .env.testing
+    - echo "NODE_ENV=testing" >> .env.testing
+    - echo "API_BASE_URL=https://restful-booker.herokuapp.com" >> .env.testing
+    - echo "CI=true" >> .env.testing
+    - npm run test:api:serial
+  artifacts:
+    when: always
+    paths:
+      - api-report/
+      - api-results/
+      - test-results/api/
+    reports:
+      junit: api-results/results.xml
+    expire_in: 1 week
+  only:
+    changes:
+      - "src/api/**/*"
+      - "tests/api/**/*"
+      - "api.config.ts"
+      - "package.json"
+      - ".gitlab-ci.yml"
+
+# Deploy test reports to GitLab Pages
+pages:
+  stage: report
+  image: alpine:latest
+  dependencies:
+    - ui-tests
+    - api-tests
+  script:
+    - mkdir -p public/ui-report
+    - mkdir -p public/api-report
+    - cp -r playwright-report/* public/ui-report/ 2>/dev/null || true
+    - cp -r api-report/* public/api-report/ 2>/dev/null || true
+    - |
+      cat > public/index.html << EOF
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Test Reports</title>
+          <style>
+              body { font-family: Arial, sans-serif; margin: 40px; }
+              .report-links { display: flex; gap: 20px; }
+              .report-card { 
+                  border: 1px solid #ddd; 
+                  border-radius: 8px; 
+                  padding: 20px; 
+                  text-decoration: none; 
+                  color: #333;
+                  transition: box-shadow 0.2s;
+              }
+              .report-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+              h1 { color: #333; }
+              h2 { color: #666; margin-top: 0; }
+          </style>
+      </head>
+      <body>
+          <h1>Playwright Test Reports</h1>
+          <div class="report-links">
+              <a href="ui-report/" class="report-card">
+                  <h2>🖥️ UI Tests</h2>
+                  <p>Browser-based end-to-end tests</p>
+              </a>
+              <a href="api-report/" class="report-card">
+                  <h2>🔌 API Tests</h2>
+                  <p>RESTful API integration tests</p>
+              </a>
+          </div>
+          <p><small>Generated on: $(date)</small></p>
+      </body>
+      </html>
+      EOF
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+    - master
+    - develop
+  when: always
