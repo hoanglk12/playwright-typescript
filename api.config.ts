@@ -1,67 +1,75 @@
 import { defineConfig } from '@playwright/test';
-import { devices } from '@playwright/test';
-import path from 'path';
-import { getApiEnvironment } from './src/api/config/environment';
-
-// Load API-specific environment configuration
-const apiEnv = getApiEnvironment();
-const env = process.env.NODE_ENV || 'testing';
-console.log(`🌍 API Tests Environment: ${env}`);
-console.log(`🔗 API Base URL: ${apiEnv.apiBaseUrl}`);
-console.log(`⚙️ API Timeout: ${apiEnv.timeout}ms`);
-console.log(`⚙️ API Retries: ${apiEnv.retries}`);
 
 /**
- * See https://playwright.dev/docs/api-testing
+ * Read environment variables from file.
  */
-export default defineConfig({  testDir: './tests/api',
-  /* Maximum time one test can run for. */
-  timeout: apiEnv.timeout,
-  expect: {
-    /**
-     * Maximum time expect() should wait for the condition to be met.
-     * For example in `await expect(locator).toHaveText();`
-     */
-    timeout: 5000
-  },  /* Run tests in files in serial mode (non-parallel) */
-  fullyParallel: false,
+require('dotenv').config({ path: '.env.testing' });
+
+/**
+ * API Testing Configuration - No Browser Required
+ * See https://playwright.dev/docs/test-configuration.
+ */
+export default defineConfig({
+  testDir: './tests/api',
+  /* Run tests in files in parallel */
+  fullyParallel: false, // Disabled for API tests to avoid rate limiting
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Set worker count to 1 to ensure non-parallel execution */
-  workers: 1,
   /* Retry on CI only */
-  retries: apiEnv.retries,
+  retries: process.env.CI ? 2 : 0,
+  /* Force serial execution for API tests */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html', { outputFolder: 'api-report' }],
-    ['json', { outputFile: 'api-results/results.json' }]
+    ['json', { outputFile: 'api-results/results.json' }],
+    ['junit', { outputFile: 'api-results/results.xml' }],
+    ['line']
   ],
-  /* Skip UI global setup/teardown files */
-  globalSetup: undefined,
-  globalTeardown: undefined,  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    /* Base URL to use in tests */
-    baseURL: apiEnv.apiBaseUrl,
-    
-    /* Maximum time each action such as request can take. Default is 0 (no limit). */
-    actionTimeout: apiEnv.timeout,
-    
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
-
-    /* Simulate browser for consistent environment, but don't actually launch one */
-    headless: true,
+  
+  /* Global test timeout */
+  timeout: 30000,
+  
+  /* Expect timeout for assertions */
+  expect: {
+    timeout: 10000,
   },
 
-  /* Configure projects for API testing only */
+  /* Shared settings for all projects - NO BROWSER */
+  use: {
+    /* Base URL for API calls */
+    baseURL: process.env.API_BASE_URL || 'https://restful-booker.herokuapp.com',
+    
+    /* Extra HTTP headers */
+    extraHTTPHeaders: {
+      'Accept': 'application/json',
+    },
+    
+    /* Global timeout for API requests */
+    actionTimeout: 15000,
+    
+    /* No browser context needed for API tests */
+    // Don't set browser-specific options here
+  },
+
+  /* Projects for API testing - NO BROWSERS */
   projects: [
-    {      name: 'api',
+    {
+      name: 'api',
+      testDir: './tests/api',
       use: {
-        /* API testing doesn't need a browser */
+        // No browser context - pure API testing
       },
     },
   ],
 
-  /* Folder for test artifacts like screenshots, videos, traces, etc. */
-  outputDir: 'test-results/api',
+  /* Output directories */
+  outputDir: 'test-results/api/',
+  
+  /* No web server needed for API tests */
+  // webServer: undefined,
+  
+  /* No global setup/teardown with browser context */
+  globalSetup: require.resolve('./tests/api/global-setup.ts'),
+  globalTeardown: require.resolve('./tests/api/global-teardown.ts'),
 });
