@@ -4,8 +4,8 @@
     "rootDir": "E:/OLDDATA/DATA/TESTING/AutomationTesting/playwright-converted/tests/api",
     "forbidOnly": true,
     "fullyParallel": false,
-    "globalSetup": null,
-    "globalTeardown": null,
+    "globalSetup": "E:\\OLDDATA\\DATA\\TESTING\\AutomationTesting\\playwright-converted\\tests\\api\\global-setup.ts",
+    "globalTeardown": "E:\\OLDDATA\\DATA\\TESTING\\AutomationTesting\\playwright-converted\\tests\\api\\global-teardown.ts",
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
@@ -26,6 +26,16 @@
         {
           "outputFile": "api-results/results.json"
         }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "api-results/results.xml"
+        }
+      ],
+      [
+        "line",
+        null
       ]
     ],
     "reportSlowTests": {
@@ -37,7 +47,7 @@
       {
         "outputDir": "E:/OLDDATA/DATA/TESTING/AutomationTesting/playwright-converted/test-results/api",
         "repeatEach": 1,
-        "retries": 3,
+        "retries": 2,
         "metadata": {
           "actualWorkers": 1
         },
@@ -48,7 +58,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 15000
+        "timeout": 30000
       }
     ],
     "shard": null,
@@ -69,7 +79,7 @@
         {
           "title": "Restful Booker API - Booking Endpoints",
           "file": "restful-booker.spec.ts",
-          "line": 28,
+          "line": 26,
           "column": 13,
           "specs": [
             {
@@ -78,7 +88,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -88,12 +98,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1347,
+                      "duration": 1422,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:51.724Z",
+                      "startTime": "2025-06-22T03:43:06.695Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -103,7 +113,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-9177620666da4c495162",
               "file": "restful-booker.spec.ts",
-              "line": 30,
+              "line": 27,
               "column": 5
             },
             {
@@ -112,7 +122,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -122,12 +132,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 263,
+                      "duration": 276,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:53.080Z",
+                      "startTime": "2025-06-22T03:43:08.126Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -137,7 +147,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-ebcf5061bbb6ad87c5a7",
               "file": "restful-booker.spec.ts",
-              "line": 43,
+              "line": 34,
               "column": 5
             },
             {
@@ -146,7 +156,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -156,12 +166,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 526,
+                      "duration": 548,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:53.347Z",
+                      "startTime": "2025-06-22T03:43:08.406Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -171,7 +181,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-95feffb0d81c5daf6b1e",
               "file": "restful-booker.spec.ts",
-              "line": 56,
+              "line": 41,
               "column": 5
             },
             {
@@ -180,7 +190,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -190,12 +200,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 260,
+                      "duration": 281,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:53.876Z",
+                      "startTime": "2025-06-22T03:43:08.957Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -205,7 +215,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-dc7ec2529b17c588b6ae",
               "file": "restful-booker.spec.ts",
-              "line": 83,
+              "line": 54,
               "column": 5
             },
             {
@@ -214,7 +224,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -224,12 +234,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 258,
+                      "duration": 274,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:54.139Z",
+                      "startTime": "2025-06-22T03:43:09.242Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -239,7 +249,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-7b884de34a985abc6812",
               "file": "restful-booker.spec.ts",
-              "line": 110,
+              "line": 70,
               "column": 5
             }
           ]
@@ -247,7 +257,7 @@
         {
           "title": "Restful Booker API - Authentication",
           "file": "restful-booker.spec.ts",
-          "line": 119,
+          "line": 79,
           "column": 13,
           "specs": [
             {
@@ -256,7 +266,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -266,12 +276,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 262,
+                      "duration": 277,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:54.400Z",
+                      "startTime": "2025-06-22T03:43:09.521Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -281,7 +291,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-aeccc96d0b6da483b91b",
               "file": "restful-booker.spec.ts",
-              "line": 120,
+              "line": 80,
               "column": 5
             }
           ]
@@ -289,7 +299,7 @@
         {
           "title": "Restful Booker API - Full Booking Lifecycle",
           "file": "restful-booker.spec.ts",
-          "line": 136,
+          "line": 90,
           "column": 13,
           "specs": [
             {
@@ -298,7 +308,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -308,12 +318,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 263,
+                      "duration": 274,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:54.665Z",
+                      "startTime": "2025-06-22T03:43:09.800Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -323,7 +333,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-99ab9622f0dc450a0b47",
               "file": "restful-booker.spec.ts",
-              "line": 163,
+              "line": 108,
               "column": 5
             },
             {
@@ -332,7 +342,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -342,12 +352,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 263,
+                      "duration": 276,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:55.446Z",
+                      "startTime": "2025-06-22T03:43:10.625Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -357,7 +367,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-ddd2cb12267d8761d4ea",
               "file": "restful-booker.spec.ts",
-              "line": 188,
+              "line": 124,
               "column": 5
             },
             {
@@ -366,7 +376,7 @@
               "tags": [],
               "tests": [
                 {
-                  "timeout": 15000,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "api",
@@ -376,16 +386,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 509,
+                      "duration": 542,
                       "errors": [],
-                      "stdout": [
-                        {
-                          "text": "Note: Delete operation returned 403 Forbidden. This is expected in some test environments.\n"
-                        }
-                      ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-06-22T03:15:55.713Z",
+                      "startTime": "2025-06-22T03:43:10.905Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -395,7 +401,7 @@
               ],
               "id": "9dc8e450f4633cddfc73-9bdf05515161c085a672",
               "file": "restful-booker.spec.ts",
-              "line": 205,
+              "line": 133,
               "column": 5
             }
           ]
@@ -405,8 +411,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-06-22T03:15:51.015Z",
-    "duration": 5223.83,
+    "startTime": "2025-06-22T03:43:05.990Z",
+    "duration": 5468.384999999999,
     "expected": 9,
     "skipped": 0,
     "unexpected": 0,

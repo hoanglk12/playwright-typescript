@@ -1,114 +1,79 @@
-name: API Tests
+name: Playwright Tests
 
 on:
   push:
     branches: [ main, master, develop ]
-    paths:
-      - 'src/api/**'
-      - 'tests/api/**'
-      - 'api.config.ts'
-      - 'package.json'
-      - '.github/workflows/api-tests.yml'
   pull_request:
     branches: [ main, master, develop ]
-    paths:
-      - 'src/api/**'
-      - 'tests/api/**'
-      - 'api.config.ts'
-      - 'package.json'
-      - '.github/workflows/api-tests.yml'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to run tests against'
-        required: true
-        default: 'testing'
-        type: choice
-        options:
-          - testing
-          - staging
-          - production
 
 jobs:
-  api-test:
+  ui-test:
+    name: UI Tests
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: npm ci
-        
-    - name: Create environment file
-      run: |
-        cp .env.example .env.testing
-        echo "NODE_ENV=${{ github.event.inputs.environment || 'testing' }}" >> .env.testing
-        echo "API_BASE_URL=https://restful-booker.herokuapp.com" >> .env.testing
-        echo "CI=true" >> .env.testing
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Run API tests
-      env:
-        NODE_ENV: ${{ github.event.inputs.environment || 'testing' }}
-      run: npm run test:api:serial
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Upload API Report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: api-report
-        path: api-report/
-        retention-days: 30
+      - name: Run UI tests
+        run: npx playwright test # or your custom UI test command
 
-    - name: Upload API Test Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: api-test-results
-        path: |
-          test-results/api/
-          api-results/
-        retention-days: 30
+      - name: Upload UI Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-test-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 30
 
-  publish-api-report:
-    name: Publish API HTML Report
-    if: always()
-    needs: api-test
+  api-test:
+    name: API Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: api-report
-        path: api-report
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Publish HTML Report
-      uses: peaceiris/actions-gh-pages@v3
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./api-report
-        destination_dir: api-reports/${{ github.run_number }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-  notify:
-    name: Notification
-    if: always()
-    needs: api-test
-    runs-on: ubuntu-latest
-    steps:
-    - name: Notify on Success
-      if: needs.api-test.result == 'success'
-      run: echo "✅ All API tests passed successfully!"
-      
-    - name: Notify on Failure
-      if: needs.api-test.result == 'failure'
-      run: |
-        echo "❌ API Tests failed!"
-        echo "Check the test reports for details."
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Make API test scripts executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./run-api-tests-nonparallel.sh
+
+      - name: Run API tests (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: ./run-api-tests-nonparallel.sh
+
+      - name: Run API tests (Windows)
+        if: runner.os == 'Windows'
+        run: ./run-api-tests-serial.bat
+
+      - name: Upload API Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-test-results
+          path: |
+            test-results/api/
+            api-results/
+            api-report/
+          retention-days: 30
