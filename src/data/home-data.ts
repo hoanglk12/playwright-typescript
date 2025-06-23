@@ -1,46 +1,9 @@
-/**
- * Test data for CMS admin application
- */
-export const AdminTestData = {
-  // Valid test credentials (these would be generated during registration)
-  validCredentials: {
-    userId: '', // Will be populated during test execution
-    password: '', // Will be populated during test execution
-  },
 
-  // Invalid credentials for negative testing
-  invalidCredentials: {
-    invalidUserId: 'invalid123',
-    invalidPassword: 'invalid123',
-    emptyUserId: '',
-    emptyPassword: '',
-  },
-
- 
-
-  // Expected messages
-  expectedMessages: {
-    loginSuccess: 'Welcome To Manager\'s Page of Guru99 Bank',
-    invalidLogin: 'User or Password is not valid',
-    registrationSuccess: 'Access details to guru99 Bank',
-    customerAddedSuccess: 'Customer Registered Successfully!!!',
-    accountCreatedSuccess: 'Account Generated Successfully!!!',
-    errorLogin: 'Your sign-in attempt was not successful. Please try again.'
-  },
-
-  // URLs
-  urls: {
-    homePage: '/',
-    loginPage: '/',
-    registerPage: '/manager/gtm_manager.php',
-    managerPage: '/manager/Managerhomepage.php',
-  },
-};
 
 /**
  * Generate random test data
  */
-export class AdminTestDataGenerator {
+export class HomeTestDataGenerator {
   
   /**
    * Generate random email
@@ -94,7 +57,24 @@ export class AdminTestDataGenerator {
 /**
  * Admin data for BankGuru application
  */
-export const AdminData = {
+export const HeaderData = {
+  VALID_ADMIN: {
+    username: 'mngr586899',
+    password: 'YzEhaqY'
+  },
+  
+  INVALID_ADMIN: {
+    username: 'invaliduser123',
+    password: 'invalidpass123'
+  },
+  
+  EMPTY_CREDENTIALS: {
+    username: '',
+    password: ''
+  }
+};
+
+export const FooterData = {
   VALID_ADMIN: {
     username: 'mngr586899',
     password: 'YzEhaqY'

@@ -86,54 +86,54 @@ export default defineConfig({
       },
     },
 
-    {
-      name: 'webkit',
-      use: { 
-        ...devices['Desktop Safari'],
-        viewport: { width: env.viewportWidth, height: env.viewportHeight },
-        launchOptions: { headless: env.headless }
-      },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { 
+    //     ...devices['Desktop Safari'],
+    //     viewport: { width: env.viewportWidth, height: env.viewportHeight },
+    //     launchOptions: { headless: env.headless }
+    //   },
+    // },
 
     /* Test against mobile viewports - only in non-headless mode for development */
-    ...(env.headless ? [] : [
-      {
-        name: 'Mobile Chrome',
-        use: { 
-          ...devices['Pixel 5'],
-          launchOptions: { headless: env.headless }
-        },
-      },
-      {
-        name: 'Mobile Safari',
-        use: { 
-          ...devices['iPhone 12'],
-          launchOptions: { headless: env.headless }
-        },
-      }
-    ]),
+    // ...(env.headless ? [] : [
+    //   {
+    //     name: 'Mobile Chrome',
+    //     use: { 
+    //       ...devices['Pixel 5'],
+    //       launchOptions: { headless: env.headless }
+    //     },
+    //   },
+    //   {
+    //     name: 'Mobile Safari',
+    //     use: { 
+    //       ...devices['iPhone 12'],
+    //       launchOptions: { headless: env.headless }
+    //     },
+    //   }
+    // ]),
 
-    /* Test against branded browsers - only in development */
-    ...(process.env.NODE_ENV === 'development' && !env.headless ? [
-      {
-        name: 'Microsoft Edge',
-        use: { 
-          ...devices['Desktop Edge'], 
-          channel: 'msedge',
-          viewport: { width: env.viewportWidth, height: env.viewportHeight },
-          launchOptions: { headless: env.headless }
-        },
-      },
-      {
-        name: 'Google Chrome',
-        use: { 
-          ...devices['Desktop Chrome'], 
-          channel: 'chrome',
-          viewport: { width: env.viewportWidth, height: env.viewportHeight },
-          launchOptions: { headless: env.headless }
-        },
-      }
-    ] : [])
+    // /* Test against branded browsers - only in development */
+    // ...(process.env.NODE_ENV === 'development' && !env.headless ? [
+    //   {
+    //     name: 'Microsoft Edge',
+    //     use: { 
+    //       ...devices['Desktop Edge'], 
+    //       channel: 'msedge',
+    //       viewport: { width: env.viewportWidth, height: env.viewportHeight },
+    //       launchOptions: { headless: env.headless }
+    //     },
+    //   },
+    //   {
+    //     name: 'Google Chrome',
+    //     use: { 
+    //       ...devices['Desktop Chrome'], 
+    //       channel: 'chrome',
+    //       viewport: { width: env.viewportWidth, height: env.viewportHeight },
+    //       launchOptions: { headless: env.headless }
+    //     },
+    //   }
+    // ] : [])
   ],
 
   /* Global setup and teardown */

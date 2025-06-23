@@ -78,11 +78,23 @@ function getEnvironmentFromEnvVars(): Environment {
     timeout: parseInt(process.env.TIMEOUT || '30000'),
     retries: parseInt(process.env.RETRIES || '2'),
     headless: process.env.HEADLESS === 'true',
-    parallelWorkers: process.env.WORKERS ? 
-                    process.env.WORKERS === '50%' || process.env.WORKERS === '50%%' ? 
-                    Math.max(Math.floor(require('os').cpus().length / 2), 1) : 
-                    parseInt(process.env.PARALLEL_WORKERS || '4') : 
-                    parseInt(process.env.PARALLEL_WORKERS || '4'),
+    parallelWorkers: (() => {
+      // Check if WORKERS environment variable is set
+      if (process.env.WORKERS) {
+        // If set to 50%, use half of available CPU cores (minimum 1)
+        if (process.env.WORKERS === '50%') {
+          return Math.max(Math.floor(require('os').cpus().length / 2), 1);
+        }
+        // If set to a number, parse it
+        const workersNum = parseInt(process.env.WORKERS);
+        if (!isNaN(workersNum) && workersNum > 0) {
+          return workersNum;
+        }
+      }
+      
+      // Fallback to PARALLEL_WORKERS or default to 4
+      return parseInt(process.env.PARALLEL_WORKERS || '4');
+    })(),
     
     // Browser Configuration
     defaultBrowser: process.env.DEFAULT_BROWSER || 'chromium',

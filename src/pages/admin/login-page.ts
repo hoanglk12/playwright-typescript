@@ -11,7 +11,7 @@ export class LoginPage extends BasePage {
   private readonly passwordInput: Locator;
   private readonly loginButton: Locator;
   private readonly homeIcon: Locator;
-
+  private readonly errorPopup: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -19,6 +19,7 @@ export class LoginPage extends BasePage {
     this.passwordInput = page.locator('#Login1_Password');
     this.loginButton = page.locator('#Login1_LoginButton');
     this.homeIcon = page.locator('#js-nav-breadcrumb i');
+    this.errorPopup = page.locator('#Login1_pnlContainer > div.alert.alert-error'); // Adjust selector based on actual error popup
   }
   /**
    * Navigate to LoginPage login page
@@ -63,6 +64,29 @@ export class LoginPage extends BasePage {
     }
   }
 
-  
+   /**
+   * Retrieve the error message  from popup 
+   */
+ /**
+ * Retrieve the error message from popup 
+ */
+async getErrorMessageFromPopup(): Promise<string | null> {
+  try {
+    
+    
+    // Wait for popup to appear
+    await this.errorPopup.waitFor({ state: 'visible', timeout: 5000 });
+    
+    // Get the text content of the popup
+    const popupText = await this.errorPopup.textContent();
+    
+    // Return the error message text, trimmed of whitespace
+    return popupText?.trim() || null;
+  } catch (error) {
+    // Return null if popup is not found or timeout occurs
+    return null;
+  }
+}
+
 }
 
