@@ -3,10 +3,15 @@ import path from 'path';
 import { chromium, firefox, webkit } from '@playwright/test';
 import { getEnvironment } from './environment';
 import type { Environment } from './environment';
+import { TestLogger } from '../utils/test-logger';
 
 async function globalSetup() {
   console.log('🚀 Starting Global Setup...\n');
+  // Clear all logs before starting test execution
+  TestLogger.clearLogs();
   
+  // Initialize logging session
+  TestLogger.initializeLogging();
   // Load environment configuration
   const environment = getEnvironment();
   console.log(`📋 Environment: ${process.env}`);
