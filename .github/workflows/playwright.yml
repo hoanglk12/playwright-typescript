@@ -6,12 +6,77 @@ on:
   pull_request:
     branches: [ main, master, develop ]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Test environment'
+        required: false
+        default: 'testing'
+        type: choice
+        options:
+          - testing
+          - staging
+          - production
+      mode:
+        description: 'Test execution mode'
+        required: false
+        default: 'parallel'
+        type: choice
+        options:
+          - parallel
+          - serial
+      workers:
+        description: 'Number of workers (for parallel mode)'
+        required: false
+        default: '4'
+        type: string
+      browser:
+        description: 'Browser to test with'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chromium
+          - firefox
+          - webkit
+      test_type:
+        description: 'Type of tests to run'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - ui
+          - api
+
+env:
+  TEST_ENV: ${{ inputs.environment || 'testing' }}
+  TEST_MODE: ${{ inputs.mode || 'parallel' }}
+  TEST_WORKERS: ${{ inputs.workers || '4' }}  
+  TEST_BROWSER: ${{ inputs.browser || 'all' }}
+  TEST_TYPE: ${{ inputs.test_type || 'both' }}
 
 jobs:
   ui-test:
-    name: UI Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: UI Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    if: ${{ inputs.test_type != 'api' }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            shell: bash
+            script_ext: sh
+          - os: windows-latest
+            shell: cmd
+            script_ext: bat
+          - os: macos-latest
+            shell: bash
+            script_ext: sh
+      fail-fast: false
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,29 +87,78 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            %USERPROFILE%\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install dependencies
         run: npm ci
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run UI tests
-        run: npx playwright test # or your custom UI test command
+      - name: Make UI test scripts executable (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x ./run-ui-tests.sh
+          chmod +x ./run-api-tests-nonparallel.sh
+
+      - name: Display test configuration
+        run: |
+          echo "Test Environment: ${{ env.TEST_ENV }}"
+          echo "Test Mode: ${{ env.TEST_MODE }}"
+          echo "Workers: ${{ env.TEST_WORKERS }}"
+          echo "Browser: ${{ env.TEST_BROWSER }}"
+          echo "OS: ${{ runner.os }}"
+
+      - name: Run UI tests (Unix)
+        if: runner.os != 'Windows'
+        run: ./run-ui-tests.sh ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }}
+        env:
+          BROWSER: ${{ env.TEST_BROWSER }}
+
+      - name: Run UI tests (Windows)
+        if: runner.os == 'Windows'
+        run: ./run-ui-tests.bat ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }}
+        shell: cmd
+        env:
+          BROWSER: ${{ env.TEST_BROWSER }}
 
       - name: Upload UI Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ui-test-results
+          name: ui-test-results-${{ runner.os }}-${{ env.TEST_ENV }}-${{ env.TEST_MODE }}
           path: |
             test-results/
             playwright-report/
+            screenshots/
+            videos/
           retention-days: 30
+
+      - name: Upload Test Summary
+        if: always()
+        run: |
+          echo "## UI Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ env.TEST_ENV }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Mode**: ${{ env.TEST_MODE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workers**: ${{ env.TEST_WORKERS }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Browser**: ${{ env.TEST_BROWSER }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS**: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 
   api-test:
     name: API Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: ${{ inputs.test_type != 'ui' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -59,24 +173,122 @@ jobs:
         run: npm ci
 
       - name: Make API test scripts executable
-        if: runner.os != 'Windows'
         run: chmod +x ./run-api-tests-nonparallel.sh
 
-      - name: Run API tests (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: ./run-api-tests-nonparallel.sh
+      - name: Display API test configuration
+        run: |
+          echo "API Test Environment: ${{ env.TEST_ENV }}"
+          echo "API Base URL: ${API_BASE_URL:-'https://restful-booker.herokuapp.com'}"
+          echo "Execution: Serial (1 worker)"
 
-      - name: Run API tests (Windows)
-        if: runner.os == 'Windows'
-        run: ./run-api-tests-serial.bat
+      - name: Run API tests
+        run: ./run-api-tests-nonparallel.sh
+        env:
+          API_ENV: ${{ env.TEST_ENV }}
 
       - name: Upload API Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: api-test-results
+          name: api-test-results-${{ env.TEST_ENV }}
           path: |
             test-results/api/
             api-results/
             api-report/
+            playwright-report/
           retention-days: 30
+
+      - name: Upload API Test Summary
+        if: always()
+        run: |
+          echo "## API Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ env.TEST_ENV }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Execution**: Serial (1 worker)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  test-report:
+    name: Generate Combined Test Report
+    runs-on: ubuntu-latest
+    needs: [ui-test, api-test]
+    if: always() && (needs.ui-test.result != 'skipped' || needs.api-test.result != 'skipped')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download UI test artifacts
+        uses: actions/download-artifact@v4
+        if: needs.ui-test.result != 'skipped'
+        with:
+          pattern: ui-test-results-*
+          merge-multiple: true
+          path: ./combined-results/ui/
+
+      - name: Download API test artifacts
+        uses: actions/download-artifact@v4
+        if: needs.api-test.result != 'skipped'
+        with:
+          pattern: api-test-results-*
+          merge-multiple: true
+          path: ./combined-results/api/
+
+      - name: Generate combined report
+        run: |
+          mkdir -p ./combined-report
+          echo "<!DOCTYPE html><html><head><title>Test Results</title></head><body>" > ./combined-report/index.html
+          echo "<h1>Playwright Test Results</h1>" >> ./combined-report/index.html
+          echo "<h2>Test Configuration</h2>" >> ./combined-report/index.html
+          echo "<ul>" >> ./combined-report/index.html
+          echo "<li>Environment: ${{ env.TEST_ENV }}</li>" >> ./combined-report/index.html
+          echo "<li>Mode: ${{ env.TEST_MODE }}</li>" >> ./combined-report/index.html
+          echo "<li>Workers: ${{ env.TEST_WORKERS }}</li>" >> ./combined-report/index.html
+          echo "<li>Browser: ${{ env.TEST_BROWSER }}</li>" >> ./combined-report/index.html
+          echo "<li>Timestamp: $(date)</li>" >> ./combined-report/index.html
+          echo "</ul>" >> ./combined-report/index.html
+          
+          if [ -d "./combined-results/ui" ]; then
+            echo "<h2>UI Test Results</h2>" >> ./combined-report/index.html
+            echo "<p>UI tests completed. Check artifacts for detailed reports.</p>" >> ./combined-report/index.html
+          fi
+          
+          if [ -d "./combined-results/api" ]; then
+            echo "<h2>API Test Results</h2>" >> ./combined-report/index.html
+            echo "<p>API tests completed. Check artifacts for detailed reports.</p>" >> ./combined-report/index.html
+          fi
+          
+          echo "</body></html>" >> ./combined-report/index.html
+
+      - name: Upload combined report
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-test-report-${{ env.TEST_ENV }}
+          path: |
+            ./combined-report/
+            ./combined-results/
+          retention-days: 30
+
+  notify-results:
+    name: Notify Test Results
+    runs-on: ubuntu-latest
+    needs: [ui-test, api-test, test-report]
+    if: always()
+    steps:
+      - name: Generate notification summary
+        run: |
+          echo "## 🎭 Playwright Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ env.TEST_ENV }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Mode**: ${{ env.TEST_MODE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workers**: ${{ env.TEST_WORKERS }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Browser**: ${{ env.TEST_BROWSER }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Type**: ${{ env.TEST_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **UI Tests**: ${{ needs.ui-test.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Tests**: ${{ needs.api-test.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Combined Report**: ${{ needs.test-report.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Test results are available in the Actions artifacts section" >> $GITHUB_STEP_SUMMARY
+          echo "- Reports include screenshots, videos, and HTML reports" >> $GITHUB_STEP_SUMMARY
+          echo "- Retention period: 30 days" >> $GITHUB_STEP_SUMMARY

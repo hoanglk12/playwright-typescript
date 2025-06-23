@@ -103,10 +103,6 @@ npm run test:headed
 # Run tests in debug mode
 npm run test:debug
 
-# Run specific test suite
-npm run test:bankguru
-npm run test:nopcommerce
-
 # Run on specific browser
 npx playwright test --project=chromium
 npx playwright test --project=firefox
@@ -258,14 +254,6 @@ npm run test:development  # Uses .env.development
 npm run test:staging      # Uses .env.staging
 npm run test:production   # Uses .env.production
 
-# Combine with application-specific tests
-npm run test:bankguru:testing
-npm run test:bankguru:dev
-npm run test:bankguru:staging
-
-npm run test:nopcommerce:testing
-npm run test:nopcommerce:dev
-npm run test:nopcommerce:staging
 ```
 
 ## 🔧 Configuration
@@ -343,8 +331,6 @@ export class SamplePage extends BasePage {
 
 The framework provides pre-configured page fixtures:
 
-- `bankGuruPage`: Pre-navigated to BankGuru application
-- `nopCommercePage`: Pre-navigated to NopCommerce application
 - `adminPage`: Pre-navigated to admin panel
 - `environment`: Current environment configuration
 
@@ -373,8 +359,39 @@ GitHub Actions automatically:
 - Publishes HTML reports to GitHub Pages
 - Sends notifications on failure
 
+### Run with .bat/.sh
+**Specify the mode: serial or parallel**
+**Linux/Mac:**
+```bash
+# Parallel mode (default) - 4 workers
+./run-ui-tests.sh staging
 
+# Parallel mode - custom workers
+./run-ui-tests.sh staging parallel 2
 
+# Serial mode
+./run-ui-tests.sh staging serial
+
+# Testing environment, parallel, 6 workers
+./run-ui-tests.sh testing parallel 6
+
+```
+
+**Windows:**
+```bash
+# Parallel mode (default) - 4 workers
+run-ui-tests.bat staging
+
+# Parallel mode - custom workers
+run-ui-tests.bat staging parallel 2
+
+# Serial mode
+run-ui-tests.bat staging serial
+
+# Testing environment, parallel, 6 workers
+run-ui-tests.bat testing parallel 6
+
+```
 
 ### 🎯 Best Practices
 
@@ -568,11 +585,6 @@ PARALLEL_WORKERS=1        # Serial for critical validation
 - `npm run test:development` - Development environment
 - `npm run test:staging` - Staging environment validation
 - `npm run test:production` - Production smoke tests
-
-#### By Application
-- `npm run test:bankguru` - BankGuru application tests
-- `npm run test:nopcommerce` - NopCommerce platform tests
-- Combined: `npm run test:bankguru:staging`
 
 #### By Browser
 - `npm run test:chromium` - Chrome/Chromium testing

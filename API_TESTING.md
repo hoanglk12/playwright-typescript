@@ -1,195 +1,191 @@
-# API Testing Framework
+# API Testing Guide
 
-This section outlines the API testing capabilities integrated into the Playwright test framework.
+This guide explains how to run API tests in different environments using the provided scripts.
 
-## Features
+## Overview
 
-- **Full HTTP Method Support**: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
-- **Authentication**: Basic Auth, Bearer Token, API Key, and Custom Headers
-- **Response Validation**: Status codes, JSON body validation, header validation
-- **Data Extraction**: Easy extraction from JSON responses
-- **Token Management**: Token sharing between tests
-- **Parallel Execution**: Run API tests in parallel for faster execution
-- **Separate Reporting**: Dedicated HTML reports for API tests
-- **CI/CD Integration**: GitHub Actions workflow for automated API testing
+The API test suite can be executed in non-parallel mode with a single worker to ensure consistent test execution. Tests can be run against different environments (testing, staging, production).
 
-## Getting Started
+## Prerequisites
 
-### Run API Tests
+- Node.js and npm installed
+- Playwright dependencies installed (`npm install`)
+- Environment-specific configuration in `api.config.ts`
 
+## Available Scripts
+
+### Linux/Mac (Shell Script)
+- `run-api-tests-nonparallel.sh`
+
+### Windows (Batch File)
+- `run-api-tests-nonparallel.bat`
+
+## Usage
+
+### Basic Usage (Default Environment: testing)
+
+**Linux/Mac:**
 ```bash
-# Run all API tests
-npm run test:api
-
-# Run API tests with debugging
-npm run test:api:debug
-
-# Run API tests with UI mode
-npm run test:api:ui
+./run-api-tests-nonparallel.sh
 ```
 
-### View API Test Reports
-
+**Windows:**
 ```bash
-# Open API test report in browser
-npm run report:api
+run-api-tests-nonparallel.bat
 ```
 
-## Directory Structure
+### Environment-Specific Usage
 
-```
-├── src/
-│   └── api/                # API testing utilities
-│       ├── ApiClient.ts    # Core API client
-│       ├── ApiResponse.ts  # Response wrapper
-│       ├── ApiClientExt.ts # Extended client with response wrappers
-│       ├── ApiTest.ts      # API test fixtures
-│       ├── services/       # API service implementations
-│       │   └── restful-booker/  # Restful Booker API service
-│       │       ├── RestfulBookerService.ts  # Service implementation
-│       │       ├── models.ts               # Data models
-│       │       └── index.ts                # Exports
-│       └── index.ts        # Export utilities
-├── tests/
-│   └── api/                # API test files
-│       ├── example.spec.ts # Basic examples
-│       ├── restful-booker.spec.ts # Restful Booker API tests
-└── api.config.ts           # API testing configuration
+**Linux/Mac:**
+```bash
+# Testing environment (default)
+./run-api-tests-nonparallel.sh testing
+
+# Staging environment
+./run-api-tests-nonparallel.sh staging
+
+# Production environment
+./run-api-tests-nonparallel.sh production
 ```
 
-## Creating API Tests
+**Windows:**
+```bash
+# Testing environment (default)
+run-api-tests-nonparallel.bat testing
 
-### Basic API Test
+# Staging environment
+run-api-tests-nonparallel.bat staging
 
-```typescript
-import { apiTest, expect } from '../../src/api';
-
-apiTest('should make a GET request', async ({ apiClientExt }) => {
-  const response = await apiClientExt.getWithWrapper('/users/1');
-  
-  await response.assertStatus(200);
-  await response.assertJsonPath('id', 1);
-  await response.assertJsonPath('name', expect.any(String));
-});
+# Production environment
+run-api-tests-nonparallel.bat production
 ```
 
-### Authenticated API Test
+### CI/CD Usage
 
-```typescript
-import { apiTest, AuthType } from '../../src/api';
+For CI environments, use the shell script with explicit environment:
 
-apiTest('should make authenticated request', async ({ createClientExt }) => {
-  // Create client with authentication
-  const client = await createClientExt({ 
-    authType: AuthType.BEARER,
-    token: 'your-token'
-  });
-  
-  const response = await client.getWithWrapper('/protected-endpoint');
-  await response.assertStatus(200);
-});
+```yaml
+# GitHub Actions example
+- name: Run API Tests
+  run: |
+    chmod +x ./run-api-tests-nonparallel.sh
+    ./run-api-tests-nonparallel.sh staging
+  shell: bash
 ```
 
-### Sharing Authentication Between Tests
-
-```typescript
-import { apiTest, AuthType } from '../../src/api';
-
-apiTest.describe('Auth tests', () => {
-  let authToken: string;
-  
-  apiTest.beforeAll(async ({ apiClientExt }) => {
-    // Login to get token
-    const loginResponse = await apiClientExt.postWithWrapper('/login', {
-      username: 'user',
-      password: 'pass'
-    });
-    
-    // Extract and store token
-    const data = await loginResponse.json();
-    authToken = data.token;
-    
-    // Store token for other tests
-    const ApiClient = require('../../src/api/ApiClient').ApiClient;
-    ApiClient.storeToken('user-auth', authToken);
-  });
-  
-  apiTest('use token in test', async ({ createClientExt }) => {
-    const client = await createClientExt({
-      authType: AuthType.BEARER,
-      token: authToken
-    });
-    
-    // Use authenticated client
-    const response = await client.getWithWrapper('/protected');
-    await response.assertStatus(200);
-  });
-});
+```yaml
+# GitLab CI example
+api_tests:
+  script:
+    - chmod +x ./run-api-tests-nonparallel.sh
+    - ./run-api-tests-nonparallel.sh $CI_ENVIRONMENT_NAME
 ```
-
-## API Services
-
-### Restful Booker API
-
-This project includes a complete implementation of the [Restful Booker API](https://restful-booker.herokuapp.com/apidoc/index.html) service.
-
-The Restful Booker API is used to demonstrate best practices for API testing and provides the following functionality:
-
-- **Authentication**: Token-based and Basic authentication
-- **Booking Management**: Create, read, update, and delete bookings 
-- **Health Check**: API health checking
-
-#### Using the Restful Booker Service
-
-```typescript
-import { apiTest } from '../../src/api';
-import { RestfulBookerService } from '../../src/api/services/restful-booker';
-
-// Create a test fixture with the service
-const bookingTest = apiTest.extend({
-  baseURL: async ({}, use) => {
-    await use('https://restful-booker.herokuapp.com');
-  },
-  bookingService: async ({ apiClient }, use) => {
-    const service = new RestfulBookerService(apiClient);
-    await use(service);
-  }
-});
-
-// Use the service in tests
-bookingTest('should get all bookings', async ({ bookingService }) => {
-  const response = await bookingService.getBookingIds();
-  await response.assertStatus(200);
-});
-```
-
-#### Available Operations
-
-- `authenticate(username, password)` - Get auth token
-- `getBookingIds(filters?)` - Get all booking IDs with optional filtering
-- `getBooking(id)` - Get a specific booking
-- `createBooking(booking)` - Create a new booking
-- `updateBooking(id, booking)` - Full update of a booking
-- `partialUpdateBooking(id, partialBooking)` - Partial update of a booking
-- `deleteBooking(id)` - Delete a booking
-- `healthCheck()` - Check API health
-
-The implementation includes comprehensive tests covering all endpoints and operations.
 
 ## Configuration
 
-The `api.config.ts` file contains the configuration for API testing:
+### Environment Variables
 
-- Different reporters for UI and API tests
-- Separate output directories 
-- Environment variable support
+The scripts set the `API_ENV` environment variable which is used by `api.config.ts` to determine the target API base URL.
 
-## CI/CD Integration
+### Supported Environments
 
-The API tests are automatically run in GitHub Actions:
+- `testing` - Default test environment
+- `staging` - Staging environment  
+- `production` - Production environment
 
-- On pushes/PRs that modify API-related files
-- On-demand via workflow dispatch
-- With environment selection
+### Base URLs Configuration
 
-The API test reports are published separately from UI test reports for clear separation of concerns.
+Update `api.config.ts` to configure environment-specific base URLs:
+
+```typescript
+function getBaseURL(env: string): string {
+  switch (env) {
+    case 'production':
+      return 'https://api.prod.example.com';
+    case 'staging':
+      return 'https://api.staging.example.com';
+    case 'testing':
+    default:
+      return 'https://api.testing.example.com';
+  }
+}
+```
+
+## Test Execution Details
+
+- **Workers**: 1 (non-parallel execution)
+- **Config**: `api.config.ts`
+- **Project**: `api`
+- **Mode**: Serial execution to avoid race conditions
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Permission denied (Linux/Mac)**
+   ```bash
+   chmod +x ./run-api-tests-nonparallel.sh
+   ```
+
+2. **Unknown option '--env'**
+   - Ensure `package.json` script doesn't include `--env` flag
+   - Use environment variables instead
+
+3. **Invalid environment**
+   - Check `api.config.ts` supports the specified environment
+   - Verify base URL configuration
+
+### Debug Mode
+
+To run tests with debug information:
+
+```bash
+# Linux/Mac
+DEBUG=pw:api ./run-api-tests-nonparallel.sh staging
+
+# Windows
+set DEBUG=pw:api && run-api-tests-nonparallel.bat staging
+```
+
+## Examples
+
+### Running Tests Against Staging
+```bash
+# This will:
+# 1. Set API_ENV=staging
+# 2. Use staging base URL from api.config.ts
+# 3. Run tests with single worker
+./run-api-tests-nonparallel.sh staging
+```
+
+### Expected Output
+```
+Running API tests in non-parallel mode with a single worker
+Environment: staging
+
+> playwright-bankguru-framework@1.0.0 test:api:serial
+> playwright test --config=api.config.ts --workers=1 --project=api
+
+Running 15 tests using 1 worker
+✓ API tests passed
+```
+
+## Best Practices
+
+1. **Use staging for pre-production testing**
+2. **Run production tests sparingly** to avoid impacting live systems
+3. **Include environment context** in CI/CD pipeline names
+4. **Validate environment configuration** before running tests
+5. **Use single worker mode** for API tests to prevent race conditions
+
+## Integration with npm Scripts
+
+The scripts utilize the `test:api:serial` npm script defined in `package.json`:
+
+```json
+{
+  "scripts": {
+    "test:api:serial": "playwright test --config=api.config.ts --workers=1 --project=api"
+  }
+}
+```

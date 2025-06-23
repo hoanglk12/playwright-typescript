@@ -39,6 +39,8 @@ export abstract class BasePage {
     await this.page.waitForSelector(selector, { state: 'visible', timeout });
   }
 
+
+
   /**
    * Wait for element to be clickable
    */
@@ -130,9 +132,302 @@ export abstract class BasePage {
   }
 
   /**
-   * Wait for page to load
+   * Wait for page to load with default networkidle state
    */
   async waitForPageLoad(): Promise<void> {
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Wait for page to load with specific load state
+   */
+  async waitForPageLoadState(state: 'load' | 'domcontentloaded' | 'networkidle' = 'networkidle'): Promise<void> {
+    await this.page.waitForLoadState(state);
+  }
+
+  /**
+   * Wait for DOM content to be loaded
+   */
+  async waitForDOMContentLoaded(): Promise<void> {
+    await this.page.waitForLoadState('domcontentloaded');
+  }
+
+  /**
+   * Wait for load event to be fired
+   */
+  async waitForLoadEvent(): Promise<void> {
+    await this.page.waitForLoadState('load');
+  }
+
+  /**
+   * Wait for network to be idle (no requests for 500ms)
+   */
+  async waitForNetworkIdle(): Promise<void> {
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Wait for multiple load states in sequence
+   */
+  async waitForMultipleLoadStates(states: Array<'load' | 'domcontentloaded' | 'networkidle'>): Promise<void> {
+    for (const state of states) {
+      await this.page.waitForLoadState(state);
+    }
+  }
+
+  /**
+   * Wait for page to be fully loaded (all states)
+   */
+  async waitForFullPageLoad(): Promise<void> {
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('load');
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Wait for page load with custom timeout
+   */
+  async waitForPageLoadWithTimeout(timeout: number = 30000, state: 'load' | 'domcontentloaded' | 'networkidle' = 'networkidle'): Promise<void> {
+    await this.page.waitForLoadState(state, { timeout });
+  }
+
+  /**
+   * Wait for page load and verify URL
+   */
+  async waitForPageLoadAndVerifyURL(expectedUrl: string | RegExp): Promise<void> {
+    await this.page.waitForLoadState('networkidle');
+    
+    if (typeof expectedUrl === 'string') {
+      await this.page.waitForURL(expectedUrl);
+    } else {
+      await this.page.waitForURL(expectedUrl);
+    }
+  }
+
+  /**
+   * Wait for specific element to be visible after page load
+   */
+  async waitForPageLoadWithElement(selector: string, loadState: 'load' | 'domcontentloaded' | 'networkidle' = 'domcontentloaded'): Promise<void> {
+    await this.page.waitForLoadState(loadState);
+    await this.waitForElement(selector);
+  }
+
+  /**
+   * Wait for page load and check if page is ready
+   */
+  async waitForPageReady(): Promise<boolean> {
+    try {
+      await this.page.waitForLoadState('domcontentloaded');
+      
+      // Check if document is ready
+      const isReady = await this.page.evaluate(() => {
+        return document.readyState === 'complete';
+      });
+      
+      if (!isReady) {
+        await this.page.waitForLoadState('load');
+      }
+      
+      await this.page.waitForLoadState('networkidle');
+      return true;
+    } catch (error) {
+      console.warn('Page load check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Wait for JavaScript to finish executing
+   */
+  async waitForJavaScriptReady(): Promise<void> {
+    await this.page.waitForFunction(() => {
+      return typeof window !== 'undefined' && 
+             window.document && 
+             window.document.readyState === 'complete';
+    });
+  }
+
+  /**
+   * Wait for jQuery to be ready (if using jQuery)
+   */
+  async waitForJQueryReady(): Promise<void> {
+    await this.page.waitForFunction(() => {
+      return (window as any).jQuery && (window as any).jQuery.active === 0;
+    }, { timeout: 10000 });
+  }
+
+  /**
+   * Wait for Angular to be ready (if using Angular)
+   */
+  async waitForAngularReady(): Promise<void> {
+    await this.page.waitForFunction(() => {
+      const ng = (window as any).angular;
+      if (!ng) return true;
+      
+      const injector = ng.element(document.body).injector();
+      if (!injector) return true;
+      
+      const $http = injector.get('$http');
+      return $http.pendingRequests.length === 0;
+    }, { timeout: 10000 });
+  }
+
+  /**
+   * Wait for React to be ready (if using React)
+   */
+  async waitForReactReady(): Promise<void> {
+    await this.page.waitForFunction(() => {
+      return (window as any).React !== undefined;
+    }, { timeout: 10000 });
+  }
+
+  /**
+   * Wait for specific JavaScript variable to be defined
+   */
+  async waitForJavaScriptVariable(variableName: string, timeout: number = 10000): Promise<void> {
+    await this.page.waitForFunction((varName) => {
+      return (window as any)[varName] !== undefined;
+    }, variableName, { timeout });
+  }
+
+  /**
+   * Wait for AJAX requests to complete
+   */
+  // async waitForAjaxRequestsComplete(): Promise<void> {
+  //   await this.page.waitForFunction(() => {
+  //     // Check for jQuery AJAX
+  //     if ((window as any).jQuery) {
+  //       return (window as any).jQuery.active === 0;
+  //     }
+      
+  //     // Check for XMLHttpRequest
+  //     const originalOpen = XMLHttpRequest.prototype.open;
+  //     let activeRequests = 0;
+      
+  //     XMLHttpRequest.prototype.open = function(...args) {
+  //       activeRequests++;
+  //       this.addEventListener('loadend', () => activeRequests--);
+  //       return originalOpen.apply(this, args);
+  //     };
+      
+  //     return activeRequests === 0;
+  //   }, { timeout: 30000 });
+  // }
+
+  /**
+   * Wait for all images to load
+   */
+  async waitForAllImagesLoaded(): Promise<void> {
+    await this.page.waitForFunction(() => {
+      const images = Array.from(document.images);
+      return images.every(img => img.complete && img.naturalHeight !== 0);
+    }, { timeout: 30000 });
+  }
+
+  /**
+   * Wait for specific CSS class to be present
+   */
+  // async waitForCSSClass(selector: string, className: string): Promise<void> {
+  //   await this.page.waitForFunction(
+  //     ({ sel, cls }) => {
+  //       const element = document.querySelector(sel);
+  //       return element && element.classList.contains(cls);
+  //     },
+  //     { selector, className },
+  //     { timeout: 10000 }
+  //   );
+  // }
+
+  /**
+   * Wait for page load with loading indicator
+   */
+  async waitForPageLoadWithSpinner(spinnerSelector: string = '.loading, .spinner, [data-loading]'): Promise<void> {
+    // Wait for DOM content first
+    await this.page.waitForLoadState('domcontentloaded');
+    
+    try {
+      // Wait for spinner to disappear
+      await this.page.waitForSelector(spinnerSelector, { state: 'hidden', timeout: 30000 });
+    } catch {
+      // If no spinner found, continue with normal loading
+      console.log('No loading spinner found, proceeding with normal page load');
+    }
+    
+    // Wait for network to be idle
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Wait for custom loading condition
+   */
+  async waitForCustomCondition(
+    condition: () => Promise<boolean> | boolean,
+    options: { timeout?: number; interval?: number } = {}
+  ): Promise<void> {
+    const { timeout = 30000, interval = 100 } = options;
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < timeout) {
+      try {
+        const result = await condition();
+        if (result) {
+          return;
+        }
+      } catch (error) {
+        // Continue polling
+      }
+      
+      await this.sleep(interval);
+    }
+    
+    throw new Error(`Custom condition not met within ${timeout}ms`);
+  }
+
+  /**
+   * Comprehensive page load with multiple checks
+   */
+  async waitForCompletePageLoad(options: {
+    waitForImages?: boolean;
+    waitForFonts?: boolean;
+    waitForAjax?: boolean;
+    customSpinner?: string;
+    timeout?: number;
+  } = {}): Promise<void> {
+    const {
+      waitForImages = false,
+      waitForFonts = false,
+      waitForAjax = false,
+      customSpinner,
+      timeout = 30000
+    } = options;
+    
+    // Set page timeout
+    this.page.setDefaultTimeout(timeout);
+    
+    // Wait for basic page load states
+    await this.waitForFullPageLoad();
+    
+    // Wait for custom spinner if provided
+    if (customSpinner) {
+      await this.waitForPageLoadWithSpinner(customSpinner);
+    }
+    
+    // Wait for images if requested
+    if (waitForImages) {
+      await this.waitForAllImagesLoaded();
+    }
+    
+    // Wait for fonts if requested
+    if (waitForFonts) {
+      await this.page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+    }
+    
+    // Wait for AJAX if requested
+    if (waitForAjax) {
+      await this.waitForAjaxRequestsComplete();
+    }
+    
+    // Final network idle check
     await this.page.waitForLoadState('networkidle');
   }
 
@@ -142,6 +437,109 @@ export abstract class BasePage {
   async sleep(milliseconds: number): Promise<void> {
     await this.page.waitForTimeout(milliseconds);
   }
+
+  /**
+   * Upload single file to input element
+   */
+  async uploadFile(selector: string, filePath: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.setInputFiles(selector, filePath);
+  }
+
+  /**
+   * Upload multiple files to input element
+   */
+  async uploadMultipleFiles(selector: string, filePaths: string[]): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.setInputFiles(selector, filePaths);
+  }
+
+  /**
+   * Clear uploaded files from input element
+   */
+  async clearUploadedFiles(selector: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.setInputFiles(selector, []);
+  }
+
+  /**
+   * Upload file and verify it was uploaded successfully
+   */
+  async uploadFileWithVerification(selector: string, filePath: string): Promise<boolean> {
+    try {
+      await this.waitForElement(selector);
+      await this.page.setInputFiles(selector, filePath);
+      
+      // Verify file was uploaded by checking the input's files property
+      const uploadedFiles = await this.page.inputValue(selector);
+      return uploadedFiles.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get names of uploaded files from file input element
+   */
+  async getUploadedFileNames(selector: string): Promise<string[]> {
+    try {
+      await this.waitForElement(selector);
+      return await this.page.evaluate((sel: string): string[] => {
+        const element = document.querySelector(sel);
+        if (element && (element as any).type === 'file' && (element as any).files) {
+          const input = element as any;
+          return Array.from(input.files).map((file: any) => file.name);
+        }
+        return [];
+      }, selector);
+    } catch (error) {
+      console.warn(`Failed to get uploaded file names for selector: ${selector}`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if file input accepts specific file types
+   */
+  async getAcceptedFileTypes(selector: string): Promise<string | null> {
+    await this.waitForElement(selector);
+    return await this.getAttribute(selector, 'accept');
+  }
+
+  /**
+   * Upload file using drag and drop
+   */
+  async uploadFileByDragDrop(dropZoneSelector: string, filePath: string): Promise<void> {
+    try {
+      await this.waitForElement(dropZoneSelector);
+      
+      // Create a file input element and set the file
+      const fileInput = await this.page.evaluateHandle(() => {
+        const input = (document as any).createElement('input') as any;
+        input.type = 'file';
+        input.style.display = 'none';
+        (document as any).body.appendChild(input);
+        return input;
+      });
+      
+      await fileInput.asElement()?.setInputFiles(filePath);
+      
+      // Get files from the input
+      const files = await fileInput.evaluate((input: any) => input.files);
+      
+      // Simulate drag and drop
+      await this.page.dispatchEvent(dropZoneSelector, 'drop', {
+        dataTransfer: { files }
+      });
+      
+      // Clean up
+      await fileInput.evaluate((input: any) => input.remove());
+    } catch (error) {
+      console.warn(`Failed to upload file by drag and drop: ${error}`);
+      throw error;
+    }
+  }
+
 
   /**
    * Refresh the page
@@ -164,5 +562,149 @@ export abstract class BasePage {
    */
   generateRandomNumber(min: number = 1000, max: number = 9999): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  /**
+   * Convert RGB color values to hex format
+   */
+  protected rgbToHex(r: number, g: number, b: number): string {
+    const toHex = (n: number): string => {
+      const hex = Math.round(Math.max(0, Math.min(255, n))).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toLowerCase();
+  }
+
+  /**
+   * Convert CSS color string (rgb/rgba) to hex format
+   */
+  protected convertColorToHex(colorString: string): string {
+    // Handle rgb format: rgb(255, 255, 255)
+    const rgbMatch = colorString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (rgbMatch) {
+      return this.rgbToHex(
+        parseInt(rgbMatch[1]),
+        parseInt(rgbMatch[2]),
+        parseInt(rgbMatch[3])
+      );
+    }
+
+    // Handle rgba format: rgba(255, 255, 255, 0.5)
+    const rgbaMatch = colorString.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/);
+    if (rgbaMatch) {
+      return this.rgbToHex(
+        parseInt(rgbaMatch[1]),
+        parseInt(rgbaMatch[2]),
+        parseInt(rgbaMatch[3])
+      );
+    }
+
+    // Handle transparent
+    if (colorString === 'transparent' || colorString === 'rgba(0, 0, 0, 0)') {
+      return 'transparent';
+    }
+
+    // Handle hex colors (return as-is)
+    if (colorString.match(/^#[0-9a-f]{6}$/i)) {
+      return colorString.toLowerCase();
+    }
+
+    // Handle hex colors without # prefix
+    if (colorString.match(/^[0-9a-f]{6}$/i)) {
+      return `#${colorString.toLowerCase()}`;
+    }
+
+    // Return original value for named colors or unknown formats
+    return colorString;
+  }
+
+  /**
+   * Get element's background color in hex format
+   */
+  async getElementBackgroundColorHex(selector: string): Promise<string> {
+    await this.waitForElement(selector);
+    return await this.page.locator(selector).evaluate((el) => {
+      const backgroundColor = window.getComputedStyle(el).backgroundColor;
+      return backgroundColor;
+    }).then(color => this.convertColorToHex(color));
+  }
+
+  /**
+   * Get elements's background color in hex format
+   */
+  async getAllElementsBackgroundColorHex(selector:string): Promise<string[]> {
+  const elements = await this.page.locator(selector).all();
+    
+  const colors: string[] = [];
+  
+  for (const element of elements) {
+    const color = await element.evaluate(el => {
+      return window.getComputedStyle(el).backgroundColor;
+    });
+    colors.push(this.convertColorToHex(color));
+  }
+  
+  return colors;
+  }
+
+  /**
+   * Get element's text color in hex format
+   */
+  async getElementTextColorHex(selector: string): Promise<string> {
+    await this.waitForElement(selector);
+    return await this.page.locator(selector).evaluate((el) => {
+      const textColor = window.getComputedStyle(el).color;
+      return textColor;
+    }).then(color => this.convertColorToHex(color));
+  }
+
+  /**
+   * Get element's border color in hex format
+   */
+  async getElementBorderColorHex(selector: string): Promise<string> {
+    await this.waitForElement(selector);
+    return await this.page.locator(selector).evaluate((el) => {
+      const borderColor = window.getComputedStyle(el).borderColor;
+      return borderColor;
+    }).then(color => this.convertColorToHex(color));
+  }
+
+  /**
+   * Get element dimensions as string format (widthxheight)
+   */
+  async getElementDimensions(selector: string): Promise<string> {
+    await this.waitForElement(selector);
+    return await this.page.locator(selector).evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return `${Math.round(rect.width)}x${Math.round(rect.height)}`;
+    });
+  }
+
+  /**
+   * Get element dimensions as object
+   */
+  async getElementDimensionsObject(selector: string): Promise<{width: number, height: number}> {
+    await this.waitForElement(selector);
+    return await this.page.locator(selector).evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return {
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      };
+    });
+  }
+
+  /**
+   * Get image natural dimensions (for img elements)
+   */
+  async getImageNaturalDimensions(selector: string): Promise<string> {
+    await this.waitForElement(selector);
+    return await this.page.locator(selector).evaluate(el => {
+      if (el.tagName.toLowerCase() === 'img') {
+        const img = el as HTMLImageElement;
+        return `${img.naturalWidth}x${img.naturalHeight}`;
+      }
+      throw new Error('Element is not an image');
+    });
   }
 }

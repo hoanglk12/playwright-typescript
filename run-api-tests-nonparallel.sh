@@ -1,4 +1,7 @@
 #!/bin/bash
+ENV=${1:-testing}
 echo "Running API tests in non-parallel mode with a single worker"
+echo "Environment: $ENV"
 echo ""
-npx playwright test --config=api.config.ts --workers=1 --project=api
+export API_ENV=$ENV
+npm run test:api:serial
