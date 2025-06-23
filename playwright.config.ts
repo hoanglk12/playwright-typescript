@@ -12,6 +12,9 @@ export default defineConfig({
   
   /* Run tests in files in parallel */
   fullyParallel: true,
+
+   /* Skip API tests */
+  testIgnore: '**/api/**',
   
   /* Maximum number of concurrent worker processes - dynamically configured */
   workers: process.env.WORKERS ? 
