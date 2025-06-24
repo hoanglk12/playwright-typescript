@@ -3,11 +3,13 @@ import { PageGenerator as FrontSitePageGenerator } from '../pages/front site/pag
 import { PageGenerator as AdminPageGenerator } from '../pages/admin/page-generator';
 import { HomePage } from '../pages/front site/home-page';
 import { LoginPage } from '../pages/admin/login-page';
+import { FormDragAndDropPage } from '@pages/front site/form-drag-and-drop';
 
 
 type CustomFixtures = {
   homePage: HomePage;
   loginPage: LoginPage;
+  formDragAndDropPage: FormDragAndDropPage;
 
 };
 
@@ -20,7 +22,13 @@ export const test = base.extend<CustomFixtures>({
   loginPage: async ({ page }, use) => {
     const loginPage = AdminPageGenerator.getLoginPage(page);
     await use(loginPage);
-  }
+  },
+
+  formDragAndDropPage: async ({ page }, use) => {
+    const formDragAndDropPage = FrontSitePageGenerator.getFormDragAndDropPage(page);
+    await use(formDragAndDropPage);
+  },
+
 
  
 });

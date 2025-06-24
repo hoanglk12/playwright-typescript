@@ -1,0 +1,19 @@
+C: Đô
+D: Rê
+E: Mi
+F: Pha
+G: Son
+A: La
+B: Si
+
+Pha Rê
+Đô Rê Đô Pha
+Đô Pha Rê
+Đo Rê Đô Pha
+Rê Đô Pha
+
+
+Mì la đô rê đô rê mi la
+la đô la mì rề đồ rê mì
+Mì la mì la đô rê, đô rê mi són mi rê la
+si rế si la mì la si  
