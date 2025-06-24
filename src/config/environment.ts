@@ -144,7 +144,7 @@ export function getEnvironment(): Environment {
   
   console.log(`🌍 Using environment: ${envName}`);
   console.log(`🔗 CMS URL: ${env.adminUrl}`);
-    console.log(`⚙️  Parallel Workers: ${env.parallelWorkers}`);
+  console.log(`⚙️  Parallel Workers: ${env.parallelWorkers}`);
   console.log(`⚙️  Timeout: ${env.timeout}ms`);
   console.log(`⚙️  Retries: ${env.retries}`);
   console.log(`🖥️  Headless: ${env.headless}`);

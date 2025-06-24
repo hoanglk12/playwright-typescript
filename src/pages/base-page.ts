@@ -162,8 +162,12 @@ export abstract class BasePage {
   /**
    * Wait for network to be idle (no requests for 500ms)
    */
-  async waitForNetworkIdle(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+  async waitForNetworkIdle(timeout: number = 30000): Promise<void> {
+    try {
+      await this.page.waitForLoadState('networkidle', { timeout });
+    } catch (error) {
+      console.warn('⚠️  Network idle timeout reached');
+    }
   }
 
   /**
@@ -293,26 +297,183 @@ export abstract class BasePage {
   /**
    * Wait for AJAX requests to complete
    */
-  // async waitForAjaxRequestsComplete(): Promise<void> {
-  //   await this.page.waitForFunction(() => {
-  //     // Check for jQuery AJAX
-  //     if ((window as any).jQuery) {
-  //       return (window as any).jQuery.active === 0;
-  //     }
+  async waitForAjaxRequestsComplete(timeout: number = 30000, excludeUrls: string[] = []): Promise<void> {
+    const startTime = Date.now();
+    let pendingRequests: Set<string> = new Set();
+    
+    // Track ongoing requests
+    this.page.on('request', (request) => {
+      const url = request.url();
+      const resourceType = request.resourceType();
       
-  //     // Check for XMLHttpRequest
-  //     const originalOpen = XMLHttpRequest.prototype.open;
-  //     let activeRequests = 0;
+      // Only track XHR and fetch requests
+      if (resourceType === 'xhr' || resourceType === 'fetch') {
+        // Skip excluded URLs
+        if (!excludeUrls.some(excludeUrl => url.includes(excludeUrl))) {
+          pendingRequests.add(url);
+        }
+      }
+    });
+
+    // Remove completed requests
+    this.page.on('response', (response) => {
+      const url = response.url();
+      if (pendingRequests.has(url)) {
+        pendingRequests.delete(url);
+      }
+    });
+
+    // Remove failed requests
+    this.page.on('requestfailed', (request) => {
+      const url = request.url();
+      if (pendingRequests.has(url)) {
+        pendingRequests.delete(url);
+      }
+    });
+
+    // Wait for all requests to complete
+    while (pendingRequests.size > 0) {
+      if (Date.now() - startTime > timeout) {
+        console.warn(`⚠️  Timeout waiting for AJAX requests. Pending requests: ${Array.from(pendingRequests).join(', ')}`);
+        break;
+      }
       
-  //     XMLHttpRequest.prototype.open = function(...args) {
-  //       activeRequests++;
-  //       this.addEventListener('loadend', () => activeRequests--);
-  //       return originalOpen.apply(this, args);
-  //     };
-      
-  //     return activeRequests === 0;
-  //   }, { timeout: 30000 });
-  // }
+      await this.page.waitForTimeout(100); // Small delay between checks
+    }
+
+    // Additional wait for any last-minute requests
+    await this.page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {
+      // Ignore timeout errors for networkidle
+    });
+  }
+
+  /**
+   * Wait for specific AJAX request to complete
+   * @param urlPattern - URL pattern to wait for
+   * @param timeout - Maximum time to wait in milliseconds (default: 30000)
+   */
+  async waitForAjaxRequest(urlPattern: string | RegExp, timeout: number = 30000): Promise<void> {
+    try {
+      await this.page.waitForResponse(
+        (response) => {
+          const url = response.url();
+          if (typeof urlPattern === 'string') {
+            return url.includes(urlPattern);
+          } else {
+            return urlPattern.test(url);
+          }
+        },
+        { timeout }
+      );
+    } catch (error) {
+      console.warn(`⚠️  Timeout waiting for AJAX request: ${urlPattern}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Wait for multiple specific AJAX requests to complete
+   * @param urlPatterns - Array of URL patterns to wait for
+   * @param timeout - Maximum time to wait in milliseconds (default: 30000)
+   */
+  async waitForMultipleAjaxRequests(urlPatterns: (string | RegExp)[], timeout: number = 30000): Promise<void> {
+    const promises = urlPatterns.map(pattern => this.waitForAjaxRequest(pattern, timeout));
+    
+    try {
+      await Promise.all(promises);
+    } catch (error) {
+      console.warn('⚠️  One or more AJAX requests timed out');
+      throw error;
+    }
+  }
+
+  /**
+   * Enhanced AJAX waiting with more control
+   * @param options - Configuration options for waiting
+   */
+  async waitForAjaxRequestsCompleteAdvanced(options: {
+    timeout?: number;
+    excludeUrls?: string[];
+    includeUrls?: string[];
+    waitForSpinners?: boolean;
+    spinnerSelectors?: string[];
+    maxRetries?: number;
+  } = {}): Promise<void> {
+    const {
+      timeout = 30000,
+      excludeUrls = [],
+      includeUrls = [],
+      waitForSpinners = true,
+      spinnerSelectors = ['.spinner', '.loading', '[data-loading]', '.ajax-loader'],
+      maxRetries = 3
+    } = options;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Wait for network requests
+        await this.waitForAjaxRequestsComplete(timeout, excludeUrls);
+
+        // Wait for spinners to disappear if enabled
+        if (waitForSpinners) {
+          await this.waitForSpinnersToDisappear(spinnerSelectors, timeout);
+        }
+
+        // If we have include URLs, wait for those specifically
+        if (includeUrls.length > 0) {
+          await this.waitForMultipleAjaxRequests(includeUrls, timeout);
+        }
+
+        return; // Success, exit retry loop
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        console.warn(`⚠️  AJAX wait attempt ${attempt} failed, retrying...`);
+        await this.page.waitForTimeout(1000); // Wait before retry
+      }
+    }
+  }
+
+  /**
+   * Wait for loading spinners to disappear
+   * @param selectors - Array of spinner selectors
+   * @param timeout - Maximum time to wait in milliseconds (default: 30000)
+   */
+  private async waitForSpinnersToDisappear(selectors: string[], timeout: number = 30000): Promise<void> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      let spinnersVisible = false;
+
+      for (const selector of selectors) {
+        try {
+          const spinner = this.page.locator(selector);
+          const count = await spinner.count();
+          
+          if (count > 0) {
+            // Check if any spinner is visible
+            for (let i = 0; i < count; i++) {
+              const isVisible = await spinner.nth(i).isVisible();
+              if (isVisible) {
+                spinnersVisible = true;
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          // Ignore errors for spinner checking
+        }
+      }
+
+      if (!spinnersVisible) {
+        return; // All spinners are gone
+      }
+
+      await this.page.waitForTimeout(100);
+    }
+
+    console.warn('⚠️  Timeout waiting for spinners to disappear');
+  }
 
   /**
    * Wait for all images to load
@@ -707,4 +868,6 @@ export abstract class BasePage {
       throw new Error('Element is not an image');
     });
   }
+
+  
 }

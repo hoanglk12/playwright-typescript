@@ -19,7 +19,7 @@ export class LoginPage extends BasePage {
     this.passwordInput = page.locator('#Login1_Password');
     this.loginButton = page.locator('#Login1_LoginButton');
     this.homeIcon = page.locator('#js-nav-breadcrumb i');
-    this.errorPopup = page.locator('#Login1_pnlContainer > div.alert.alert-error'); // Adjust selector based on actual error popup
+    this.errorPopup = page.getByText('Your sign-in attempt was not successful. Please try again.'); 
   }
   /**
    * Navigate to LoginPage login page
