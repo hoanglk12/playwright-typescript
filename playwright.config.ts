@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { getEnvironment } from './src/config/environment';
 
+
 // Get environment configuration
 const env = getEnvironment();
 

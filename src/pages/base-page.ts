@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import { TIMEOUTS } from '../constants/timeouts';
 
 /**
  * Base Page class for all page objects
@@ -141,8 +142,11 @@ export abstract class BasePage {
   /**
    * Wait for page to load with specific load state
    */
-  async waitForPageLoadState(state: 'load' | 'domcontentloaded' | 'networkidle' = 'networkidle'): Promise<void> {
-    await this.page.waitForLoadState(state);
+  async waitForPageLoadState(
+    state: 'load' | 'domcontentloaded' | 'networkidle' = 'networkidle',
+    timeout: number = TIMEOUTS.PAGE_LOAD_SLOW
+  ): Promise<void> {
+    await this.page.waitForLoadState(state, { timeout });
   }
 
   /**
@@ -200,7 +204,7 @@ export abstract class BasePage {
    */
   async waitForPageLoadAndVerifyURL(expectedUrl: string | RegExp): Promise<void> {
     await this.page.waitForLoadState('networkidle');
-    
+
     if (typeof expectedUrl === 'string') {
       await this.page.waitForURL(expectedUrl);
     } else {
@@ -222,16 +226,16 @@ export abstract class BasePage {
   async waitForPageReady(): Promise<boolean> {
     try {
       await this.page.waitForLoadState('domcontentloaded');
-      
+
       // Check if document is ready
       const isReady = await this.page.evaluate(() => {
         return document.readyState === 'complete';
       });
-      
+
       if (!isReady) {
         await this.page.waitForLoadState('load');
       }
-      
+
       await this.page.waitForLoadState('networkidle');
       return true;
     } catch (error) {
@@ -245,9 +249,9 @@ export abstract class BasePage {
    */
   async waitForJavaScriptReady(): Promise<void> {
     await this.page.waitForFunction(() => {
-      return typeof window !== 'undefined' && 
-             window.document && 
-             window.document.readyState === 'complete';
+      return typeof window !== 'undefined' &&
+        window.document &&
+        window.document.readyState === 'complete';
     });
   }
 
@@ -267,10 +271,10 @@ export abstract class BasePage {
     await this.page.waitForFunction(() => {
       const ng = (window as any).angular;
       if (!ng) return true;
-      
+
       const injector = ng.element(document.body).injector();
       if (!injector) return true;
-      
+
       const $http = injector.get('$http');
       return $http.pendingRequests.length === 0;
     }, { timeout: 10000 });
@@ -300,12 +304,12 @@ export abstract class BasePage {
   async waitForAjaxRequestsComplete(timeout: number = 30000, excludeUrls: string[] = []): Promise<void> {
     const startTime = Date.now();
     let pendingRequests: Set<string> = new Set();
-    
+
     // Track ongoing requests
     this.page.on('request', (request) => {
       const url = request.url();
       const resourceType = request.resourceType();
-      
+
       // Only track XHR and fetch requests
       if (resourceType === 'xhr' || resourceType === 'fetch') {
         // Skip excluded URLs
@@ -337,7 +341,7 @@ export abstract class BasePage {
         console.warn(`⚠️  Timeout waiting for AJAX requests. Pending requests: ${Array.from(pendingRequests).join(', ')}`);
         break;
       }
-      
+
       await this.page.waitForTimeout(100); // Small delay between checks
     }
 
@@ -378,7 +382,7 @@ export abstract class BasePage {
    */
   async waitForMultipleAjaxRequests(urlPatterns: (string | RegExp)[], timeout: number = 30000): Promise<void> {
     const promises = urlPatterns.map(pattern => this.waitForAjaxRequest(pattern, timeout));
-    
+
     try {
       await Promise.all(promises);
     } catch (error) {
@@ -449,7 +453,7 @@ export abstract class BasePage {
         try {
           const spinner = this.page.locator(selector);
           const count = await spinner.count();
-          
+
           if (count > 0) {
             // Check if any spinner is visible
             for (let i = 0; i < count; i++) {
@@ -505,7 +509,7 @@ export abstract class BasePage {
   async waitForPageLoadWithSpinner(spinnerSelector: string = '.loading, .spinner, [data-loading]'): Promise<void> {
     // Wait for DOM content first
     await this.page.waitForLoadState('domcontentloaded');
-    
+
     try {
       // Wait for spinner to disappear
       await this.page.waitForSelector(spinnerSelector, { state: 'hidden', timeout: 30000 });
@@ -513,7 +517,7 @@ export abstract class BasePage {
       // If no spinner found, continue with normal loading
       console.log('No loading spinner found, proceeding with normal page load');
     }
-    
+
     // Wait for network to be idle
     await this.page.waitForLoadState('networkidle');
   }
@@ -527,7 +531,7 @@ export abstract class BasePage {
   ): Promise<void> {
     const { timeout = 30000, interval = 100 } = options;
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       try {
         const result = await condition();
@@ -537,10 +541,10 @@ export abstract class BasePage {
       } catch (error) {
         // Continue polling
       }
-      
+
       await this.sleep(interval);
     }
-    
+
     throw new Error(`Custom condition not met within ${timeout}ms`);
   }
 
@@ -561,33 +565,33 @@ export abstract class BasePage {
       customSpinner,
       timeout = 30000
     } = options;
-    
+
     // Set page timeout
     this.page.setDefaultTimeout(timeout);
-    
+
     // Wait for basic page load states
     await this.waitForFullPageLoad();
-    
+
     // Wait for custom spinner if provided
     if (customSpinner) {
       await this.waitForPageLoadWithSpinner(customSpinner);
     }
-    
+
     // Wait for images if requested
     if (waitForImages) {
       await this.waitForAllImagesLoaded();
     }
-    
+
     // Wait for fonts if requested
     if (waitForFonts) {
       await this.page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
     }
-    
+
     // Wait for AJAX if requested
     if (waitForAjax) {
       await this.waitForAjaxRequestsComplete();
     }
-    
+
     // Final network idle check
     await this.page.waitForLoadState('networkidle');
   }
@@ -630,7 +634,7 @@ export abstract class BasePage {
     try {
       await this.waitForElement(selector);
       await this.page.setInputFiles(selector, filePath);
-      
+
       // Verify file was uploaded by checking the input's files property
       const uploadedFiles = await this.page.inputValue(selector);
       return uploadedFiles.length > 0;
@@ -673,7 +677,7 @@ export abstract class BasePage {
   async uploadFileByDragDrop(dropZoneSelector: string, filePath: string): Promise<void> {
     try {
       await this.waitForElement(dropZoneSelector);
-      
+
       // Create a file input element and set the file
       const fileInput = await this.page.evaluateHandle(() => {
         const input = (document as any).createElement('input') as any;
@@ -682,17 +686,17 @@ export abstract class BasePage {
         (document as any).body.appendChild(input);
         return input;
       });
-      
+
       await fileInput.asElement()?.setInputFiles(filePath);
-      
+
       // Get files from the input
       const files = await fileInput.evaluate((input: any) => input.files);
-      
+
       // Simulate drag and drop
       await this.page.dispatchEvent(dropZoneSelector, 'drop', {
         dataTransfer: { files }
       });
-      
+
       // Clean up
       await fileInput.evaluate((input: any) => input.remove());
     } catch (error) {
@@ -793,19 +797,19 @@ export abstract class BasePage {
   /**
    * Get elements's background color in hex format
    */
-  async getAllElementsBackgroundColorHex(selector:string): Promise<string[]> {
-  const elements = await this.page.locator(selector).all();
-    
-  const colors: string[] = [];
-  
-  for (const element of elements) {
-    const color = await element.evaluate(el => {
-      return window.getComputedStyle(el).backgroundColor;
-    });
-    colors.push(this.convertColorToHex(color));
-  }
-  
-  return colors;
+  async getAllElementsBackgroundColorHex(selector: string): Promise<string[]> {
+    const elements = await this.page.locator(selector).all();
+
+    const colors: string[] = [];
+
+    for (const element of elements) {
+      const color = await element.evaluate(el => {
+        return window.getComputedStyle(el).backgroundColor;
+      });
+      colors.push(this.convertColorToHex(color));
+    }
+
+    return colors;
   }
 
   /**
@@ -844,7 +848,7 @@ export abstract class BasePage {
   /**
    * Get element dimensions as object
    */
-  async getElementDimensionsObject(selector: string): Promise<{width: number, height: number}> {
+  async getElementDimensionsObject(selector: string): Promise<{ width: number, height: number }> {
     await this.waitForElement(selector);
     return await this.page.locator(selector).evaluate(el => {
       const rect = el.getBoundingClientRect();
@@ -868,6 +872,18 @@ export abstract class BasePage {
       throw new Error('Element is not an image');
     });
   }
+  async acceptAlert(): Promise<void> {
+    this.page.on('dialog', async (dialog) => {
+      await dialog.accept();  // Accept the alert or confirm dialog
+    });
 
-  
+  }
+
+  async dismissAlert(): Promise<void> {
+    this.page.on('dialog', async (dialog) => {
+      await dialog.dismiss();  // Accept the alert or confirm dialog
+    });
+
+  }
+
 }
