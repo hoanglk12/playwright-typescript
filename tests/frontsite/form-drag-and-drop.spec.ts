@@ -7,7 +7,7 @@ import { DragAndDropData } from '../../src/data/drag-and-drop-data';
  * @feature Admin Authentication
  * @story Login Functionality
  */
-test.describe('Admin Login Tests', () => {
+test.describe('Form Drag And Drop Tests', () => {
   test('Valid File', async ({
     formDragAndDropPage,
 
@@ -21,7 +21,7 @@ test.describe('Admin Login Tests', () => {
   });
   test('Invalid File @invalid file', async ({
     formDragAndDropPage,
-    page
+    page 
   }) => {
      
     await formDragAndDropPage.navigateToFormPage();

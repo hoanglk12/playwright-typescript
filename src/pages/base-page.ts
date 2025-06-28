@@ -705,6 +705,11 @@ export abstract class BasePage {
     }
   }
 
+  async dragAndDropFile(filePath: string, uploadFileElement: string): Promise<void> {
+    await this.waitForElementClickable(uploadFileElement);
+    const fileInput = this.page.locator(uploadFileElement);
+    await fileInput.setInputFiles(filePath);
+  }
 
   /**
    * Refresh the page
@@ -881,9 +886,444 @@ export abstract class BasePage {
 
   async dismissAlert(): Promise<void> {
     this.page.on('dialog', async (dialog) => {
-      await dialog.dismiss();  // Accept the alert or confirm dialog
+      await dialog.dismiss();  // Dismiss the alert or dialog
     });
 
   }
 
+  /**
+   * Switch to window/tab by title
+   * @param expectedTitle - The title of the window to switch to
+   */
+  async switchToWindowByTitle(expectedTitle: string): Promise<void> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    
+    for (const page of allPages) {
+      const currentTitle = await page.title();
+      if (currentTitle === expectedTitle) {
+        // Switch to this page
+        this.page = page;
+        await this.page.bringToFront();
+        break;
+      }
+    }
+  }
+
+  /**
+   * Switch to window/tab that is not the parent window
+   * @param parentPage - Reference to the parent page to exclude
+   */
+  async switchToWindowById(parentPage: Page): Promise<void> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    
+    for (const page of allPages) {
+      if (page !== parentPage) {
+        // Switch to this page
+        this.page = page;
+        await this.page.bringToFront();
+        break;
+      }
+    }
+  }
+
+  /**
+   * Close all windows/tabs except the parent window and switch back to parent
+   * @param parentPage - Reference to the parent page to keep open
+   */
+  async closeAllWindowsWithoutParent(parentPage: Page): Promise<void> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    
+    for (const page of allPages) {
+      if (page !== parentPage) {
+        await page.close();
+      }
+    }
+    
+    // Switch back to parent window
+    this.page = parentPage;
+    await this.page.bringToFront();
+  }
+
+  /**
+   * Get all open windows/tabs count
+   */
+  async getWindowCount(): Promise<number> {
+    const context = this.page.context();
+    return context.pages().length;
+  }
+
+  /**
+   * Get all window titles
+   */
+  async getAllWindowTitles(): Promise<string[]> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    const titles: string[] = [];
+    
+    for (const page of allPages) {
+      const title = await page.title();
+      titles.push(title);
+    }
+    
+    return titles;
+  }
+
+  /**
+   * Switch to window by index (0-based)
+   * @param index - Index of the window to switch to
+   */
+  async switchToWindowByIndex(index: number): Promise<void> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    
+    if (index >= 0 && index < allPages.length) {
+      this.page = allPages[index];
+      await this.page.bringToFront();
+    } else {
+      throw new Error(`Window index ${index} is out of range. Available windows: ${allPages.length}`);
+    }
+  }
+
+  /**
+   * Switch to the latest opened window/tab
+   */
+  async switchToLatestWindow(): Promise<void> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    
+    if (allPages.length > 0) {
+      this.page = allPages[allPages.length - 1];
+      await this.page.bringToFront();
+    }
+  }
+
+  /**
+   * Switch to window by URL pattern
+   * @param urlPattern - URL pattern to match (string or regex)
+   */
+  async switchToWindowByUrl(urlPattern: string | RegExp): Promise<boolean> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    
+    for (const page of allPages) {
+      const currentUrl = page.url();
+      
+      if (typeof urlPattern === 'string') {
+        if (currentUrl.includes(urlPattern)) {
+          this.page = page;
+          await this.page.bringToFront();
+          return true;
+        }
+      } else {
+        if (urlPattern.test(currentUrl)) {
+          this.page = page;
+          await this.page.bringToFront();
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Close current window and switch to parent
+   * @param parentPage - Reference to the parent page to switch back to
+   */
+  async closeCurrentWindowAndSwitchToParent(parentPage: Page): Promise<void> {
+    const currentPage = this.page;
+    
+    // Switch to parent first
+    this.page = parentPage;
+    await this.page.bringToFront();
+    
+    // Close the previous page
+    await currentPage.close();
+  }
+
+  /**
+   * Wait for new window to open and switch to it
+   * @param timeout - Maximum time to wait for new window (default: 10000ms)
+   */
+  async waitForNewWindowAndSwitch(timeout: number = 10000): Promise<void> {
+    const context = this.page.context();
+    const initialPageCount = context.pages().length;
+    
+    // Wait for new page to be created
+    const newPage = await context.waitForEvent('page', { timeout });
+    
+    // Switch to the new page
+    this.page = newPage;
+    await this.page.bringToFront();
+    
+    // Wait for the new page to load
+    await this.page.waitForLoadState('domcontentloaded');
+  }
+
+  /**
+   * Open new tab with URL
+   * @param url - URL to open in new tab
+   */
+  async openNewTab(url?: string): Promise<void> {
+    const context = this.page.context();
+    const newPage = await context.newPage();
+    
+    if (url) {
+      await newPage.goto(url);
+    }
+    
+    // Switch to the new tab
+    this.page = newPage;
+    await this.page.bringToFront();
+  }
+
+  /**
+   * Close all tabs except current
+   */
+  async closeAllTabsExceptCurrent(): Promise<void> {
+    const context = this.page.context();
+    const allPages = context.pages();
+    const currentPage = this.page;
+    
+    for (const page of allPages) {
+      if (page !== currentPage) {
+        await page.close();
+      }
+    }
+  }
+
+  /**
+   * Switch to iframe by locator
+   * @param locator - CSS selector or other locator for the iframe
+   * @returns FrameLocator for the iframe
+   */
+  async switchToFrame(locator: string): Promise<void> {
+    // Wait for iframe to be available
+    await this.waitForElement(locator);
+    
+    // Get the frame element
+    const frameElement = await this.page.locator(locator).elementHandle();
+    
+    if (frameElement) {
+      // Get the frame from the element
+      const frame = await frameElement.contentFrame();
+      
+      if (frame) {
+        // Store reference to the frame for future operations
+        (this as any).currentFrame = frame;
+        console.log(`✅ Switched to frame with locator: ${locator}`);
+      } else {
+        throw new Error(`Failed to get frame content for locator: ${locator}`);
+      }
+    } else {
+      throw new Error(`Frame element not found for locator: ${locator}`);
+    }
+  }
+
+  /**
+   * Switch to iframe by index (0-based)
+   * @param index - Index of the iframe to switch to
+   */
+  async switchToFrameByIndex(index: number): Promise<void> {
+    const frames = await this.page.frames();
+    
+    if (index >= 0 && index < frames.length) {
+      (this as any).currentFrame = frames[index];
+      console.log(`✅ Switched to frame at index: ${index}`);
+    } else {
+      throw new Error(`Frame index ${index} is out of range. Available frames: ${frames.length}`);
+    }
+  }
+
+  /**
+   * Switch to iframe by name attribute
+   * @param name - Name attribute of the iframe
+   */
+  async switchToFrameByName(name: string): Promise<void> {
+    const frameLocator = `iframe[name="${name}"]`;
+    await this.switchToFrame(frameLocator);
+  }
+
+  /**
+   * Switch to iframe by id attribute
+   * @param id - ID attribute of the iframe
+   */
+  async switchToFrameById(id: string): Promise<void> {
+    const frameLocator = `iframe#${id}`;
+    await this.switchToFrame(frameLocator);
+  }
+
+  /**
+   * Switch back to default content (main page)
+   */
+  async switchToDefaultContent(): Promise<void> {
+    // Clear the current frame reference
+    (this as any).currentFrame = null;
+    console.log('✅ Switched back to default content (main page)');
+  }
+
+  /**
+   * Get current frame reference
+   * @returns Current frame or null if on main page
+   */
+  getCurrentFrame(): any {
+    return (this as any).currentFrame || null;
+  }
+
+  /**
+   * Check if currently in a frame
+   * @returns True if currently in a frame, false if on main page
+   */
+  isInFrame(): boolean {
+    return (this as any).currentFrame !== null;
+  }
+
+  /**
+   * Get all available frames
+   * @returns Array of frame names/IDs
+   */
+  async getAllFrames(): Promise<string[]> {
+    const frames = await this.page.frames();
+    return frames.map((frame, index) => frame.name() || `frame-${index}`);
+  }
+
+  /**
+   * Wait for iframe to be available and switch to it
+   * @param locator - CSS selector for the iframe
+   * @param timeout - Maximum time to wait in milliseconds
+   */
+  async waitForFrameAndSwitch(locator: string, timeout: number = 10000): Promise<void> {
+    await this.waitForElement(locator, timeout);
+    await this.switchToFrame(locator);
+  }
+
+  /**
+   * Perform action in frame and switch back to default content
+   * @param frameLocator - CSS selector for the iframe
+   * @param action - Function to execute within the frame
+   */
+  async performActionInFrame<T>(
+    frameLocator: string, 
+    action: (frame: any) => Promise<T>
+  ): Promise<T> {
+    // Switch to frame
+    await this.switchToFrame(frameLocator);
+    
+    try {
+      // Execute action in frame
+      const result = await action((this as any).currentFrame);
+      return result;
+    } finally {
+      // Always switch back to default content
+      await this.switchToDefaultContent();
+    }
+  }
+
+  /**
+   * Click element inside iframe
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   */
+  async clickElementInFrame(frameLocator: string, elementLocator: string): Promise<void> {
+    await this.performActionInFrame(frameLocator, async (frame) => {
+      await frame.click(elementLocator);
+    });
+  }
+
+  /**
+   * Enter text in element inside iframe
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   * @param text - Text to enter
+   */
+  async enterTextInFrame(frameLocator: string, elementLocator: string, text: string): Promise<void> {
+    await this.performActionInFrame(frameLocator, async (frame) => {
+      await frame.fill(elementLocator, text);
+    });
+  }
+
+  /**
+   * Get text from element inside iframe
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   * @returns Text content of the element
+   */
+  async getTextFromFrame(frameLocator: string, elementLocator: string): Promise<string> {
+    return await this.performActionInFrame(frameLocator, async (frame) => {
+      return await frame.textContent(elementLocator) || '';
+    });
+  }
+
+  /**
+   * Check if element exists inside iframe
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   * @returns True if element exists, false otherwise
+   */
+  async isElementInFrameDisplayed(frameLocator: string, elementLocator: string): Promise<boolean> {
+    return await this.performActionInFrame(frameLocator, async (frame) => {
+      try {
+        return await frame.isVisible(elementLocator);
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Wait for element inside iframe
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   * @param timeout - Maximum time to wait in milliseconds
+   */
+  async waitForElementInFrame(
+    frameLocator: string, 
+    elementLocator: string, 
+    timeout: number = 10000
+  ): Promise<void> {
+    await this.performActionInFrame(frameLocator, async (frame) => {
+      await frame.waitForSelector(elementLocator, { state: 'visible', timeout });
+    });
+  }
+
+  /**
+   * Modern Playwright approach: Use frame locator (recommended)
+   * @param frameLocator - CSS selector for the iframe
+   * @returns FrameLocator for chaining operations
+   */
+  getFrameLocator(frameLocator: string) {
+    return this.page.frameLocator(frameLocator);
+  }
+
+  /**
+   * Modern approach: Click element using frame locator
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   */
+  async clickInFrameModern(frameLocator: string, elementLocator: string): Promise<void> {
+    await this.page.frameLocator(frameLocator).locator(elementLocator).click();
+  }
+
+  /**
+   * Modern approach: Enter text using frame locator
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   * @param text - Text to enter
+   */
+  async fillInFrameModern(frameLocator: string, elementLocator: string, text: string): Promise<void> {
+    await this.page.frameLocator(frameLocator).locator(elementLocator).fill(text);
+  }
+
+  /**
+   * Modern approach: Get text using frame locator
+   * @param frameLocator - CSS selector for the iframe
+   * @param elementLocator - CSS selector for the element inside iframe
+   * @returns Text content of the element
+   */
+  async getTextInFrameModern(frameLocator: string, elementLocator: string): Promise<string> {
+    return await this.page.frameLocator(frameLocator).locator(elementLocator).textContent() || '';
+  }
 }
