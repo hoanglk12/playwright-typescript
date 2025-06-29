@@ -4,7 +4,21 @@ import { defineConfig } from '@playwright/test';
  * Read environment variables from file.
  */
 require('dotenv').config({ path: '.env.testing' });
-
+import { getApiEnvironment } from './src/api/config/environment';
+const env = getApiEnvironment();
+/**
+ * Get the base URL for the current API environment
+ */
+function getApiBaseURL(apiService: string): string {
+  switch (apiService) {
+    case 'restful-booker':
+      return env.apiBaseUrl;
+    case 'device-booker':
+      return env.deviceApiBaseUrl;
+    default:
+      return env.apiBaseUrl;
+  }
+}
 /**
  * API Testing Configuration - No Browser Required
  * See https://playwright.dev/docs/test-configuration.
@@ -44,7 +58,7 @@ export default defineConfig({
     extraHTTPHeaders: {
       'Accept': 'application/json',
     },
-    
+    ignoreHTTPSErrors: true,
     /* Global timeout for API requests */
     actionTimeout: 15000,
     
@@ -60,9 +74,8 @@ export default defineConfig({
       use: {
         // No browser context - pure API testing
       },
-    },
+    }
   ],
-
   /* Output directories */
   outputDir: 'test-results/api/',
   
