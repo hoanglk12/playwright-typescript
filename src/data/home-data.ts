@@ -71,6 +71,9 @@ export const HeaderData = {
   EMPTY_CREDENTIALS: {
     username: '',
     password: ''
+  },
+  NAVIGATION_MENU:{
+    highlightedColor: '#003f64',
   }
 };
 

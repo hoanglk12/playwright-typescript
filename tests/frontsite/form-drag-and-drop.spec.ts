@@ -1,4 +1,3 @@
-
 import { test, expect } from '../../src/config/base-test';
 import { DragAndDropData } from '../../src/data/drag-and-drop-data';
 

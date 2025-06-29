@@ -1,6 +1,7 @@
-import { AdminData } from '@data/admin-data';
+import * as  HomeData from '../../src/data/home-data';
 import { test, expect } from '../../src/config/base-test';
-import * as AdminDataModule from '../../src/data/admin-data';
+import { createTestLogger } from '../../src/utils/test-logger';
+
 
 
 /**
@@ -9,49 +10,32 @@ import * as AdminDataModule from '../../src/data/admin-data';
  * @story Login Functionality
  */
 test.describe('Home Page Verification', () => {
-  
-
-  test('TC_01 - Verify Header', async ({ 
+  test('TC_01 - Verify Header Logo and Highlighted Text Color', async ({ 
     homePage,
     
   }) => {
-    // Step 1: Navigate to admin login page
+    //Declare logger for test steps
+    const logger = createTestLogger('Verify Header Logo and Highlighted Text Color');
+
+
+    logger.step('Step 1 - Navigate to home page');
+    logger.action('Navigate', 'home page');
     await homePage.navigateToHomePage();
     await homePage.waitForFullPageLoad();
-    
-    // Step 2: Enter invalid credentials
-    await homePage.clickHamburgerMenu();
-    
-    // Step 3: Verify logo is displayed
+        
+    logger.step('Step 2 - Verify FF logo is displayed');
+    logger.action('Verify', 'FF logo is displayed');
     expect(await homePage.isLogoDisplayed()).toBeTruthy();
 
-      // Step 2: Enter invalid credentials
+    logger.step('Step 3 - Click hamburger icon');
+    logger.action('Click', 'hamburger icon');
     await homePage.clickHamburgerMenu();
     await homePage.waitForPageLoad();
 
-    // Step 4: Verify highlighted text background color
-expect(await homePage.getAllHighlightedTextBackgroundColor()).toContain('#003f64');
+    // Step 4: Verify highlighted text background color is #003f64
+    logger.step('Step 4 - Verify highlighted text background color is HomeData.HeaderData.NAVIGATION_MENU.highlightedColor');
+    logger.action('Verify', 'highlighted text background color is HomeData.HeaderData.NAVIGATION_MENU.highlightedColor');
+    expect(await homePage.getAllHighlightedTextBackgroundColor()).toContain(HomeData.HeaderData.NAVIGATION_MENU.highlightedColor);
   
   });
-
-//   test('TC_02 - Login fails with wrong username and wrong password', async ({ 
-//     loginPage,
-    
-//   }) => {
-//     // Step 1: Navigate to admin login page
-//     await loginPage.navigateToHomePage();
-    
-//     // Step 2: Enter invalid credentials
-//   await loginPage.enterUserID(AdminData.INVALID_ADMIN.username);
-//     await loginPage.enterPassword(AdminData.INVALID_ADMIN.password);
-    
-//     // Step 3: Click login button
-//     await loginPage.clickLoginButton();
-    
-//     // Step 4: Verify error popup message contains AdminTestData.expectedMessages.errorLogin
-//     expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminDataModule.AdminTestData.expectedMessages.errorLogin);
-    
-//     // // Take screenshot for documentation
-//     // await page.screenshot({ path: 'test-results/login-failure.png', fullPage: true });
-//   });
 });
