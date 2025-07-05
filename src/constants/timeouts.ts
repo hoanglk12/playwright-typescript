@@ -25,4 +25,9 @@ export const TIMEOUTS = {
   // API timeouts
   API_RESPONSE: 20000,
   API_RESPONSE_SLOW: 40000,
+
+  //Timeout
+  TIMEOUT_SHORT: 7000,
+  TIMEOUT_MEDIUM: 10000,
+  TIMEOUT_LONG: 30000,
 } as const;

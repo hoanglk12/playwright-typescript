@@ -61,6 +61,36 @@ export abstract class BasePage {
   }
 
   /**
+   * Check if element is undisplayed (not present or not visible)
+   * Equivalent to isElementUndisplayed() in Maven framework
+   * @param selector - CSS selector for the element
+   * @param shortTimeout - Short timeout for the check (default: 2000ms)
+   * @returns true if element is not present or not visible, false otherwise
+   */
+  async isElementUndisplayed(selector: string, shortTimeout: number = TIMEOUTS.TIMEOUT_SHORT): Promise<boolean> {
+    try {
+      // Use short timeout to avoid waiting too long
+      const elements = await this.page.locator(selector).all();
+      
+      // If no elements found, return true (element is undisplayed)
+      if (elements.length === 0) {
+        return true;
+      }
+      
+      // If elements found, check if the first element is not visible
+      if (elements.length > 0) {
+        const isVisible = await elements[0].isVisible({ timeout: shortTimeout });
+        return !isVisible; // Return true if not visible
+      }
+      
+      return false;
+    } catch (error) {
+      // If any error occurs (timeout, element not found, etc.), consider element as undisplayed
+      return true;
+    }
+  }
+
+  /**
    * Click on element
    */
   async clickElement(selector: string): Promise<void> {
