@@ -44,7 +44,7 @@ jobs:
     - name: Run RESTful API tests
       run: |
         ENV=${{ github.event.inputs.environment || 'testing' }}
-        ./run-api-restful-tests.sh $ENV serial 1
+        ./run-api-tests-nonparallel.sh $ENV serial 1
       env:
         CI: true
     
