@@ -1,6 +1,7 @@
 import { test as base } from '@playwright/test';
 import { ApiClient, ApiClientOptions, AuthType } from './ApiClient';
 import { ApiClientExt } from './ApiClientExt';
+import { RestfulApiClient } from './RestfulApiClient';
 import { getApiEnvironment } from './config/environment';
 
 /**
@@ -8,10 +9,13 @@ import { getApiEnvironment } from './config/environment';
  */
 export interface ApiTestFixtures {
   baseURL: string;
+  restfulApiBaseURL: string;
   apiClient: ApiClient;
   apiClientExt: ApiClientExt;
+   restfulApiClient: RestfulApiClient;
   createClient: (options: Partial<ApiClientOptions>) => Promise<ApiClient>;
   createClientExt: (options: Partial<ApiClientOptions>) => Promise<ApiClientExt>;
+  createRestfulApiClient: (options?: Partial<ApiClientOptions>) => Promise<RestfulApiClient>;
 }
 
 /**
@@ -22,6 +26,10 @@ export const apiTest = base.extend<ApiTestFixtures>({
     baseURL: async ({}, use) => {
         const apiEnv = getApiEnvironment();
         await use(apiEnv.apiBaseUrl);
+    },
+    restfulApiBaseURL: async ({}, use) => {
+        const apiEnv = getApiEnvironment();
+        await use(apiEnv.restfulApiBaseUrl);
     },
 
     // Provide a basic API client
@@ -35,6 +43,17 @@ export const apiTest = base.extend<ApiTestFixtures>({
     // Provide an extended API client with response wrapper
     apiClientExt: async ({ baseURL }, use) => {
         const client = new ApiClientExt({ baseURL });
+        await client.init();
+        await use(client);
+        await client.dispose();
+    },
+
+    restfulApiClient: async ({ restfulApiBaseURL }, use) => {
+        const apiEnv = getApiEnvironment();
+        const client = new RestfulApiClient({ 
+            baseURL: restfulApiBaseURL,
+            timeout: apiEnv.timeout 
+        });
         await client.init();
         await use(client);
         await client.dispose();
@@ -60,6 +79,24 @@ export const apiTest = base.extend<ApiTestFixtures>({
         const clients: ApiClientExt[] = [];
         const createClientFn = async (options: Partial<ApiClientOptions>): Promise<ApiClientExt> => {
             const client = new ApiClientExt({ baseURL, ...options });
+            await client.init();
+            clients.push(client);
+            return client;
+        };
+        await use(createClientFn);
+        for (const client of clients) {
+            await client.dispose();
+        }
+    },
+    createRestfulApiClient: async ({ restfulApiBaseURL }, use) => {
+        const clients: RestfulApiClient[] = [];
+        const createClientFn = async (options: Partial<ApiClientOptions> = {}): Promise<RestfulApiClient> => {
+            const apiEnv = getApiEnvironment();
+            const client = new RestfulApiClient({ 
+                baseURL: restfulApiBaseURL,
+                timeout: apiEnv.timeout,
+                ...options 
+            });
             await client.init();
             clients.push(client);
             return client;
