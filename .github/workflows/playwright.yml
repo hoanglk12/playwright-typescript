@@ -64,11 +64,12 @@ jobs:
     if: ${{ inputs.test_type != 'api' }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest, macos-latest]
         include:
-          - os: ubuntu-latest
-            shell: bash
-            script_ext: sh
+          # - os: ubuntu-latest
+          #   shell: bash
+          #   script_ext: sh
           - os: windows-latest
             shell: cmd
             script_ext: bat

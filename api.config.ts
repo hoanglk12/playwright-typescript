@@ -14,7 +14,7 @@ function getApiBaseURL(apiService: string): string {
     case 'restful-booker':
       return env.apiBaseUrl;
     case 'device-booker':
-      return env.deviceApiBaseUrl;
+      return env.restfulApiBaseUrl;
     default:
       return env.apiBaseUrl;
   }

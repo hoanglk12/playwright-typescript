@@ -7,7 +7,7 @@ import fs from 'fs';
  */
 export interface ApiEnvironment {
   apiBaseUrl: string;
-  deviceApiBaseUrl: string;
+  restfulApiBaseUrl: string;
   timeout: number;
   retries: number;
 }
@@ -37,7 +37,7 @@ export function getApiEnvironment(): ApiEnvironment {
   
   return {
     apiBaseUrl: process.env.API_BASE_URL || 'https://restful-booker.herokuapp.com',
-    deviceApiBaseUrl: process.env.DEVICE_API_BASE_URL || 'https://restful-api.dev/api',
+    restfulApiBaseUrl: process.env.RESTFUL_API_BASE_URL || 'https://api.restful-api.dev',
     timeout: parseInt(process.env.API_TIMEOUT || (isCI ? '60000' : '30000')),
     retries: parseInt(process.env.API_RETRIES || (isCI ? '2' : '0')),
   };

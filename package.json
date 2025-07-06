@@ -33,7 +33,7 @@
     "test:api:debug": "playwright test --config=api.config.ts --debug",
     "test:api:ui": "cross-env NODE_ENV=testing playwright test --config=api.config.ts --ui",
     "test:api:booker": "cross-env NODE_ENV=testing playwright test tests/api/restful-booker.spec.ts --config=api.config.ts --workers=1",
-    "test:api:device-booker": "playwright test --config=api.config.ts --workers=1 --project=device-booker",
+    "test:api:device-booker": "cross-env NODE_ENV=testing playwright test tests/api/objects-crud.spec.ts --config=api.config.ts --workers=1",
     "install:browsers": "npx playwright install",
     "install:browsers:deps": "npx playwright install --with-deps",
     "codegen": "npx playwright codegen",
