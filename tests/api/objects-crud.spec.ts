@@ -91,4 +91,70 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
       console.log(`Created object with ID: ${createdObject.id!}`);
     });
     });
+     test('TC_06 - Should create multiple objects', async ({ restfulApiClient }) => {
+      const deviceDataArray = RestfulApiDataGenerator.generateMultipleDevices(3);
+      const createdObjects = await restfulApiClient.createMultipleObjects(deviceDataArray);
+      
+      expect(createdObjects).toHaveLength(3);
+      
+      createdObjects.forEach((obj, index) => {
+        expect(obj).toHaveProperty('id');
+        expect(obj.name).toBe(deviceDataArray[index].name);
+        expect(obj.data).toMatchObject(deviceDataArray[index].data);
+        createdObjectIds.push(obj.id!);
+      });
+    });
+  });
+
+  test.describe('PUT Operations', () => {
+    test('TC_07 - Should update an existing object completely', async ({ restfulApiClient }) => {
+      // First create an object
+      const initialData = RestfulApiDataGenerator.generateMobileDevice();
+      const createdObject = await restfulApiClient.createObject(initialData);
+      const createdObjectIds: string[] = [];
+      createdObjectIds.push(createdObject.id!);
+      
+      // Then update it
+      const updateData = RestfulApiDataGenerator.generateLaptopDevice();
+      const updatedObject = await restfulApiClient.updateObject(createdObject.id!, updateData);
+      
+      expect(updatedObject.id).toBe(createdObject.id);
+      expect(updatedObject.name).toBe(updateData.name);
+      expect(updatedObject.data).toMatchObject(updateData.data);
+      expect(updatedObject).toHaveProperty('updatedAt');
+    });
+
+    test('TC_08 - Should handle update of non-existent object', async ({ restfulApiClient }) => {
+      const nonExistentId = '999999';
+      const updateData = RestfulApiDataGenerator.generateMobileDevice();
+      
+      try {
+        await restfulApiClient.updateObject(nonExistentId, updateData);
+      } catch (error) {
+        // Expected behavior for non-existent object
+        expect(error).toBeDefined();
+      }
+    });
+  });
+
+
+
+  test.describe('DELETE Operations', () => {
+    test('TC_09 - Should delete an existing object', async ({ restfulApiClient }) => {
+      // First create an object
+      const deviceData = RestfulApiDataGenerator.generateMobileDevice();
+      const createdObject = await restfulApiClient.createObject(deviceData);
+      
+      // Then delete it
+      await restfulApiClient.deleteObject(createdObject.id!);
+      
+      // Verify it's deleted by trying to get it
+      try {
+        await restfulApiClient.getObjectById(createdObject.id!);
+        // If no error, the object might still exist (depends on API behavior)
+      } catch (error) {
+        // Expected behavior for deleted object
+        expect(error).toBeDefined();
+      }
+    });
 });

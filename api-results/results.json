@@ -81,7 +81,42 @@
           "file": "objects-crud.spec.ts",
           "line": 8,
           "column": 6,
-          "specs": [],
+          "specs": [
+            {
+              "title": "TC_06 - Should create multiple objects",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 961,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-12T16:33:10.036Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-d90c7dce29f11ef1f627",
+              "file": "objects-crud.spec.ts",
+              "line": 94,
+              "column": 10
+            }
+          ],
           "suites": [
             {
               "title": "GET Operations",
@@ -105,12 +140,12 @@
                           "workerIndex": 0,
                           "parallelIndex": 0,
                           "status": "passed",
-                          "duration": 337,
+                          "duration": 288,
                           "errors": [],
                           "stdout": [],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-07-06T15:27:52.427Z",
+                          "startTime": "2025-07-12T16:33:08.630Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -139,12 +174,12 @@
                           "workerIndex": 0,
                           "parallelIndex": 0,
                           "status": "passed",
-                          "duration": 197,
+                          "duration": 219,
                           "errors": [],
                           "stdout": [],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-07-06T15:27:52.773Z",
+                          "startTime": "2025-07-12T16:33:08.930Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -173,12 +208,12 @@
                           "workerIndex": 0,
                           "parallelIndex": 0,
                           "status": "passed",
-                          "duration": 195,
+                          "duration": 151,
                           "errors": [],
                           "stdout": [],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-07-06T15:27:52.974Z",
+                          "startTime": "2025-07-12T16:33:09.153Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -207,12 +242,12 @@
                           "workerIndex": 0,
                           "parallelIndex": 0,
                           "status": "passed",
-                          "duration": 191,
+                          "duration": 288,
                           "errors": [],
                           "stdout": [],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-07-06T15:27:53.173Z",
+                          "startTime": "2025-07-12T16:33:09.308Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -249,16 +284,16 @@
                           "workerIndex": 0,
                           "parallelIndex": 0,
                           "status": "passed",
-                          "duration": 351,
+                          "duration": 433,
                           "errors": [],
                           "stdout": [
                             {
-                              "text": "Created object with ID: ff8081819782e69e0197e059e8f62bf0\n"
+                              "text": "Created object with ID: ff8081819782e69e0197ff7bd80d4942\n"
                             }
                           ],
                           "stderr": [],
                           "retry": 0,
-                          "startTime": "2025-07-06T15:27:53.367Z",
+                          "startTime": "2025-07-12T16:33:09.600Z",
                           "annotations": [],
                           "attachments": []
                         }
@@ -274,15 +309,133 @@
               ]
             }
           ]
+        },
+        {
+          "title": "PUT Operations",
+          "file": "objects-crud.spec.ts",
+          "line": 109,
+          "column": 8,
+          "specs": [
+            {
+              "title": "TC_07 - Should update an existing object completely",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 367,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-12T16:33:11.001Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-4394336c1ea42088413d",
+              "file": "objects-crud.spec.ts",
+              "line": 110,
+              "column": 9
+            },
+            {
+              "title": "TC_08 - Should handle update of non-existent object",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 137,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-12T16:33:11.371Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-cdd973ebc415565a4b9a",
+              "file": "objects-crud.spec.ts",
+              "line": 127,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "DELETE Operations",
+          "file": "objects-crud.spec.ts",
+          "line": 142,
+          "column": 8,
+          "specs": [
+            {
+              "title": "TC_09 - Should delete an existing object",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 557,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-12T16:33:11.511Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-3db0b4a6eda89636667a",
+              "file": "objects-crud.spec.ts",
+              "line": 143,
+              "column": 9
+            }
+          ]
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-07-06T15:27:51.630Z",
-    "duration": 2118.875,
-    "expected": 5,
+    "startTime": "2025-07-12T16:33:07.775Z",
+    "duration": 4312.616,
+    "expected": 9,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

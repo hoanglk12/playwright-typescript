@@ -1,4 +1,5 @@
 import { APIRequestContext, APIResponse } from '@playwright/test';
+import { ApiResponseWrapper } from '../api/ApiResponse';
 import { ApiClient } from './ApiClient';
 import { DeviceData, ApiObject, PaginatedResponse } from '../api/services/restful-device/restful-api-models';
 
@@ -13,7 +14,16 @@ export class RestfulApiClient extends ApiClient {
    */
   async getAllObjects(): Promise<ApiObject[]> {
     const response = await this.get('/objects');
-    return response.json();
+    const wrapper = new ApiResponseWrapper(response);
+    return wrapper.json<ApiObject[]>();
+  }
+
+  /**
+   * Get all objects with response wrapper for advanced assertions
+   */
+  async getAllObjectsWithWrapper(): Promise<ApiResponseWrapper> {
+    const response = await this.get('/objects');
+    return new ApiResponseWrapper(response);
   }
 
   /**
@@ -22,7 +32,17 @@ export class RestfulApiClient extends ApiClient {
   async getObjectsByIds(ids: string[]): Promise<ApiObject[]> {
     const idsParam = ids.join(',');
     const response = await this.get(`/objects?id=${idsParam}`);
-    return response.json();
+    const wrapper = new ApiResponseWrapper(response);
+    return wrapper.json<ApiObject[]>();
+  }
+
+  /**
+   * Get objects by IDs with response wrapper for advanced assertions
+   */
+  async getObjectsByIdsWithWrapper(ids: string[]): Promise<ApiResponseWrapper> {
+    const idsParam = ids.join(',');
+    const response = await this.get(`/objects?id=${idsParam}`);
+    return new ApiResponseWrapper(response);
   }
 
   /**
@@ -30,7 +50,16 @@ export class RestfulApiClient extends ApiClient {
    */
   async getObjectById(id: string): Promise<ApiObject> {
     const response = await this.get(`/objects/${id}`);
-    return response.json();
+    const wrapper = new ApiResponseWrapper(response);
+    return wrapper.json<ApiObject>();
+  }
+
+  /**
+   * Get single object by ID with response wrapper for advanced assertions
+   */
+  async getObjectByIdWithWrapper(id: string): Promise<ApiResponseWrapper> {
+    const response = await this.get(`/objects/${id}`);
+    return new ApiResponseWrapper(response);
   }
 
   /**
@@ -38,7 +67,16 @@ export class RestfulApiClient extends ApiClient {
    */
   async createObject(data: DeviceData): Promise<ApiObject> {
     const response = await this.post('/objects', data);
-    return response.json();
+    const wrapper = new ApiResponseWrapper(response);
+    return wrapper.json<ApiObject>();
+  }
+
+  /**
+   * Create a new object with response wrapper for advanced assertions
+   */
+  async createObjectWithWrapper(data: DeviceData): Promise<ApiResponseWrapper> {
+    const response = await this.post('/objects', data);
+    return new ApiResponseWrapper(response);
   }
 
   /**
@@ -46,7 +84,16 @@ export class RestfulApiClient extends ApiClient {
    */
   async updateObject(id: string, data: DeviceData): Promise<ApiObject> {
     const response = await this.put(`/objects/${id}`, data);
-    return response.json();
+    const wrapper = new ApiResponseWrapper(response);
+    return wrapper.json<ApiObject>();
+  }
+
+  /**
+   * Update an existing object with response wrapper for advanced assertions
+   */
+  async updateObjectWithWrapper(id: string, data: DeviceData): Promise<ApiResponseWrapper> {
+    const response = await this.put(`/objects/${id}`, data);
+    return new ApiResponseWrapper(response);
   }
 
   /**
@@ -54,14 +101,37 @@ export class RestfulApiClient extends ApiClient {
    */
   async partialUpdateObject(id: string, data: Partial<DeviceData>): Promise<ApiObject> {
     const response = await this.patch(`/objects/${id}`, data);
-    return response.json();
+    const wrapper = new ApiResponseWrapper(response);
+    return wrapper.json<ApiObject>();
+  }
+
+  /**
+   * Partially update an object with response wrapper for advanced assertions
+   */
+  async partialUpdateObjectWithWrapper(id: string, data: Partial<DeviceData>): Promise<ApiResponseWrapper> {
+    const response = await this.patch(`/objects/${id}`, data);
+    return new ApiResponseWrapper(response);
   }
 
   /**
    * Delete an object
    */
   async deleteObject(id: string): Promise<void> {
-    await this.delete(`/objects/${id}`);
+    const response = await this.delete(`/objects/${id}`);
+    const wrapper = new ApiResponseWrapper(response);
+    
+    // Verify the deletion was successful
+    if (!wrapper.isSuccess()) {
+      throw new Error(`Failed to delete object ${id}. Status: ${wrapper.statusCode()}`);
+    }
+  }
+
+  /**
+   * Delete an object with response wrapper for advanced assertions
+   */
+  async deleteObjectWithWrapper(id: string): Promise<ApiResponseWrapper> {
+    const response = await this.delete(`/objects/${id}`);
+    return new ApiResponseWrapper(response);
   }
 
   /**
@@ -79,6 +149,20 @@ export class RestfulApiClient extends ApiClient {
   }
 
   /**
+   * Create multiple objects at once with response wrappers for advanced assertions
+   */
+  async createMultipleObjectsWithWrappers(devices: DeviceData[]): Promise<ApiResponseWrapper[]> {
+    const responseWrappers: ApiResponseWrapper[] = [];
+    
+    for (const device of devices) {
+      const wrapper = await this.createObjectWithWrapper(device);
+      responseWrappers.push(wrapper);
+    }
+    
+    return responseWrappers;
+  }
+
+  /**
    * Search objects by name
    */
   async searchObjectsByName(name: string): Promise<ApiObject[]> {
@@ -86,5 +170,18 @@ export class RestfulApiClient extends ApiClient {
     return allObjects.filter(obj => 
       obj.name.toLowerCase().includes(name.toLowerCase())
     );
+  }
+
+  /**
+   * Search objects by name with response wrapper for advanced assertions
+   */
+  async searchObjectsByNameWithWrapper(name: string): Promise<{ wrapper: ApiResponseWrapper; filteredObjects: ApiObject[] }> {
+    const wrapper = await this.getAllObjectsWithWrapper();
+    const allObjects = await wrapper.json<ApiObject[]>();
+    const filteredObjects = allObjects.filter(obj => 
+      obj.name.toLowerCase().includes(name.toLowerCase())
+    );
+    
+    return { wrapper, filteredObjects };
   }
 }

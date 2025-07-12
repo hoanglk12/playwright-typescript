@@ -8,7 +8,7 @@ export class RestfulApiDataGenerator {
   static generateMobileDevice(): DeviceData {
     const timestamp = Date.now();
     return {
-      name: `Test Mobile Device ${timestamp}`,
+      name: `Iphone 16 ${timestamp}`,
       data: {
         color: 'Black',
         capacity: '256 GB',
