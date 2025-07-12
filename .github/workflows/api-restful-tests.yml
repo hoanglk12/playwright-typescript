@@ -27,8 +27,12 @@ on:
 
 jobs:
   api-tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
     steps:
     - uses: actions/checkout@v4
     
@@ -41,10 +45,24 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Run RESTful API tests
+    - name: Make shell script executable (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: chmod +x run-api-tests-nonparallel.sh
+    
+    - name: Run RESTful API tests (Linux/macOS)
+      if: runner.os != 'Windows'
       run: |
         ENV=${{ github.event.inputs.environment || 'testing' }}
-        ./run-api-tests-nonparallel.sh $ENV serial 1
+        ./run-api-tests-nonparallel.sh $ENV
+      env:
+        CI: true
+    
+    - name: Run RESTful API tests (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        $ENV = "${{ github.event.inputs.environment || 'testing' }}"
+        .\run-api-tests-nonparallel.bat $ENV
+      shell: powershell
       env:
         CI: true
     
@@ -52,7 +70,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: restful-api-test-results
+        name: restful-api-test-results-${{ matrix.os }}
         path: |
           playwright-report/
           test-results/
