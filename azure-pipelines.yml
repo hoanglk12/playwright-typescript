@@ -25,16 +25,178 @@ pr:
       - '*.config.ts'
       - package.json
 
+parameters:
+  - name: environment
+    displayName: 'Test environment'
+    type: string
+    default: 'testing'
+    values:
+      - testing
+      - staging
+      - production
+  - name: mode
+    displayName: 'Test execution mode'
+    type: string
+    default: 'parallel'
+    values:
+      - parallel
+      - serial
+  - name: workers
+    displayName: 'Number of workers (for parallel mode)'
+    type: string
+    default: '4'
+  - name: browser
+    displayName: 'Browser to test with'
+    type: string
+    default: 'all'
+    values:
+      - all
+      - chromium
+      - firefox
+      - webkit
+  - name: test_type
+    displayName: 'Type of tests to run'
+    type: string
+    default: 'both'
+    values:
+      - both
+      - ui
+      - api
+
 variables:
   nodeVersion: '20.x'
   CI: true
+  TEST_ENV: ${{ parameters.environment }}
+  TEST_MODE: ${{ parameters.mode }}
+  TEST_WORKERS: ${{ parameters.workers }}
+  TEST_BROWSER: ${{ parameters.browser }}
+  TEST_TYPE: ${{ parameters.test_type }}
 
 stages:
-- stage: Install
-  displayName: 'Install Dependencies'
+- stage: UITests
+  displayName: 'UI Tests'
+  condition: and(succeeded(), ne('${{ parameters.test_type }}', 'api'))
   jobs:
-  - job: Install
-    displayName: 'Install Node.js and Dependencies'
+  - job: UITests
+    displayName: 'Run UI Tests'
+    timeoutInMinutes: 45
+    strategy:
+      matrix:
+        Windows:
+          imageName: 'windows-latest'
+          osName: 'Windows'
+          scriptExt: 'bat'
+        macOS:
+          imageName: 'macos-latest'
+          osName: 'macOS'
+          scriptExt: 'sh'
+      maxParallel: 2
+    pool:
+      vmImage: $(imageName)
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+      displayName: 'Install Node.js'
+
+    - task: Cache@2
+      inputs:
+        key: 'npm | "$(Agent.OS)" | package-lock.json'
+        restoreKeys: |
+          npm | "$(Agent.OS)"
+        path: ~/.npm
+      displayName: 'Cache npm'
+
+    - task: Cache@2
+      inputs:
+        key: 'playwright | "$(Agent.OS)" | package-lock.json'
+        restoreKeys: |
+          playwright | "$(Agent.OS)"
+        path: |
+          ~/.cache/ms-playwright
+          ~/Library/Caches/ms-playwright
+          %USERPROFILE%\AppData\Local\ms-playwright
+      displayName: 'Cache Playwright browsers'
+
+    - script: npm ci
+      displayName: 'Install dependencies'
+
+    - script: npx playwright install --with-deps
+      displayName: 'Install Playwright Browsers'
+
+    - script: |
+        echo "Test Environment: $(TEST_ENV)"
+        echo "Test Mode: $(TEST_MODE)"
+        echo "Workers: $(TEST_WORKERS)"
+        echo "Browser: $(TEST_BROWSER)"
+        echo "OS: $(osName)"
+      displayName: 'Display test configuration'
+
+    - script: |
+        chmod +x ./run-ui-tests.sh
+        chmod +x ./run-api-tests-nonparallel.sh
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
+      displayName: 'Make UI test scripts executable (Unix)'
+
+    - script: ./run-ui-tests.sh $(TEST_ENV) $(TEST_MODE) $(TEST_WORKERS)
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
+      displayName: 'Run UI tests (Unix)'
+      env:
+        BROWSER: $(TEST_BROWSER)
+
+    - script: ./run-ui-tests.bat $(TEST_ENV) $(TEST_MODE) $(TEST_WORKERS)
+      condition: eq(variables['Agent.OS'], 'Windows_NT')
+      displayName: 'Run UI tests (Windows)'
+      env:
+        BROWSER: $(TEST_BROWSER)
+
+    - script: |
+        echo "## UI Test Results Summary" > test_summary.md
+        echo "- **Environment**: $(TEST_ENV)" >> test_summary.md
+        echo "- **Mode**: $(TEST_MODE)" >> test_summary.md
+        echo "- **Workers**: $(TEST_WORKERS)" >> test_summary.md
+        echo "- **Browser**: $(TEST_BROWSER)" >> test_summary.md
+        echo "- **OS**: $(osName)" >> test_summary.md
+        echo "- **Status**: $(Agent.JobStatus)" >> test_summary.md
+      condition: always()
+      displayName: 'Generate test summary'
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/results.xml'
+        searchFolder: 'test-results'
+        mergeTestResults: true
+        testRunTitle: 'UI Tests - $(osName)'
+      condition: always()
+      displayName: 'Publish UI test results'
+
+    - task: PublishHtmlReport@1
+      inputs:
+        reportDir: 'playwright-report'
+        tabName: 'UI Test Report - $(osName)'
+      condition: always()
+      displayName: 'Publish UI HTML report'
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: |
+          test-results/
+          playwright-report/
+          screenshots/
+          videos/
+          test_summary.md
+        artifactName: 'ui-test-results-$(osName)-$(TEST_ENV)-$(TEST_MODE)'
+      condition: always()
+      displayName: 'Upload UI Test Results'
+
+- stage: APITests
+  displayName: 'API Tests'
+  condition: and(succeeded(), ne('${{ parameters.test_type }}', 'ui'))
+  jobs:
+  - job: APITests
+    displayName: 'Run API Tests'
+    timeoutInMinutes: 30
     pool:
       vmImage: 'ubuntu-latest'
     steps:
@@ -51,97 +213,30 @@ stages:
         path: ~/.npm
       displayName: 'Cache npm'
 
-    - script: |
-        npm ci
-        npx playwright install --with-deps
-      displayName: 'Install dependencies and Playwright browsers'
+    - script: npm ci
+      displayName: 'Install dependencies'
 
-    - publish: node_modules
-      artifact: node_modules
-      displayName: 'Publish node_modules'
-
-- stage: UITests
-  displayName: 'UI Tests'
-  dependsOn: Install
-  condition: or(eq(variables['Build.Reason'], 'Manual'), contains(variables['Build.SourceVersionMessage'], 'ui'), succeeded())
-  jobs:
-  - job: UITests
-    displayName: 'Run UI Tests'
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: $(nodeVersion)
-      displayName: 'Install Node.js'
-
-    - download: current
-      artifact: node_modules
-      displayName: 'Download node_modules'
+    - script: chmod +x ./run-api-tests-nonparallel.sh
+      displayName: 'Make API test scripts executable'
 
     - script: |
-        cp -r $(Pipeline.Workspace)/node_modules ./
-        cp .env.example .env.testing
-        echo "NODE_ENV=testing" >> .env.testing
-        echo "CI=true" >> .env.testing
-      displayName: 'Setup environment'
+        echo "API Test Environment: $(TEST_ENV)"
+        echo "API Base URL: ${API_BASE_URL:-https://restful-booker.herokuapp.com}"
+        echo "Execution: Serial (1 worker)"
+      displayName: 'Display API test configuration'
 
-    - script: npm run test:simple
-      displayName: 'Run UI tests'
-      continueOnError: true
-
-    - task: PublishTestResults@2
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/results.xml'
-        searchFolder: 'test-results'
-        mergeTestResults: true
-        testRunTitle: 'UI Tests'
-      condition: always()
-      displayName: 'Publish UI test results'
-
-    - task: PublishHtmlReport@1
-      inputs:
-        reportDir: 'playwright-report'
-        tabName: 'UI Test Report'
-      condition: always()
-      displayName: 'Publish UI HTML report'
-
-    - publish: playwright-report
-      artifact: ui-test-report
-      condition: always()
-      displayName: 'Publish UI test artifacts'
-
-- stage: APITests
-  displayName: 'API Tests'
-  dependsOn: Install
-  condition: or(eq(variables['Build.Reason'], 'Manual'), contains(variables['Build.SourceVersionMessage'], 'api'), succeeded())
-  jobs:
-  - job: APITests
-    displayName: 'Run API Tests'
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: $(nodeVersion)
-      displayName: 'Install Node.js'
-
-    - download: current
-      artifact: node_modules
-      displayName: 'Download node_modules'
+    - script: ./run-api-tests-nonparallel.sh
+      displayName: 'Run API tests'
+      env:
+        API_ENV: $(TEST_ENV)
 
     - script: |
-        cp -r $(Pipeline.Workspace)/node_modules ./
-        cp .env.example .env.testing
-        echo "NODE_ENV=testing" >> .env.testing
-        echo "API_BASE_URL=https://restful-booker.herokuapp.com" >> .env.testing
-        echo "CI=true" >> .env.testing
-      displayName: 'Setup environment'
-
-    - script: npm run test:api:serial
-      displayName: 'Run API tests in serial mode'
-      continueOnError: true
+        echo "## API Test Results Summary" > api_test_summary.md
+        echo "- **Environment**: $(TEST_ENV)" >> api_test_summary.md
+        echo "- **Execution**: Serial (1 worker)" >> api_test_summary.md
+        echo "- **Status**: $(Agent.JobStatus)" >> api_test_summary.md
+      condition: always()
+      displayName: 'Generate API test summary'
 
     - task: PublishTestResults@2
       inputs:
@@ -160,40 +255,60 @@ stages:
       condition: always()
       displayName: 'Publish API HTML report'
 
-    - publish: api-report
-      artifact: api-test-report
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: |
+          test-results/api/
+          api-results/
+          api-report/
+          playwright-report/
+          api_test_summary.md
+        artifactName: 'api-test-results-$(TEST_ENV)'
       condition: always()
-      displayName: 'Publish API test artifacts'
+      displayName: 'Upload API Test Results'
 
-- stage: Publish
-  displayName: 'Publish Reports'
+- stage: TestReport
+  displayName: 'Generate Combined Test Report'
+  condition: always()
   dependsOn: 
     - UITests
     - APITests
-  condition: always()
   jobs:
-  - job: PublishReports
+  - job: TestReport
     displayName: 'Combine and Publish All Reports'
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - download: current
-      artifact: ui-test-report
-      displayName: 'Download UI reports'
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'ui-test-results-Windows-$(TEST_ENV)-$(TEST_MODE)'
+        targetPath: './combined-results/ui/windows/'
+      condition: and(always(), ne('${{ parameters.test_type }}', 'api'))
       continueOnError: true
+      displayName: 'Download Windows UI reports'
 
-    - download: current
-      artifact: api-test-report
-      displayName: 'Download API reports'
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'ui-test-results-macOS-$(TEST_ENV)-$(TEST_MODE)'
+        targetPath: './combined-results/ui/macos/'
+      condition: and(always(), ne('${{ parameters.test_type }}', 'api'))
       continueOnError: true
+      displayName: 'Download macOS UI reports'
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'api-test-results-$(TEST_ENV)'
+        targetPath: './combined-results/api/'
+      condition: and(always(), ne('${{ parameters.test_type }}', 'ui'))
+      continueOnError: true
+      displayName: 'Download API reports'
 
     - script: |
-        mkdir -p combined-reports/ui
-        mkdir -p combined-reports/api
-        cp -r $(Pipeline.Workspace)/ui-test-report/* combined-reports/ui/ 2>/dev/null || true
-        cp -r $(Pipeline.Workspace)/api-test-report/* combined-reports/api/ 2>/dev/null || true
-        
-        cat > combined-reports/index.html << EOF
+        mkdir -p ./combined-report
+        cat > ./combined-report/index.html << 'EOF'
         <!DOCTYPE html>
         <html>
         <head>
@@ -220,9 +335,11 @@ stages:
                     color: #333;
                 }
                 .report-icon { font-size: 48px; margin-bottom: 16px; }
-                .report-title { color: #1976d2; margin: 0 0 12px 0; font-size: 20px; }
+                .report-title { color: #0078d4; margin: 0 0 12px 0; font-size: 20px; }
                 .report-desc { color: #666; margin: 0; line-height: 1.5; }
                 .meta { text-align: center; margin-top: 30px; color: #888; font-size: 14px; }
+                .os-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+                .os-card { background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: center; }
             </style>
         </head>
         <body>
@@ -240,11 +357,21 @@ stages:
                 </div>
                 
                 <div class="report-grid">
-                    <a href="ui/" class="report-card">
+                    <div class="report-card">
                         <div class="report-icon">🖥️</div>
                         <h2 class="report-title">UI Tests</h2>
                         <p class="report-desc">Browser-based end-to-end tests covering user interactions and workflows</p>
-                    </a>
+                        <div class="os-grid">
+                            <div class="os-card">
+                                <strong>🪟 Windows</strong><br>
+                                <a href="ui/windows/playwright-report/">View Report</a>
+                            </div>
+                            <div class="os-card">
+                                <strong>🍎 macOS</strong><br>
+                                <a href="ui/macos/playwright-report/">View Report</a>
+                            </div>
+                        </div>
+                    </div>
                     <a href="api/" class="report-card">
                         <div class="report-icon">🔌</div>
                         <h2 class="report-title">API Tests</h2>
@@ -261,6 +388,49 @@ stages:
         EOF
       displayName: 'Create combined report index'
 
-    - publish: combined-reports
-      artifact: combined-test-reports
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: ./combined-report/
+        artifactName: 'combined-test-report-$(TEST_ENV)'
       displayName: 'Publish combined reports'
+
+- stage: NotifyResults
+  displayName: 'Notify Test Results'
+  condition: always()
+  dependsOn: 
+    - UITests
+    - APITests
+    - TestReport
+  jobs:
+  - job: NotifyResults
+    displayName: 'Generate Test Summary'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        echo "## 🎭 Playwright Test Results" > pipeline_summary.md
+        echo "" >> pipeline_summary.md
+        echo "### Configuration" >> pipeline_summary.md
+        echo "- **Environment**: $(TEST_ENV)" >> pipeline_summary.md
+        echo "- **Mode**: $(TEST_MODE)" >> pipeline_summary.md
+        echo "- **Workers**: $(TEST_WORKERS)" >> pipeline_summary.md
+        echo "- **Browser**: $(TEST_BROWSER)" >> pipeline_summary.md
+        echo "- **Test Type**: $(TEST_TYPE)" >> pipeline_summary.md
+        echo "" >> pipeline_summary.md
+        echo "### Results" >> pipeline_summary.md
+        echo "- **Build**: $(Build.BuildNumber)" >> pipeline_summary.md
+        echo "- **Branch**: $(Build.SourceBranchName)" >> pipeline_summary.md
+        echo "- **Commit**: $(Build.SourceVersion)" >> pipeline_summary.md
+        echo "" >> pipeline_summary.md
+        echo "### Artifacts" >> pipeline_summary.md
+        echo "- Test results are available in the pipeline artifacts" >> pipeline_summary.md
+        echo "- Reports include screenshots, videos, and HTML reports" >> pipeline_summary.md
+        echo "- Retention period: 30 days" >> pipeline_summary.md
+        cat pipeline_summary.md
+      displayName: 'Generate pipeline summary'
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: pipeline_summary.md
+        artifactName: 'pipeline-summary'
+      displayName: 'Publish summary'

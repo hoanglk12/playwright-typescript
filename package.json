@@ -1,7 +1,10 @@
 {
-  "name": "playwright-bankguru-framework",
-  "version": "1.0.0",
-  "description": "Playwright TypeScript framework converted from Maven hybrid framework for BankGuru testing",
+  "name": "playwright-typescript-framework",
+  "version": "13.7.2025",
+  "description": "Playwright TypeScript framework converted from Maven hybrid framework",
+  "author":"Hoang Pham",
+  "license": "Hoang Pham - Senior Quality Engineer",
+  "contact": "hoanglk12@gmail.com",
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
@@ -45,11 +48,10 @@
     "typescript",
     "testing",
     "e2e",
-    "bankguru",
+    "api",
     "automation"
   ],
-  "author": "Converted Framework",
-  "license": "ISC",
+ 
   "devDependencies": {
     "@playwright/test": "^1.53.1",
     "@types/node": "^20.10.0",

@@ -1,6 +1,6 @@
 import { Page, Dialog } from '@playwright/test';
 import { BasePage } from '../base-page';
-import { getEnvironment } from '../../config/environment';
+import { DragAndDropData } from '../../data/drag-and-drop-data';
 
 
 /**
@@ -24,8 +24,8 @@ export class FormDragAndDropPage extends BasePage {
    */
   async navigateToFormPage(): Promise<void> {
     //const env = getEnvironment();
-    await this.page.goto('https://ff-fieldfishercom-qa-web-ekfefjdmh6dbg3f7.uksouth-01.azurewebsites.net/en/services/service-test-form');
-    await this.waitForPageLoadState();
+    await this.page.goto(DragAndDropData.formPageUrl);
+    await this.waitForDOMContentLoaded();
   }
   /**
    * Click upload file element
