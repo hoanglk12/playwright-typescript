@@ -848,7 +848,12 @@ strategy:
 ### Performance Monitoring
 ```bash
 # Monitor test execution time
-time npm test
+---Linux/Mac---
+time npm run test:api
+
+---Windows---
+Measure-Command { npm run test:api }
+```
 
 # Run with detailed timing
 npx playwright test --reporter=list --verbose

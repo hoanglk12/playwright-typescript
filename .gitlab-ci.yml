@@ -13,7 +13,6 @@ variables:
   TEST_BROWSER: "${TEST_BROWSER:-all}"
   TEST_TYPE: "${TEST_TYPE:-both}"
 
-# Manual pipeline with custom variables
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -31,7 +30,6 @@ workflow:
         - "*.config.ts"
         - package.json
 
-# Cache configuration
 cache:
   key: 
     files:
@@ -43,42 +41,38 @@ cache:
     - ~/Library/Caches/ms-playwright/
     - "%USERPROFILE%\\AppData\\Local\\ms-playwright"
 
-# UI Tests - Multiple OS Matrix
-.ui-test-template: &ui-test-template
+ui_test_windows:
   stage: ui-test
+  image: mcr.microsoft.com/windows/servercore:ltsc2019
   timeout: 45 minutes
+  tags:
+    - windows
+    - docker
   rules:
     - if: $TEST_TYPE != "api"
   variables:
     BROWSER: $TEST_BROWSER
   before_script:
-    - echo "Test Environment: $TEST_ENV"
-    - echo "Test Mode: $TEST_MODE"
-    - echo "Workers: $TEST_WORKERS"
-    - echo "Browser: $TEST_BROWSER"
-    - echo "OS: $CI_RUNNER_DESCRIPTION"
+    - echo "Test Environment - $TEST_ENV"
+    - echo "Test Mode - $TEST_MODE"
+    - echo "Workers - $TEST_WORKERS"
+    - echo "Browser - $TEST_BROWSER"
+    - echo "OS - Windows"
     - npm ci
     - npx playwright install --with-deps
   script:
-    - |
-      if [ "$CI_RUNNER_DESCRIPTION" != "windows" ]; then
-        chmod +x ./run-ui-tests.sh
-        ./run-ui-tests.sh $TEST_ENV $TEST_MODE $TEST_WORKERS
-      else
-        ./run-ui-tests.bat $TEST_ENV $TEST_MODE $TEST_WORKERS
-      fi
+    - ./run-ui-tests.bat $TEST_ENV $TEST_MODE $TEST_WORKERS
   after_script:
-    - |
-      echo "## UI Test Results Summary" >> test_summary.md
-      echo "- **Environment**: $TEST_ENV" >> test_summary.md
-      echo "- **Mode**: $TEST_MODE" >> test_summary.md
-      echo "- **Workers**: $TEST_WORKERS" >> test_summary.md
-      echo "- **Browser**: $TEST_BROWSER" >> test_summary.md
-      echo "- **OS**: $CI_RUNNER_DESCRIPTION" >> test_summary.md
-      echo "- **Status**: $CI_JOB_STATUS" >> test_summary.md
+    - echo "## UI Test Results Summary" >> test_summary.md
+    - echo "- **Environment** - $TEST_ENV" >> test_summary.md
+    - echo "- **Mode** - $TEST_MODE" >> test_summary.md
+    - echo "- **Workers** - $TEST_WORKERS" >> test_summary.md
+    - echo "- **Browser** - $TEST_BROWSER" >> test_summary.md
+    - echo "- **OS** - Windows" >> test_summary.md
+    - echo "- **Status** - $CI_JOB_STATUS" >> test_summary.md
   artifacts:
     when: always
-    name: "ui-test-results-$CI_RUNNER_DESCRIPTION-$TEST_ENV-$TEST_MODE"
+    name: "ui-test-results-windows-$TEST_ENV-$TEST_MODE"
     paths:
       - test-results/
       - playwright-report/
@@ -89,21 +83,49 @@ cache:
       junit: test-results/results.xml
     expire_in: 30 days
 
-ui-test:windows:
-  <<: *ui-test-template
-  image: mcr.microsoft.com/windows/servercore:ltsc2019
-  tags:
-    - windows
-    - docker
-
-ui-test:macos:
-  <<: *ui-test-template
+ui_test_macos:
+  stage: ui-test
+  timeout: 45 minutes
   tags:
     - macos
     - shell
+  rules:
+    - if: $TEST_TYPE != "api"
+  variables:
+    BROWSER: $TEST_BROWSER
+  before_script:
+    - echo "Test Environment - $TEST_ENV"
+    - echo "Test Mode - $TEST_MODE"
+    - echo "Workers - $TEST_WORKERS"
+    - echo "Browser - $TEST_BROWSER"
+    - echo "OS - macOS"
+    - npm ci
+    - npx playwright install --with-deps
+  script:
+    - chmod +x ./run-ui-tests.sh
+    - ./run-ui-tests.sh $TEST_ENV $TEST_MODE $TEST_WORKERS
+  after_script:
+    - echo "## UI Test Results Summary" >> test_summary.md
+    - echo "- **Environment** - $TEST_ENV" >> test_summary.md
+    - echo "- **Mode** - $TEST_MODE" >> test_summary.md
+    - echo "- **Workers** - $TEST_WORKERS" >> test_summary.md
+    - echo "- **Browser** - $TEST_BROWSER" >> test_summary.md
+    - echo "- **OS** - macOS" >> test_summary.md
+    - echo "- **Status** - $CI_JOB_STATUS" >> test_summary.md
+  artifacts:
+    when: always
+    name: "ui-test-results-macos-$TEST_ENV-$TEST_MODE"
+    paths:
+      - test-results/
+      - playwright-report/
+      - screenshots/
+      - videos/
+      - test_summary.md
+    reports:
+      junit: test-results/results.xml
+    expire_in: 30 days
 
-# API Tests
-api-test:
+api_test:
   stage: api-test
   image: node:${NODE_VERSION}
   timeout: 30 minutes
@@ -112,19 +134,18 @@ api-test:
   variables:
     API_ENV: $TEST_ENV
   before_script:
-    - echo "API Test Environment: $TEST_ENV"
-    - echo "API Base URL: ${API_BASE_URL:-https://restful-booker.herokuapp.com}"
-    - echo "Execution: Serial (1 worker)"
+    - echo "API Test Environment - $TEST_ENV"
+    - echo "API Base URL - ${API_BASE_URL:-https://restful-booker.herokuapp.com}"
+    - echo "Execution - Serial (1 worker)"
     - npm ci
     - chmod +x ./run-api-tests-nonparallel.sh
   script:
     - ./run-api-tests-nonparallel.sh
   after_script:
-    - |
-      echo "## API Test Results Summary" >> api_test_summary.md
-      echo "- **Environment**: $TEST_ENV" >> api_test_summary.md
-      echo "- **Execution**: Serial (1 worker)" >> api_test_summary.md
-      echo "- **Status**: $CI_JOB_STATUS" >> api_test_summary.md
+    - echo "## API Test Results Summary" >> api_test_summary.md
+    - echo "- **Environment** - $TEST_ENV" >> api_test_summary.md
+    - echo "- **Execution** - Serial (1 worker)" >> api_test_summary.md
+    - echo "- **Status** - $CI_JOB_STATUS" >> api_test_summary.md
   artifacts:
     when: always
     name: "api-test-results-$TEST_ENV"
@@ -138,16 +159,15 @@ api-test:
       junit: api-results/results.xml
     expire_in: 30 days
 
-# Generate Combined Test Report
-test-report:
+test_report:
   stage: test-report
   image: alpine:latest
   rules:
     - when: always
   dependencies:
-    - ui-test:windows
-    - ui-test:macos
-    - api-test
+    - ui_test_windows
+    - ui_test_macos
+    - api_test
   before_script:
     - apk add --no-cache bash
   script:
@@ -244,17 +264,16 @@ test-report:
       - ./combined-results/
     expire_in: 30 days
 
-# Notify Test Results
-notify-results:
+notify_results:
   stage: notify-results
   image: alpine:latest
   rules:
     - when: always
   dependencies:
-    - ui-test:windows
-    - ui-test:macos
-    - api-test
-    - test-report
+    - ui_test_windows
+    - ui_test_macos
+    - api_test
+    - test_report
   script:
     - |
       echo "## 🎭 Playwright Test Results" > pipeline_summary.md
@@ -281,7 +300,6 @@ notify-results:
       - pipeline_summary.md
     expire_in: 30 days
 
-# Pages deployment (for main branch)
 pages:
   stage: notify-results
   image: alpine:latest
@@ -289,7 +307,7 @@ pages:
     - if: $CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "develop"
       when: always
   dependencies:
-    - test-report
+    - test_report
   script:
     - cp -r ./combined-report public
   artifacts:
