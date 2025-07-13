@@ -54,7 +54,7 @@ test.describe('Admin Login Tests', () => {
     logger.step('Step 2 - Enter wrong credentials');
     logger.action('Fill', 'username field with wrong value');
     await loginPage.enterUserID(AdminData.INVALID_ADMIN.username);
-    logger.action('Fill', 'username field with wrong value');
+    logger.action('Fill', 'password field with wrong value');
     await loginPage.enterPassword(AdminData.INVALID_ADMIN.password);
     
     logger.step('Step 3 - Click login button to attempt login');

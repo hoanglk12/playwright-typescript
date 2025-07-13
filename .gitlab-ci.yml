@@ -1,142 +1,297 @@
 stages:
-  - install
-  - test
-  - report
+  - ui-test
+  - api-test
+  - test-report
+  - notify-results
 
 variables:
   NODE_VERSION: "20"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+  TEST_ENV: "${TEST_ENVIRONMENT:-testing}"
+  TEST_MODE: "${TEST_MODE:-parallel}"
+  TEST_WORKERS: "${TEST_WORKERS:-4}"
+  TEST_BROWSER: "${TEST_BROWSER:-all}"
+  TEST_TYPE: "${TEST_TYPE:-both}"
 
-# Cache node_modules to speed up builds
+# Manual pipeline with custom variables
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - src/**/*
+        - tests/**/*
+        - "*.config.ts"
+        - package.json
+        - .gitlab-ci.yml
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - src/**/*
+        - tests/**/*
+        - "*.config.ts"
+        - package.json
+
+# Cache configuration
 cache:
-  key: "${CI_COMMIT_REF_SLUG}"
+  key: 
+    files:
+      - package-lock.json
+    prefix: "${CI_JOB_NAME}"
   paths:
     - node_modules/
     - ~/.cache/ms-playwright/
+    - ~/Library/Caches/ms-playwright/
+    - "%USERPROFILE%\\AppData\\Local\\ms-playwright"
 
-# Install dependencies
-install:
-  stage: install
-  image: node:${NODE_VERSION}
-  script:
+# UI Tests - Multiple OS Matrix
+.ui-test-template: &ui-test-template
+  stage: ui-test
+  timeout: 45 minutes
+  rules:
+    - if: $TEST_TYPE != "api"
+  variables:
+    BROWSER: $TEST_BROWSER
+  before_script:
+    - echo "Test Environment: $TEST_ENV"
+    - echo "Test Mode: $TEST_MODE"
+    - echo "Workers: $TEST_WORKERS"
+    - echo "Browser: $TEST_BROWSER"
+    - echo "OS: $CI_RUNNER_DESCRIPTION"
     - npm ci
     - npx playwright install --with-deps
-  artifacts:
-    paths:
-      - node_modules/
-    expire_in: 1 hour
-
-# Run UI tests
-ui-tests:
-  stage: test
-  image: node:${NODE_VERSION}
-  dependencies:
-    - install
   script:
-    - cp .env.example .env.testing
-    - echo "NODE_ENV=testing" >> .env.testing
-    - echo "CI=true" >> .env.testing
-    - npm run test:simple
+    - |
+      if [ "$CI_RUNNER_DESCRIPTION" != "windows" ]; then
+        chmod +x ./run-ui-tests.sh
+        ./run-ui-tests.sh $TEST_ENV $TEST_MODE $TEST_WORKERS
+      else
+        ./run-ui-tests.bat $TEST_ENV $TEST_MODE $TEST_WORKERS
+      fi
+  after_script:
+    - |
+      echo "## UI Test Results Summary" >> test_summary.md
+      echo "- **Environment**: $TEST_ENV" >> test_summary.md
+      echo "- **Mode**: $TEST_MODE" >> test_summary.md
+      echo "- **Workers**: $TEST_WORKERS" >> test_summary.md
+      echo "- **Browser**: $TEST_BROWSER" >> test_summary.md
+      echo "- **OS**: $CI_RUNNER_DESCRIPTION" >> test_summary.md
+      echo "- **Status**: $CI_JOB_STATUS" >> test_summary.md
   artifacts:
     when: always
+    name: "ui-test-results-$CI_RUNNER_DESCRIPTION-$TEST_ENV-$TEST_MODE"
     paths:
-      - playwright-report/
       - test-results/
+      - playwright-report/
+      - screenshots/
+      - videos/
+      - test_summary.md
     reports:
       junit: test-results/results.xml
-    expire_in: 1 week
-  only:
-    changes:
-      - "src/ui/**/*"
-      - "tests/**/*"
-      - "playwright.config.ts"
-      - "package.json"
-      - ".gitlab-ci.yml"
+    expire_in: 30 days
 
-# Run API tests
-api-tests:
-  stage: test
+ui-test:windows:
+  <<: *ui-test-template
+  image: mcr.microsoft.com/windows/servercore:ltsc2019
+  tags:
+    - windows
+    - docker
+
+ui-test:macos:
+  <<: *ui-test-template
+  tags:
+    - macos
+    - shell
+
+# API Tests
+api-test:
+  stage: api-test
   image: node:${NODE_VERSION}
-  dependencies:
-    - install
+  timeout: 30 minutes
+  rules:
+    - if: $TEST_TYPE != "ui"
+  variables:
+    API_ENV: $TEST_ENV
+  before_script:
+    - echo "API Test Environment: $TEST_ENV"
+    - echo "API Base URL: ${API_BASE_URL:-https://restful-booker.herokuapp.com}"
+    - echo "Execution: Serial (1 worker)"
+    - npm ci
+    - chmod +x ./run-api-tests-nonparallel.sh
   script:
-    - cp .env.example .env.testing
-    - echo "NODE_ENV=testing" >> .env.testing
-    - echo "API_BASE_URL=https://restful-booker.herokuapp.com" >> .env.testing
-    - echo "CI=true" >> .env.testing
-    - npm run test:api:serial
+    - ./run-api-tests-nonparallel.sh
+  after_script:
+    - |
+      echo "## API Test Results Summary" >> api_test_summary.md
+      echo "- **Environment**: $TEST_ENV" >> api_test_summary.md
+      echo "- **Execution**: Serial (1 worker)" >> api_test_summary.md
+      echo "- **Status**: $CI_JOB_STATUS" >> api_test_summary.md
   artifacts:
     when: always
+    name: "api-test-results-$TEST_ENV"
     paths:
-      - api-report/
-      - api-results/
       - test-results/api/
+      - api-results/
+      - api-report/
+      - playwright-report/
+      - api_test_summary.md
     reports:
       junit: api-results/results.xml
-    expire_in: 1 week
-  only:
-    changes:
-      - "src/api/**/*"
-      - "tests/api/**/*"
-      - "api.config.ts"
-      - "package.json"
-      - ".gitlab-ci.yml"
+    expire_in: 30 days
 
-# Deploy test reports to GitLab Pages
-pages:
-  stage: report
+# Generate Combined Test Report
+test-report:
+  stage: test-report
   image: alpine:latest
+  rules:
+    - when: always
   dependencies:
-    - ui-tests
-    - api-tests
+    - ui-test:windows
+    - ui-test:macos
+    - api-test
+  before_script:
+    - apk add --no-cache bash
   script:
-    - mkdir -p public/ui-report
-    - mkdir -p public/api-report
-    - cp -r playwright-report/* public/ui-report/ 2>/dev/null || true
-    - cp -r api-report/* public/api-report/ 2>/dev/null || true
+    - mkdir -p ./combined-report
+    - mkdir -p ./combined-results/ui
+    - mkdir -p ./combined-results/api
+    - cp -r test-results/* ./combined-results/ui/ 2>/dev/null || true
+    - cp -r playwright-report/* ./combined-results/ui/ 2>/dev/null || true
+    - cp -r api-results/* ./combined-results/api/ 2>/dev/null || true
+    - cp -r api-report/* ./combined-results/api/ 2>/dev/null || true
     - |
-      cat > public/index.html << EOF
+      cat > ./combined-report/index.html << EOF
       <!DOCTYPE html>
       <html>
       <head>
-          <title>Test Reports</title>
+          <title>Playwright Test Reports - Build $CI_PIPELINE_ID</title>
           <style>
-              body { font-family: Arial, sans-serif; margin: 40px; }
-              .report-links { display: flex; gap: 20px; }
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f5f5; }
+              .container { max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              .header { text-align: center; margin-bottom: 40px; }
+              .build-info { background: #e8f4fd; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+              .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
               .report-card { 
-                  border: 1px solid #ddd; 
+                  border: 1px solid #e0e0e0; 
                   border-radius: 8px; 
-                  padding: 20px; 
+                  padding: 24px; 
                   text-decoration: none; 
                   color: #333;
-                  transition: box-shadow 0.2s;
+                  transition: all 0.2s;
+                  background: #fff;
               }
-              .report-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-              h1 { color: #333; }
-              h2 { color: #666; margin-top: 0; }
+              .report-card:hover { 
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+                  transform: translateY(-2px);
+                  text-decoration: none;
+                  color: #333;
+              }
+              .report-icon { font-size: 48px; margin-bottom: 16px; }
+              .report-title { color: #fc6d26; margin: 0 0 12px 0; font-size: 20px; }
+              .report-desc { color: #666; margin: 0; line-height: 1.5; }
+              .meta { text-align: center; margin-top: 30px; color: #888; font-size: 14px; }
+              .os-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+              .os-card { background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: center; }
           </style>
       </head>
       <body>
-          <h1>Playwright Test Reports</h1>
-          <div class="report-links">
-              <a href="ui-report/" class="report-card">
-                  <h2>🖥️ UI Tests</h2>
-                  <p>Browser-based end-to-end tests</p>
-              </a>
-              <a href="api-report/" class="report-card">
-                  <h2>🔌 API Tests</h2>
-                  <p>RESTful API integration tests</p>
-              </a>
+          <div class="container">
+              <div class="header">
+                  <h1>🎭 Playwright Test Reports</h1>
+                  <p>Comprehensive test results for UI and API testing</p>
+              </div>
+              
+              <div class="build-info">
+                  <strong>Pipeline:</strong> $CI_PIPELINE_ID | 
+                  <strong>Branch:</strong> $CI_COMMIT_REF_NAME | 
+                  <strong>Commit:</strong> $CI_COMMIT_SHA |
+                  <strong>Date:</strong> $(date)
+              </div>
+              
+              <div class="report-grid">
+                  <div class="report-card">
+                      <div class="report-icon">🖥️</div>
+                      <h2 class="report-title">UI Tests</h2>
+                      <p class="report-desc">Browser-based end-to-end tests covering user interactions and workflows</p>
+                      <div class="os-grid">
+                          <div class="os-card">
+                              <strong>🪟 Windows</strong><br>
+                              <a href="ui/windows/playwright-report/">View Report</a>
+                          </div>
+                          <div class="os-card">
+                              <strong>🍎 macOS</strong><br>
+                              <a href="ui/macos/playwright-report/">View Report</a>
+                          </div>
+                      </div>
+                  </div>
+                  <a href="api/" class="report-card">
+                      <div class="report-icon">🔌</div>
+                      <h2 class="report-title">API Tests</h2>
+                      <p class="report-desc">RESTful API integration tests for Restful Booker service</p>
+                  </a>
+              </div>
+              
+              <div class="meta">
+                  <p>Generated by GitLab CI/CD Pipeline on $(date)</p>
+              </div>
           </div>
-          <p><small>Generated on: $(date)</small></p>
       </body>
       </html>
       EOF
   artifacts:
+    name: "combined-test-report-$TEST_ENV"
+    paths:
+      - ./combined-report/
+      - ./combined-results/
+    expire_in: 30 days
+
+# Notify Test Results
+notify-results:
+  stage: notify-results
+  image: alpine:latest
+  rules:
+    - when: always
+  dependencies:
+    - ui-test:windows
+    - ui-test:macos
+    - api-test
+    - test-report
+  script:
+    - |
+      echo "## 🎭 Playwright Test Results" > pipeline_summary.md
+      echo "" >> pipeline_summary.md
+      echo "### Configuration" >> pipeline_summary.md
+      echo "- **Environment**: $TEST_ENV" >> pipeline_summary.md
+      echo "- **Mode**: $TEST_MODE" >> pipeline_summary.md
+      echo "- **Workers**: $TEST_WORKERS" >> pipeline_summary.md
+      echo "- **Browser**: $TEST_BROWSER" >> pipeline_summary.md
+      echo "- **Test Type**: $TEST_TYPE" >> pipeline_summary.md
+      echo "" >> pipeline_summary.md
+      echo "### Results" >> pipeline_summary.md
+      echo "- **Pipeline**: $CI_PIPELINE_ID" >> pipeline_summary.md
+      echo "- **Branch**: $CI_COMMIT_REF_NAME" >> pipeline_summary.md
+      echo "- **Commit**: $CI_COMMIT_SHA" >> pipeline_summary.md
+      echo "" >> pipeline_summary.md
+      echo "### Artifacts" >> pipeline_summary.md
+      echo "- Test results are available in the pipeline artifacts" >> pipeline_summary.md
+      echo "- Reports include screenshots, videos, and HTML reports" >> pipeline_summary.md
+      echo "- Retention period: 30 days" >> pipeline_summary.md
+      cat pipeline_summary.md
+  artifacts:
+    paths:
+      - pipeline_summary.md
+    expire_in: 30 days
+
+# Pages deployment (for main branch)
+pages:
+  stage: notify-results
+  image: alpine:latest
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "develop"
+      when: always
+  dependencies:
+    - test-report
+  script:
+    - cp -r ./combined-report public
+  artifacts:
     paths:
       - public
-  only:
-    - main
-    - master
-    - develop
-  when: always
