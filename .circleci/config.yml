@@ -39,9 +39,10 @@ executors:
       TEST_TYPE: << pipeline.parameters.test_type >>
 
   windows-executor:
-    executor:
-      name: windows/default
-      shell: cmd.exe
+    machine:
+      image: windows-server-2019-vs2019:stable
+    resource_class: windows.medium
+    shell: cmd.exe
     working_directory: ~/project
     environment:
       NODE_ENV: << pipeline.parameters.environment >>
@@ -65,59 +66,41 @@ executors:
 
 commands:
   install-dependencies:
-    description: "Install Node.js dependencies"
     steps:
       - checkout
       - node/install:
           node-version: '20'
       - restore_cache:
           keys:
-            - v1-dependencies-{{ arch }}-{{ checksum "package-lock.json" }}
-            - v1-dependencies-{{ arch }}-
-      - run:
-          name: Install dependencies
-          command: npm ci
+            - v1-deps-{{ arch }}-{{ checksum "package-lock.json" }}
+      - run: npm ci
       - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ arch }}-{{ checksum "package-lock.json" }}
+          paths: [node_modules]
+          key: v1-deps-{{ arch }}-{{ checksum "package-lock.json" }}
+
+  install-dependencies-windows:
+    steps:
+      - checkout
+      - run: choco install nodejs --version=20.10.0 -y
+      - run: npm ci
 
   cache-playwright-browsers:
-    description: "Cache Playwright browsers"
     steps:
       - restore_cache:
           keys:
-            - v1-playwright-browsers-{{ arch }}-{{ checksum "package-lock.json" }}
-            - v1-playwright-browsers-{{ arch }}-
-      - run:
-          name: Install Playwright Browsers
-          command: npx playwright install --with-deps
+            - v1-browsers-{{ arch }}-{{ checksum "package-lock.json" }}
+      - run: npx playwright install --with-deps
       - save_cache:
           paths:
             - ~/.cache/ms-playwright
             - ~/Library/Caches/ms-playwright
-          key: v1-playwright-browsers-{{ arch }}-{{ checksum "package-lock.json" }}
+          key: v1-browsers-{{ arch }}-{{ checksum "package-lock.json" }}
 
   make-scripts-executable:
-    description: "Make test scripts executable"
     steps:
-      - run:
-          name: Make scripts executable
-          command: |
-            chmod +x ./run-ui-tests.sh
-            chmod +x ./run-api-tests-nonparallel.sh
-
-  display-test-config:
-    description: "Display test configuration"
-    steps:
-      - run:
-          name: Display test configuration
-          command: |
-            echo "Test Environment: $TEST_ENV"
-            echo "Test Mode: $TEST_MODE"
-            echo "Workers: $TEST_WORKERS"
-            echo "Browser: $TEST_BROWSER"
-            echo "Test Type: $TEST_TYPE"
+      - run: |
+          chmod +x ./run-ui-tests.sh
+          chmod +x ./run-api-tests-nonparallel.sh
 
 jobs:
   ui-test-linux:
@@ -126,7 +109,6 @@ jobs:
       - install-dependencies
       - cache-playwright-browsers
       - make-scripts-executable
-      - display-test-config
       - run:
           name: Run UI tests (Linux)
           command: ./run-ui-tests.sh $TEST_ENV $TEST_MODE $TEST_WORKERS
@@ -135,35 +117,20 @@ jobs:
           no_output_timeout: 45m
       - store_artifacts:
           path: test-results/
-          destination: ui-test-results-linux-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: playwright-report/
-          destination: ui-test-results-linux-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: screenshots/
-          destination: ui-test-results-linux-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: videos/
-          destination: ui-test-results-linux-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_test_results:
           path: test-results/
 
   ui-test-windows:
     executor: windows-executor
     steps:
-      - checkout
-      - run:
-          name: Install Node.js
-          command: |
-            choco install nodejs --version=20.10.0 -y
-            refreshenv
-      - run:
-          name: Install dependencies
-          command: npm ci
-      - run:
-          name: Install Playwright Browsers
-          command: npx playwright install --with-deps
-      - display-test-config
+      - install-dependencies-windows
+      - run: npx playwright install --with-deps
       - run:
           name: Run UI tests (Windows)
           command: ./run-ui-tests.bat %TEST_ENV% %TEST_MODE% %TEST_WORKERS%
@@ -172,16 +139,12 @@ jobs:
           no_output_timeout: 45m
       - store_artifacts:
           path: test-results/
-          destination: ui-test-results-windows-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: playwright-report/
-          destination: ui-test-results-windows-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: screenshots/
-          destination: ui-test-results-windows-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: videos/
-          destination: ui-test-results-windows-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
 
   ui-test-macos:
     executor: macos-executor
@@ -189,7 +152,6 @@ jobs:
       - install-dependencies
       - cache-playwright-browsers
       - make-scripts-executable
-      - display-test-config
       - run:
           name: Run UI tests (macOS)
           command: ./run-ui-tests.sh $TEST_ENV $TEST_MODE $TEST_WORKERS
@@ -198,28 +160,18 @@ jobs:
           no_output_timeout: 45m
       - store_artifacts:
           path: test-results/
-          destination: ui-test-results-macos-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: playwright-report/
-          destination: ui-test-results-macos-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: screenshots/
-          destination: ui-test-results-macos-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
       - store_artifacts:
           path: videos/
-          destination: ui-test-results-macos-<< pipeline.parameters.environment >>-<< pipeline.parameters.mode >>
 
   api-test:
     executor: linux-executor
     steps:
       - install-dependencies
       - make-scripts-executable
-      - run:
-          name: Display API test configuration
-          command: |
-            echo "API Test Environment: $TEST_ENV"
-            echo "API Base URL: ${API_BASE_URL:-'https://restful-booker.herokuapp.com'}"
-            echo "Execution: Serial (1 worker)"
       - run:
           name: Run API tests
           command: ./run-api-tests-nonparallel.sh
@@ -228,16 +180,12 @@ jobs:
           no_output_timeout: 30m
       - store_artifacts:
           path: test-results/api/
-          destination: api-test-results-<< pipeline.parameters.environment >>
       - store_artifacts:
           path: api-results/
-          destination: api-test-results-<< pipeline.parameters.environment >>
       - store_artifacts:
           path: api-report/
-          destination: api-test-results-<< pipeline.parameters.environment >>
       - store_artifacts:
           path: playwright-report/
-          destination: api-test-results-<< pipeline.parameters.environment >>
       - store_test_results:
           path: test-results/api/
 
@@ -246,9 +194,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Create combined results directory
-          command: mkdir -p ./combined-results/{ui,api}
-      - run:
           name: Generate combined report
           command: |
             mkdir -p ./combined-report
@@ -256,51 +201,42 @@ jobs:
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Test Results</title>
+                <title>Playwright Test Results - CircleCI</title>
                 <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .config { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                    .results { background: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+                    .header { background: #343a40; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+                    .config { background: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                    .results { background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; }
                     ul { margin: 10px 0; }
                     li { margin: 5px 0; }
                 </style>
             </head>
             <body>
-                <h1>🎭 Playwright Test Results</h1>
+                <div class="header">
+                    <h1>🎭 Playwright Test Results - CircleCI</h1>
+                    <p>Generated on: $(date)</p>
+                </div>
                 <div class="config">
-                    <h2>Test Configuration</h2>
+                    <h2>📋 Test Configuration</h2>
                     <ul>
-                        <li>Environment: << pipeline.parameters.environment >></li>
-                        <li>Mode: << pipeline.parameters.mode >></li>
-                        <li>Workers: << pipeline.parameters.workers >></li>
-                        <li>Browser: << pipeline.parameters.browser >></li>
-                        <li>Test Type: << pipeline.parameters.test_type >></li>
-                        <li>Timestamp: $(date)</li>
+                        <li><strong>Environment:</strong> << pipeline.parameters.environment >></li>
+                        <li><strong>Mode:</strong> << pipeline.parameters.mode >></li>
+                        <li><strong>Workers:</strong> << pipeline.parameters.workers >></li>
+                        <li><strong>Browser:</strong> << pipeline.parameters.browser >></li>
+                        <li><strong>Test Type:</strong> << pipeline.parameters.test_type >></li>
+                        <li><strong>Build:</strong> $CIRCLE_BUILD_NUM</li>
+                        <li><strong>Branch:</strong> $CIRCLE_BRANCH</li>
                     </ul>
                 </div>
                 <div class="results">
-                    <h2>Test Results</h2>
-                    <p>UI and API tests completed. Check CircleCI artifacts for detailed reports.</p>
-                    <ul>
-                        <li>Screenshots and videos available in artifacts</li>
-                        <li>HTML reports with detailed test information</li>
-                        <li>Test results in JUnit format</li>
-                    </ul>
-                </div>
-                <div class="results">
-                    <h2>Artifacts</h2>
-                    <ul>
-                        <li>Test results are available in the CircleCI artifacts section</li>
-                        <li>Reports include screenshots, videos, and HTML reports</li>
-                        <li>Retention period: 30 days</li>
-                    </ul>
+                    <h2>✅ Test Results</h2>
+                    <p>Tests completed. Check artifacts for detailed results.</p>
                 </div>
             </body>
             </html>
             EOF
       - store_artifacts:
           path: ./combined-report/
-          destination: combined-test-report-<< pipeline.parameters.environment >>
 
   notify-results:
     executor: linux-executor
@@ -315,8 +251,7 @@ jobs:
             echo "Workers: << pipeline.parameters.workers >>"
             echo "Browser: << pipeline.parameters.browser >>"
             echo "Test Type: << pipeline.parameters.test_type >>"
-            echo "Pipeline: $CIRCLE_BUILD_URL"
-            echo "Build Number: $CIRCLE_BUILD_NUM"
+            echo "Build: $CIRCLE_BUILD_NUM"
             echo "Branch: $CIRCLE_BRANCH"
             echo "================================="
 
@@ -324,7 +259,6 @@ workflows:
   version: 2
   playwright-tests:
     jobs:
-      # UI Tests - only run if test_type is not 'api'
       - ui-test-linux:
           filters:
             branches:
@@ -343,14 +277,12 @@ workflows:
               only: [main, master, develop]
           context: playwright-testing
 
-      # API Tests - only run if test_type is not 'ui'
       - api-test:
           filters:
             branches:
               only: [main, master, develop]
           context: playwright-testing
 
-      # Generate combined report
       - test-report:
           requires:
             - ui-test-linux
@@ -361,7 +293,6 @@ workflows:
             branches:
               only: [main, master, develop]
 
-      # Notify results
       - notify-results:
           requires:
             - test-report
@@ -369,39 +300,13 @@ workflows:
             branches:
               only: [main, master, develop]
 
-  # Nightly tests workflow
   nightly-tests:
     triggers:
       - schedule:
-          cron: "0 2 * * *"  # Run at 2 AM UTC daily
+          cron: "0 2 * * *"
           filters:
             branches:
               only: [main, master]
-    jobs:
-      - ui-test-linux:
-          context: playwright-testing
-      - ui-test-windows:
-          context: playwright-testing
-      - ui-test-macos:
-          context: playwright-testing
-      - api-test:
-          context: playwright-testing
-      - test-report:
-          requires:
-            - ui-test-linux
-            - ui-test-windows
-            - ui-test-macos
-            - api-test
-      - notify-results:
-          requires:
-            - test-report
-
-  # Manual trigger workflow for specific environments
-  manual-trigger:
-    when:
-      and:
-        - equal: [ scheduled_pipeline, false ]
-        - equal: [ webhook, << pipeline.trigger_source >> ]
     jobs:
       - ui-test-linux:
           context: playwright-testing
