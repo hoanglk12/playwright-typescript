@@ -59,7 +59,7 @@ executors:
   macos-executor:
     macos:
       xcode: 15.0.0
-      resource_class: macos.m4.pro.medium
+      #resource_class: macos.m4.pro.medium
     working_directory: ~/project
     environment:
       NODE_ENV: << pipeline.parameters.environment >>
