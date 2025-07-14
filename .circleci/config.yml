@@ -37,12 +37,16 @@ executors:
       TEST_WORKERS: << pipeline.parameters.workers >>
       TEST_BROWSER: << pipeline.parameters.browser >>
       TEST_TYPE: << pipeline.parameters.test_type >>
+      DISPLAY: :99
+      XVFB_SCREEN_WIDTH: 1920
+      XVFB_SCREEN_HEIGHT: 1080
+      XVFB_SCREEN_DEPTH: 24
 
   windows-executor:
     machine:
       image: windows-server-2019-vs2019:stable
     resource_class: windows.medium
-    shell: cmd.exe
+    shell: powershell.exe
     working_directory: ~/project
     environment:
       NODE_ENV: << pipeline.parameters.environment >>
@@ -81,8 +85,35 @@ commands:
   install-dependencies-windows:
     steps:
       - checkout
-      - run: choco install nodejs --version=20.10.0 -y
-      - run: npm ci
+      - run:
+          name: Install Node.js
+          command: |
+            choco install nodejs --version=20.10.0 -y
+            refreshenv
+      - run:
+          name: Install dependencies
+          command: npm ci
+
+  setup-xvfb:
+    description: "Setup xvfb for Linux headless testing"
+    steps:
+      - run:
+          name: Install xvfb
+          command: |
+            apt-get update
+            apt-get install -y xvfb
+      - run:
+          name: Start xvfb
+          command: |
+            Xvfb :99 -screen 0 ${XVFB_SCREEN_WIDTH}x${XVFB_SCREEN_HEIGHT}x${XVFB_SCREEN_DEPTH} &
+            sleep 3
+          background: true
+      - run:
+          name: Verify xvfb is running
+          command: |
+            sleep 2
+            ps aux | grep Xvfb
+            echo "DISPLAY is set to: $DISPLAY"
 
   cache-playwright-browsers:
     steps:
@@ -107,13 +138,25 @@ jobs:
     executor: linux-executor
     steps:
       - install-dependencies
+      - setup-xvfb
       - cache-playwright-browsers
       - make-scripts-executable
       - run:
-          name: Run UI tests (Linux)
+          name: Display Linux configuration
+          command: |
+            echo "Test Environment: $TEST_ENV"
+            echo "Test Mode: $TEST_MODE"
+            echo "Workers: $TEST_WORKERS"
+            echo "Browser: $TEST_BROWSER"
+            echo "Test Type: $TEST_TYPE"
+            echo "DISPLAY: $DISPLAY"
+            echo "Screen Resolution: ${XVFB_SCREEN_WIDTH}x${XVFB_SCREEN_HEIGHT}x${XVFB_SCREEN_DEPTH}"
+      - run:
+          name: Run UI tests (Linux with xvfb)
           command: ./run-ui-tests.sh $TEST_ENV $TEST_MODE $TEST_WORKERS
           environment:
             BROWSER: << pipeline.parameters.browser >>
+            HEADLESS: false
           no_output_timeout: 45m
       - store_artifacts:
           path: test-results/
@@ -130,10 +173,31 @@ jobs:
     executor: windows-executor
     steps:
       - install-dependencies-windows
-      - run: npx playwright install --with-deps
+      - run:
+          name: Install Playwright Browsers
+          command: npx playwright install --with-deps
+      - run:
+          name: Display Windows configuration
+          command: |
+            Write-Host "Test Environment: $env:TEST_ENV"
+            Write-Host "Test Mode: $env:TEST_MODE"
+            Write-Host "Workers: $env:TEST_WORKERS"
+            Write-Host "Browser: $env:TEST_BROWSER"
+            Write-Host "Test Type: $env:TEST_TYPE"
       - run:
           name: Run UI tests (Windows)
-          command: ./run-ui-tests.bat %TEST_ENV% %TEST_MODE% %TEST_WORKERS%
+          command: |
+            if (Test-Path ".\run-ui-tests.bat") {
+              .\run-ui-tests.bat $env:TEST_ENV $env:TEST_MODE $env:TEST_WORKERS
+            } else {
+              Write-Host "Running tests directly with npm"
+              $env:BROWSER = "<< pipeline.parameters.browser >>"
+              if ($env:TEST_MODE -eq "parallel") {
+                npm run test:ui -- --workers=$env:TEST_WORKERS
+              } else {
+                npm run test:ui:serial
+              }
+            }
           environment:
             BROWSER: << pipeline.parameters.browser >>
           no_output_timeout: 45m
@@ -152,6 +216,14 @@ jobs:
       - install-dependencies
       - cache-playwright-browsers
       - make-scripts-executable
+      - run:
+          name: Display macOS configuration
+          command: |
+            echo "Test Environment: $TEST_ENV"
+            echo "Test Mode: $TEST_MODE"
+            echo "Workers: $TEST_WORKERS"
+            echo "Browser: $TEST_BROWSER"
+            echo "Test Type: $TEST_TYPE"
       - run:
           name: Run UI tests (macOS)
           command: ./run-ui-tests.sh $TEST_ENV $TEST_MODE $TEST_WORKERS
@@ -172,6 +244,12 @@ jobs:
     steps:
       - install-dependencies
       - make-scripts-executable
+      - run:
+          name: Display API test configuration
+          command: |
+            echo "API Test Environment: $TEST_ENV"
+            echo "API Base URL: ${API_BASE_URL:-'https://restful-booker.herokuapp.com'}"
+            echo "Execution: Serial (1 worker)"
       - run:
           name: Run API tests
           command: ./run-api-tests-nonparallel.sh
@@ -197,77 +275,48 @@ jobs:
           name: Generate combined report
           command: |
             mkdir -p ./combined-report
-            cat > ./combined-report/index.html \<< 'EOF'
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Playwright Test Results - CircleCI</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
-                    .header { background: #343a40; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-                    .config { background: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                    .results { background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                    .artifacts { background: #cce5ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                    ul { margin: 10px 0; }
-                    li { margin: 5px 0; }
-                    .timestamp { font-style: italic; color: #6c757d; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>🎭 Playwright Test Results - CircleCI</h1>
-                    <p class="timestamp">Generated on: $(date)</p>
-                </div>
-                
-                <div class="config">
-                    <h2>📋 Test Configuration</h2>
-                    <ul>
-                        <li><strong>Environment:</strong> << pipeline.parameters.environment >></li>
-                        <li><strong>Mode:</strong> << pipeline.parameters.mode >></li>
-                        <li><strong>Workers:</strong> << pipeline.parameters.workers >></li>
-                        <li><strong>Browser:</strong> << pipeline.parameters.browser >></li>
-                        <li><strong>Test Type:</strong> << pipeline.parameters.test_type >></li>
-                        <li><strong>CI Platform:</strong> CircleCI</li>
-                        <li><strong>Build:</strong> $CIRCLE_BUILD_NUM</li>
-                        <li><strong>Branch:</strong> $CIRCLE_BRANCH</li>
-                    </ul>
-                </div>
-                
-                <div class="results">
-                    <h2>✅ Test Results</h2>
-                    <p>UI and API tests completed successfully. Detailed results are available in the artifacts section.</p>
-                    <ul>
-                        <li>Cross-platform UI tests (Linux, Windows, macOS)</li>
-                        <li>API tests with comprehensive coverage</li>
-                        <li>Screenshots and videos for failed tests</li>
-                        <li>HTML reports with detailed test information</li>
-                        <li>JUnit XML format for CI integration</li>
-                    </ul>
-                </div>
-                
-                <div class="artifacts">
-                    <h2>📦 Available Artifacts</h2>
-                    <ul>
-                        <li><strong>Test Results:</strong> JUnit XML format in test-results/ folder</li>
-                        <li><strong>HTML Reports:</strong> Interactive reports in playwright-report/ folder</li>
-                        <li><strong>Screenshots:</strong> Failure screenshots in screenshots/ folder</li>
-                        <li><strong>Videos:</strong> Test execution videos in videos/ folder</li>
-                        <li><strong>API Results:</strong> API-specific results in api-results/ folder</li>
-                    </ul>
-                    <p><strong>Retention:</strong> Artifacts are retained for 30 days</p>
-                </div>
-                
-                <div class="config">
-                    <h2>🔗 Quick Links</h2>
-                    <ul>
-                        <li><a href="$CIRCLE_BUILD_URL" target="_blank">CircleCI Build Details</a></li>
-                        <li><a href="$CIRCLE_BUILD_URL/artifacts" target="_blank">View All Artifacts</a></li>
-                        <li><a href="https://github.com/hoanglk12/playwright-typescript" target="_blank">Source Repository</a></li>
-                    </ul>
-                </div>
-            </body>
-            </html>
-            EOF
+            echo "<!DOCTYPE html>" > ./combined-report/index.html
+            echo "<html><head><title>Playwright Test Results - CircleCI</title>" >> ./combined-report/index.html
+            echo "<style>" >> ./combined-report/index.html
+            echo "body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }" >> ./combined-report/index.html
+            echo ".header { background: #343a40; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }" >> ./combined-report/index.html
+            echo ".config { background: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }" >> ./combined-report/index.html
+            echo ".results { background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; }" >> ./combined-report/index.html
+            echo ".artifacts { background: #cce5ff; padding: 15px; border-radius: 5px; margin: 20px 0; }" >> ./combined-report/index.html
+            echo "ul { margin: 10px 0; } li { margin: 5px 0; }" >> ./combined-report/index.html
+            echo ".timestamp { font-style: italic; color: #6c757d; }" >> ./combined-report/index.html
+            echo "</style></head><body>" >> ./combined-report/index.html
+            echo "<div class=\"header\"><h1>🎭 Playwright Test Results - CircleCI</h1>" >> ./combined-report/index.html
+            echo "<p class=\"timestamp\">Generated on: $(date)</p></div>" >> ./combined-report/index.html
+            echo "<div class=\"config\"><h2>📋 Test Configuration</h2><ul>" >> ./combined-report/index.html
+            echo "<li><strong>Environment:</strong> << pipeline.parameters.environment >></li>" >> ./combined-report/index.html
+            echo "<li><strong>Mode:</strong> << pipeline.parameters.mode >></li>" >> ./combined-report/index.html
+            echo "<li><strong>Workers:</strong> << pipeline.parameters.workers >></li>" >> ./combined-report/index.html
+            echo "<li><strong>Browser:</strong> << pipeline.parameters.browser >></li>" >> ./combined-report/index.html
+            echo "<li><strong>Test Type:</strong> << pipeline.parameters.test_type >></li>" >> ./combined-report/index.html
+            echo "<li><strong>CI Platform:</strong> CircleCI</li>" >> ./combined-report/index.html
+            echo "<li><strong>Linux Display:</strong> xvfb (:99)</li>" >> ./combined-report/index.html
+            echo "<li><strong>Build:</strong> $CIRCLE_BUILD_NUM</li>" >> ./combined-report/index.html
+            echo "<li><strong>Branch:</strong> $CIRCLE_BRANCH</li></ul></div>" >> ./combined-report/index.html
+            echo "<div class=\"results\"><h2>✅ Test Results</h2>" >> ./combined-report/index.html
+            echo "<p>UI and API tests completed successfully with xvfb virtual display support.</p>" >> ./combined-report/index.html
+            echo "<ul><li>Cross-platform UI tests (Linux with xvfb, Windows, macOS)</li>" >> ./combined-report/index.html
+            echo "<li>API tests with comprehensive coverage</li>" >> ./combined-report/index.html
+            echo "<li>Screenshots and videos for failed tests</li>" >> ./combined-report/index.html
+            echo "<li>HTML reports with detailed test information</li>" >> ./combined-report/index.html
+            echo "<li>JUnit XML format for CI integration</li></ul></div>" >> ./combined-report/index.html
+            echo "<div class=\"artifacts\"><h2>📦 Available Artifacts</h2><ul>" >> ./combined-report/index.html
+            echo "<li><strong>Test Results:</strong> JUnit XML format in test-results/ folder</li>" >> ./combined-report/index.html
+            echo "<li><strong>HTML Reports:</strong> Interactive reports in playwright-report/ folder</li>" >> ./combined-report/index.html
+            echo "<li><strong>Screenshots:</strong> Failure screenshots in screenshots/ folder</li>" >> ./combined-report/index.html
+            echo "<li><strong>Videos:</strong> Test execution videos in videos/ folder</li>" >> ./combined-report/index.html
+            echo "<li><strong>API Results:</strong> API-specific results in api-results/ folder</li>" >> ./combined-report/index.html
+            echo "</ul><p><strong>Retention:</strong> Artifacts are retained for 30 days</p></div>" >> ./combined-report/index.html
+            echo "<div class=\"config\"><h2>🔗 Quick Links</h2><ul>" >> ./combined-report/index.html
+            echo "<li><a href=\"$CIRCLE_BUILD_URL\" target=\"_blank\">CircleCI Build Details</a></li>" >> ./combined-report/index.html
+            echo "<li><a href=\"$CIRCLE_BUILD_URL/artifacts\" target=\"_blank\">View All Artifacts</a></li>" >> ./combined-report/index.html
+            echo "<li><a href=\"https://github.com/hoanglk12/playwright-typescript\" target=\"_blank\">Source Repository</a></li>" >> ./combined-report/index.html
+            echo "</ul></div></body></html>" >> ./combined-report/index.html
       - store_artifacts:
           path: ./combined-report/
 
@@ -288,6 +337,7 @@ jobs:
             echo "Build Number: $CIRCLE_BUILD_NUM"
             echo "Branch: $CIRCLE_BRANCH"
             echo "Commit: $CIRCLE_SHA1"
+            echo "xvfb Display: $DISPLAY"
             echo "================================="
 
 workflows:
