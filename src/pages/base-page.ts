@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 import { TIMEOUTS } from '../constants/timeouts';
 
 /**
@@ -1356,4 +1356,140 @@ export abstract class BasePage {
   async getTextInFrameModern(frameLocator: string, elementLocator: string): Promise<string> {
     return await this.page.frameLocator(frameLocator).locator(elementLocator).textContent() || '';
   }
+
+  /**
+   * Select item in custom dropdown (based on Java implementation)
+   * @param parentLocator - Selector for the dropdown trigger element
+   * @param childLocator - Selector for all dropdown option elements
+   * @param expectedItem - Expected text of the item to select
+   */
+  async selectItemInCustomDropdown(
+    parentLocator: string, 
+    childLocator: string, 
+    expectedItem: string
+  ): Promise<void> {
+    // Click to open dropdown
+    await this.clickElement(parentLocator);
+    
+    // Wait 2 seconds (equivalent to sleepInSecond(2))
+    await this.sleep(2000);
+    
+    // Wait for all dropdown items to be present and get all elements
+    await this.page.waitForSelector(childLocator, { state: 'attached' });
+    const allItems = await this.page.locator(childLocator).all();
+    
+    // Loop through all items to find the matching one
+    for (const item of allItems) {
+      const itemText = await item.textContent();
+      
+      if (itemText && itemText.trim() === expectedItem) {
+        // Scroll item into view (equivalent to jsExecutor.executeScript)
+        await item.scrollIntoViewIfNeeded();
+        
+        // Wait 1 second (equivalent to sleepInSecond(1))
+        await this.sleep(1000);
+        
+        // Click the item
+        await item.click();
+        
+        // Wait 1 second (equivalent to sleepInSecond(1))
+        await this.sleep(1000);
+        
+        // Break out of loop
+        break;
+      }
+    }
+  }
+   /**
+   * Hover over element and get tooltip text with multiple fallback strategies
+   * @param locator - CSS selector for the element to hover over
+   * @param options - Configuration options for tooltip detection
+   * @returns Tooltip text using the first successful strategy
+   */
+  async hoverAndGetTooltipAdvanced(
+    selector: string,
+    options: {
+      tooltipSelector?: string;
+      titleAttribute?: boolean;
+      dataAttributes?: string[];
+      ariaLabel?: boolean;
+      timeout?: number;
+      waitAfterHover?: number;
+    } = {}
+  ): Promise<string> {
+    const {
+      tooltipSelector,
+      titleAttribute = true,
+      dataAttributes = ['data-tooltip', 'data-title', 'data-original-title'],
+      ariaLabel = true,
+      timeout = 5000,
+      waitAfterHover = 500
+    } = options;
+
+    await this.waitForElement(selector);
+    await this.page.hover(selector);
+    
+    // Wait a bit for tooltip to appear
+    await this.sleep(waitAfterHover);
+
+    // Strategy 1: Try custom tooltip selector first
+    if (tooltipSelector) {
+      try {
+        await this.waitForElement(tooltipSelector, timeout);
+        const tooltipText = await this.getText(tooltipSelector);
+        if (tooltipText.trim()) {
+          return tooltipText.trim();
+        }
+      } catch {
+        // Continue to next strategy
+      }
+    }
+
+    // Strategy 2: Try title attribute
+    if (titleAttribute) {
+      const titleText = await this.getAttribute(selector, 'title');
+      if (titleText && titleText.trim()) {
+        return titleText.trim();
+      }
+    }
+
+    // Strategy 3: Try data attributes
+    for (const dataAttr of dataAttributes) {
+      const dataText = await this.getAttribute(selector, dataAttr);
+      if (dataText && dataText.trim()) {
+        return dataText.trim();
+      }
+    }
+
+    // Strategy 4: Try aria-label
+    if (ariaLabel) {
+      const ariaText = await this.getAttribute(selector, 'aria-label');
+      if (ariaText && ariaText.trim()) {
+        return ariaText.trim();
+      }
+    }
+
+    // Strategy 5: Try common tooltip selectors
+    const commonTooltipSelectors = [
+      '.tooltip', '.tooltip-inner', '.tooltip-content',
+      '.popover', '.popover-content', '.popover-body',
+      '[role="tooltip"]', '.ui-tooltip', '.tippy-content'
+    ];
+
+    for (const commonSelector of commonTooltipSelectors) {
+      try {
+        if (await this.isElementDisplayed(commonSelector)) {
+          const tooltipText = await this.getText(commonSelector);
+          if (tooltipText.trim()) {
+            return tooltipText.trim();
+          }
+        }
+      } catch {
+        // Continue to next selector
+      }
+    }
+
+    return ''; // No tooltip found
+  }
+
 }

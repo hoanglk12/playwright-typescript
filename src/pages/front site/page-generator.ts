@@ -1,6 +1,7 @@
 import { Page } from '@playwright/test';
 import { HomePage } from './home-page';
 import { FormDragAndDropPage } from './form-drag-and-drop';
+import { ProfileListingPage } from './profile-listing-page';
 
 /**
  * Page Generator Manager for BankGuru pages
@@ -27,5 +28,10 @@ export class PageGenerator {
   static getFormDragAndDropPage(page: Page): FormDragAndDropPage {
     return new FormDragAndDropPage(page);
   }
-
+/**
+   * Get Profile Listing Page instance
+   */
+  static getProfileListingPage(page: Page): ProfileListingPage {
+    return new ProfileListingPage(page);
+  }
 }
