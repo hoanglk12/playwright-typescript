@@ -21,7 +21,7 @@ test.describe('Home Page Verification', () => {
     logger.step('Step 1 - Navigate to home page');
     logger.action('Navigate', 'home page');
     await homePage.navigateToHomePage();
-    await homePage.waitForFullPageLoad();
+    await homePage.waitForAjaxRequestsCompleteAdvanced();
         
     logger.step('Step 2 - Verify FF logo is displayed');
     logger.action('Verify', 'FF logo is displayed');
@@ -30,7 +30,7 @@ test.describe('Home Page Verification', () => {
     logger.step('Step 3 - Click hamburger icon');
     logger.action('Click', 'hamburger icon');
     await homePage.clickHamburgerMenu();
-    await homePage.waitForPageLoad();
+    //await homePage.waitForAjaxRequestsCompleteAdvanced();
 
     // Step 4: Verify highlighted text background color is #003f64
     logger.step('Step 4 - Verify highlighted text background color is HomeData.HeaderData.NAVIGATION_MENU.highlightedColor');
