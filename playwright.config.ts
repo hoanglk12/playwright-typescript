@@ -88,9 +88,21 @@ export default defineConfig({
         viewport: { width: env.viewportWidth, height: env.viewportHeight },
         launchOptions: { headless: env.headless , firefoxUserPrefs: {
           'browser.tabs.remote.autostart': false,
-          'dom.disable_beforeunload': true
+          'dom.disable_beforeunload': true,
+          'dom.webnotifications.enabled': false,
+          'dom.push.enabled': false,
+          'geo.enabled': false,
+          'geo.provider.use_corelocation': false,
+          'geo.prompt.testing': true,
+          'geo.prompt.testing.allow': false,
+          'marionette.enabled': true,
+          'permissions.default.desktop-notification': 2,
+          'permissions.default.geo': 2
+          
         },
-        args: ['--wait-for-browser']
+        args: ['--wait-for-browser',  '--disable-infobars',
+            '--disable-notifications',
+            '--disable-geolocation']
       }
       },
     },
