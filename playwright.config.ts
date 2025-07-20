@@ -86,7 +86,12 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Firefox'],
         viewport: { width: env.viewportWidth, height: env.viewportHeight },
-        launchOptions: { headless: env.headless }
+        launchOptions: { headless: env.headless , firefoxUserPrefs: {
+          'browser.tabs.remote.autostart': false,
+          'dom.disable_beforeunload': true
+        },
+        args: ['--wait-for-browser']
+      }
       },
     },
 
