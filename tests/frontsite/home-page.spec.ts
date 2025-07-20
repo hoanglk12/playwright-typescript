@@ -30,7 +30,7 @@ test.describe('Home Page Verification', () => {
     logger.step('Step 3 - Click hamburger icon');
     logger.action('Click', 'hamburger icon');
     await homePage.clickHamburgerMenu();
-    //await homePage.waitForAjaxRequestsCompleteAdvanced();
+    await homePage.waitForAjaxRequestsCompleteAdvanced();
 
     // Step 4: Verify highlighted text background color is #003f64
     logger.step('Step 4 - Verify highlighted text background color is HomeData.HeaderData.NAVIGATION_MENU.highlightedColor');
