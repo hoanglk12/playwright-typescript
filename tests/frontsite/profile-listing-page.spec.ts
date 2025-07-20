@@ -15,7 +15,7 @@ test.describe('Profile Listing Page Verification', () => {
     logger.step('Step 1 - Navigate to profile listing page');
     logger.action('Navigate', 'profile listing page');
     await profileListingPage.navigateToProfileListingPage();
-    await profileListingPage.waitForAjaxRequestsComplete();
+    await profileListingPage.waitForAjaxRequestsCompleteAdvanced();
         
     logger.step('Step 2 - Select sort by dropdown with surname');
     logger.action('Select', 'sort by dropdown with surname');
