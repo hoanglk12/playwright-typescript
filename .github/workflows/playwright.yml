@@ -293,3 +293,10 @@ jobs:
           echo "- Test results are available in the Actions artifacts section" >> $GITHUB_STEP_SUMMARY
           echo "- Reports include screenshots, videos, and HTML reports" >> $GITHUB_STEP_SUMMARY
           echo "- Retention period: 30 days" >> $GITHUB_STEP_SUMMARY
+
+      # Add Firefox-specific setup for macOS
+      - name: Setup Firefox (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install --cask firefox
+          echo "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1" >> $GITHUB_ENV
