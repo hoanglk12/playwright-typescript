@@ -1,8 +1,10 @@
-import { APIRequestContext, APIResponse } from '@playwright/test';
-import { ApiResponseWrapper } from '../api/ApiResponse';
-import { ApiClient } from './ApiClient';
-import { DeviceData, ApiObject, PaginatedResponse } from '../api/services/restful-device/restful-api-models';
-
+import { ApiResponseWrapper } from '../../ApiResponse';
+import { ApiClient } from '../../ApiClient';
+import { DeviceData, ApiObject } from './restful-api-models';
+/**
+ * RestfulApiClient for interacting with the device API
+ * Provides methods for CRUD operations on device objects
+ */
 export class RestfulApiClient extends ApiClient {
   
   constructor(options: { baseURL: string; timeout?: number }) {

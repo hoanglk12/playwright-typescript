@@ -15,44 +15,43 @@ A comprehensive Playwright TypeScript testing framework converted from a Maven h
 - **TypeScript**: Full type safety and IntelliSense support
 - **Environment Variables**: Complete configuration through .env files
 
+
 ## 📁 Project Structure
 
 ```
-├── .github/
-│   ├── workflows/
-│   │   ├── playwright.yml          # GitHub Actions CI/CD pipeline for UI tests
-│   │   └── api-tests.yml           # GitHub Actions CI/CD pipeline for API tests
-│   └── copilot-instructions.md     # Copilot development guidelines
-├── src/
-│   ├── api/                        # API testing utilities and core components
-│   ├── config/
-│   │   ├── base-test.ts            # Extended test configuration with fixtures
-│   │   ├── environment.ts          # Environment-specific configurations
-│   │   ├── global-setup.ts         # Global test setup
-│   │   └── global-teardown.ts      # Global test cleanup
-│   ├── pages/
-│   │   ├── base-page.ts            # Common page functionality
-│   │   ├── bankguru/               # BankGuru page objects
-│   │   │   ├── home-page.ts
-│   │   │   ├── login-page.ts
-│   │   │   ├── register-page.ts
-│   │   │   ├── manager-page.ts
-│   │   │   └── page-generator.ts
-│   │   └── nopcommerce/            # NopCommerce page objects
-│   │       ├── home-page.ts
-│   │       └── page-generator.ts
-│   ├── data/
-│   │   └── bankguru-data.ts        # Test data and generators
-│   └── utils/                      # Utility functions
-├── tests/
-│   ├── bankguru/
-│   │   └── login-register.spec.ts  # BankGuru test specifications
-│   └── nopcommerce/
-│       └── home-page.spec.ts       # NopCommerce test specifications
-├── playwright.config.ts            # Playwright configuration
-├── package.json                    # Dependencies and scripts
-├── tsconfig.json                   # TypeScript configuration
-└── .env.example                    # Environment variables template
+📦 playwright-typescript-framework/
+├── 💻 src/                                 # Source Code & Framework Core
+│   ├── 🔌 api/                             # API Testing Framework
+│   │   ├── ⚡ ApiTest.ts                   # API Test Fixtures & Configuration
+│   │   ├── 🚀 ApiClientExt.ts              # Enhanced API Client with Wrappers
+│   │   └── 📡 services/                    # API Service Implementations
+│   │       └── restful-device/
+│   │           └── RestfulApiClient.ts     # RESTful Device API Client
+│   │
+│   ├── 📄 pages/                           # Page Object Model (POM)
+│   │   ├── 👑 admin/                       # Admin Panel Pages
+│   │   │   ├── 🔐 login-page.ts            # Admin Authentication Page
+│   │   │   └── 🏭 page-generator.ts        # Admin Page Factory
+│   │   │
+│   │   └── 🌐 front-site/                  # Public Website Pages
+│   │       └── 🏠 home-page.ts             # Frontend Landing Page
+│   │
+│   ├── 📊 data/                            # Test Data Management
+│   │   ├── 👑 admin-data.ts                # Admin Test Data Generators
+│   │   └── 🏠 home-data.ts                 # Homepage Test Data
+│   │
+│   └── 🛠️ utils/                           # Utility Functions & Helpers
+│       ├── 🔧 helpers.ts                   # Common utility functions (random generators, formatters, retry logic)
+│       └── 📋 test-logger.ts               # Test logging and reporting utilities
+│
+├── 📚 docs/                                # Documentation
+│   ├── 🔌 API_TESTING.md                  # API Testing Guide
+│   ├── 🔄 CI_CD_INTEGRATION.md            # CI/CD Integration Guide
+│   └── 📖 README.md                       # Project Documentation
+│
+└── ⚙️ Configuration Files                  # Framework Configuration
+    ├── 📦 package.json                    # Dependencies & npm Scripts
+    └── 🎭 playwright.config.ts            # Main Playwright Configuration
 ```
 
 ## 🛠️ Setup

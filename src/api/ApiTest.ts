@@ -1,7 +1,7 @@
 import { test as base } from '@playwright/test';
 import { ApiClient, ApiClientOptions, AuthType } from './ApiClient';
 import { ApiClientExt } from './ApiClientExt';
-import { RestfulApiClient } from './RestfulApiClient';
+import { RestfulApiClient } from './services/restful-device/RestfulApiClient';
 import { getApiEnvironment } from './config/environment';
 
 /**
@@ -12,7 +12,7 @@ export interface ApiTestFixtures {
   restfulApiBaseURL: string;
   apiClient: ApiClient;
   apiClientExt: ApiClientExt;
-   restfulApiClient: RestfulApiClient;
+  restfulApiClient: RestfulApiClient;
   createClient: (options: Partial<ApiClientOptions>) => Promise<ApiClient>;
   createClientExt: (options: Partial<ApiClientOptions>) => Promise<ApiClientExt>;
   createRestfulApiClient: (options?: Partial<ApiClientOptions>) => Promise<RestfulApiClient>;
