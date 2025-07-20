@@ -222,6 +222,25 @@ export abstract class BasePage {
     await this.page.waitForLoadState('networkidle');
   }
 
+  async waitForFullPageLoadWithSeperateNetworkidle(): Promise<void> {
+  try {
+    // Wait for critical states first
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('load');
+    
+    // Handle networkidle separately with shorter timeout
+    try {
+      await this.page.waitForLoadState('networkidle', { timeout: 10000 });
+    } catch (error) {
+      console.warn('⚠️ Network idle timeout reached, continuing...');
+      // Continue execution even if networkidle times out
+    }
+  } catch (error) {
+    console.error('❌ Page load failed:', error);
+    throw error;
+  }
+}
+
   /**
    * Wait for page load with custom timeout
    */

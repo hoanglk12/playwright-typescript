@@ -196,7 +196,13 @@ async function showTestSummary(): Promise<void> {
     console.log(`   🌍 Environment: ${process.env.NODE_ENV || 'testing'}`);
     console.log(`   🌐 Front Site: ${environment.frontSiteUrl}`);
     console.log(`   🔧 Admin Panel: ${environment.adminUrl}`);
-    console.log(`   🌐 Browser: ${environment.defaultBrowser}`);
+    // Detect browser/project from Playwright CLI arguments if available
+    let browserName = process.env.BROWSER || environment.defaultBrowser;
+    const projectArg = process.argv.find(arg => arg.startsWith('--project='));
+    if (projectArg) {
+      browserName = projectArg.split('=')[1];
+    }
+    console.log(`   🌐 Browser: ${browserName}`);
     console.log(`   👁️ Headless: ${environment.headless ? 'Yes' : 'No'}`);
     console.log(`   ⚡ Workers: ${environment.parallelWorkers}`);
     console.log(`   ⏱️ Timeout: ${environment.timeout}ms`);
