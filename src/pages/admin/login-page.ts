@@ -24,10 +24,9 @@ export class LoginPage extends BasePage {
   /**
    * Navigate to LoginPage login page
    */  
-  async navigateToHomePage(): Promise<void> {
+  async navigateToCMSLoginPage(): Promise<void> {
     const env = getEnvironment();
     await this.page.goto(env.adminUrl);
-    await this.waitForPageLoad();
   }
 
   /**

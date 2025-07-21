@@ -1,7 +1,6 @@
 import { AdminData } from '@data/admin-data';
 import { test, expect } from '../../src/config/base-test';
 import * as AdminDataModule from '../../src/data/admin-data';
-import { getEnvironment } from '../../src/config/environment';
 import { createTestLogger } from '../../src/utils/test-logger';
 /**
  * Admin Login Tests
@@ -21,7 +20,8 @@ test.describe('Admin Login Tests', () => {
     
     logger.step('Step 1 - Navigate to login page');
     logger.action('Navigate', 'login page');
-    await loginPage.navigateToHomePage();
+    await loginPage.navigateToCMSLoginPage();
+    await loginPage.waitForPageLoad();
     
     logger.step('Step 2 - Enter empty credentials');
     logger.action('Fill', 'username field with empty value');
@@ -49,7 +49,7 @@ test.describe('Admin Login Tests', () => {
     
     logger.step('Step 1 - Navigate to login page');
     logger.action('Navigate', 'login page');
-    await loginPage.navigateToHomePage();
+    await loginPage.navigateToCMSLoginPage();
     
     logger.step('Step 2 - Enter wrong credentials');
     logger.action('Fill', 'username field with wrong value');

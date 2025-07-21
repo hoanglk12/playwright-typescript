@@ -26,8 +26,6 @@ test.describe('Form Drag And Drop Tests', () => {
     logger.step('Step 2 - Drag and drop a valid file');
     logger.action('Drag and Drop', 'valid file');
     await formDragAndDropPage.dragAndDropFile(DragAndDropData.testFilePath);
-    //await formDragAndDropPage.sleep(5000);
-    console.log('Ten File:', await formDragAndDropPage.getUploadedFileName());
 
     logger.step('Step 3 - Verify file is uploaded successfully');
     logger.action('Verify', 'uploaded file name');

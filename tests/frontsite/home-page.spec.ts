@@ -5,9 +5,9 @@ import { createTestLogger } from '../../src/utils/test-logger';
 
 
 /**
- * Admin Login Tests
- * @feature Admin Authentication
- * @story Login Functionality
+ * Home Page Tests
+ * @feature Header Logo and Highlighted Text Color
+ * @story Home Page Functionality
  */
 test.describe('Home Page Verification', () => {
   test('TC_01 - Verify Header Logo and Highlighted Text Color', async ({ 
