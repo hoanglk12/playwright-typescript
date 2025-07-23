@@ -760,6 +760,10 @@ export abstract class BasePage {
     await fileInput.setInputFiles(filePath);
   }
 
+  async dragAndDropElement(sourceElement: string, targetElement: string): Promise<void>{
+    await this.waitForElementClickable(sourceElement);
+    await this.page.dragAndDrop(sourceElement, targetElement);
+  }
   /**
    * Refresh the page
    */
