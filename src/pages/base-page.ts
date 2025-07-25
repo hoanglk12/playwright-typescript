@@ -1,5 +1,5 @@
-import { Locator, Page } from '@playwright/test';
-import { TIMEOUTS } from '../constants/timeouts';
+import { Locator, Page } from "@playwright/test";
+import { TIMEOUTS } from "../constants/timeouts";
 
 /**
  * Base Page class for all page objects
@@ -37,16 +37,17 @@ export abstract class BasePage {
    * Wait for element to be visible
    */
   async waitForElement(selector: string, timeout = 10000): Promise<void> {
-    await this.page.waitForSelector(selector, { state: 'visible', timeout });
+    await this.page.waitForSelector(selector, { state: "visible", timeout });
   }
-
-
 
   /**
    * Wait for element to be clickable
    */
-  async waitForElementClickable(selector: string, timeout = 10000): Promise<void> {
-    await this.page.waitForSelector(selector, { state: 'attached', timeout });
+  async waitForElementClickable(
+    selector: string,
+    timeout = 10000
+  ): Promise<void> {
+    await this.page.waitForSelector(selector, { state: "attached", timeout });
   }
 
   /**
@@ -67,22 +68,27 @@ export abstract class BasePage {
    * @param shortTimeout - Short timeout for the check (default: 2000ms)
    * @returns true if element is not present or not visible, false otherwise
    */
-  async isElementUndisplayed(selector: string, shortTimeout: number = TIMEOUTS.TIMEOUT_SHORT): Promise<boolean> {
+  async isElementUndisplayed(
+    selector: string,
+    shortTimeout: number = TIMEOUTS.TIMEOUT_SHORT
+  ): Promise<boolean> {
     try {
       // Use short timeout to avoid waiting too long
       const elements = await this.page.locator(selector).all();
-      
+
       // If no elements found, return true (element is undisplayed)
       if (elements.length === 0) {
         return true;
       }
-      
+
       // If elements found, check if the first element is not visible
       if (elements.length > 0) {
-        const isVisible = await elements[0].isVisible({ timeout: shortTimeout });
+        const isVisible = await elements[0].isVisible({
+          timeout: shortTimeout,
+        });
         return !isVisible; // Return true if not visible
       }
-      
+
       return false;
     } catch (error) {
       // If any error occurs (timeout, element not found, etc.), consider element as undisplayed
@@ -111,13 +117,16 @@ export abstract class BasePage {
    */
   async getText(selector: string): Promise<string> {
     await this.waitForElement(selector);
-    return await this.page.textContent(selector) || '';
+    return (await this.page.textContent(selector)) || "";
   }
 
   /**
    * Get attribute value from element
    */
-  async getAttribute(selector: string, attribute: string): Promise<string | null> {
+  async getAttribute(
+    selector: string,
+    attribute: string
+  ): Promise<string | null> {
     await this.waitForElement(selector);
     return await this.page.getAttribute(selector, attribute);
   }
@@ -166,14 +175,14 @@ export abstract class BasePage {
    * Wait for page to load with default networkidle state
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState("networkidle");
   }
 
   /**
    * Wait for page to load with specific load state
    */
   async waitForPageLoadState(
-    state: 'load' | 'domcontentloaded' | 'networkidle' = 'networkidle',
+    state: "load" | "domcontentloaded" | "networkidle" = "networkidle",
     timeout: number = TIMEOUTS.PAGE_LOAD_SLOW
   ): Promise<void> {
     await this.page.waitForLoadState(state, { timeout });
@@ -183,14 +192,14 @@ export abstract class BasePage {
    * Wait for DOM content to be loaded
    */
   async waitForDOMContentLoaded(): Promise<void> {
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   /**
    * Wait for load event to be fired
    */
   async waitForLoadEvent(): Promise<void> {
-    await this.page.waitForLoadState('load');
+    await this.page.waitForLoadState("load");
   }
 
   /**
@@ -198,16 +207,18 @@ export abstract class BasePage {
    */
   async waitForNetworkIdle(timeout: number = 30000): Promise<void> {
     try {
-      await this.page.waitForLoadState('networkidle', { timeout });
+      await this.page.waitForLoadState("networkidle", { timeout });
     } catch (error) {
-      console.warn('⚠️  Network idle timeout reached');
+      console.warn("⚠️  Network idle timeout reached");
     }
   }
 
   /**
    * Wait for multiple load states in sequence
    */
-  async waitForMultipleLoadStates(states: Array<'load' | 'domcontentloaded' | 'networkidle'>): Promise<void> {
+  async waitForMultipleLoadStates(
+    states: Array<"load" | "domcontentloaded" | "networkidle">
+  ): Promise<void> {
     for (const state of states) {
       await this.page.waitForLoadState(state);
     }
@@ -217,44 +228,49 @@ export abstract class BasePage {
    * Wait for page to be fully loaded (all states)
    */
   async waitForFullPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('domcontentloaded');
-    await this.page.waitForLoadState('load');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState("domcontentloaded");
+    await this.page.waitForLoadState("load");
+    await this.page.waitForLoadState("networkidle");
   }
 
   async waitForFullPageLoadWithSeperateNetworkidle(): Promise<void> {
-  try {
-    // Wait for critical states first
-    await this.page.waitForLoadState('domcontentloaded');
-    await this.page.waitForLoadState('load');
-    
-    // Handle networkidle separately with shorter timeout
     try {
-      await this.page.waitForLoadState('networkidle', { timeout: 10000 });
+      // Wait for critical states first
+      await this.page.waitForLoadState("domcontentloaded");
+      await this.page.waitForLoadState("load");
+
+      // Handle networkidle separately with shorter timeout
+      try {
+        await this.page.waitForLoadState("networkidle", { timeout: 10000 });
+      } catch (error) {
+        console.warn("⚠️ Network idle timeout reached, continuing...");
+        // Continue execution even if networkidle times out
+      }
     } catch (error) {
-      console.warn('⚠️ Network idle timeout reached, continuing...');
-      // Continue execution even if networkidle times out
+      console.error("❌ Page load failed:", error);
+      throw error;
     }
-  } catch (error) {
-    console.error('❌ Page load failed:', error);
-    throw error;
   }
-}
 
   /**
    * Wait for page load with custom timeout
    */
-  async waitForPageLoadWithTimeout(timeout: number = 30000, state: 'load' | 'domcontentloaded' | 'networkidle' = 'networkidle'): Promise<void> {
+  async waitForPageLoadWithTimeout(
+    timeout: number = 30000,
+    state: "load" | "domcontentloaded" | "networkidle" = "networkidle"
+  ): Promise<void> {
     await this.page.waitForLoadState(state, { timeout });
   }
 
   /**
    * Wait for page load and verify URL
    */
-  async waitForPageLoadAndVerifyURL(expectedUrl: string | RegExp): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+  async waitForPageLoadAndVerifyURL(
+    expectedUrl: string | RegExp
+  ): Promise<void> {
+    await this.page.waitForLoadState("networkidle");
 
-    if (typeof expectedUrl === 'string') {
+    if (typeof expectedUrl === "string") {
       await this.page.waitForURL(expectedUrl);
     } else {
       await this.page.waitForURL(expectedUrl);
@@ -264,7 +280,10 @@ export abstract class BasePage {
   /**
    * Wait for specific element to be visible after page load
    */
-  async waitForPageLoadWithElement(selector: string, loadState: 'load' | 'domcontentloaded' | 'networkidle' = 'domcontentloaded'): Promise<void> {
+  async waitForPageLoadWithElement(
+    selector: string,
+    loadState: "load" | "domcontentloaded" | "networkidle" = "domcontentloaded"
+  ): Promise<void> {
     await this.page.waitForLoadState(loadState);
     await this.waitForElement(selector);
   }
@@ -274,21 +293,21 @@ export abstract class BasePage {
    */
   async waitForPageReady(): Promise<boolean> {
     try {
-      await this.page.waitForLoadState('domcontentloaded');
+      await this.page.waitForLoadState("domcontentloaded");
 
       // Check if document is ready
       const isReady = await this.page.evaluate(() => {
-        return document.readyState === 'complete';
+        return document.readyState === "complete";
       });
 
       if (!isReady) {
-        await this.page.waitForLoadState('load');
+        await this.page.waitForLoadState("load");
       }
 
-      await this.page.waitForLoadState('networkidle');
+      await this.page.waitForLoadState("networkidle");
       return true;
     } catch (error) {
-      console.warn('Page load check failed:', error);
+      console.warn("Page load check failed:", error);
       return false;
     }
   }
@@ -298,9 +317,11 @@ export abstract class BasePage {
    */
   async waitForJavaScriptReady(): Promise<void> {
     await this.page.waitForFunction(() => {
-      return typeof window !== 'undefined' &&
+      return (
+        typeof window !== "undefined" &&
         window.document &&
-        window.document.readyState === 'complete';
+        window.document.readyState === "complete"
+      );
     });
   }
 
@@ -308,68 +329,87 @@ export abstract class BasePage {
    * Wait for jQuery to be ready (if using jQuery)
    */
   async waitForJQueryReady(): Promise<void> {
-    await this.page.waitForFunction(() => {
-      return (window as any).jQuery && (window as any).jQuery.active === 0;
-    }, { timeout: 10000 });
+    await this.page.waitForFunction(
+      () => {
+        return (window as any).jQuery && (window as any).jQuery.active === 0;
+      },
+      { timeout: 10000 }
+    );
   }
 
   /**
    * Wait for Angular to be ready (if using Angular)
    */
   async waitForAngularReady(): Promise<void> {
-    await this.page.waitForFunction(() => {
-      const ng = (window as any).angular;
-      if (!ng) return true;
+    await this.page.waitForFunction(
+      () => {
+        const ng = (window as any).angular;
+        if (!ng) return true;
 
-      const injector = ng.element(document.body).injector();
-      if (!injector) return true;
+        const injector = ng.element(document.body).injector();
+        if (!injector) return true;
 
-      const $http = injector.get('$http');
-      return $http.pendingRequests.length === 0;
-    }, { timeout: 10000 });
+        const $http = injector.get("$http");
+        return $http.pendingRequests.length === 0;
+      },
+      { timeout: 10000 }
+    );
   }
 
   /**
    * Wait for React to be ready (if using React)
    */
   async waitForReactReady(): Promise<void> {
-    await this.page.waitForFunction(() => {
-      return (window as any).React !== undefined;
-    }, { timeout: 10000 });
+    await this.page.waitForFunction(
+      () => {
+        return (window as any).React !== undefined;
+      },
+      { timeout: 10000 }
+    );
   }
 
   /**
    * Wait for specific JavaScript variable to be defined
    */
-  async waitForJavaScriptVariable(variableName: string, timeout: number = 10000): Promise<void> {
-    await this.page.waitForFunction((varName) => {
-      return (window as any)[varName] !== undefined;
-    }, variableName, { timeout });
+  async waitForJavaScriptVariable(
+    variableName: string,
+    timeout: number = 10000
+  ): Promise<void> {
+    await this.page.waitForFunction(
+      (varName) => {
+        return (window as any)[varName] !== undefined;
+      },
+      variableName,
+      { timeout }
+    );
   }
 
   /**
    * Wait for AJAX requests to complete
    */
-  async waitForAjaxRequestsComplete(timeout: number = 30000, excludeUrls: string[] = []): Promise<void> {
+  async waitForAjaxRequestsComplete(
+    timeout: number = 30000,
+    excludeUrls: string[] = []
+  ): Promise<void> {
     const startTime = Date.now();
     let pendingRequests: Set<string> = new Set();
 
     // Track ongoing requests
-    this.page.on('request', (request) => {
+    this.page.on("request", (request) => {
       const url = request.url();
       const resourceType = request.resourceType();
 
       // Only track XHR and fetch requests
-      if (resourceType === 'xhr' || resourceType === 'fetch') {
+      if (resourceType === "xhr" || resourceType === "fetch") {
         // Skip excluded URLs
-        if (!excludeUrls.some(excludeUrl => url.includes(excludeUrl))) {
+        if (!excludeUrls.some((excludeUrl) => url.includes(excludeUrl))) {
           pendingRequests.add(url);
         }
       }
     });
 
     // Remove completed requests
-    this.page.on('response', (response) => {
+    this.page.on("response", (response) => {
       const url = response.url();
       if (pendingRequests.has(url)) {
         pendingRequests.delete(url);
@@ -377,7 +417,7 @@ export abstract class BasePage {
     });
 
     // Remove failed requests
-    this.page.on('requestfailed', (request) => {
+    this.page.on("requestfailed", (request) => {
       const url = request.url();
       if (pendingRequests.has(url)) {
         pendingRequests.delete(url);
@@ -387,7 +427,11 @@ export abstract class BasePage {
     // Wait for all requests to complete
     while (pendingRequests.size > 0) {
       if (Date.now() - startTime > timeout) {
-        console.warn(`⚠️  Timeout waiting for AJAX requests. Pending requests: ${Array.from(pendingRequests).join(', ')}`);
+        console.warn(
+          `⚠️  Timeout waiting for AJAX requests. Pending requests: ${Array.from(
+            pendingRequests
+          ).join(", ")}`
+        );
         break;
       }
 
@@ -395,9 +439,11 @@ export abstract class BasePage {
     }
 
     // Additional wait for any last-minute requests
-    await this.page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {
-      // Ignore timeout errors for networkidle
-    });
+    await this.page
+      .waitForLoadState("networkidle", { timeout: 5000 })
+      .catch(() => {
+        // Ignore timeout errors for networkidle
+      });
   }
 
   /**
@@ -405,12 +451,15 @@ export abstract class BasePage {
    * @param urlPattern - URL pattern to wait for
    * @param timeout - Maximum time to wait in milliseconds (default: 30000)
    */
-  async waitForAjaxRequest(urlPattern: string | RegExp, timeout: number = 30000): Promise<void> {
+  async waitForAjaxRequest(
+    urlPattern: string | RegExp,
+    timeout: number = 30000
+  ): Promise<void> {
     try {
       await this.page.waitForResponse(
         (response) => {
           const url = response.url();
-          if (typeof urlPattern === 'string') {
+          if (typeof urlPattern === "string") {
             return url.includes(urlPattern);
           } else {
             return urlPattern.test(url);
@@ -429,13 +478,18 @@ export abstract class BasePage {
    * @param urlPatterns - Array of URL patterns to wait for
    * @param timeout - Maximum time to wait in milliseconds (default: 30000)
    */
-  async waitForMultipleAjaxRequests(urlPatterns: (string | RegExp)[], timeout: number = 30000): Promise<void> {
-    const promises = urlPatterns.map(pattern => this.waitForAjaxRequest(pattern, timeout));
+  async waitForMultipleAjaxRequests(
+    urlPatterns: (string | RegExp)[],
+    timeout: number = 30000
+  ): Promise<void> {
+    const promises = urlPatterns.map((pattern) =>
+      this.waitForAjaxRequest(pattern, timeout)
+    );
 
     try {
       await Promise.all(promises);
     } catch (error) {
-      console.warn('⚠️  One or more AJAX requests timed out');
+      console.warn("⚠️  One or more AJAX requests timed out");
       throw error;
     }
   }
@@ -444,21 +498,28 @@ export abstract class BasePage {
    * Enhanced AJAX waiting with more control
    * @param options - Configuration options for waiting
    */
-  async waitForAjaxRequestsCompleteAdvanced(options: {
-    timeout?: number;
-    excludeUrls?: string[];
-    includeUrls?: string[];
-    waitForSpinners?: boolean;
-    spinnerSelectors?: string[];
-    maxRetries?: number;
-  } = {}): Promise<void> {
+  async waitForAjaxRequestsCompleteAdvanced(
+    options: {
+      timeout?: number;
+      excludeUrls?: string[];
+      includeUrls?: string[];
+      waitForSpinners?: boolean;
+      spinnerSelectors?: string[];
+      maxRetries?: number;
+    } = {}
+  ): Promise<void> {
     const {
       timeout = 30000,
       excludeUrls = [],
       includeUrls = [],
       waitForSpinners = true,
-      spinnerSelectors = ['.spinner', '.loading', '[data-loading]', '.ajax-loader'],
-      maxRetries = 3
+      spinnerSelectors = [
+        ".spinner",
+        ".loading",
+        "[data-loading]",
+        ".ajax-loader",
+      ],
+      maxRetries = 3,
     } = options;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -492,7 +553,10 @@ export abstract class BasePage {
    * @param selectors - Array of spinner selectors
    * @param timeout - Maximum time to wait in milliseconds (default: 30000)
    */
-  private async waitForSpinnersToDisappear(selectors: string[], timeout: number = 30000): Promise<void> {
+  private async waitForSpinnersToDisappear(
+    selectors: string[],
+    timeout: number = 30000
+  ): Promise<void> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
@@ -525,17 +589,20 @@ export abstract class BasePage {
       await this.page.waitForTimeout(100);
     }
 
-    console.warn('⚠️  Timeout waiting for spinners to disappear');
+    console.warn("⚠️  Timeout waiting for spinners to disappear");
   }
 
   /**
    * Wait for all images to load
    */
   async waitForAllImagesLoaded(): Promise<void> {
-    await this.page.waitForFunction(() => {
-      const images = Array.from(document.images);
-      return images.every(img => img.complete && img.naturalHeight !== 0);
-    }, { timeout: 30000 });
+    await this.page.waitForFunction(
+      () => {
+        const images = Array.from(document.images);
+        return images.every((img) => img.complete && img.naturalHeight !== 0);
+      },
+      { timeout: 30000 }
+    );
   }
 
   /**
@@ -555,20 +622,25 @@ export abstract class BasePage {
   /**
    * Wait for page load with loading indicator
    */
-  async waitForPageLoadWithSpinner(spinnerSelector: string = '.loading, .spinner, [data-loading]'): Promise<void> {
+  async waitForPageLoadWithSpinner(
+    spinnerSelector: string = ".loading, .spinner, [data-loading]"
+  ): Promise<void> {
     // Wait for DOM content first
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState("domcontentloaded");
 
     try {
       // Wait for spinner to disappear
-      await this.page.waitForSelector(spinnerSelector, { state: 'hidden', timeout: 30000 });
+      await this.page.waitForSelector(spinnerSelector, {
+        state: "hidden",
+        timeout: 30000,
+      });
     } catch {
       // If no spinner found, continue with normal loading
-      console.log('No loading spinner found, proceeding with normal page load');
+      console.log("No loading spinner found, proceeding with normal page load");
     }
 
     // Wait for network to be idle
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState("networkidle");
   }
 
   /**
@@ -600,19 +672,21 @@ export abstract class BasePage {
   /**
    * Comprehensive page load with multiple checks
    */
-  async waitForCompletePageLoad(options: {
-    waitForImages?: boolean;
-    waitForFonts?: boolean;
-    waitForAjax?: boolean;
-    customSpinner?: string;
-    timeout?: number;
-  } = {}): Promise<void> {
+  async waitForCompletePageLoad(
+    options: {
+      waitForImages?: boolean;
+      waitForFonts?: boolean;
+      waitForAjax?: boolean;
+      customSpinner?: string;
+      timeout?: number;
+    } = {}
+  ): Promise<void> {
     const {
       waitForImages = false,
       waitForFonts = false,
       waitForAjax = false,
       customSpinner,
-      timeout = 30000
+      timeout = 30000,
     } = options;
 
     // Set page timeout
@@ -633,7 +707,9 @@ export abstract class BasePage {
 
     // Wait for fonts if requested
     if (waitForFonts) {
-      await this.page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+      await this.page.waitForFunction(() => document.fonts.ready, {
+        timeout: 10000,
+      });
     }
 
     // Wait for AJAX if requested
@@ -642,7 +718,7 @@ export abstract class BasePage {
     }
 
     // Final network idle check
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState("networkidle");
   }
 
   /**
@@ -663,7 +739,10 @@ export abstract class BasePage {
   /**
    * Upload multiple files to input element
    */
-  async uploadMultipleFiles(selector: string, filePaths: string[]): Promise<void> {
+  async uploadMultipleFiles(
+    selector: string,
+    filePaths: string[]
+  ): Promise<void> {
     await this.waitForElement(selector);
     await this.page.setInputFiles(selector, filePaths);
   }
@@ -679,7 +758,10 @@ export abstract class BasePage {
   /**
    * Upload file and verify it was uploaded successfully
    */
-  async uploadFileWithVerification(selector: string, filePath: string): Promise<boolean> {
+  async uploadFileWithVerification(
+    selector: string,
+    filePath: string
+  ): Promise<boolean> {
     try {
       await this.waitForElement(selector);
       await this.page.setInputFiles(selector, filePath);
@@ -700,14 +782,21 @@ export abstract class BasePage {
       await this.waitForElement(selector);
       return await this.page.evaluate((sel: string): string[] => {
         const element = document.querySelector(sel);
-        if (element && (element as any).type === 'file' && (element as any).files) {
+        if (
+          element &&
+          (element as any).type === "file" &&
+          (element as any).files
+        ) {
           const input = element as any;
           return Array.from(input.files).map((file: any) => file.name);
         }
         return [];
       }, selector);
     } catch (error) {
-      console.warn(`Failed to get uploaded file names for selector: ${selector}`, error);
+      console.warn(
+        `Failed to get uploaded file names for selector: ${selector}`,
+        error
+      );
       return [];
     }
   }
@@ -717,21 +806,24 @@ export abstract class BasePage {
    */
   async getAcceptedFileTypes(selector: string): Promise<string | null> {
     await this.waitForElement(selector);
-    return await this.getAttribute(selector, 'accept');
+    return await this.getAttribute(selector, "accept");
   }
 
   /**
    * Upload file using drag and drop
    */
-  async uploadFileByDragDrop(dropZoneSelector: string, filePath: string): Promise<void> {
+  async uploadFileByDragDrop(
+    dropZoneSelector: string,
+    filePath: string
+  ): Promise<void> {
     try {
       await this.waitForElement(dropZoneSelector);
 
       // Create a file input element and set the file
       const fileInput = await this.page.evaluateHandle(() => {
-        const input = (document as any).createElement('input') as any;
-        input.type = 'file';
-        input.style.display = 'none';
+        const input = (document as any).createElement("input") as any;
+        input.type = "file";
+        input.style.display = "none";
         (document as any).body.appendChild(input);
         return input;
       });
@@ -742,8 +834,8 @@ export abstract class BasePage {
       const files = await fileInput.evaluate((input: any) => input.files);
 
       // Simulate drag and drop
-      await this.page.dispatchEvent(dropZoneSelector, 'drop', {
-        dataTransfer: { files }
+      await this.page.dispatchEvent(dropZoneSelector, "drop", {
+        dataTransfer: { files },
       });
 
       // Clean up
@@ -754,13 +846,19 @@ export abstract class BasePage {
     }
   }
 
-  async dragAndDropFile(filePath: string, uploadFileElement: string): Promise<void> {
+  async dragAndDropFile(
+    filePath: string,
+    uploadFileElement: string
+  ): Promise<void> {
     await this.waitForElementClickable(uploadFileElement);
     const fileInput = this.page.locator(uploadFileElement);
     await fileInput.setInputFiles(filePath);
   }
 
-  async dragAndDropElement(sourceElement: string, targetElement: string): Promise<void>{
+  async dragAndDropElement(
+    sourceElement: string,
+    targetElement: string
+  ): Promise<void> {
     await this.waitForElementClickable(sourceElement);
     await this.page.dragAndDrop(sourceElement, targetElement);
   }
@@ -793,7 +891,7 @@ export abstract class BasePage {
   protected rgbToHex(r: number, g: number, b: number): string {
     const toHex = (n: number): string => {
       const hex = Math.round(Math.max(0, Math.min(255, n))).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
+      return hex.length === 1 ? "0" + hex : hex;
     };
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toLowerCase();
   }
@@ -813,7 +911,9 @@ export abstract class BasePage {
     }
 
     // Handle rgba format: rgba(255, 255, 255, 0.5)
-    const rgbaMatch = colorString.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/);
+    const rgbaMatch = colorString.match(
+      /rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/
+    );
     if (rgbaMatch) {
       return this.rgbToHex(
         parseInt(rgbaMatch[1]),
@@ -823,8 +923,8 @@ export abstract class BasePage {
     }
 
     // Handle transparent
-    if (colorString === 'transparent' || colorString === 'rgba(0, 0, 0, 0)') {
-      return 'transparent';
+    if (colorString === "transparent" || colorString === "rgba(0, 0, 0, 0)") {
+      return "transparent";
     }
 
     // Handle hex colors (return as-is)
@@ -846,10 +946,13 @@ export abstract class BasePage {
    */
   async getElementBackgroundColorHex(selector: string): Promise<string> {
     await this.waitForElement(selector);
-    return await this.page.locator(selector).evaluate((el) => {
-      const backgroundColor = window.getComputedStyle(el).backgroundColor;
-      return backgroundColor;
-    }).then(color => this.convertColorToHex(color));
+    return await this.page
+      .locator(selector)
+      .evaluate((el) => {
+        const backgroundColor = window.getComputedStyle(el).backgroundColor;
+        return backgroundColor;
+      })
+      .then((color) => this.convertColorToHex(color));
   }
 
   /**
@@ -861,7 +964,7 @@ export abstract class BasePage {
     const colors: string[] = [];
 
     for (const element of elements) {
-      const color = await element.evaluate(el => {
+      const color = await element.evaluate((el) => {
         return window.getComputedStyle(el).backgroundColor;
       });
       colors.push(this.convertColorToHex(color));
@@ -875,10 +978,13 @@ export abstract class BasePage {
    */
   async getElementTextColorHex(selector: string): Promise<string> {
     await this.waitForElement(selector);
-    return await this.page.locator(selector).evaluate((el) => {
-      const textColor = window.getComputedStyle(el).color;
-      return textColor;
-    }).then(color => this.convertColorToHex(color));
+    return await this.page
+      .locator(selector)
+      .evaluate((el) => {
+        const textColor = window.getComputedStyle(el).color;
+        return textColor;
+      })
+      .then((color) => this.convertColorToHex(color));
   }
 
   /**
@@ -886,10 +992,13 @@ export abstract class BasePage {
    */
   async getElementBorderColorHex(selector: string): Promise<string> {
     await this.waitForElement(selector);
-    return await this.page.locator(selector).evaluate((el) => {
-      const borderColor = window.getComputedStyle(el).borderColor;
-      return borderColor;
-    }).then(color => this.convertColorToHex(color));
+    return await this.page
+      .locator(selector)
+      .evaluate((el) => {
+        const borderColor = window.getComputedStyle(el).borderColor;
+        return borderColor;
+      })
+      .then((color) => this.convertColorToHex(color));
   }
 
   /**
@@ -897,7 +1006,7 @@ export abstract class BasePage {
    */
   async getElementDimensions(selector: string): Promise<string> {
     await this.waitForElement(selector);
-    return await this.page.locator(selector).evaluate(el => {
+    return await this.page.locator(selector).evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return `${Math.round(rect.width)}x${Math.round(rect.height)}`;
     });
@@ -906,13 +1015,15 @@ export abstract class BasePage {
   /**
    * Get element dimensions as object
    */
-  async getElementDimensionsObject(selector: string): Promise<{ width: number, height: number }> {
+  async getElementDimensionsObject(
+    selector: string
+  ): Promise<{ width: number; height: number }> {
     await this.waitForElement(selector);
-    return await this.page.locator(selector).evaluate(el => {
+    return await this.page.locator(selector).evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return {
         width: Math.round(rect.width),
-        height: Math.round(rect.height)
+        height: Math.round(rect.height),
       };
     });
   }
@@ -922,26 +1033,24 @@ export abstract class BasePage {
    */
   async getImageNaturalDimensions(selector: string): Promise<string> {
     await this.waitForElement(selector);
-    return await this.page.locator(selector).evaluate(el => {
-      if (el.tagName.toLowerCase() === 'img') {
+    return await this.page.locator(selector).evaluate((el) => {
+      if (el.tagName.toLowerCase() === "img") {
         const img = el as HTMLImageElement;
         return `${img.naturalWidth}x${img.naturalHeight}`;
       }
-      throw new Error('Element is not an image');
+      throw new Error("Element is not an image");
     });
   }
   async acceptAlert(): Promise<void> {
-    this.page.on('dialog', async (dialog) => {
-      await dialog.accept();  // Accept the alert or confirm dialog
+    this.page.on("dialog", async (dialog) => {
+      await dialog.accept(); // Accept the alert or confirm dialog
     });
-
   }
 
   async dismissAlert(): Promise<void> {
-    this.page.on('dialog', async (dialog) => {
-      await dialog.dismiss();  // Dismiss the alert or dialog
+    this.page.on("dialog", async (dialog) => {
+      await dialog.dismiss(); // Dismiss the alert or dialog
     });
-
   }
 
   /**
@@ -951,7 +1060,7 @@ export abstract class BasePage {
   async switchToWindowByTitle(expectedTitle: string): Promise<void> {
     const context = this.page.context();
     const allPages = context.pages();
-    
+
     for (const page of allPages) {
       const currentTitle = await page.title();
       if (currentTitle === expectedTitle) {
@@ -970,7 +1079,7 @@ export abstract class BasePage {
   async switchToWindowById(parentPage: Page): Promise<void> {
     const context = this.page.context();
     const allPages = context.pages();
-    
+
     for (const page of allPages) {
       if (page !== parentPage) {
         // Switch to this page
@@ -988,13 +1097,13 @@ export abstract class BasePage {
   async closeAllWindowsWithoutParent(parentPage: Page): Promise<void> {
     const context = this.page.context();
     const allPages = context.pages();
-    
+
     for (const page of allPages) {
       if (page !== parentPage) {
         await page.close();
       }
     }
-    
+
     // Switch back to parent window
     this.page = parentPage;
     await this.page.bringToFront();
@@ -1015,12 +1124,12 @@ export abstract class BasePage {
     const context = this.page.context();
     const allPages = context.pages();
     const titles: string[] = [];
-    
+
     for (const page of allPages) {
       const title = await page.title();
       titles.push(title);
     }
-    
+
     return titles;
   }
 
@@ -1031,12 +1140,14 @@ export abstract class BasePage {
   async switchToWindowByIndex(index: number): Promise<void> {
     const context = this.page.context();
     const allPages = context.pages();
-    
+
     if (index >= 0 && index < allPages.length) {
       this.page = allPages[index];
       await this.page.bringToFront();
     } else {
-      throw new Error(`Window index ${index} is out of range. Available windows: ${allPages.length}`);
+      throw new Error(
+        `Window index ${index} is out of range. Available windows: ${allPages.length}`
+      );
     }
   }
 
@@ -1046,7 +1157,7 @@ export abstract class BasePage {
   async switchToLatestWindow(): Promise<void> {
     const context = this.page.context();
     const allPages = context.pages();
-    
+
     if (allPages.length > 0) {
       this.page = allPages[allPages.length - 1];
       await this.page.bringToFront();
@@ -1060,11 +1171,11 @@ export abstract class BasePage {
   async switchToWindowByUrl(urlPattern: string | RegExp): Promise<boolean> {
     const context = this.page.context();
     const allPages = context.pages();
-    
+
     for (const page of allPages) {
       const currentUrl = page.url();
-      
-      if (typeof urlPattern === 'string') {
+
+      if (typeof urlPattern === "string") {
         if (currentUrl.includes(urlPattern)) {
           this.page = page;
           await this.page.bringToFront();
@@ -1078,7 +1189,7 @@ export abstract class BasePage {
         }
       }
     }
-    
+
     return false;
   }
 
@@ -1088,11 +1199,11 @@ export abstract class BasePage {
    */
   async closeCurrentWindowAndSwitchToParent(parentPage: Page): Promise<void> {
     const currentPage = this.page;
-    
+
     // Switch to parent first
     this.page = parentPage;
     await this.page.bringToFront();
-    
+
     // Close the previous page
     await currentPage.close();
   }
@@ -1104,16 +1215,16 @@ export abstract class BasePage {
   async waitForNewWindowAndSwitch(timeout: number = 10000): Promise<void> {
     const context = this.page.context();
     const initialPageCount = context.pages().length;
-    
+
     // Wait for new page to be created
-    const newPage = await context.waitForEvent('page', { timeout });
-    
+    const newPage = await context.waitForEvent("page", { timeout });
+
     // Switch to the new page
     this.page = newPage;
     await this.page.bringToFront();
-    
+
     // Wait for the new page to load
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   /**
@@ -1123,11 +1234,11 @@ export abstract class BasePage {
   async openNewTab(url?: string): Promise<void> {
     const context = this.page.context();
     const newPage = await context.newPage();
-    
+
     if (url) {
       await newPage.goto(url);
     }
-    
+
     // Switch to the new tab
     this.page = newPage;
     await this.page.bringToFront();
@@ -1140,7 +1251,7 @@ export abstract class BasePage {
     const context = this.page.context();
     const allPages = context.pages();
     const currentPage = this.page;
-    
+
     for (const page of allPages) {
       if (page !== currentPage) {
         await page.close();
@@ -1156,14 +1267,14 @@ export abstract class BasePage {
   async switchToFrame(locator: string): Promise<void> {
     // Wait for iframe to be available
     await this.waitForElement(locator);
-    
+
     // Get the frame element
     const frameElement = await this.page.locator(locator).elementHandle();
-    
+
     if (frameElement) {
       // Get the frame from the element
       const frame = await frameElement.contentFrame();
-      
+
       if (frame) {
         // Store reference to the frame for future operations
         (this as any).currentFrame = frame;
@@ -1182,12 +1293,14 @@ export abstract class BasePage {
    */
   async switchToFrameByIndex(index: number): Promise<void> {
     const frames = await this.page.frames();
-    
+
     if (index >= 0 && index < frames.length) {
       (this as any).currentFrame = frames[index];
       console.log(`✅ Switched to frame at index: ${index}`);
     } else {
-      throw new Error(`Frame index ${index} is out of range. Available frames: ${frames.length}`);
+      throw new Error(
+        `Frame index ${index} is out of range. Available frames: ${frames.length}`
+      );
     }
   }
 
@@ -1215,7 +1328,7 @@ export abstract class BasePage {
   async switchToDefaultContent(): Promise<void> {
     // Clear the current frame reference
     (this as any).currentFrame = null;
-    console.log('✅ Switched back to default content (main page)');
+    console.log("✅ Switched back to default content (main page)");
   }
 
   /**
@@ -1248,7 +1361,10 @@ export abstract class BasePage {
    * @param locator - CSS selector for the iframe
    * @param timeout - Maximum time to wait in milliseconds
    */
-  async waitForFrameAndSwitch(locator: string, timeout: number = 10000): Promise<void> {
+  async waitForFrameAndSwitch(
+    locator: string,
+    timeout: number = 10000
+  ): Promise<void> {
     await this.waitForElement(locator, timeout);
     await this.switchToFrame(locator);
   }
@@ -1259,12 +1375,12 @@ export abstract class BasePage {
    * @param action - Function to execute within the frame
    */
   async performActionInFrame<T>(
-    frameLocator: string, 
+    frameLocator: string,
     action: (frame: any) => Promise<T>
   ): Promise<T> {
     // Switch to frame
     await this.switchToFrame(frameLocator);
-    
+
     try {
       // Execute action in frame
       const result = await action((this as any).currentFrame);
@@ -1280,7 +1396,10 @@ export abstract class BasePage {
    * @param frameLocator - CSS selector for the iframe
    * @param elementLocator - CSS selector for the element inside iframe
    */
-  async clickElementInFrame(frameLocator: string, elementLocator: string): Promise<void> {
+  async clickElementInFrame(
+    frameLocator: string,
+    elementLocator: string
+  ): Promise<void> {
     await this.performActionInFrame(frameLocator, async (frame) => {
       await frame.click(elementLocator);
     });
@@ -1292,7 +1411,11 @@ export abstract class BasePage {
    * @param elementLocator - CSS selector for the element inside iframe
    * @param text - Text to enter
    */
-  async enterTextInFrame(frameLocator: string, elementLocator: string, text: string): Promise<void> {
+  async enterTextInFrame(
+    frameLocator: string,
+    elementLocator: string,
+    text: string
+  ): Promise<void> {
     await this.performActionInFrame(frameLocator, async (frame) => {
       await frame.fill(elementLocator, text);
     });
@@ -1304,9 +1427,12 @@ export abstract class BasePage {
    * @param elementLocator - CSS selector for the element inside iframe
    * @returns Text content of the element
    */
-  async getTextFromFrame(frameLocator: string, elementLocator: string): Promise<string> {
+  async getTextFromFrame(
+    frameLocator: string,
+    elementLocator: string
+  ): Promise<string> {
     return await this.performActionInFrame(frameLocator, async (frame) => {
-      return await frame.textContent(elementLocator) || '';
+      return (await frame.textContent(elementLocator)) || "";
     });
   }
 
@@ -1316,7 +1442,10 @@ export abstract class BasePage {
    * @param elementLocator - CSS selector for the element inside iframe
    * @returns True if element exists, false otherwise
    */
-  async isElementInFrameDisplayed(frameLocator: string, elementLocator: string): Promise<boolean> {
+  async isElementInFrameDisplayed(
+    frameLocator: string,
+    elementLocator: string
+  ): Promise<boolean> {
     return await this.performActionInFrame(frameLocator, async (frame) => {
       try {
         return await frame.isVisible(elementLocator);
@@ -1333,12 +1462,15 @@ export abstract class BasePage {
    * @param timeout - Maximum time to wait in milliseconds
    */
   async waitForElementInFrame(
-    frameLocator: string, 
-    elementLocator: string, 
+    frameLocator: string,
+    elementLocator: string,
     timeout: number = 10000
   ): Promise<void> {
     await this.performActionInFrame(frameLocator, async (frame) => {
-      await frame.waitForSelector(elementLocator, { state: 'visible', timeout });
+      await frame.waitForSelector(elementLocator, {
+        state: "visible",
+        timeout,
+      });
     });
   }
 
@@ -1356,7 +1488,10 @@ export abstract class BasePage {
    * @param frameLocator - CSS selector for the iframe
    * @param elementLocator - CSS selector for the element inside iframe
    */
-  async clickInFrameModern(frameLocator: string, elementLocator: string): Promise<void> {
+  async clickInFrameModern(
+    frameLocator: string,
+    elementLocator: string
+  ): Promise<void> {
     await this.page.frameLocator(frameLocator).locator(elementLocator).click();
   }
 
@@ -1366,8 +1501,15 @@ export abstract class BasePage {
    * @param elementLocator - CSS selector for the element inside iframe
    * @param text - Text to enter
    */
-  async fillInFrameModern(frameLocator: string, elementLocator: string, text: string): Promise<void> {
-    await this.page.frameLocator(frameLocator).locator(elementLocator).fill(text);
+  async fillInFrameModern(
+    frameLocator: string,
+    elementLocator: string,
+    text: string
+  ): Promise<void> {
+    await this.page
+      .frameLocator(frameLocator)
+      .locator(elementLocator)
+      .fill(text);
   }
 
   /**
@@ -1376,8 +1518,16 @@ export abstract class BasePage {
    * @param elementLocator - CSS selector for the element inside iframe
    * @returns Text content of the element
    */
-  async getTextInFrameModern(frameLocator: string, elementLocator: string): Promise<string> {
-    return await this.page.frameLocator(frameLocator).locator(elementLocator).textContent() || '';
+  async getTextInFrameModern(
+    frameLocator: string,
+    elementLocator: string
+  ): Promise<string> {
+    return (
+      (await this.page
+        .frameLocator(frameLocator)
+        .locator(elementLocator)
+        .textContent()) || ""
+    );
   }
 
   /**
@@ -1387,43 +1537,43 @@ export abstract class BasePage {
    * @param expectedItem - Expected text of the item to select
    */
   async selectItemInCustomDropdown(
-    parentLocator: string, 
-    childLocator: string, 
+    parentLocator: string,
+    childLocator: string,
     expectedItem: string
   ): Promise<void> {
     // Click to open dropdown
     await this.clickElement(parentLocator);
-    
+
     // Wait 2 seconds (equivalent to sleepInSecond(2))
     await this.sleep(2000);
-    
+
     // Wait for all dropdown items to be present and get all elements
-    await this.page.waitForSelector(childLocator, { state: 'attached' });
+    await this.page.waitForSelector(childLocator, { state: "attached" });
     const allItems = await this.page.locator(childLocator).all();
-    
+
     // Loop through all items to find the matching one
     for (const item of allItems) {
       const itemText = await item.textContent();
-      
+
       if (itemText && itemText.trim() === expectedItem) {
         // Scroll item into view (equivalent to jsExecutor.executeScript)
         await item.scrollIntoViewIfNeeded();
-        
+
         // Wait 1 second (equivalent to sleepInSecond(1))
         await this.sleep(1000);
-        
+
         // Click the item
         await item.click();
-        
+
         // Wait 1 second (equivalent to sleepInSecond(1))
         await this.sleep(1000);
-        
+
         // Break out of loop
         break;
       }
     }
   }
-   /**
+  /**
    * Hover over element and get tooltip text with multiple fallback strategies
    * @param locator - CSS selector for the element to hover over
    * @param options - Configuration options for tooltip detection
@@ -1443,15 +1593,15 @@ export abstract class BasePage {
     const {
       tooltipSelector,
       titleAttribute = true,
-      dataAttributes = ['data-tooltip', 'data-title', 'data-original-title'],
+      dataAttributes = ["data-tooltip", "data-title", "data-original-title"],
       ariaLabel = true,
       timeout = 5000,
-      waitAfterHover = 500
+      waitAfterHover = 500,
     } = options;
 
     await this.waitForElement(selector);
     await this.page.hover(selector);
-    
+
     // Wait a bit for tooltip to appear
     await this.sleep(waitAfterHover);
 
@@ -1470,7 +1620,7 @@ export abstract class BasePage {
 
     // Strategy 2: Try title attribute
     if (titleAttribute) {
-      const titleText = await this.getAttribute(selector, 'title');
+      const titleText = await this.getAttribute(selector, "title");
       if (titleText && titleText.trim()) {
         return titleText.trim();
       }
@@ -1486,7 +1636,7 @@ export abstract class BasePage {
 
     // Strategy 4: Try aria-label
     if (ariaLabel) {
-      const ariaText = await this.getAttribute(selector, 'aria-label');
+      const ariaText = await this.getAttribute(selector, "aria-label");
       if (ariaText && ariaText.trim()) {
         return ariaText.trim();
       }
@@ -1494,9 +1644,15 @@ export abstract class BasePage {
 
     // Strategy 5: Try common tooltip selectors
     const commonTooltipSelectors = [
-      '.tooltip', '.tooltip-inner', '.tooltip-content',
-      '.popover', '.popover-content', '.popover-body',
-      '[role="tooltip"]', '.ui-tooltip', '.tippy-content'
+      ".tooltip",
+      ".tooltip-inner",
+      ".tooltip-content",
+      ".popover",
+      ".popover-content",
+      ".popover-body",
+      '[role="tooltip"]',
+      ".ui-tooltip",
+      ".tippy-content",
     ];
 
     for (const commonSelector of commonTooltipSelectors) {
@@ -1512,7 +1668,680 @@ export abstract class BasePage {
       }
     }
 
-    return ''; // No tooltip found
+    return ""; // No tooltip found
   }
 
+  async getAllTexts(selector: string): Promise<string[]> {
+    await this.page.waitForSelector(selector, { state: "attached" });
+    const elements = await this.page.locator(selector).all();
+    const texts: string[] = [];
+
+    for (const element of elements) {
+      const text = await element.textContent();
+      texts.push(text?.trim() || "");
+    }
+
+    return texts;
+  }
+
+  /**
+   * Get element count
+   */
+  async getElementCount(selector: string): Promise<number> {
+    try {
+      return await this.page.locator(selector).count();
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Scroll element into view
+   */
+  async scrollToElement(selector: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.locator(selector).scrollIntoViewIfNeeded();
+  }
+
+  /**
+   * Scroll to top of page
+   */
+  async scrollToTop(): Promise<void> {
+    await this.page.evaluate(() => window.scrollTo(0, 0));
+  }
+
+  /**
+   * Scroll to bottom of page
+   */
+  async scrollToBottom(): Promise<void> {
+    await this.page.evaluate(() =>
+      window.scrollTo(0, document.body.scrollHeight)
+    );
+  }
+
+  /**
+   * Scroll by pixel amount
+   */
+  async scrollByPixels(x: number, y: number): Promise<void> {
+    await this.page.evaluate(({ x, y }) => window.scrollBy(x, y), { x, y });
+  }
+
+  /**
+   * Double click on element
+   */
+  async doubleClickElement(selector: string): Promise<void> {
+    await this.waitForElementClickable(selector);
+    await this.page.dblclick(selector);
+  }
+
+  /**
+   * Right click on element
+   */
+  async rightClickElement(selector: string): Promise<void> {
+    await this.waitForElementClickable(selector);
+    await this.page.click(selector, { button: "right" });
+  }
+
+  /**
+   * Hover over element
+   */
+  async hoverElement(selector: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.hover(selector);
+  }
+
+  /**
+   * Focus on element
+   */
+  async focusElement(selector: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.focus(selector);
+  }
+
+  /**
+   * Clear input field and enter new text
+   */
+  async clearAndEnterText(selector: string, text: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.fill(selector, ""); // Clear first
+    await this.page.fill(selector, text);
+  }
+
+  /**
+   * Press keyboard key
+   */
+  async pressKey(key: string): Promise<void> {
+    await this.page.keyboard.press(key);
+  }
+
+  /**
+   * Press multiple keys in sequence
+   */
+  async pressKeys(keys: string[]): Promise<void> {
+    for (const key of keys) {
+      await this.page.keyboard.press(key);
+      await this.sleep(100); // Small delay between key presses
+    }
+  }
+
+  /**
+   * Execute JavaScript code
+   */
+  async executeScript(script: string, ...args: any[]): Promise<any> {
+    return await this.page.evaluate(script, ...args);
+  }
+
+  /**
+   * Get current window size
+   */
+  async getWindowSize(): Promise<{ width: number; height: number }> {
+    return await this.page.evaluate(() => ({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }));
+  }
+
+  /**
+   * Set window size
+   */
+  async setWindowSize(width: number, height: number): Promise<void> {
+    await this.page.setViewportSize({ width, height });
+  }
+
+  /**
+   * Take screenshot of element
+   */
+  async takeElementScreenshot(selector: string, path: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.locator(selector).screenshot({ path });
+  }
+
+  /**
+   * Take full page screenshot
+   */
+  async takeFullPageScreenshot(path: string): Promise<void> {
+    await this.page.screenshot({ path, fullPage: true });
+  }
+
+  /**
+   * Get all cookie values
+   */
+  async getAllCookies(): Promise<any[]> {
+    return await this.page.context().cookies();
+  }
+
+  /**
+   * Add cookie
+   */
+  async addCookie(name: string, value: string, domain?: string): Promise<void> {
+    await this.page.context().addCookies([
+      {
+        name,
+        value,
+        domain: domain || new URL(this.page.url()).hostname,
+        path: "/",
+      },
+    ]);
+  }
+
+  /**
+   * Delete all cookies
+   */
+  async deleteAllCookies(): Promise<void> {
+    await this.page.context().clearCookies();
+  }
+
+  /**
+   * Get local storage item
+   */
+  async getLocalStorageItem(key: string): Promise<string | null> {
+    return await this.page.evaluate((key) => localStorage.getItem(key), key);
+  }
+
+  /**
+   * Set local storage item
+   */
+  async setLocalStorageItem(key: string, value: string): Promise<void> {
+    await this.page.evaluate(
+      ({ key, value }) => localStorage.setItem(key, value),
+      { key, value }
+    );
+  }
+
+  /**
+   * Clear local storage
+   */
+  async clearLocalStorage(): Promise<void> {
+    await this.page.evaluate(() => localStorage.clear());
+  }
+
+  /**
+   * Get session storage item
+   */
+  async getSessionStorageItem(key: string): Promise<string | null> {
+    return await this.page.evaluate((key) => sessionStorage.getItem(key), key);
+  }
+
+  /**
+   * Set session storage item
+   */
+  async setSessionStorageItem(key: string, value: string): Promise<void> {
+    await this.page.evaluate(
+      ({ key, value }) => sessionStorage.setItem(key, value),
+      { key, value }
+    );
+  }
+
+  /**
+   * Wait for URL to contain specific text
+   */
+  async waitForUrlContains(
+    text: string,
+    timeout: number = 10000
+  ): Promise<void> {
+    await this.page.waitForURL((url) => url.toString().includes(text), {
+      timeout,
+    });
+  }
+
+  /**
+   * Wait for URL to match pattern
+   */
+  async waitForUrlMatches(
+    pattern: RegExp,
+    timeout: number = 10000
+  ): Promise<void> {
+    await this.page.waitForURL(pattern, { timeout });
+  }
+
+  /**
+   * Navigate back in browser history
+   */
+  async navigateBack(): Promise<void> {
+    await this.page.goBack();
+  }
+
+  /**
+   * Navigate forward in browser history
+   */
+  async navigateForward(): Promise<void> {
+    await this.page.goForward();
+  }
+
+  /**
+   * Drag and drop between elements
+   */
+  async dragAndDrop(
+    sourceSelector: string,
+    targetSelector: string
+  ): Promise<void> {
+    await this.waitForElement(sourceSelector);
+    await this.waitForElement(targetSelector);
+    await this.page.dragAndDrop(sourceSelector, targetSelector);
+  }
+
+  /**
+   * Select text in input field
+   */
+  async selectAllText(selector: string): Promise<void> {
+    await this.waitForElement(selector);
+    await this.page.focus(selector);
+    await this.page.keyboard.press("Control+A");
+  }
+
+  /**
+   * Copy text to clipboard
+   */
+  async copyToClipboard(text: string): Promise<void> {
+    await this.page.evaluate(
+      (text) => navigator.clipboard.writeText(text),
+      text
+    );
+  }
+
+  /**
+   * Get text from clipboard
+   */
+  async getClipboardText(): Promise<string> {
+    return await this.page.evaluate(() => navigator.clipboard.readText());
+  }
+
+  /**
+   * Check if element has specific CSS class
+   */
+  async hasClass(selector: string, className: string): Promise<boolean> {
+    await this.waitForElement(selector);
+    return await this.page
+      .locator(selector)
+      .evaluate((el, className) => el.classList.contains(className), className);
+  }
+
+  /**
+   * Get all CSS classes of element
+   */
+  async getAllClasses(selector: string): Promise<string[]> {
+    await this.waitForElement(selector);
+    return await this.page
+      .locator(selector)
+      .evaluate((el) => Array.from(el.classList));
+  }
+
+  /**
+   * Wait for element to have specific text
+   */
+  async waitForElementText(
+    selector: string,
+    expectedText: string,
+    timeout: number = 10000
+  ): Promise<void> {
+    await this.page.waitForFunction(
+      ({ selector, expectedText }) => {
+        const element = document.querySelector(selector);
+        return element && element.textContent?.includes(expectedText);
+      },
+      { selector, expectedText },
+      { timeout }
+    );
+  }
+
+  /**
+   * Wait for element attribute to have specific value
+   */
+  async waitForElementAttribute(
+    selector: string,
+    attribute: string,
+    expectedValue: string,
+    timeout: number = 10000
+  ): Promise<void> {
+    await this.page.waitForFunction(
+      ({ selector, attribute, expectedValue }) => {
+        const element = document.querySelector(selector);
+        return element && element.getAttribute(attribute) === expectedValue;
+      },
+      { selector, attribute, expectedValue },
+      { timeout }
+    );
+  }
+  /**
+   * Check if element is enabled
+   */
+  async isElementEnabled(selector: string): Promise<boolean> {
+    try {
+      await this.waitForElement(selector);
+      return await this.page.locator(selector).isEnabled();
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if element is disabled
+   */
+  async isElementDisabled(selector: string): Promise<boolean> {
+    return !(await this.isElementEnabled(selector));
+  }
+  /**
+   * Get CSS property value
+   */
+  async getCSSProperty(selector: string, property: string): Promise<string> {
+    await this.waitForElement(selector);
+    return await this.page
+      .locator(selector)
+      .evaluate(
+        (el, prop) => window.getComputedStyle(el).getPropertyValue(prop),
+        property
+      );
+  }
+
+  /**
+ * Get page performance metrics
+ */
+async getPerformanceMetrics(): Promise<any> {
+  return await this.page.evaluate(() => {
+    const [navigation] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    return {
+      loadTime: navigation ? navigation.loadEventEnd - navigation.startTime : 0,
+      domReady: navigation ? navigation.domContentLoadedEventEnd - navigation.startTime : 0,
+      firstPaint: performance.getEntriesByType('paint')[0]?.startTime || 0
+    };
+  });
+}
+
+/**
+ * Monitor network requests
+ */
+async monitorNetworkRequests(urlPattern?: string | RegExp): Promise<string[]> {
+  const requests: string[] = [];
+  
+  this.page.on('request', (request) => {
+    const url = request.url();
+    
+    if (!urlPattern) {
+      requests.push(url);
+    } else if (typeof urlPattern === 'string' && url.includes(urlPattern)) {
+      requests.push(url);
+    } else if (urlPattern instanceof RegExp && urlPattern.test(url)) {
+      requests.push(url);
+    }
+  });
+  
+  return requests;
+}
+
+/**
+ * Block specific resources (images, stylesheets, etc.)
+ */
+async blockResources(resourceTypes: string[]): Promise<void> {
+  await this.page.route('**/*', (route) => {
+    if (resourceTypes.includes(route.request().resourceType())) {
+      route.abort();
+    } else {
+      route.continue();
+    }
+  });
+}
+
+/**
+ * Mock API response
+ */
+async mockApiResponse(urlPattern: string | RegExp, responseData: any): Promise<void> {
+  await this.page.route(urlPattern, (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(responseData)
+    });
+  });
+}
+
+/**
+ * Intercept and modify requests
+ */
+async interceptRequest(urlPattern: string | RegExp, modifier: (request: any) => void): Promise<void> {
+  await this.page.route(urlPattern, (route) => {
+    const request = route.request();
+    modifier(request);
+    route.continue();
+  });
+}
+
+/**
+ * Wait for console message
+ */
+async waitForConsoleMessage(messageText: string, timeout: number = 10000): Promise<void> {
+  await this.page.waitForEvent('console', {
+    predicate: (msg) => msg.text().includes(messageText),
+    timeout
+  });
+}
+
+/**
+ * Clear browser cache
+ */
+async clearBrowserCache(): Promise<void> {
+  await this.page.context().clearCookies();
+  await this.page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+}
+
+/**
+ * Click element in table by row and column number (1-based indexing)
+ * @param tableSelector - CSS selector for the table
+ * @param rowNumber - Row number (1-based, excluding header row)
+ * @param columnNumber - Column number (1-based)
+ * @param includeHeader - Whether to include header row in row counting (default: false)
+ */
+async clickTableCell(
+  tableSelector: string,
+  rowNumber: number,
+  columnNumber: number,
+  includeHeader: boolean = false
+): Promise<void> {
+  await this.waitForElement(tableSelector);
+  
+  const actualRowNumber = includeHeader ? rowNumber : rowNumber + 1; // +1 to skip header if not included
+  const cellSelector = `${tableSelector} tr:nth-child(${actualRowNumber}) td:nth-child(${columnNumber})`;
+  
+  await this.waitForElementClickable(cellSelector);
+  await this.clickElement(cellSelector);
+}
+
+/**
+ * Click element in table by row and column number with custom cell selector
+ * @param tableSelector - CSS selector for the table
+ * @param rowNumber - Row number (1-based)
+ * @param columnNumber - Column number (1-based)
+ * @param cellType - Cell type ('td' or 'th')
+ * @param includeHeader - Whether to include header row in counting
+ */
+async clickTableCellAdvanced(
+  tableSelector: string,
+  rowNumber: number,
+  columnNumber: number,
+  cellType: 'td' | 'th' = 'td',
+  includeHeader: boolean = false
+): Promise<void> {
+  await this.waitForElement(tableSelector);
+  
+  const actualRowNumber = includeHeader ? rowNumber : rowNumber + 1;
+  const cellSelector = `${tableSelector} tr:nth-child(${actualRowNumber}) ${cellType}:nth-child(${columnNumber})`;
+  
+  await this.waitForElementClickable(cellSelector);
+  await this.clickElement(cellSelector);
+}
+
+/**
+ * Click specific element inside a table cell (e.g., button, link, checkbox)
+ * @param tableSelector - CSS selector for the table
+ * @param rowNumber - Row number (1-based)
+ * @param columnNumber - Column number (1-based)
+ * @param elementSelector - Selector for element inside the cell (e.g., 'button', 'a', 'input[type="checkbox"]')
+ * @param includeHeader - Whether to include header row in counting
+ */
+async clickElementInTableCell(
+  tableSelector: string,
+  rowNumber: number,
+  columnNumber: number,
+  elementSelector: string,
+  includeHeader: boolean = false
+): Promise<void> {
+  await this.waitForElement(tableSelector);
+  
+  const actualRowNumber = includeHeader ? rowNumber : rowNumber + 1;
+  const cellSelector = `${tableSelector} tr:nth-child(${actualRowNumber}) td:nth-child(${columnNumber}) ${elementSelector}`;
+  
+  await this.waitForElementClickable(cellSelector);
+  await this.clickElement(cellSelector);
+}
+
+/**
+ * Get text from table cell by row and column number
+ * @param tableSelector - CSS selector for the table
+ * @param rowNumber - Row number (1-based)
+ * @param columnNumber - Column number (1-based)
+ * @param includeHeader - Whether to include header row in counting
+ * @returns Text content of the cell
+ */
+async getTableCellText(
+  tableSelector: string,
+  rowNumber: number,
+  columnNumber: number,
+  includeHeader: boolean = false
+): Promise<string> {
+  await this.waitForElement(tableSelector);
+  
+  const actualRowNumber = includeHeader ? rowNumber : rowNumber + 1;
+  const cellSelector = `${tableSelector} tr:nth-child(${actualRowNumber}) td:nth-child(${columnNumber})`;
+  
+  return await this.getText(cellSelector);
+}
+
+/**
+ * Click table cell by matching text content in a specific column
+ * @param tableSelector - CSS selector for the table
+ * @param searchText - Text to search for
+ * @param searchColumnNumber - Column number to search in (1-based)
+ * @param clickColumnNumber - Column number to click (1-based)
+ * @param includeHeader - Whether to include header row in counting
+ */
+async clickTableCellByText(
+  tableSelector: string,
+  searchText: string,
+  searchColumnNumber: number,
+  clickColumnNumber: number,
+  includeHeader: boolean = false
+): Promise<void> {
+  await this.waitForElement(tableSelector);
+  
+  const startRow = includeHeader ? 1 : 2; // Start from row 1 if including header, row 2 if not
+  const rows = await this.page.locator(`${tableSelector} tr`).count();
+  
+  for (let row = startRow; row <= rows; row++) {
+    const cellText = await this.getTableCellText(tableSelector, row - (includeHeader ? 0 : 1), searchColumnNumber, includeHeader);
+    
+    if (cellText.trim() === searchText.trim()) {
+      await this.clickTableCell(tableSelector, row - (includeHeader ? 0 : 1), clickColumnNumber, includeHeader);
+      return;
+    }
+  }
+  
+  throw new Error(`Text "${searchText}" not found in column ${searchColumnNumber}`);
+}
+
+/**
+ * Get all table row data as array of objects
+ * @param tableSelector - CSS selector for the table
+ * @param includeHeader - Whether to include header row
+ * @returns Array of row data objects
+ */
+async getTableData(tableSelector: string, includeHeader: boolean = true): Promise<any[]> {
+  await this.waitForElement(tableSelector);
+  
+  return await this.page.evaluate((selector) => {
+    const table = document.querySelector(selector) as HTMLTableElement;
+    if (!table) return [];
+    
+    const rows = Array.from(table.querySelectorAll('tr'));
+    const data: any[] = [];
+    
+    rows.forEach((row, index) => {
+      const cells = Array.from(row.querySelectorAll('td, th'));
+      const rowData: any = {};
+      
+      cells.forEach((cell, cellIndex) => {
+        rowData[`column_${cellIndex + 1}`] = cell.textContent?.trim() || '';
+      });
+      
+      data.push({
+        row: index + 1,
+        ...rowData
+      });
+    });
+    
+    return data;
+  }, tableSelector);
+}
+
+/**
+ * Click table row by row number
+ * @param tableSelector - CSS selector for the table
+ * @param rowNumber - Row number (1-based)
+ * @param includeHeader - Whether to include header row in counting
+ */
+async clickTableRow(
+  tableSelector: string,
+  rowNumber: number,
+  includeHeader: boolean = false
+): Promise<void> {
+  await this.waitForElement(tableSelector);
+  
+  const actualRowNumber = includeHeader ? rowNumber : rowNumber + 1;
+  const rowSelector = `${tableSelector} tr:nth-child(${actualRowNumber})`;
+  
+  await this.waitForElementClickable(rowSelector);
+  await this.clickElement(rowSelector);
+}
+
+/**
+ * Get table dimensions (rows and columns count)
+ * @param tableSelector - CSS selector for the table
+ * @param includeHeader - Whether to include header row in row count
+ * @returns Object with rows and columns count
+ */
+async getTableDimensions(
+  tableSelector: string,
+  includeHeader: boolean = true
+): Promise<{ rows: number; columns: number }> {
+  await this.waitForElement(tableSelector);
+  
+  const totalRows = await this.page.locator(`${tableSelector} tr`).count();
+  const columns = await this.page.locator(`${tableSelector} tr:first-child td, ${tableSelector} tr:first-child th`).count();
+  
+  return {
+    rows: includeHeader ? totalRows : totalRows - 1,
+    columns
+  };
+}
 }
