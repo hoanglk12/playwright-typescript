@@ -22,12 +22,6 @@
       "@data/*": ["src/data/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "tests/**/*"
-  ],  "exclude": [
-    "node_modules",    "dist",
-    "test-results",
-    "playwright-report"
-  ]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist", "test-results", "playwright-report"]
 }
