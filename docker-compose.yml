@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # Chromium Tests
+  playwright-chromium:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: playwright-chromium
+    volumes:
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+      - ./logs:/app/logs
+    environment:
+      - CI=true
+      - BROWSER=chromium
+      - TEST_ENV=${TEST_ENV:-testing}
+      - HEADLESS=true
+    command: npx playwright test --project=chromium --reporter=html,json
+    networks:
+      - playwright-network
+    depends_on:
+      - playwright-base
+
+  # Firefox Tests  
+  playwright-firefox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: playwright-firefox
+    volumes:
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+      - ./logs:/app/logs
+    environment:
+      - CI=true
+      - BROWSER=firefox
+      - TEST_ENV=${TEST_ENV:-testing}
+      - HEADLESS=true
+    command: npx playwright test --project=firefox --reporter=html,json
+    networks:
+      - playwright-network
+    depends_on:
+      - playwright-base
+
+  # WebKit Tests
+  playwright-webkit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: playwright-webkit
+    volumes:
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+      - ./logs:/app/logs
+    environment:
+      - CI=true
+      - BROWSER=webkit
+      - TEST_ENV=${TEST_ENV:-testing}
+      - HEADLESS=true
+    command: npx playwright test --project=webkit --reporter=html,json
+    networks:
+      - playwright-network
+    depends_on:
+      - playwright-base
+
+  # API Tests
+  playwright-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: playwright-api
+    volumes:
+      - ./api-results:/app/api-results
+      - ./api-report:/app/api-report
+      - ./logs:/app/logs
+    environment:
+      - CI=true
+      - TEST_ENV=${TEST_ENV:-testing}
+    command: npx playwright test --config=api.config.ts --project=api --workers=1
+    networks:
+      - playwright-network
+    depends_on:
+      - playwright-base
+
+  # Base service for dependency management
+  playwright-base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: playwright-base
+    command: echo "Base service built successfully"
+
+  # Development Environment
+  playwright-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: playwright-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+    ports:
+      - "9323:9323"
+      - "9229:9229"
+    environment:
+      - PWDEBUG=1
+      - NODE_ENV=development
+      - TEST_ENV=testing
+    command: tail -f /dev/null
+    networks:
+      - playwright-network
+
+networks:
+  playwright-network:
+    driver: bridge
+
+volumes:
+  node_modules:
