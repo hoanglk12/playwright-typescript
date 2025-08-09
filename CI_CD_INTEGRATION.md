@@ -35,6 +35,255 @@ The CI/CD pipelines are designed to:
 - Comprehensive artifact publishing
 - Combined report generation
 
+### Docker Integration
+- ✅ Multi-browser testing with Docker containers
+- Environment isolation and consistency
+- Parallel browser execution in containers
+- Cross-platform Docker support (Windows, macOS, Linux)
+- Docker Compose orchestration for complex test scenarios
+
+## Docker Setup and Configuration
+
+### Step 6: Test the Docker Setup
+
+#### 6.1 Verify Docker Desktop is Running
+- Open Docker Desktop application
+- Ensure it shows "Engine running" status
+
+#### 6.2 Build the Docker Image
+```bash
+# Using npm script
+npm run docker:build
+
+# Or using direct Docker command
+docker build -t playwright-framework .
+```
+
+Expected output:
+```
+[+] Building 45.2s (12/12) FINISHED
+ => [internal] load build definition from Dockerfile
+ => => transferring dockerfile: 234B
+ => [internal] load .dockerignore
+ => ...
+ => => writing image sha256:...
+ => => naming to docker.io/library/playwright-framework
+```
+
+#### 6.3 Test Individual Browser
+```bash
+# Test Chromium
+npm run docker:test:chromium
+
+# Or using shell script
+./run-docker-tests.sh chromium
+```
+
+#### 6.4 Test All Browsers in Parallel
+```bash
+# Using npm
+npm run docker:test:parallel
+
+# Or using shell script
+./run-docker-tests.sh parallel
+```
+
+### Step 7: Verify Results
+
+#### 7.1 Check Test Reports
+After tests complete, check these directories:
+- `test-results` - JSON and XML results
+- `playwright-report` - HTML reports
+- `api-results` - API test results
+- `logs` - Test execution logs
+
+#### 7.2 Open HTML Report
+```bash
+# Open the HTML report in browser
+npm run report
+```
+
+### Step 8: Development Workflow
+
+#### 8.1 Start Development Container
+```bash
+npm run docker:dev
+```
+
+#### 8.2 Access Development Shell
+```bash
+npm run docker:dev:shell
+```
+
+#### 8.3 Stop Development Container
+```bash
+npm run docker:dev:stop
+```
+
+### Step 9: Troubleshooting
+
+#### 9.1 Common Issues and Solutions
+
+**Issue: "Docker is not running"**
+```bash
+# Solution: Start Docker Desktop
+# Windows: Open Docker Desktop from Start Menu
+# macOS: Open Docker Desktop from Applications
+# Linux: sudo systemctl start docker
+```
+
+**Issue: "Port already in use"**
+```bash
+# Solution: Stop existing containers
+docker-compose down
+docker ps -a  # List all containers
+docker stop $(docker ps -q)  # Stop all running containers
+```
+
+**Issue: "Build failed"**
+```bash
+# Solution: Clean and rebuild
+npm run docker:clean
+npm run docker:rebuild
+```
+
+**Issue: "Tests not found"**
+```bash
+# Solution: Check file paths in container
+docker-compose exec playwright-dev ls -la tests/
+```
+
+#### 9.2 Debug Commands
+```bash
+# View container logs
+npm run docker:logs
+
+# Check container status
+docker-compose ps
+
+# Access running container
+docker-compose exec playwright-dev /bin/bash
+
+# View Docker images
+docker images
+
+# View Docker containers
+docker ps -a
+```
+
+### Step 10: Docker Usage Examples
+
+#### 10.1 Daily Testing Workflow
+```bash
+# Morning: Run all tests
+./run-docker-tests.sh all
+
+# Development: Test specific browser
+./run-docker-tests.sh firefox
+
+# CI/CD: Run tests in parallel
+./run-docker-tests.sh parallel
+
+# End of day: Clean up
+./run-docker-tests.sh clean
+```
+
+#### 10.2 Integration with CI/CD
+Add to your GitHub Actions workflow:
+```yaml
+- name: Run Docker Tests
+  run: |
+    chmod +x run-docker-tests.sh
+    ./run-docker-tests.sh all
+```
+
+#### 10.3 Environment-Specific Testing
+```bash
+# Test against different environments
+TEST_ENV=testing ./run-docker-tests.sh all
+TEST_ENV=staging ./run-docker-tests.sh chromium
+TEST_ENV=production ./run-docker-tests.sh api
+```
+
+#### 10.4 Performance Testing
+```bash
+# Run load testing with multiple containers
+docker-compose up --scale playwright-chromium=3 --scale playwright-firefox=2
+
+# Monitor resource usage
+docker stats
+
+# Test with different browser configurations
+./run-docker-tests.sh webkit  # WebKit for Safari compatibility
+```
+
+#### 10.5 Advanced Docker Usage
+```bash
+# Run tests with custom Docker build arguments
+docker build --build-arg NODE_VERSION=18 -t playwright-framework .
+
+# Use different Docker compose files for different environments
+docker-compose -f docker-compose.staging.yml up
+
+# Run tests with volume mapping for real-time development
+docker-compose -f docker-compose.dev.yml up
+
+# Export test results from containers
+docker cp playwright-chromium:/app/test-results ./host-results/
+```
+
+### Docker Benefits Achieved
+
+✅ **Multi-Browser Testing**: Run tests on Chromium, Firefox, and WebKit simultaneously  
+✅ **Environment Isolation**: Each test runs in a clean Docker container  
+✅ **Consistency**: Same browser versions across all machines and environments  
+✅ **Parallel Execution**: Faster test execution with multiple containers  
+✅ **Easy Setup**: One-command setup and execution  
+✅ **CI/CD Ready**: Perfect for automated pipelines  
+✅ **Development Friendly**: Interactive development container available  
+✅ **Resource Management**: Better control over system resources and dependencies  
+✅ **Cross-Platform**: Works consistently on Windows, macOS, and Linux  
+✅ **Scalability**: Easy to scale test execution by adding more containers  
+✅ **Version Control**: Lock browser and dependency versions for reproducible tests  
+✅ **Network Isolation**: Clean network environment for API testing  
+
+### Docker Performance Optimization
+
+#### Container Resource Allocation
+```yaml
+# docker-compose.yml optimization
+services:
+  playwright-chromium:
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'  
+          memory: 2G
+    shm_size: 2gb  # Important for browser stability
+```
+
+#### Parallel Execution Guidelines
+- **UI Tests**: Use parallel mode for faster execution
+- **API Tests**: Use serial mode to avoid conflicts  
+- **Cross-browser**: Limit containers to prevent resource exhaustion
+- **CI Environment**: Monitor memory usage and adjust container counts
+
+#### Caching Strategies
+```dockerfile
+# Multi-stage build for better caching
+FROM mcr.microsoft.com/playwright:v1.40.0-focal as dependencies
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM dependencies as test-runner
+COPY . .
+RUN npx playwright install --with-deps
+```
+
 ## Test Execution Scripts
 
 ### Shell Scripts Overview
@@ -237,6 +486,56 @@ npx playwright test --config=api.config.ts --workers=1 --project=api
 API_ENV=staging npx playwright test
 ```
 
+**Docker Commands:**
+```bash
+# Build Docker image
+npm run docker:build
+
+# Run all tests in Docker containers
+npm run docker:test
+
+# Run specific browser tests
+npm run docker:test:chromium
+npm run docker:test:firefox
+npm run docker:test:webkit
+
+# Run API tests in Docker
+npm run docker:test:api
+
+# Run tests in parallel using Docker
+npm run docker:test:parallel
+
+# Start development environment
+npm run docker:dev
+
+# Access Docker development shell
+npm run docker:dev:shell
+
+# Clean up Docker resources
+npm run docker:clean
+
+# Rebuild Docker images
+npm run docker:rebuild
+```
+
+**Docker Shell Scripts:**
+```bash
+# Linux/macOS
+./run-docker-tests.sh all
+./run-docker-tests.sh chromium
+./run-docker-tests.sh firefox
+./run-docker-tests.sh webkit
+./run-docker-tests.sh api
+./run-docker-tests.sh parallel
+./run-docker-tests.sh dev
+./run-docker-tests.sh clean
+
+# Windows
+run-docker-tests.bat all
+run-docker-tests.bat chromium
+run-docker-tests.bat parallel
+```
+
 ### CI/CD Pipeline Examples
 
 **Triggering from Git Events:**
@@ -265,6 +564,50 @@ gh run download <run-id>
 gh run view <run-id> --log
 ```
 
+**Docker CI/CD Integration:**
+```bash
+# GitHub Actions with Docker
+- name: Build Docker Image
+  run: docker build -t playwright-framework .
+
+- name: Run Docker Tests
+  run: |
+    chmod +x run-docker-tests.sh
+    ./run-docker-tests.sh all
+
+- name: Run Parallel Browser Tests
+  run: docker-compose up --abort-on-container-exit --remove-orphans
+
+# Extract results from Docker containers
+- name: Copy Test Results
+  run: |
+    docker cp playwright-chromium:/app/test-results ./test-results
+    docker cp playwright-firefox:/app/playwright-report ./playwright-report
+```
+
+**Docker Environment Variables in CI:**
+```yaml
+# GitHub Actions workflow
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  TEST_ENV: ${{ inputs.environment }}
+  BROWSER_TYPE: ${{ inputs.browser }}
+  PARALLEL_WORKERS: ${{ inputs.workers }}
+
+jobs:
+  docker-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Run Docker Tests
+        run: |
+          export TEST_ENV=${{ github.event.inputs.environment }}
+          ./run-docker-tests.sh ${{ github.event.inputs.browser }}
+```
+
 ### Advanced Configuration Examples
 
 **Environment Variables:**
@@ -280,6 +623,34 @@ export DEBUG=true
 
 # Custom base URL
 export API_BASE_URL=https://custom-api.example.com
+```
+
+**Docker Environment Variables:**
+```bash
+# Docker-specific environment configuration
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
+# Container resource limits
+export DOCKER_MEMORY_LIMIT=4g
+export DOCKER_CPU_LIMIT=2
+
+# Test environment in Docker
+export TEST_ENV=staging
+export HEADLESS=true
+export BROWSER_TYPE=chromium
+
+# Docker network configuration
+export DOCKER_NETWORK=playwright-network
+export HOST_NETWORK_ACCESS=true
+
+# Volume mapping for test results
+export RESULTS_VOLUME=./test-results:/app/test-results
+export REPORTS_VOLUME=./playwright-report:/app/playwright-report
+
+# Docker Compose overrides
+export COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml
+export COMPOSE_PROJECT_NAME=playwright-tests
 ```
 
 **Test Filtering:**
@@ -448,6 +819,70 @@ node -e "console.log(require('./src/config/environment').getEnvironment())"
 env | grep -E "(API_|NODE_|CI)"
 ```
 
+**4. Docker-Specific Issues:**
+```bash
+# Check Docker service status
+docker info
+
+# Verify Docker Compose configuration
+docker-compose config
+
+# Test Docker connectivity
+docker run hello-world
+
+# Check container resource usage
+docker stats
+
+# View Docker logs
+docker-compose logs -f
+
+# Restart Docker services
+docker-compose restart
+
+# Clean Docker system
+docker system prune -a -f
+
+# Check Docker volume mounts
+docker inspect <container-id> | grep -A 10 "Mounts"
+
+# Test Docker file sharing
+docker run --rm -v "$(pwd):/test" alpine ls -la /test
+```
+
+**5. Docker Permission Issues:**
+```bash
+# Fix Docker permission (Linux)
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Fix file sharing permissions (Windows)
+icacls . /grant Everyone:F /T
+
+# Check Docker Desktop file sharing settings
+# Docker Desktop → Settings → Resources → File Sharing
+
+# Reset Docker Desktop
+# Docker Desktop → Troubleshoot → Reset to factory defaults
+```
+
+**6. Docker Performance Issues:**
+```bash
+# Monitor Docker resource usage
+docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
+
+# Adjust Docker memory limits
+# Docker Desktop → Settings → Resources → Memory: 8GB
+
+# Optimize Docker build cache
+docker builder prune
+
+# Use multi-stage builds for smaller images
+# See Dockerfile optimization examples
+
+# Limit parallel containers
+docker-compose up --scale playwright-chromium=2 --scale playwright-firefox=1
+```
+
 **4. Test Execution Issues:**
 ```bash
 # Run with debug output
@@ -532,4 +967,21 @@ WORKERS=4
 PARALLEL_WORKERS=4
 ```
 
-This enhanced documentation provides comprehensive guidance for using the CI/CD pipeline with practical examples and troubleshooting information.
+### Docker Migration
+```bash
+# From local Playwright execution
+npx playwright test --workers=4
+
+# To Docker execution
+npm run docker:test
+./run-docker-tests.sh all
+
+# From manual browser management
+npx playwright install --with-deps
+
+# To Docker-managed browsers
+docker build -t playwright-framework .
+npm run docker:build
+```
+
+This enhanced documentation provides comprehensive guidance for using the CI/CD pipeline with Docker integration, practical examples, and troubleshooting information for containerized test execution.
