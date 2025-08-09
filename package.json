@@ -2,7 +2,7 @@
   "name": "playwright-typescript-framework",
   "version": "13.7.2025",
   "description": "Playwright TypeScript framework converted from Maven hybrid framework",
-  "author":"Hoang Pham",
+  "author": "Hoang Pham",
   "license": "Hoang Pham - Senior Quality Engineer",
   "contact": "hoanglk12@gmail.com",
   "main": "index.js",
@@ -41,7 +41,20 @@
     "install:browsers:deps": "npx playwright install --with-deps",
     "codegen": "npx playwright codegen",
     "lint": "tsc --noEmit",
-    "clean:install": "npm run clean && npm ci && npm run install:browsers"
+    "clean:install": "npm run clean && npm ci && npm run install:browsers",
+    "docker:build": "docker build -t playwright-framework .",
+    "docker:test": "docker-compose up --abort-on-container-exit --remove-orphans",
+    "docker:test:chromium": "docker-compose run --rm playwright-chromium",
+    "docker:test:firefox": "docker-compose run --rm playwright-firefox",
+    "docker:test:webkit": "docker-compose run --rm playwright-webkit",
+    "docker:test:api": "docker-compose run --rm playwright-api",
+    "docker:test:parallel": "docker-compose up playwright-chromium playwright-firefox playwright-webkit --abort-on-container-exit --remove-orphans",
+    "docker:dev": "docker-compose up playwright-dev -d",
+    "docker:dev:shell": "docker-compose exec playwright-dev /bin/bash",
+    "docker:dev:stop": "docker-compose stop playwright-dev",
+    "docker:clean": "docker-compose down --volumes --remove-orphans && docker system prune -f",
+    "docker:logs": "docker-compose logs -f",
+    "docker:rebuild": "docker-compose build --no-cache"
   },
   "keywords": [
     "playwright",
@@ -51,7 +64,6 @@
     "api",
     "automation"
   ],
- 
   "devDependencies": {
     "@playwright/test": "^1.53.1",
     "@types/node": "^20.10.0",
