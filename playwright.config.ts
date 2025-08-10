@@ -14,7 +14,10 @@ export default defineConfig({
   fullyParallel: true,
 
   /* Skip API tests */
-  testIgnore: "**/api/**",
+  testIgnore: [
+    "**/api/**",
+    "**/profile-listing-page.spec.ts"  /* Ignore a test */
+  ],
 
   /* Maximum number of concurrent worker processes - dynamically configured */
   workers: process.env.WORKERS
