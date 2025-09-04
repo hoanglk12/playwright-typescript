@@ -65,7 +65,7 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
     test("TC_04 - Should handle non-existent object gracefully", async ({
       restfulApiClient,
     }) => {
-      const nonExistentId = "999999";
+      const nonExistentId = "99999";
 
       try {
         await restfulApiClient.getObjectById(nonExistentId);
