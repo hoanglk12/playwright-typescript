@@ -26,14 +26,15 @@ export const AdminTestData = {
     customerAddedSuccess: 'Customer Registered Successfully!!!',
     accountCreatedSuccess: 'Account Generated Successfully!!!',
     errorLogin: 'Your sign-in attempt was not successful. Please try again.'
+
   },
 
   // URLs
   urls: {
     homePage: '/',
     loginPage: '/',
-    registerPage: '/manager/gtm_manager.php',
-    managerPage: '/manager/Managerhomepage.php',
+    registerPage: '',
+    managerPage: '',
   },
 };
 
