@@ -44,6 +44,7 @@ test.describe('Admin Login Tests', () => {
     loginPage,
     
   }) => {
+    
     //Declare logger for test steps
     const logger = createTestLogger('User cannot login with wrong credentials');
     
