@@ -658,6 +658,25 @@ npx playwright test --workers=1 --grep "TC_01"
 
 # Generate HTML report after execution
 npx playwright test tests/admin/login.spec.ts --workers=1 --reporter=html
+
+---#### Run Test By Tag---
+# Run all smoke tests
+npx playwright test --grep "@smoke"
+
+# Run critical tests only
+npx playwright test --grep "@critical"
+
+# Run UI tests
+npx playwright test --grep "@ui"
+
+# Run homepage tests
+npx playwright test --grep "@homepage"
+
+# Combine multiple tags (AND operation)
+npx playwright test --grep "(?=.*@smoke)(?=.*@critical)"
+
+# Exclude certain tags
+npx playwright test --grep "@smoke" --grep-invert "@skip"
 ```
 
 ### Serial Execution with Environment
