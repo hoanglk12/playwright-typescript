@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "NodeNext",
@@ -13,12 +14,13 @@
     "declaration": true,
     "outDir": "./dist",
     "rootDir": ".",
+    "baseUrl": ".",
     "paths": {
-      "@pages/*": ["src/pages/*"],
-      "@tests/*": ["tests/*"],
-      "@utils/*": ["src/utils/*"],
-      "@config/*": ["src/config/*"],
-      "@data/*": ["src/data/*"]
+      "@pages/*": ["./src/pages/*"],
+      "@tests/*": ["./tests/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@config/*": ["./src/config/*"],
+      "@data/*": ["./src/data/*"]
     }
   },
   "include": ["src/**/*", "tests/**/*"],
