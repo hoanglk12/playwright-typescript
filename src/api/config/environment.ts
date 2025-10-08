@@ -8,6 +8,8 @@ import fs from 'fs';
 export interface ApiEnvironment {
   apiBaseUrl: string;
   restfulApiBaseUrl: string;
+  graphqlBaseUrl: string;
+  graphqlEndpoint: string;
   timeout: number;
   retries: number;
 }
@@ -38,6 +40,8 @@ export function getApiEnvironment(): ApiEnvironment {
   return {
     apiBaseUrl: process.env.API_BASE_URL || 'https://restful-booker.herokuapp.com',
     restfulApiBaseUrl: process.env.RESTFUL_API_BASE_URL || 'https://api.restful-api.dev',
+    graphqlBaseUrl: process.env.GRAPHQL_BASE_URL || 'https://stag-platypus-au.accentgra.com',
+    graphqlEndpoint: process.env.GRAPHQL_ENDPOINT || '/graphql',
     timeout: parseInt(process.env.API_TIMEOUT || (isCI ? '60000' : '30000')),
     retries: parseInt(process.env.API_RETRIES || (isCI ? '2' : '0')),
   };
