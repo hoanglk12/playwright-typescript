@@ -41,6 +41,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
+    - name: Make scripts executable
+      run: chmod +x run-api-tests-nonparallel.sh
+    
     - name: Run RESTful API tests
       run: |
         ENV=${{ github.event.inputs.environment || 'testing' }}
