@@ -64,26 +64,26 @@
     "shard": null,
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
-    "version": "1.53.1",
+    "version": "1.56.0",
     "workers": 1,
     "webServer": null
   },
   "suites": [
     {
-      "title": "objects-crud.spec.ts",
-      "file": "objects-crud.spec.ts",
+      "title": "pla-account-management.spec.ts",
+      "file": "pla-account-management.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "RESTful API - Objects CRUD Operations",
-          "file": "objects-crud.spec.ts",
-          "line": 8,
+          "title": "PLA GraphQL API - Account Management",
+          "file": "pla-account-management.spec.ts",
+          "line": 19,
           "column": 6,
           "specs": [
             {
-              "title": "TC_06 - Should create multiple objects",
+              "title": "PLA_CreateAccount - should create a new customer account",
               "ok": true,
               "tags": [],
               "tests": [
@@ -98,12 +98,19 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1085,
+                      "duration": 1546,
                       "errors": [],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Created customer ID: \u001b[33m578364\u001b[39m\n"
+                        },
+                        {
+                          "text": "Customer email: platest1759936871750@mail.com\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-07-25T17:40:55.354Z",
+                      "startTime": "2025-10-08T15:21:11.759Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -111,233 +118,37 @@
                   "status": "expected"
                 }
               ],
-              "id": "88f9039ef3accf67513f-d90c7dce29f11ef1f627",
-              "file": "objects-crud.spec.ts",
-              "line": 94,
-              "column": 10
-            }
-          ],
-          "suites": [
-            {
-              "title": "GET Operations",
-              "file": "objects-crud.spec.ts",
-              "line": 23,
-              "column": 8,
-              "specs": [
-                {
-                  "title": "TC_01 - Should get all objects successfully",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "api",
-                      "projectName": "api",
-                      "results": [
-                        {
-                          "workerIndex": 0,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 318,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-07-25T17:40:54.103Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "88f9039ef3accf67513f-5277502cc0530b986b73",
-                  "file": "objects-crud.spec.ts",
-                  "line": 24,
-                  "column": 9
-                },
-                {
-                  "title": "TC_02 - Should get objects by specific IDs",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "api",
-                      "projectName": "api",
-                      "results": [
-                        {
-                          "workerIndex": 0,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 192,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-07-25T17:40:54.430Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "88f9039ef3accf67513f-a09209eecf8e4ae6574a",
-                  "file": "objects-crud.spec.ts",
-                  "line": 39,
-                  "column": 9
-                },
-                {
-                  "title": "TC_03 - Should get single object by ID",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "api",
-                      "projectName": "api",
-                      "results": [
-                        {
-                          "workerIndex": 0,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 144,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-07-25T17:40:54.626Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "88f9039ef3accf67513f-b2da3dff103cf9deba2a",
-                  "file": "objects-crud.spec.ts",
-                  "line": 54,
-                  "column": 9
-                },
-                {
-                  "title": "TC_04 - Should handle non-existent object gracefully",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
-                    {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "api",
-                      "projectName": "api",
-                      "results": [
-                        {
-                          "workerIndex": 0,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 179,
-                          "errors": [],
-                          "stdout": [],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-07-25T17:40:54.774Z",
-                          "annotations": [],
-                          "attachments": []
-                        }
-                      ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "88f9039ef3accf67513f-3a5fe0a6c65d622149cf",
-                  "file": "objects-crud.spec.ts",
-                  "line": 65,
-                  "column": 9
-                }
-              ]
+              "id": "d49ec8c7577569959993-b20d3f87704a2e2da749",
+              "file": "pla-account-management.spec.ts",
+              "line": 21,
+              "column": 7
             },
             {
-              "title": "POST Operations",
-              "file": "objects-crud.spec.ts",
-              "line": 79,
-              "column": 8,
-              "specs": [
+              "title": "PLA_SignIn - should generate customer token for valid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
                 {
-                  "title": "TC_05 - Should create a new mobile device object",
-                  "ok": true,
-                  "tags": [],
-                  "tests": [
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
                     {
-                      "timeout": 30000,
-                      "annotations": [],
-                      "expectedStatus": "passed",
-                      "projectId": "api",
-                      "projectName": "api",
-                      "results": [
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1185,
+                      "errors": [],
+                      "stdout": [
                         {
-                          "workerIndex": 0,
-                          "parallelIndex": 0,
-                          "status": "passed",
-                          "duration": 393,
-                          "errors": [],
-                          "stdout": [
-                            {
-                              "text": "Created object with ID: ff8081819782e69e019842ac97c524b5\n"
-                            }
-                          ],
-                          "stderr": [],
-                          "retry": 0,
-                          "startTime": "2025-07-25T17:40:54.957Z",
-                          "annotations": [],
-                          "attachments": []
+                          "text": "Customer token generated (first 20 chars): eyJraWQiOiIxIiwiYWxn...\n"
                         }
                       ],
-                      "status": "expected"
-                    }
-                  ],
-                  "id": "88f9039ef3accf67513f-d10504c2f3479db33763",
-                  "file": "objects-crud.spec.ts",
-                  "line": 80,
-                  "column": 9
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "title": "PUT Operations",
-          "file": "objects-crud.spec.ts",
-          "line": 109,
-          "column": 8,
-          "specs": [
-            {
-              "title": "TC_07 - Should update an existing object completely",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 339,
-                      "errors": [],
-                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-07-25T17:40:56.442Z",
+                      "startTime": "2025-10-08T15:21:13.328Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -345,13 +156,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "88f9039ef3accf67513f-4394336c1ea42088413d",
-              "file": "objects-crud.spec.ts",
-              "line": 110,
-              "column": 9
+              "id": "d49ec8c7577569959993-1612eda62387508bb7eb",
+              "file": "pla-account-management.spec.ts",
+              "line": 100,
+              "column": 7
             },
             {
-              "title": "TC_08 - Should handle update of non-existent object",
+              "title": "PLA_GetCustomerDetails - should retrieve customer details with valid token",
               "ok": true,
               "tags": [],
               "tests": [
@@ -366,12 +177,31 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 135,
+                      "duration": 557,
                       "errors": [],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "Customer details retrieved:\n"
+                        },
+                        {
+                          "text": "  ID: \u001b[33m578364\u001b[39m\n"
+                        },
+                        {
+                          "text": "  Name: Hoang PLA1\n"
+                        },
+                        {
+                          "text": "  Email: platest1759936871750@mail.com\n"
+                        },
+                        {
+                          "text": "  Subscribed: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "  Loyalty Status: \u001b[33mfalse\u001b[39m\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-07-25T17:40:56.784Z",
+                      "startTime": "2025-10-08T15:21:14.527Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -379,391 +209,10 @@
                   "status": "expected"
                 }
               ],
-              "id": "88f9039ef3accf67513f-cdd973ebc415565a4b9a",
-              "file": "objects-crud.spec.ts",
-              "line": 127,
-              "column": 9
-            }
-          ]
-        },
-        {
-          "title": "DELETE Operations",
-          "file": "objects-crud.spec.ts",
-          "line": 142,
-          "column": 8,
-          "specs": [
-            {
-              "title": "TC_09 - Should delete an existing object",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 528,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:40:56.923Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "88f9039ef3accf67513f-3db0b4a6eda89636667a",
-              "file": "objects-crud.spec.ts",
+              "id": "d49ec8c7577569959993-8992d94f16e38d74dfd8",
+              "file": "pla-account-management.spec.ts",
               "line": 143,
-              "column": 9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "restful-booker.spec.ts",
-      "file": "restful-booker.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Restful Booker API - Booking Endpoints",
-          "file": "restful-booker.spec.ts",
-          "line": 26,
-          "column": 13,
-          "specs": [
-            {
-              "title": "should get all booking IDs",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1114,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:40:57.461Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-9177620666da4c495162",
-              "file": "restful-booker.spec.ts",
-              "line": 27,
-              "column": 5
-            },
-            {
-              "title": "should filter bookings by name",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 273,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:40:58.578Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-ebcf5061bbb6ad87c5a7",
-              "file": "restful-booker.spec.ts",
-              "line": 34,
-              "column": 5
-            },
-            {
-              "title": "should get a specific booking by ID",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 530,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:40:58.854Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-95feffb0d81c5daf6b1e",
-              "file": "restful-booker.spec.ts",
-              "line": 41,
-              "column": 5
-            },
-            {
-              "title": "should create a new booking",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 268,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:40:59.386Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-dc7ec2529b17c588b6ae",
-              "file": "restful-booker.spec.ts",
-              "line": 54,
-              "column": 5
-            },
-            {
-              "title": "should check API health",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 265,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:40:59.657Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-7b884de34a985abc6812",
-              "file": "restful-booker.spec.ts",
-              "line": 70,
-              "column": 5
-            }
-          ]
-        },
-        {
-          "title": "Restful Booker API - Authentication",
-          "file": "restful-booker.spec.ts",
-          "line": 79,
-          "column": 13,
-          "specs": [
-            {
-              "title": "should authenticate and get token",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 266,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:40:59.925Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-aeccc96d0b6da483b91b",
-              "file": "restful-booker.spec.ts",
-              "line": 80,
-              "column": 5
-            }
-          ]
-        },
-        {
-          "title": "Restful Booker API - Full Booking Lifecycle",
-          "file": "restful-booker.spec.ts",
-          "line": 90,
-          "column": 13,
-          "specs": [
-            {
-              "title": "should update a booking",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 268,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:41:00.194Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-99ab9622f0dc450a0b47",
-              "file": "restful-booker.spec.ts",
-              "line": 108,
-              "column": 5
-            },
-            {
-              "title": "should partially update a booking",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 267,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:41:00.994Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-ddd2cb12267d8761d4ea",
-              "file": "restful-booker.spec.ts",
-              "line": 124,
-              "column": 5
-            },
-            {
-              "title": "should delete a booking",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "api",
-                  "projectName": "api",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 527,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-07-25T17:41:01.263Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "9dc8e450f4633cddfc73-9bdf05515161c085a672",
-              "file": "restful-booker.spec.ts",
-              "line": 133,
-              "column": 5
+              "column": 7
             }
           ]
         }
@@ -772,9 +221,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-07-25T17:40:53.396Z",
-    "duration": 8416.346,
-    "expected": 18,
+    "startTime": "2025-10-08T15:21:10.734Z",
+    "duration": 4405.064,
+    "expected": 3,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
