@@ -3,18 +3,20 @@ import { ApiClient, ApiClientOptions, AuthType } from './ApiClient';
 import { ApiClientExt } from './ApiClientExt';
 import { RestfulApiClient } from './services/restful-device/RestfulApiClient';
 import { GraphQLClient, GraphQLClientOptions } from './GraphQLClient';
+import { RestfulBookerService } from './services/restful-booker';
 import { getApiEnvironment } from './config/environment';
 
 /**
  * API Test fixture interface
  */
 export interface ApiTestFixtures {
-  baseURL: string;
+  apiBaseUrl: string;
   restfulApiBaseURL: string;
   graphqlURL: string;
   apiClient: ApiClient;
   apiClientExt: ApiClientExt;
   restfulApiClient: RestfulApiClient;
+  bookingService: RestfulBookerService;
   graphqlClient: GraphQLClient;
   createClient: (options: Partial<ApiClientOptions>) => Promise<ApiClient>;
   createClientExt: (options: Partial<ApiClientOptions>) => Promise<ApiClientExt>;
@@ -27,7 +29,7 @@ export interface ApiTestFixtures {
  */
 export const apiTest = base.extend<ApiTestFixtures>({
     // Define the base URL for API requests, defaults to environment variable or fallback
-    baseURL: async ({}, use) => {
+    apiBaseUrl: async ({}, use) => {
         const apiEnv = getApiEnvironment();
         await use(apiEnv.apiBaseUrl);
     },
@@ -44,16 +46,16 @@ export const apiTest = base.extend<ApiTestFixtures>({
     },
 
     // Provide a basic API client
-    apiClient: async ({ baseURL }, use) => {
-        const client = new ApiClient({ baseURL });
+    apiClient: async ({ apiBaseUrl }, use) => {
+        const client = new ApiClient({ baseURL: apiBaseUrl });
         await client.init();
         await use(client);
         await client.dispose();
     },
 
     // Provide an extended API client with response wrapper
-    apiClientExt: async ({ baseURL }, use) => {
-        const client = new ApiClientExt({ baseURL });
+    apiClientExt: async ({ apiBaseUrl }, use) => {
+        const client = new ApiClientExt({ baseURL: apiBaseUrl });
         await client.init();
         await use(client);
         await client.dispose();
@@ -70,6 +72,18 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await client.dispose();
     },
 
+    // Provide a Restful Booker service
+    bookingService: async ({ apiBaseUrl }, use) => {
+        const apiEnv = getApiEnvironment();
+        const service = new RestfulBookerService({ 
+            baseURL: apiBaseUrl,
+            timeout: apiEnv.timeout 
+        });
+        await service.init();
+        await use(service);
+        await service.dispose();
+    },
+
     // Provide a GraphQL client
     graphqlClient: async ({ graphqlURL }, use) => {
         const apiEnv = getApiEnvironment();
@@ -83,10 +97,10 @@ export const apiTest = base.extend<ApiTestFixtures>({
     },
 
     // Helper to create API clients with custom options
-    createClient: async ({ baseURL }, use) => {
+    createClient: async ({ apiBaseUrl }, use) => {
         const clients: ApiClient[] = [];
         const createClientFn = async (options: Partial<ApiClientOptions>): Promise<ApiClient> => {
-            const client = new ApiClient({ baseURL, ...options });
+            const client = new ApiClient({ baseURL: apiBaseUrl, ...options });
             await client.init();
             clients.push(client);
             return client;
@@ -98,10 +112,10 @@ export const apiTest = base.extend<ApiTestFixtures>({
     },
 
     // Helper to create extended API clients with custom options
-    createClientExt: async ({ baseURL }, use) => {
+    createClientExt: async ({ apiBaseUrl }, use) => {
         const clients: ApiClientExt[] = [];
         const createClientFn = async (options: Partial<ApiClientOptions>): Promise<ApiClientExt> => {
-            const client = new ApiClientExt({ baseURL, ...options });
+            const client = new ApiClientExt({ baseURL: apiBaseUrl, ...options });
             await client.init();
             clients.push(client);
             return client;
