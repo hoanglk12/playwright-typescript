@@ -8,9 +8,12 @@
 import { apiTest as test } from '../../src/api/ApiTest';
 import { expect } from '@playwright/test';
 import { plaTestData, getTestEmail, plaErrorMessages, expectedCustomerData } from '../../src/data/api/pla-test-data';
+import { GraphQLClient } from 'src/api/GraphQLClient';
+import { GraphQLResponseWrapper } from 'src/api/GraphQLResponse';
 
 // Get test email for assertions
 const testEmail = getTestEmail();
+const specialCharRegex = /[^a-zA-Z0-9._-]/;
 
 // Shared variables across tests
 let customerToken: string;
@@ -216,7 +219,7 @@ test('PLA_SignIn - should login fail when provide wrong email or password', asyn
     customerToken = data.generateCustomerToken.token;
     
     // Verify token does NOT contain special characters (Postman assertion)
-    const specialCharRegex = /[^a-zA-Z0-9._-]/;
+    //const specialCharRegex = /[^a-zA-Z0-9._-]/;
     expect(customerToken).not.toMatch(specialCharRegex);
     expect(customerToken).toBeTruthy();
     
@@ -335,5 +338,79 @@ test('PLA_SignIn - should login fail when provide wrong email or password', asyn
     console.log('  Email:', customer.email);
     console.log('  Subscribed:', customer.is_subscribed);
     console.log('  Loyalty Status:', customer.loyalty_program_status);
+  });
+
+  test('PLA_CreateCartAfterSignIn - should create new cartId with valid token', async ({ createGraphQLClient }) => {
+    // Ensure we have a valid token from previous test
+    expect(customerToken).toBeDefined();
+    expect(customerToken).toBeTruthy();
+
+    // Create authenticated GraphQL client using environment configuration
+    const authClient = await createGraphQLClient({
+      authType: 'bearer' as any, // Using built-in Bearer authentication
+      token: customerToken // Pass the token directly
+    });
+
+    // GraphQL Query with fragments
+    const query = `
+      mutation CreateCartAfterSignIn { cartId: createEmptyCart }`;
+
+    // Execute query
+    const response = await authClient.queryWrapped(query);
+
+    // Assertions from Postman test
+    await response.assertNoErrors();
+    await response.assertHasData();
+    
+    // Verify customer ID exists (PLA API returns ID as Number, not String)
+    //await response.assertDataField('data.id', expect.any(Number));
+    
+    // Extract customer data
+    const data = await response.getData();
+  
+    const cartId = data.cartId;
+
+    
+    // Validate customer information
+    expect(cartId).toBeDefined();
+    expect(response.assertStatus(200));
+    
+    // Verify cartId does NOT contain special characters
+   expect(cartId).not.toMatch(specialCharRegex);
+  console.log('Cart Id data: ', cartId);
+  
+  });
+
+  test('PLA_GetItemCount - should show error with wrong cartId', async ({ createGraphQLClient }) => {
+    // Ensure we have a valid token from previous test
+    expect(customerToken).toBeDefined();
+    expect(customerToken).toBeTruthy();
+
+
+
+    // GraphQL Query with fragments
+    const query = `query getItemCount($cartId:String!){cart(cart_id:$cartId){id ...CartTriggerFragment __typename}}fragment CartTriggerFragment on Cart{id total_quantity shipping_addresses{street selected_shipping_method{method_code __typename}__typename}__typename}`;
+    const variables = { cartId: plaTestData.invalidCartId };
+    // Execute query
+    const graphQLClient = await createGraphQLClient();
+  
+    const response = await graphQLClient.queryWrapped(query, variables);
+    const graphqlResponse = await response.getGraphQLResponse();
+    // Assertions from Postman test
+    await response.assertHasErrors();
+    await response.assertHasData();
+    
+    // Verify that errors exist
+  expect(graphqlResponse.errors).toBeDefined();
+  expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
+  expect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidCartId);
+  expect(graphqlResponse.data?.cart).toBeNull();
+
+      
+    console.log('Cart Error details retrieved:');
+    console.log('  Length:', graphqlResponse.errors?.length);
+    console.log('  Message:', graphqlResponse.errors![0].message);
+    console.log('  Data:', graphqlResponse.data?.cart);
+ 
   });
 });

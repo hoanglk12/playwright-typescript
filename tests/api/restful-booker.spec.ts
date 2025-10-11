@@ -1,47 +1,28 @@
-import { apiTest, expect } from '../../src/api/ApiTest';
-import { RestfulBookerService } from '../../src/api/services/restful-booker';
+import { apiTest as test, expect } from '../../src/api/ApiTest';
 
-/**
- * Test fixture interface specifically for Restful Booker API.
- */
-interface RestfulBookerTestFixtures {
-    bookingService: RestfulBookerService;
-}
-
-/**
- * Extended API test for Restful Booker API.
- * Provides a service instance to each test via a fixture, without browser context.
- */
-const bookingTest = apiTest.extend<RestfulBookerTestFixtures>({
-    bookingService: async ({ apiClient }, use) => {
-        const service = new RestfulBookerService(apiClient);
-        await use(service);
-    }
-});
-
-// Disable parallel execution for all bookingTest tests.
-bookingTest.describe.configure({ mode: 'serial' });
+// Disable parallel execution for all tests
+test.describe.configure({ mode: 'serial' });
 
 // Booking Endpoints
-bookingTest.describe('Restful Booker API - Booking Endpoints', () => {
-    bookingTest('should get all booking IDs', async ({ bookingService }) => {
+test.describe('Restful Booker API - Booking Endpoints', () => {
+    test('should get all booking IDs', async ({ bookingService }) => {
         const response = await bookingService.getBookingIds();
         await response.assertStatus(200);
         const bookings = await response.json();
         expect(Array.isArray(bookings)).toBe(true);
     });
 
-    bookingTest('should filter bookings by name', async ({ bookingService }) => {
+    test('should filter bookings by name', async ({ bookingService }) => {
         const response = await bookingService.getBookingIds({ firstname: 'John' });
         await response.assertStatus(200);
         const bookings = await response.json();
         expect(Array.isArray(bookings)).toBe(true);
     });
 
-    bookingTest('should get a specific booking by ID', async ({ bookingService }) => {
+    test('should get a specific booking by ID', async ({ bookingService }) => {
         const idsResponse = await bookingService.getBookingIds();
         const ids = await idsResponse.json();
-        bookingTest.skip(!ids.length, 'No bookings available to test');
+        test.skip(!ids.length, 'No bookings available to test');
         const bookingId = ids[0].bookingid;
         const response = await bookingService.getBooking(bookingId);
         await response.assertStatus(200);
@@ -51,7 +32,7 @@ bookingTest.describe('Restful Booker API - Booking Endpoints', () => {
         expect(booking.bookingdates).toHaveProperty('checkin');
     });
 
-    bookingTest('should create a new booking', async ({ bookingService }) => {
+    test('should create a new booking', async ({ bookingService }) => {
         const newBooking = {
             firstname: 'Test',
             lastname: 'User',
@@ -67,7 +48,7 @@ bookingTest.describe('Restful Booker API - Booking Endpoints', () => {
         expect(booking.booking).toMatchObject(newBooking);
     });
 
-    bookingTest('should check API health', async ({ bookingService }) => {
+    test('should check API health', async ({ bookingService }) => {
         const response = await bookingService.healthCheck();
         await response.assertStatus(201);
         const text = await response.text();
@@ -76,8 +57,8 @@ bookingTest.describe('Restful Booker API - Booking Endpoints', () => {
 });
 
 // Authentication tests
-bookingTest.describe('Restful Booker API - Authentication', () => {
-    bookingTest('should authenticate and get token', async ({ bookingService }) => {
+test.describe('Restful Booker API - Authentication', () => {
+    test('should authenticate and get token', async ({ bookingService }) => {
         const response = await bookingService.authenticate('admin', 'password123');
         await response.assertStatus(200);
         const auth = await response.json();
@@ -87,10 +68,10 @@ bookingTest.describe('Restful Booker API - Authentication', () => {
 });
 
 // Full booking lifecycle tests (Auth required)
-bookingTest.describe('Restful Booker API - Full Booking Lifecycle', () => {
+test.describe('Restful Booker API - Full Booking Lifecycle', () => {
     let bookingId: number;
 
-    bookingTest.beforeAll(async ({ bookingService }) => {
+    test.beforeAll(async ({ bookingService }) => {
         await bookingService.authenticate('admin', 'password123');
         const newBooking = {
             firstname: 'Lifecycle',
@@ -105,8 +86,8 @@ bookingTest.describe('Restful Booker API - Full Booking Lifecycle', () => {
         bookingId = result.bookingid;
     });
 
-    bookingTest('should update a booking', async ({ bookingService }) => {
-        bookingTest.skip(!bookingId, 'No booking ID available');
+    test('should update a booking', async ({ bookingService }) => {
+        test.skip(!bookingId, 'No booking ID available');
         const updatedBooking = {
             firstname: 'Updated',
             lastname: 'User',
@@ -121,8 +102,8 @@ bookingTest.describe('Restful Booker API - Full Booking Lifecycle', () => {
         expect(booking.firstname).toBe('Updated');
     });
 
-    bookingTest('should partially update a booking', async ({ bookingService }) => {
-        bookingTest.skip(!bookingId, 'No booking ID available');
+    test('should partially update a booking', async ({ bookingService }) => {
+        test.skip(!bookingId, 'No booking ID available');
         const partialUpdate = { firstname: 'Partially', additionalneeds: 'Breakfast only' };
         const response = await bookingService.partialUpdateBooking(bookingId, partialUpdate);
         await response.assertStatus(200);
@@ -130,8 +111,8 @@ bookingTest.describe('Restful Booker API - Full Booking Lifecycle', () => {
         expect(booking.firstname).toBe('Partially');
     });
 
-    bookingTest('should delete a booking', async ({ bookingService }) => {
-        bookingTest.skip(!bookingId, 'No booking ID available');
+    test('should delete a booking', async ({ bookingService }) => {
+        test.skip(!bookingId, 'No booking ID available');
         await bookingService.authenticate('admin', 'password123');
         const response = await bookingService.deleteBooking(bookingId);
         const statusCode = response.statusCode();

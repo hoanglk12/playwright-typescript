@@ -19,16 +19,15 @@ import {
  * 2. For delete operations, both token-based and basic auth may be needed depending on the API state
  * 3. The API resets every 10 minutes, which can affect test stability
  */
-export class RestfulBookerService {
-    private client: ApiClient;
+export class RestfulBookerService extends ApiClient {
     private tokenKey = 'restful-booker-token';
 
     /**
      * Creates a new RestfulBookerService
-     * @param client - The API client to use for requests
+     * @param options - Configuration options including baseURL and timeout
      */
-    constructor(client: ApiClient) {
-        this.client = client;
+    constructor(options: { baseURL: string; timeout?: number }) {
+        super(options);
     }
 
     /**
@@ -40,7 +39,7 @@ export class RestfulBookerService {
     async authenticate(username: string, password: string): Promise<ApiResponseWrapper> {
         const authReq: AuthRequest = { username, password };
         
-        const response = await this.client.post('/auth', authReq, {
+        const response = await this.post('/auth', authReq, {
             'Content-Type': 'application/json'
         });
         
@@ -61,7 +60,7 @@ export class RestfulBookerService {
      * @returns Response with booking IDs
      */
     async getBookingIds(filters?: BookingFilterParams): Promise<ApiResponseWrapper> {
-        const response = await this.client.get('/booking', filters);
+        const response = await this.get('/booking', filters);
         return new ApiResponseWrapper(response);
     }
     
@@ -71,7 +70,7 @@ export class RestfulBookerService {
      * @returns Response with booking details
      */
     async getBooking(id: number): Promise<ApiResponseWrapper> {
-        const response = await this.client.get(`/booking/${id}`, undefined);
+        const response = await this.get(`/booking/${id}`, undefined);
         return new ApiResponseWrapper(response);
     }
     
@@ -81,7 +80,7 @@ export class RestfulBookerService {
      * @returns Response with created booking
      */
     async createBooking(booking: BookingRequest): Promise<ApiResponseWrapper> {
-        const response = await this.client.post('/booking', booking, {
+        const response = await this.post('/booking', booking, {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         });
@@ -107,7 +106,7 @@ export class RestfulBookerService {
             'Cookie': `token=${token}`
         };
         
-        const response = await this.client.put(`/booking/${id}`, booking, headers);
+        const response = await this.put(`/booking/${id}`, booking, headers);
         return new ApiResponseWrapper(response);
     }
       /**
@@ -130,7 +129,7 @@ export class RestfulBookerService {
             'Cookie': `token=${token}`
         };
         
-        const response = await this.client.patch(`/booking/${id}`, partialBooking, headers);
+        const response = await this.patch(`/booking/${id}`, partialBooking, headers);
         return new ApiResponseWrapper(response);
     }
       /**
@@ -156,7 +155,7 @@ export class RestfulBookerService {
             'Authorization': `Basic YWRtaW46cGFzc3dvcmQxMjM=` // admin:password123 in base64
         };
         
-        const response = await this.client.delete(`/booking/${id}`, headers);
+        const response = await this.delete(`/booking/${id}`, headers);
         return new ApiResponseWrapper(response);
     }
     
@@ -165,7 +164,7 @@ export class RestfulBookerService {
      * @returns Response indicating health status
      */
     async healthCheck(): Promise<ApiResponseWrapper> {
-        const response = await this.client.get('/ping');
+        const response = await this.get('/ping');
         return new ApiResponseWrapper(response);
     }
 }

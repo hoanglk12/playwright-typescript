@@ -59,7 +59,9 @@ export const plaTestData = {
     email: testEmail,
     password: 'Johncena5',
     remember: true
-  }
+  },
+  
+  invalidCartId: 'wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss'
 };
 
 /**
@@ -72,7 +74,8 @@ export const getTestEmail = () => testEmail;
  */
 export const plaErrorMessages = {
   invalidEmail: '"hoangplatest3@mail.com--" is not a valid email address.',
-  invalidCredentials: 'The account sign-in was incorrect or your account is disabled temporarily. Please wait and try again later.'
+  invalidCredentials: 'The account sign-in was incorrect or your account is disabled temporarily. Please wait and try again later.',
+  invalidCartId: 'Could not find a cart with ID "wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss"'
 };
 
 /**
