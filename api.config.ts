@@ -65,7 +65,7 @@ export default defineConfig({
     /* No browser context needed for API tests */
     // Don't set browser-specific options here
   },
-
+ 
   /* Projects for API testing - NO BROWSERS */
   projects: [
     {
@@ -73,6 +73,7 @@ export default defineConfig({
       testDir: './tests/api',
       use: {
         // No browser context - pure API testing
+        
       },
     }
   ],
