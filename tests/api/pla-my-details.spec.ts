@@ -6,14 +6,16 @@ import {
   plaErrorMessages,
   expectedCustomerData,
 } from "../../src/data/api/pla-test-data";
-import { getCustomerToken, setCustomerToken } from './shared-state';
+import { getCustomerToken, setCustomerToken, setAddressId } from './shared-state';
 
 let customerToken: string;
-let customerId: string;
-
+export let customerId: string;
+export let addressId: string;
 // Reuse the SAME test email generator as pla-account-creation-signin.spec.ts
 const testEmail = getTestEmail();
 
+//Regex to check integer number format
+const intRegex = /^\d+$/;
 test.describe.serial("PLA GraphQL API - My Details apis", () => {
   
   test.beforeAll(async ({ createGraphQLClient }) => {
@@ -26,7 +28,7 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
       
       const client = await createGraphQLClient();
       
-      // Step 1: Create account with the SAME credentials as pla-account-creation-signin.spec.ts
+      // Step 1: Try to create account (might fail if account already exists)
       const createAccountMutation = `
         mutation CreateAccount(
           $email: String!,
@@ -64,12 +66,21 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
       const createAccountVariables = plaTestData.validCustomer;
       
       const createResponse = await client.mutateWrapped(createAccountMutation, createAccountVariables);
-      const createData = await createResponse.getData();
-      customerId = createData.createCustomer.customer.id;
+      const createGraphqlResponse = await createResponse.getGraphQLResponse();
       
-      console.log('✅ Account created with email:', testEmail);
+      if (createGraphqlResponse.errors) {
+        const errorMessage = createGraphqlResponse.errors[0]?.message || '';
+        if (errorMessage.includes('already') || errorMessage.includes('exists')) {
+          console.log('⚠️  Account already exists, skipping to sign in...');
+        } else {
+          console.error('❌ Account creation failed:', errorMessage);
+          throw new Error(`Account creation failed: ${errorMessage}`);
+        }
+      } else {
+        console.log('✅ Account created with email:', testEmail);
+      }
       
-      // Step 2: Sign in with the SAME credentials
+      // Step 2: Sign in with the credentials (only works if account was just created with this password)
       const signInMutation = `
         mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
           generateCustomerToken(email: $email, password: $password, remember: $remember) {
@@ -82,43 +93,63 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
       const signInVariables = plaTestData.validCredentials;
       
       const signInResponse = await client.mutateWrapped(signInMutation, signInVariables);
-      const signInData = await signInResponse.getData();
-      customerToken = signInData.generateCustomerToken.token;
+      const signInGraphqlResponse = await signInResponse.getGraphQLResponse();
+      
+      if (signInGraphqlResponse.errors) {
+        const signInError = signInGraphqlResponse.errors[0]?.message || '';
+        console.error('❌ Sign-in failed:', signInError);
+        console.error('This usually means the account exists but has a different password.');
+        console.error('Please delete the existing test account or use a fresh test environment.');
+        throw new Error(`Sign-in failed: ${signInError}`);
+      }
+      
+      customerToken = signInGraphqlResponse.data.generateCustomerToken.token;
       
       // Save to shared state for potential reuse
       setCustomerToken(customerToken);
-      
-      console.log('✅ Token acquired for standalone run');
+
+      console.log('✅ Token acquired for my-details tests');
     } else {
       console.log('✅ Using existing shared token from test suite');
     }
   });
 
-  test("PLA_GetCustomerAddressesForAddressBook - should get customer address info with valid token", async ({
+  test("PLA_AddNewCustomerAddressToAddressBook - should add new customer address with valid token", async ({
     createGraphQLClient,
   }) => {
     console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
-    
-    expect(customerToken).toBeDefined();
-    expect(customerToken).toBeTruthy();
 
     const authClient = await createGraphQLClient({
       authType: "bearer" as any,
       token: customerToken,
     });
 
-    const query = `query GetCustomerAddressesForAddressBook{customer{id addresses{id ...CustomerAddressFragment __typename}__typename}countries{id full_name_locale __typename}}fragment CustomerAddressFragment on CustomerAddress{__typename id city company country_code default_billing default_shipping firstname lastname middlename postcode region{region __typename}custom_attributes{attribute_code value __typename}street telephone}`;
-   
-    const response = await authClient.queryWrapped(query);
+    const mutation = `mutation AddNewCustomerAddressToAddressBook($address: CustomerAddressInput!) {
+  createCustomerAddress(input: $address) {
+    id
+    __typename
+  }
+}`;
+   const variables = plaTestData.addNewCustomerAddressForAddressBook;
+
+   const response = await authClient.mutateWrapped(mutation, variables);
 
     await response.assertNoErrors();
     await response.assertHasData();
 
     const data = await response.getData();
-    
-    console.log("Customer addresses retrieved:");
-    console.log("  Customer ID:", data.customer.id);
-    console.log("  Address count:", data.customer.addresses?.length || 0);
-    console.log("  Countries available:", data.countries?.length || 0);
-  });
+    console.log("Response data:", data);
+
+    addressId = data.createCustomerAddress.id;
+    console.log("New Address ID:", addressId);
+
+     // Save to shared state for potential reuse
+    setAddressId(addressId);
+
+    // Validate customer data
+    expect(data.createCustomerAddress).toBeDefined();
+    expect(data.createCustomerAddress.id.toString()).toMatch(intRegex);
+    expect(data.createCustomerAddress.__typename).toBe('CustomerAddress');
+});
+
 });

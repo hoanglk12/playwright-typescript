@@ -12,6 +12,9 @@ export let customerId: string;
 // Shared cart ID
 export let cartId: string;
 
+//Shared address ID
+export let addressId: string;
+
 /**
  * Set customer token
  */
@@ -25,6 +28,11 @@ export function setCustomerToken(token: string): void {
 export function setCustomerId(id: string): void {
   customerId = id;
 }
+
+export function setAddressId(id: string): void {
+  addressId = id;
+}
+
 
 /**
  * Set cart ID
@@ -53,3 +61,11 @@ export function getCustomerId(): string {
 export function getCartId(): string {
   return cartId;
 }
+
+/**
+ * Get address ID
+ */
+export function getAddressId(): string {
+  return addressId;
+}
+

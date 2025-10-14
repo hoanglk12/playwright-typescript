@@ -74,7 +74,8 @@ test.describe('PLA GraphQL API - Account Management', () => {
     expect(graphqlResponse.errors).toHaveLength(1);
     
     // Verify the error message (using non-null assertion since we checked above)
-    expect(graphqlResponse.errors![0].message).toBe(plaErrorMessages.invalidEmail);
+    // API returns full email in error: "\"invalidemail@mail.com--\" is not a valid email address."
+    expect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidEmail);
     expect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-input');
     
     // Verify that data.createCustomer is null when there's an error

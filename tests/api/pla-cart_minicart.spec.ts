@@ -79,12 +79,21 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
       const createAccountVariables = plaTestData.validCustomer;
       
       const createResponse = await client.mutateWrapped(createAccountMutation, createAccountVariables);
-      const createData = await createResponse.getData();
+      const createGraphqlResponse = await createResponse.getGraphQLResponse();
       
-      console.log('✅ Account created with email:', testEmail);
-      console.log('✅ Account created with data:', createData);
+      if (createGraphqlResponse.errors) {
+        const errorMessage = createGraphqlResponse.errors[0]?.message || '';
+        if (errorMessage.includes('already') || errorMessage.includes('exists')) {
+          console.log('⚠️  Account already exists, skipping to sign in...');
+        } else {
+          console.error('❌ Account creation failed:', errorMessage);
+          throw new Error(`Account creation failed: ${errorMessage}`);
+        }
+      } else {
+        console.log('✅ Account created with email:', testEmail);
+      }
       
-      // Step 2: Sign in with the SAME credentials
+      // Step 2: Sign in with the SAME credentials (only works if account was just created with this password)
       const signInMutation = `
         mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
           generateCustomerToken(email: $email, password: $password, remember: $remember) {
@@ -97,8 +106,17 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
       const signInVariables = plaTestData.validCredentials;
       
       const signInResponse = await client.mutateWrapped(signInMutation, signInVariables);
-      const signInData = await signInResponse.getData();
-      customerToken = signInData.generateCustomerToken.token;
+      const signInGraphqlResponse = await signInResponse.getGraphQLResponse();
+      
+      if (signInGraphqlResponse.errors) {
+        const signInError = signInGraphqlResponse.errors[0]?.message || '';
+        console.error('❌ Sign-in failed:', signInError);
+        console.error('This usually means the account exists but has a different password.');
+        console.error('Please delete the existing test account or use a fresh test environment.');
+        throw new Error(`Sign-in failed: ${signInError}`);
+      }
+      
+      customerToken = signInGraphqlResponse.data.generateCustomerToken.token;
       
       // Save to shared state for potential reuse
       setCustomerToken(customerToken);
