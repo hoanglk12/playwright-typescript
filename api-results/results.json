@@ -1,11 +1,11 @@
 {
   "config": {
-    "configFile": "E:\\OLDDATA\\DATA\\TESTING\\AutomationTesting\\playwright-typescript\\api.config.ts",
-    "rootDir": "E:/OLDDATA/DATA/TESTING/AutomationTesting/playwright-typescript/tests/api",
+    "configFile": "C:\\Users\\Lincoln.Pham\\Documents\\Accent Group Docs\\AutomationTest\\playwright-typescript\\api.config.ts",
+    "rootDir": "C:/Users/Lincoln.Pham/Documents/Accent Group Docs/AutomationTest/playwright-typescript/tests/api",
     "forbidOnly": true,
     "fullyParallel": false,
-    "globalSetup": "E:\\OLDDATA\\DATA\\TESTING\\AutomationTesting\\playwright-typescript\\tests\\api\\global-setup.ts",
-    "globalTeardown": "E:\\OLDDATA\\DATA\\TESTING\\AutomationTesting\\playwright-typescript\\tests\\api\\global-teardown.ts",
+    "globalSetup": "C:\\Users\\Lincoln.Pham\\Documents\\Accent Group Docs\\AutomationTest\\playwright-typescript\\tests\\api\\global-setup.ts",
+    "globalTeardown": "C:\\Users\\Lincoln.Pham\\Documents\\Accent Group Docs\\AutomationTest\\playwright-typescript\\tests\\api\\global-teardown.ts",
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
@@ -45,7 +45,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "E:/OLDDATA/DATA/TESTING/AutomationTesting/playwright-typescript/test-results/api",
+        "outputDir": "C:/Users/Lincoln.Pham/Documents/Accent Group Docs/AutomationTest/playwright-typescript/test-results/api",
         "repeatEach": 1,
         "retries": 2,
         "metadata": {
@@ -53,7 +53,7 @@
         },
         "id": "api",
         "name": "api",
-        "testDir": "E:/OLDDATA/DATA/TESTING/AutomationTesting/playwright-typescript/tests/api",
+        "testDir": "C:/Users/Lincoln.Pham/Documents/Accent Group Docs/AutomationTest/playwright-typescript/tests/api",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -70,20 +70,20 @@
   },
   "suites": [
     {
-      "title": "pla-account-management.spec.ts",
-      "file": "pla-account-management.spec.ts",
+      "title": "pla-cart_minicart.spec.ts",
+      "file": "pla-cart_minicart.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "PLA GraphQL API - Account Management",
-          "file": "pla-account-management.spec.ts",
-          "line": 19,
-          "column": 6,
+          "title": "PLA GraphQL API - Cart & MiniCart apis",
+          "file": "pla-cart_minicart.spec.ts",
+          "line": 33,
+          "column": 15,
           "specs": [
             {
-              "title": "PLA_CreateAccount - should create a new customer account",
+              "title": "PLA_CreateCartAfterSignIn - should create new cartId with valid token",
               "ok": true,
               "tags": [],
               "tests": [
@@ -98,19 +98,25 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1546,
+                      "duration": 813,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "✅ Created customer ID: \u001b[33m578364\u001b[39m\n"
+                          "text": "No shared token found. Creating account and signing in...\n"
                         },
                         {
-                          "text": "Customer email: platest1759936871750@mail.com\n"
+                          "text": "✅ Account created with email: platest1760437308155lk2aqn@mail.com\n"
+                        },
+                        {
+                          "text": "✅ Token acquired for cart tests with value:  eyJraWQiOiIxIiwiYWxnIjoiSFMyNTYifQ.eyJ1aWQiOjU3ODY4MiwidXR5cGlkIjozLCJpYXQiOjE3NjA0MzczMTEsImV4cCI6MTc2MDQ0MDkxMX0.cKXYLicNNkq_UD8maKwhl_XedOuM5lZWoM19vCX6qkk\n"
+                        },
+                        {
+                          "text": "Cart Id data:  8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-08T15:21:11.759Z",
+                      "startTime": "2025-10-14T10:21:48.169Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -118,13 +124,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "d49ec8c7577569959993-b20d3f87704a2e2da749",
-              "file": "pla-account-management.spec.ts",
-              "line": 21,
+              "id": "0521ace1e8db77287036-26b31f2c05216ad2b481",
+              "file": "pla-cart_minicart.spec.ts",
+              "line": 129,
               "column": 7
             },
             {
-              "title": "PLA_SignIn - should generate customer token for valid credentials",
+              "title": "PLA_GetItemCount - should show error with wrong cartId",
               "ok": true,
               "tags": [],
               "tests": [
@@ -139,16 +145,25 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1185,
+                      "duration": 491,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "Customer token generated (first 20 chars): eyJraWQiOiIxIiwiYWxn...\n"
+                          "text": "Cart Error details retrieved:\n"
+                        },
+                        {
+                          "text": "  Length: \u001b[33m1\u001b[39m\n"
+                        },
+                        {
+                          "text": "  Message: Could not find a cart with ID \"wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss\"\n"
+                        },
+                        {
+                          "text": "  Data: \u001b[1mnull\u001b[22m\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-08T15:21:13.328Z",
+                      "startTime": "2025-10-14T10:21:52.085Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -156,13 +171,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "d49ec8c7577569959993-1612eda62387508bb7eb",
-              "file": "pla-account-management.spec.ts",
-              "line": 100,
+              "id": "0521ace1e8db77287036-b8786f3474bdcced3686",
+              "file": "pla-cart_minicart.spec.ts",
+              "line": 167,
               "column": 7
             },
             {
-              "title": "PLA_GetCustomerDetails - should retrieve customer details with valid token",
+              "title": "PLA_GetItemCount - should return data about cartId, quantity and shipping address",
               "ok": true,
               "tags": [],
               "tests": [
@@ -177,31 +192,31 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 557,
+                      "duration": 706,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "Customer details retrieved:\n"
+                          "text": "GetItemCount response data:  {\n  cart: {\n    id: \u001b[32m'8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    shipping_addresses: [],\n    __typename: \u001b[32m'Cart'\u001b[39m\n  }\n}\n"
                         },
                         {
-                          "text": "  ID: \u001b[33m578364\u001b[39m\n"
+                          "text": "GetItemCount details retrieved:\n"
                         },
                         {
-                          "text": "  Name: Hoang PLA1\n"
+                          "text": "  Id: 8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S\n"
                         },
                         {
-                          "text": "  Email: platest1759936871750@mail.com\n"
+                          "text": "  Total Quantity: \u001b[33m0\u001b[39m\n"
                         },
                         {
-                          "text": "  Subscribed: \u001b[33mfalse\u001b[39m\n"
+                          "text": "  Shipping Address: []\n"
                         },
                         {
-                          "text": "  Loyalty Status: \u001b[33mfalse\u001b[39m\n"
+                          "text": "  Type Name: Cart\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-08T15:21:14.527Z",
+                      "startTime": "2025-10-14T10:21:52.589Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -209,9 +224,131 @@
                   "status": "expected"
                 }
               ],
-              "id": "d49ec8c7577569959993-8992d94f16e38d74dfd8",
-              "file": "pla-account-management.spec.ts",
-              "line": 143,
+              "id": "0521ace1e8db77287036-49a4e558e0d668cc2e0f",
+              "file": "pla-cart_minicart.spec.ts",
+              "line": 195,
+              "column": 7
+            },
+            {
+              "title": "PLA_MiniCartQuery - should show error with wrong cartId",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 667,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-14T10:21:53.308Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0521ace1e8db77287036-4c75e4ce4f14f595290d",
+              "file": "pla-cart_minicart.spec.ts",
+              "line": 239,
+              "column": 7
+            },
+            {
+              "title": "PLA_MiniCartQuery - return data about cartId, quantity, prices, rewards msg, and qff",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 808,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "MiniCartQuery response data:  {\n  cart: {\n    id: \u001b[32m'8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    prices: {\n      subtotal_including_tax: \u001b[36m[Object]\u001b[39m,\n      grand_total: \u001b[36m[Object]\u001b[39m,\n      special_price_discount: \u001b[36m[Object]\u001b[39m,\n      discounts: \u001b[1mnull\u001b[22m,\n      __typename: \u001b[32m'CartPrices'\u001b[39m\n    },\n    items: [],\n    __typename: \u001b[32m'Cart'\u001b[39m,\n    multiple_rewards_message: \u001b[32m'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'\u001b[39m,\n    qff_reward: {\n      is_qff_member: \u001b[33mfalse\u001b[39m,\n      qff_points: \u001b[33m0\u001b[39m,\n      qff_reward_message: \u001b[32m'Earn 0 Qantas Points with this purchase'\u001b[39m,\n      __typename: \u001b[32m'QffReward'\u001b[39m\n    },\n    applied_qantas_points: \u001b[1mnull\u001b[22m\n  }\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-14T10:21:53.995Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0521ace1e8db77287036-6ef790f872dde7f8d009",
+              "file": "pla-cart_minicart.spec.ts",
+              "line": 267,
+              "column": 7
+            },
+            {
+              "title": "PLA_GetCartDetailsAfterSignIn - return data about cartId, quantity, prices, rewards msg, and qff",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1153,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "GetCartDetailsAfterSignIn response data:  {\n  cart: {\n    id: \u001b[32m'8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S'\u001b[39m,\n    items: [],\n    prices: {\n      grand_total: \u001b[36m[Object]\u001b[39m,\n      __typename: \u001b[32m'CartPrices'\u001b[39m,\n      subtotal_including_tax: \u001b[36m[Object]\u001b[39m,\n      special_price_discount: \u001b[36m[Object]\u001b[39m,\n      discounts: \u001b[1mnull\u001b[22m,\n      applied_taxes: []\n    },\n    __typename: \u001b[32m'Cart'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    available_payment_methods: [ \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m ],\n    shipping_addresses: [],\n    applied_qantas_points: \u001b[1mnull\u001b[22m,\n    applied_gift_cards: [],\n    applied_multiple_rewards: \u001b[1mnull\u001b[22m,\n    applied_coupons: \u001b[1mnull\u001b[22m,\n    multiple_rewards_message: \u001b[32m'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'\u001b[39m,\n    qff_reward: {\n      is_qff_member: \u001b[33mfalse\u001b[39m,\n      qff_points: \u001b[33m0\u001b[39m,\n      qff_reward_message: \u001b[32m'Earn 0 Qantas Points with this purchase'\u001b[39m,\n      __typename: \u001b[32m'QffReward'\u001b[39m\n    }\n  }\n}\n"
+                        },
+                        {
+                          "text": "Available payment method codes:  [\n  \u001b[32m'checkmo'\u001b[39m,\n  \u001b[32m'braintree_applepay'\u001b[39m,\n  \u001b[32m'free'\u001b[39m,\n  \u001b[32m'braintree'\u001b[39m,\n  \u001b[32m'braintree_paypal'\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "Expected payment method codes:  [\n  \u001b[32m'checkmo'\u001b[39m,\n  \u001b[32m'braintree_applepay'\u001b[39m,\n  \u001b[32m'free'\u001b[39m,\n  \u001b[32m'braintree'\u001b[39m,\n  \u001b[32m'braintree_paypal'\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "Available payment method titles:  [\n  \u001b[32m'Check / Money order'\u001b[39m,\n  \u001b[32m'Apple Pay'\u001b[39m,\n  \u001b[32m'No Payment Information Required'\u001b[39m,\n  \u001b[32m'Credit or Debit Card'\u001b[39m,\n  \u001b[32m'PayPal'\u001b[39m\n]\n"
+                        },
+                        {
+                          "text": "Expected payment method titles:  [\n  \u001b[32m'Check / Money order'\u001b[39m,\n  \u001b[32m'Apple Pay'\u001b[39m,\n  \u001b[32m'No Payment Information Required'\u001b[39m,\n  \u001b[32m'Credit or Debit Card'\u001b[39m,\n  \u001b[32m'PayPal'\u001b[39m\n]\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-14T10:21:54.817Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "0521ace1e8db77287036-ab6771406e1703a7ba57",
+              "file": "pla-cart_minicart.spec.ts",
+              "line": 318,
               "column": 7
             }
           ]
@@ -221,9 +358,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-08T15:21:10.734Z",
-    "duration": 4405.064,
-    "expected": 3,
+    "startTime": "2025-10-14T10:21:47.056Z",
+    "duration": 8972.507,
+    "expected": 6,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
