@@ -159,7 +159,34 @@ export const plaTestData = {
       country_code: 'AU'
     }
   },
-  
+
+  /**
+   * Update customer address data (addressId will be injected at runtime)
+   * This is the template for updating an existing address
+   */
+  updateCustomerAddressTemplate: {
+    firstname: firstName,
+    lastname: lastName,
+    street: [
+      streetAddress
+    ],
+    city: location.city,
+    postcode: location.postcode,
+    region: {
+      region: location.region
+    },
+    telephone: phoneNumber,
+    default_shipping: false,
+    default_billing: false,
+    custom_attributes: {
+      value: {
+        value: `${firstName}'s Address`,
+        attribute_code: "address_name"
+      }
+    },
+    country_code: 'AU'
+  },
+
   expectedPaymentMethods: {
     codes: ['checkmo', 'braintree_applepay', 'free', 'braintree', 'braintree_paypal'],
     titles: ['Check / Money order', 'Apple Pay', 'No Payment Information Required', 'Credit or Debit Card', 'PayPal']
