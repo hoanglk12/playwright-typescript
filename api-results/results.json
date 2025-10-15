@@ -70,6 +70,588 @@
   },
   "suites": [
     {
+      "title": "objects-crud.spec.ts",
+      "file": "objects-crud.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "RESTful API - Objects CRUD Operations",
+          "file": "objects-crud.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_06 - Should create multiple objects",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 978,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:40:58.416Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-d90c7dce29f11ef1f627",
+              "file": "objects-crud.spec.ts",
+              "line": 94,
+              "column": 10
+            }
+          ],
+          "suites": [
+            {
+              "title": "GET Operations",
+              "file": "objects-crud.spec.ts",
+              "line": 23,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "TC_01 - Should get all objects successfully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api",
+                      "projectName": "api",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 495,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-15T08:40:57.055Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "88f9039ef3accf67513f-5277502cc0530b986b73",
+                  "file": "objects-crud.spec.ts",
+                  "line": 24,
+                  "column": 9
+                },
+                {
+                  "title": "TC_02 - Should get objects by specific IDs",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api",
+                      "projectName": "api",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 165,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-15T08:40:57.580Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "88f9039ef3accf67513f-a09209eecf8e4ae6574a",
+                  "file": "objects-crud.spec.ts",
+                  "line": 39,
+                  "column": 9
+                },
+                {
+                  "title": "TC_03 - Should get single object by ID",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api",
+                      "projectName": "api",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 157,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-15T08:40:57.755Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "88f9039ef3accf67513f-b2da3dff103cf9deba2a",
+                  "file": "objects-crud.spec.ts",
+                  "line": 54,
+                  "column": 9
+                },
+                {
+                  "title": "TC_04 - Should handle non-existent object gracefully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api",
+                      "projectName": "api",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 147,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-15T08:40:57.927Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "88f9039ef3accf67513f-3a5fe0a6c65d622149cf",
+                  "file": "objects-crud.spec.ts",
+                  "line": 65,
+                  "column": 9
+                }
+              ]
+            },
+            {
+              "title": "POST Operations",
+              "file": "objects-crud.spec.ts",
+              "line": 79,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "TC_05 - Should create a new mobile device object",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "api",
+                      "projectName": "api",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 308,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "Created object with ID: ff8081819782e69e0199e70795dd4ead\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-10-15T08:40:58.088Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "88f9039ef3accf67513f-d10504c2f3479db33763",
+                  "file": "objects-crud.spec.ts",
+                  "line": 80,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "PUT Operations",
+          "file": "objects-crud.spec.ts",
+          "line": 109,
+          "column": 8,
+          "specs": [
+            {
+              "title": "TC_07 - Should update an existing object completely",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 305,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:40:59.414Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-4394336c1ea42088413d",
+              "file": "objects-crud.spec.ts",
+              "line": 110,
+              "column": 9
+            },
+            {
+              "title": "TC_08 - Should handle update of non-existent object",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 162,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:40:59.731Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-cdd973ebc415565a4b9a",
+              "file": "objects-crud.spec.ts",
+              "line": 127,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "DELETE Operations",
+          "file": "objects-crud.spec.ts",
+          "line": 142,
+          "column": 8,
+          "specs": [
+            {
+              "title": "TC_09 - Should delete an existing object",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 498,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:40:59.908Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "88f9039ef3accf67513f-3db0b4a6eda89636667a",
+              "file": "objects-crud.spec.ts",
+              "line": 143,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "pla-account-creation-signin.spec.ts",
+      "file": "pla-account-creation-signin.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PLA GraphQL API - Account Management",
+          "file": "pla-account-creation-signin.spec.ts",
+          "line": 20,
+          "column": 6,
+          "specs": [
+            {
+              "title": "PLA_CreateAccount - error message shown when input invalid data",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 716,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Error validation passed: Invalid email format detected\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:00.431Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6f5b5e3c3a77bcfea27-d50bc5ab1aa5bd482878",
+              "file": "pla-account-creation-signin.spec.ts",
+              "line": 22,
+              "column": 7
+            },
+            {
+              "title": "PLA_CreateAccount - should create a new customer account",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1609,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Created customer ID: \u001b[33m578772\u001b[39m\n"
+                        },
+                        {
+                          "text": "Customer email: platest1760517660425k0as6v@mail.com\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:01.157Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6f5b5e3c3a77bcfea27-156baa4b4cbd30733c02",
+              "file": "pla-account-creation-signin.spec.ts",
+              "line": 87,
+              "column": 7
+            },
+            {
+              "title": "PLA_SignIn - should login fail when provide wrong email or password",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 653,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:02.777Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6f5b5e3c3a77bcfea27-a503cceebfa8c9b49c18",
+              "file": "pla-account-creation-signin.spec.ts",
+              "line": 155,
+              "column": 5
+            },
+            {
+              "title": "PLA_SignIn - should generate customer token for valid credentials",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1104,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Customer token generated (first 20 chars): eyJraWQiOiIxIiwiYWxn...\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:03.446Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6f5b5e3c3a77bcfea27-495bc98633a21e6638db",
+              "file": "pla-account-creation-signin.spec.ts",
+              "line": 190,
+              "column": 7
+            },
+            {
+              "title": "PLA_GetCustomerDetails - should retrieve customer details with valid token",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 601,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Customer details retrieved:\n"
+                        },
+                        {
+                          "text": "  ID: \u001b[33m578772\u001b[39m\n"
+                        },
+                        {
+                          "text": "  Name: Casey Davis\n"
+                        },
+                        {
+                          "text": "  Email: platest1760517660425k0as6v@mail.com\n"
+                        },
+                        {
+                          "text": "  Subscribed: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "  Loyalty Status: \u001b[33mfalse\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:04.564Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c6f5b5e3c3a77bcfea27-41847363313f44a43f5b",
+              "file": "pla-account-creation-signin.spec.ts",
+              "line": 230,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
       "title": "pla-cart_minicart.spec.ts",
       "file": "pla-cart_minicart.spec.ts",
       "column": 0,
@@ -98,25 +680,19 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 813,
+                      "duration": 903,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "No shared token found. Creating account and signing in...\n"
+                          "text": "✅ Using existing shared token from test suite\n"
                         },
                         {
-                          "text": "✅ Account created with email: platest1760437308155lk2aqn@mail.com\n"
-                        },
-                        {
-                          "text": "✅ Token acquired for cart tests with value:  eyJraWQiOiIxIiwiYWxnIjoiSFMyNTYifQ.eyJ1aWQiOjU3ODY4MiwidXR5cGlkIjozLCJpYXQiOjE3NjA0MzczMTEsImV4cCI6MTc2MDQ0MDkxMX0.cKXYLicNNkq_UD8maKwhl_XedOuM5lZWoM19vCX6qkk\n"
-                        },
-                        {
-                          "text": "Cart Id data:  8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S\n"
+                          "text": "Cart Id data:  wPWhf1qu9RvPgwrXlEDcAqXiTVb42DsA\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-14T10:21:48.169Z",
+                      "startTime": "2025-10-15T08:41:05.189Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -145,7 +721,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 491,
+                      "duration": 549,
                       "errors": [],
                       "stdout": [
                         {
@@ -163,7 +739,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-14T10:21:52.085Z",
+                      "startTime": "2025-10-15T08:41:06.112Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -192,17 +768,17 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 706,
+                      "duration": 656,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "GetItemCount response data:  {\n  cart: {\n    id: \u001b[32m'8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    shipping_addresses: [],\n    __typename: \u001b[32m'Cart'\u001b[39m\n  }\n}\n"
+                          "text": "GetItemCount response data:  {\n  cart: {\n    id: \u001b[32m'wPWhf1qu9RvPgwrXlEDcAqXiTVb42DsA'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    shipping_addresses: [],\n    __typename: \u001b[32m'Cart'\u001b[39m\n  }\n}\n"
                         },
                         {
                           "text": "GetItemCount details retrieved:\n"
                         },
                         {
-                          "text": "  Id: 8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S\n"
+                          "text": "  Id: wPWhf1qu9RvPgwrXlEDcAqXiTVb42DsA\n"
                         },
                         {
                           "text": "  Total Quantity: \u001b[33m0\u001b[39m\n"
@@ -216,7 +792,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-14T10:21:52.589Z",
+                      "startTime": "2025-10-15T08:41:06.674Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -245,12 +821,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 667,
+                      "duration": 705,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-14T10:21:53.308Z",
+                      "startTime": "2025-10-15T08:41:07.341Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -279,16 +855,16 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 808,
+                      "duration": 817,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "MiniCartQuery response data:  {\n  cart: {\n    id: \u001b[32m'8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    prices: {\n      subtotal_including_tax: \u001b[36m[Object]\u001b[39m,\n      grand_total: \u001b[36m[Object]\u001b[39m,\n      special_price_discount: \u001b[36m[Object]\u001b[39m,\n      discounts: \u001b[1mnull\u001b[22m,\n      __typename: \u001b[32m'CartPrices'\u001b[39m\n    },\n    items: [],\n    __typename: \u001b[32m'Cart'\u001b[39m,\n    multiple_rewards_message: \u001b[32m'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'\u001b[39m,\n    qff_reward: {\n      is_qff_member: \u001b[33mfalse\u001b[39m,\n      qff_points: \u001b[33m0\u001b[39m,\n      qff_reward_message: \u001b[32m'Earn 0 Qantas Points with this purchase'\u001b[39m,\n      __typename: \u001b[32m'QffReward'\u001b[39m\n    },\n    applied_qantas_points: \u001b[1mnull\u001b[22m\n  }\n}\n"
+                          "text": "MiniCartQuery response data:  {\n  cart: {\n    id: \u001b[32m'wPWhf1qu9RvPgwrXlEDcAqXiTVb42DsA'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    prices: {\n      subtotal_including_tax: \u001b[36m[Object]\u001b[39m,\n      grand_total: \u001b[36m[Object]\u001b[39m,\n      special_price_discount: \u001b[36m[Object]\u001b[39m,\n      discounts: \u001b[1mnull\u001b[22m,\n      __typename: \u001b[32m'CartPrices'\u001b[39m\n    },\n    items: [],\n    __typename: \u001b[32m'Cart'\u001b[39m,\n    multiple_rewards_message: \u001b[32m'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'\u001b[39m,\n    qff_reward: {\n      is_qff_member: \u001b[33mfalse\u001b[39m,\n      qff_points: \u001b[33m0\u001b[39m,\n      qff_reward_message: \u001b[32m'Earn 0 Qantas Points with this purchase'\u001b[39m,\n      __typename: \u001b[32m'QffReward'\u001b[39m\n    },\n    applied_qantas_points: \u001b[1mnull\u001b[22m\n  }\n}\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-14T10:21:53.995Z",
+                      "startTime": "2025-10-15T08:41:08.057Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -317,11 +893,11 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1153,
+                      "duration": 1013,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "GetCartDetailsAfterSignIn response data:  {\n  cart: {\n    id: \u001b[32m'8VefPjeapcm8jBZFVr2fhlgxGoxCAa3S'\u001b[39m,\n    items: [],\n    prices: {\n      grand_total: \u001b[36m[Object]\u001b[39m,\n      __typename: \u001b[32m'CartPrices'\u001b[39m,\n      subtotal_including_tax: \u001b[36m[Object]\u001b[39m,\n      special_price_discount: \u001b[36m[Object]\u001b[39m,\n      discounts: \u001b[1mnull\u001b[22m,\n      applied_taxes: []\n    },\n    __typename: \u001b[32m'Cart'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    available_payment_methods: [ \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m ],\n    shipping_addresses: [],\n    applied_qantas_points: \u001b[1mnull\u001b[22m,\n    applied_gift_cards: [],\n    applied_multiple_rewards: \u001b[1mnull\u001b[22m,\n    applied_coupons: \u001b[1mnull\u001b[22m,\n    multiple_rewards_message: \u001b[32m'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'\u001b[39m,\n    qff_reward: {\n      is_qff_member: \u001b[33mfalse\u001b[39m,\n      qff_points: \u001b[33m0\u001b[39m,\n      qff_reward_message: \u001b[32m'Earn 0 Qantas Points with this purchase'\u001b[39m,\n      __typename: \u001b[32m'QffReward'\u001b[39m\n    }\n  }\n}\n"
+                          "text": "GetCartDetailsAfterSignIn response data:  {\n  cart: {\n    id: \u001b[32m'wPWhf1qu9RvPgwrXlEDcAqXiTVb42DsA'\u001b[39m,\n    items: [],\n    prices: {\n      grand_total: \u001b[36m[Object]\u001b[39m,\n      __typename: \u001b[32m'CartPrices'\u001b[39m,\n      subtotal_including_tax: \u001b[36m[Object]\u001b[39m,\n      special_price_discount: \u001b[36m[Object]\u001b[39m,\n      discounts: \u001b[1mnull\u001b[22m,\n      applied_taxes: []\n    },\n    __typename: \u001b[32m'Cart'\u001b[39m,\n    total_quantity: \u001b[33m0\u001b[39m,\n    available_payment_methods: [ \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m, \u001b[36m[Object]\u001b[39m ],\n    shipping_addresses: [],\n    applied_qantas_points: \u001b[1mnull\u001b[22m,\n    applied_gift_cards: [],\n    applied_multiple_rewards: \u001b[1mnull\u001b[22m,\n    applied_coupons: \u001b[1mnull\u001b[22m,\n    multiple_rewards_message: \u001b[32m'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'\u001b[39m,\n    qff_reward: {\n      is_qff_member: \u001b[33mfalse\u001b[39m,\n      qff_points: \u001b[33m0\u001b[39m,\n      qff_reward_message: \u001b[32m'Earn 0 Qantas Points with this purchase'\u001b[39m,\n      __typename: \u001b[32m'QffReward'\u001b[39m\n    }\n  }\n}\n"
                         },
                         {
                           "text": "Available payment method codes:  [\n  \u001b[32m'checkmo'\u001b[39m,\n  \u001b[32m'braintree_applepay'\u001b[39m,\n  \u001b[32m'free'\u001b[39m,\n  \u001b[32m'braintree'\u001b[39m,\n  \u001b[32m'braintree_paypal'\u001b[39m\n]\n"
@@ -338,7 +914,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-14T10:21:54.817Z",
+                      "startTime": "2025-10-15T08:41:08.883Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -354,13 +930,510 @@
           ]
         }
       ]
+    },
+    {
+      "title": "pla-my-details.spec.ts",
+      "file": "pla-my-details.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PLA GraphQL API - My Details apis",
+          "file": "pla-my-details.spec.ts",
+          "line": 19,
+          "column": 15,
+          "specs": [
+            {
+              "title": "PLA_AddNewCustomerAddressToAddressBook - should add new customer address with valid token",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1199,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Using existing shared token from test suite\n"
+                        },
+                        {
+                          "text": "Customer Token (first 20 chars): eyJraWQiOiIxIiwiYWxn...\n"
+                        },
+                        {
+                          "text": "Address to add: {\n  address: {\n    firstname: \u001b[32m'Casey'\u001b[39m,\n    lastname: \u001b[32m'Davis'\u001b[39m,\n    street: \u001b[32m'406 Collins St'\u001b[39m,\n    city: \u001b[32m'BRISBANE'\u001b[39m,\n    postcode: \u001b[32m'4000'\u001b[39m,\n    telephone: \u001b[32m'0838731225'\u001b[39m,\n    company: \u001b[1mnull\u001b[22m,\n    default_shipping: \u001b[33mtrue\u001b[39m,\n    default_billing: \u001b[33mtrue\u001b[39m,\n    custom_attributes: { value: \u001b[36m[Object]\u001b[39m },\n    region: { region: \u001b[32m'QLD'\u001b[39m },\n    country_code: \u001b[32m'AU'\u001b[39m\n  }\n}\n"
+                        },
+                        {
+                          "text": "Response data: { createCustomerAddress: { id: \u001b[33m29577\u001b[39m, __typename: \u001b[32m'CustomerAddress'\u001b[39m } }\n"
+                        },
+                        {
+                          "text": "New Address ID: \u001b[33m29577\u001b[39m\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:09.918Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "14a9e4d4abc9dc0add52-0aa863f222cb55df988f",
+              "file": "pla-my-details.spec.ts",
+              "line": 124,
+              "column": 7
+            },
+            {
+              "title": "PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 578,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Customer Token (first 20 chars): eyJraWQiOiIxIiwiYWxn...\n"
+                        },
+                        {
+                          "text": "Response data: {\n  customer: { id: \u001b[33m578772\u001b[39m, addresses: [ \u001b[36m[Object]\u001b[39m ], __typename: \u001b[32m'Customer'\u001b[39m },\n  countries: [\n    { id: \u001b[32m'AU'\u001b[39m, full_name_locale: \u001b[32m'Australia'\u001b[39m, __typename: \u001b[32m'Country'\u001b[39m }\n  ]\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:11.137Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "14a9e4d4abc9dc0add52-58177e1b40e208c733a7",
+              "file": "pla-my-details.spec.ts",
+              "line": 163,
+              "column": 5
+            },
+            {
+              "title": "PLA_UpdateCustomerAddressInAddressBook - should update customer address with valid token",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 797,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Customer Token (first 20 chars): eyJraWQiOiIxIiwiYWxn...\n"
+                        },
+                        {
+                          "text": "Address ID to update: \u001b[33m29577\u001b[39m\n"
+                        },
+                        {
+                          "text": "Update variables: {\n  \"addressId\": 29577,\n  \"updated_address\": {\n    \"firstname\": \"Hoang\",\n    \"lastname\": \"Pham\",\n    \"street\": [\n      \"Tasmanian Hockey Centre, 1 Bell St\"\n    ],\n    \"city\": \"NEW TOWN\",\n    \"postcode\": \"7008\",\n    \"region\": {\n      \"region\": \"TAS\"\n    },\n    \"telephone\": \"34624224646\",\n    \"default_shipping\": false,\n    \"default_billing\": false,\n    \"custom_attributes\": {\n      \"value\": {\n        \"value\": \"Hoang New Address 111\",\n        \"attribute_code\": \"address_name\"\n      }\n    },\n    \"country_code\": \"AU\"\n  }\n}\n"
+                        },
+                        {
+                          "text": "Update response data: { updateCustomerAddress: { id: \u001b[33m29577\u001b[39m, __typename: \u001b[32m'CustomerAddress'\u001b[39m } }\n"
+                        },
+                        {
+                          "text": "✅ Address updated successfully\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:11.729Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "14a9e4d4abc9dc0add52-758fd598cdf3b3dc931a",
+              "file": "pla-my-details.spec.ts",
+              "line": 217,
+              "column": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "restful-booker.spec.ts",
+      "file": "restful-booker.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Restful Booker API - Booking Endpoints",
+          "file": "restful-booker.spec.ts",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should get all booking IDs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1282,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:12.544Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-9177620666da4c495162",
+              "file": "restful-booker.spec.ts",
+              "line": 8,
+              "column": 9
+            },
+            {
+              "title": "should filter bookings by name",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 290,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:13.839Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-ebcf5061bbb6ad87c5a7",
+              "file": "restful-booker.spec.ts",
+              "line": 15,
+              "column": 9
+            },
+            {
+              "title": "should get a specific booking by ID",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 568,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:14.142Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-95feffb0d81c5daf6b1e",
+              "file": "restful-booker.spec.ts",
+              "line": 22,
+              "column": 9
+            },
+            {
+              "title": "should create a new booking",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 288,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:14.724Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-dc7ec2529b17c588b6ae",
+              "file": "restful-booker.spec.ts",
+              "line": 35,
+              "column": 9
+            },
+            {
+              "title": "should check API health",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 288,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:15.025Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-7b884de34a985abc6812",
+              "file": "restful-booker.spec.ts",
+              "line": 51,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Restful Booker API - Authentication",
+          "file": "restful-booker.spec.ts",
+          "line": 60,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should authenticate and get token",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 288,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:15.325Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-aeccc96d0b6da483b91b",
+              "file": "restful-booker.spec.ts",
+              "line": 61,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "Restful Booker API - Full Booking Lifecycle",
+          "file": "restful-booker.spec.ts",
+          "line": 71,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should update a booking",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 287,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:15.628Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-99ab9622f0dc450a0b47",
+              "file": "restful-booker.spec.ts",
+              "line": 89,
+              "column": 9
+            },
+            {
+              "title": "should partially update a booking",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 286,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:16.511Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-ddd2cb12267d8761d4ea",
+              "file": "restful-booker.spec.ts",
+              "line": 105,
+              "column": 9
+            },
+            {
+              "title": "should delete a booking",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "api",
+                  "projectName": "api",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 565,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T08:41:16.809Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "9dc8e450f4633cddfc73-9bdf05515161c085a672",
+              "file": "restful-booker.spec.ts",
+              "line": 114,
+              "column": 9
+            }
+          ]
+        }
+      ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-14T10:21:47.056Z",
-    "duration": 8972.507,
-    "expected": 6,
+    "startTime": "2025-10-15T08:40:55.825Z",
+    "duration": 21603.675,
+    "expected": 32,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
