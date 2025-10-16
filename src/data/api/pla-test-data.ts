@@ -3,6 +3,8 @@
  * Centralized test data for Account Management tests
  */
 
+import { subscribe } from "diagnostics_channel";
+
 /**
  * Generate random string for unique test data
  */
@@ -185,6 +187,10 @@ export const plaTestData = {
       }
     },
     country_code: 'AU'
+  },
+
+  subscribeNewsletterData:{
+    isSubscribed: [true, false]
   },
 
   expectedPaymentMethods: {

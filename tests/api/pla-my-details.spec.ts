@@ -263,4 +263,137 @@ test("PLA_UpdateCustomerAddressInAddressBook - should update customer address wi
     console.log("✅ Address updated successfully");
 });
 
+test("PLA_DeleteCustomerAddressFromAddressBook - should delete customer address with valid token", async ({
+    createGraphQLClient,
+  }) => {
+    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+    console.log("Address ID to update:", addressId);
+
+    // Ensure we have an addressId from the first test
+    expect(addressId).toBeDefined();
+    expect(addressId).toBeTruthy();
+
+    const authClient = await createGraphQLClient({
+      authType: "bearer" as any,
+      token: customerToken,
+    });
+
+    // GraphQL mutation to update customer address
+    const mutation = `mutation DeleteCustomerAddressFromAddressBook($addressId: Int!) {
+  deleteCustomerAddress(id: $addressId)
+}`;
+
+    // Build variables with dynamic addressId and static update data from test data
+    const variables = {
+      addressId: addressId, // Keep as string for GraphQL Int type
+      
+    };
+
+
+
+    const response = await authClient.mutateWrapped(mutation, variables);
+
+    await response.assertNoErrors();
+    await response.assertHasData();
+
+    const data = await response.getData();
+    console.log("Updated response data:", data);
+
+    // Validate the response
+    expect(data.deleteCustomerAddress).toBeDefined();
+    expect(data.deleteCustomerAddress).toBe(true);
+
+    console.log("✅ Address deleted successfully");
+});
+
+test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with valid token", async ({
+    createGraphQLClient,
+  }) => {
+    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+
+    const authClient = await createGraphQLClient({
+      authType: "bearer" as any,
+      token: customerToken,
+    });
+
+    // GraphQL mutation to update customer address
+    const mutation = `mutation SetNewsletterSubscription($isSubscribed: Boolean!) {
+  updateCustomerV2(input: {is_subscribed: $isSubscribed}) {
+    customer {
+      id
+      is_subscribed
+      __typename
+    }
+    __typename
+  }
+}`;
+
+
+    const variables = {
+      isSubscribed: plaTestData.subscribeNewsletterData.isSubscribed[0]
+    };
+
+    const response = await authClient.mutateWrapped(mutation, variables);
+
+    await response.assertNoErrors();
+    await response.assertHasData();
+
+    const data = await response.getData();
+    console.log("Updated response data:", data);
+
+    // Validate the response
+    expect(data.updateCustomerV2).toBeDefined();
+    expect(data.updateCustomerV2.customer).toBeDefined();
+    expect(data.updateCustomerV2.customer.id).toBe(customerId);
+    expect(data.updateCustomerV2.customer.is_subscribed).toBe(true);
+
+    console.log("✅ User is subscribed to newsletter successfully");
+});
+
+test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with valid token", async ({
+    createGraphQLClient,
+  }) => {
+    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+
+    const authClient = await createGraphQLClient({
+      authType: "bearer" as any,
+      token: customerToken,
+    });
+
+    // GraphQL mutation to update customer address
+    const mutation = `mutation SetNewsletterSubscription($isSubscribed: Boolean!) {
+  updateCustomerV2(input: {is_subscribed: $isSubscribed}) {
+    customer {
+      id
+      is_subscribed
+      __typename
+    }
+    __typename
+  }
+}`;
+
+
+    const variables = {
+      isSubscribed: plaTestData.subscribeNewsletterData.isSubscribed[1]
+    };
+
+    const response = await authClient.mutateWrapped(mutation, variables);
+
+    await response.assertNoErrors();
+    await response.assertHasData();
+
+    const data = await response.getData();
+    console.log("Updated response data:", data);
+
+    // Validate the response
+    expect(data.updateCustomerV2).toBeDefined();
+    expect(data.updateCustomerV2.customer).toBeDefined();
+    expect(data.updateCustomerV2.customer.id).toBe(customerId);
+    expect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
+
+    console.log("✅ User is subscribed to newsletter successfully");
+});
+
+
+
 });
