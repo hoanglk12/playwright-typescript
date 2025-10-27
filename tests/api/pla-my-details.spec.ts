@@ -3,8 +3,8 @@ import { expect } from "@playwright/test";
 import {
   plaTestData,
   getTestEmail,
-  plaErrorMessages,
-  expectedCustomerData,
+  // plaErrorMessages,
+  // expectedCustomerData,
 } from "../../src/data/api/pla-test-data";
 import { getCustomerToken, setCustomerToken, setAddressId, setCustomerId, getCustomerId, getAddressId } from './shared-state';
 
