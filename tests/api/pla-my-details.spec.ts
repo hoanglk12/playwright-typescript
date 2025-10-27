@@ -316,9 +316,9 @@ test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with vali
       token: customerToken,
     });
 
-    // GraphQL mutation to update customer address
-    const mutation = `mutation SetNewsletterSubscription($isSubscribed: Boolean!) {
-  updateCustomerV2(input: {is_subscribed: $isSubscribed}) {
+    // GraphQL mutation to subscribe to newsletter
+    const mutation = `mutation SetNewsletterSubscription($is_subscribed: Boolean!) {
+  updateCustomerV2(input: {is_subscribed: $is_subscribed}) {
     customer {
       id
       is_subscribed
@@ -330,7 +330,7 @@ test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with vali
 
 
     const variables = {
-      isSubscribed: plaTestData.subscribeNewsletterData.isSubscribed[0]
+      is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[0]
     };
 
     const response = await authClient.mutateWrapped(mutation, variables);
@@ -360,9 +360,9 @@ test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with va
       token: customerToken,
     });
 
-    // GraphQL mutation to update customer address
-    const mutation = `mutation SetNewsletterSubscription($isSubscribed: Boolean!) {
-  updateCustomerV2(input: {is_subscribed: $isSubscribed}) {
+    // GraphQL mutation to unsubscribe from newsletter
+    const mutation = `mutation SetNewsletterSubscription($is_subscribed: Boolean!) {
+  updateCustomerV2(input: {is_subscribed: $is_subscribed}) {
     customer {
       id
       is_subscribed
@@ -374,7 +374,7 @@ test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with va
 
 
     const variables = {
-      isSubscribed: plaTestData.subscribeNewsletterData.isSubscribed[1]
+      is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[1]
     };
 
     const response = await authClient.mutateWrapped(mutation, variables);
@@ -392,6 +392,55 @@ test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with va
     expect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
 
     console.log("✅ User is subscribed to newsletter successfully");
+});
+
+test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
+    createGraphQLClient,
+  }) => {
+    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+
+    const authClient = await createGraphQLClient({
+      authType: "bearer" as any,
+      token: customerToken,
+    });
+
+    // GraphQL mutation to update loyalty and newsletter settings
+    const mutation = `mutation SetLoyaltyAndNewsletterSubscription($is_subscribed: Boolean!, $loyalty_program_status: Boolean) {
+  updateCustomerV2(input: {is_subscribed: $is_subscribed, loyalty_program_status: $loyalty_program_status}) {
+    customer {
+      id
+      is_subscribed
+      loyalty_program_status
+      __typename
+    }
+    __typename
+  }
+}`;
+
+
+    const variables = {
+      is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[1],
+      loyalty_program_status: plaTestData.loyaltyProgramData.status[1]
+    };
+
+    console.log("Updated request data:", variables);
+
+    const response = await authClient.mutateWrapped(mutation, variables);
+
+    await response.assertNoErrors();
+    await response.assertHasData();
+
+    const data = await response.getData();
+    console.log("Updated response data:", data);
+
+    // Validate the response
+    expect(data.updateCustomerV2).toBeDefined();
+    expect(data.updateCustomerV2.customer).toBeDefined();
+    expect(data.updateCustomerV2.customer.id).toBe(customerId);
+    expect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
+    expect(data.updateCustomerV2.customer.loyalty_program_status).toBe(false);
+
+    console.log("✅ User is unsubscribed to newsletter and not a loyalty member successfully");
 });
 
 

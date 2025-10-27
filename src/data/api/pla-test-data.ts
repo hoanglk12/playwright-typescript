@@ -192,6 +192,9 @@ export const plaTestData = {
   subscribeNewsletterData:{
     isSubscribed: [true, false]
   },
+  loyaltyProgramData:{
+    status: [true, false]
+  },
 
   expectedPaymentMethods: {
     codes: ['checkmo', 'braintree_applepay', 'free', 'braintree', 'braintree_paypal'],
