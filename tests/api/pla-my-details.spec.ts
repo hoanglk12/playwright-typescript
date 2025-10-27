@@ -394,7 +394,7 @@ test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with va
     console.log("✅ User is subscribed to newsletter successfully");
 });
 
-test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
+test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
     createGraphQLClient,
   }) => {
     console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
