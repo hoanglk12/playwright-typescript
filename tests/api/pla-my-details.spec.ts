@@ -443,6 +443,34 @@ test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newslett
     console.log("✅ User is unsubscribed to newsletter and not a loyalty member successfully");
 });
 
+test("PLA_loyalty - retrieve loyalty newsletter subscription message with valid token", async ({
+    createGraphQLClient,
+  }) => {
+    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+
+    const authClient = await createGraphQLClient({
+      authType: "bearer" as any,
+      token: customerToken,
+    });
+
+    // GraphQL mutation to update loyalty and newsletter settings
+    const query = `query loyalty{multiplerewards_loyalty_newsletter_subscription_messages multiplerewards_loyalty_newsletter_subscription_banner_messages}`;
+
+    const response = await authClient.queryWrapped(query);
+
+    await response.assertNoErrors();
+    await response.assertHasData();
+
+    const data = await response.getData();
+    console.log("Updated response data:", data);
+
+    // Validate the response
+    expect(data.multiplerewards_loyalty_newsletter_subscription_messages).toBeDefined();
+    expect(data.multiplerewards_loyalty_newsletter_subscription_banner_messages).toBeDefined();
+
+
+});
+
 
 
 });
