@@ -189,6 +189,18 @@ export const plaTestData = {
     country_code: 'AU'
   },
 
+  updateCustomerInformationData: {
+    email: testEmail,
+    firstname: firstName,
+    lastname: lastName,
+    date_of_birth: '06/29/1995',
+    phone_number: '0575463465',
+    password: 'Johncena5',
+   is_subscribed: false,
+    loyalty_program_status: false
+  },
+
+
   subscribeNewsletterData:{
     isSubscribed: [true, false]
   },
