@@ -1307,3 +1307,5 @@ For comprehensive API mocking documentation, examples, and best practices, see [
 ---
 
 ## 🤝 Contributing
+
+Hoang Pham - Senior Quality Engineer
