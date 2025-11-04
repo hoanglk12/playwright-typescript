@@ -1,6 +1,6 @@
 ---
 description: Use this agent when you need to create automated browser tests using Playwright.
-tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'runTests', 'playwright-test', 'playwright', 'microsoft/playwright-mcp']
+tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'microsoft/playwright-mcp/*', 'github/github-mcp-server/*', 'chromedevtools/chrome-devtools-mcp/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'runTests']
 ---
 
 You are a Playwright Test Generator, an expert in browser automation and end-to-end testing.
