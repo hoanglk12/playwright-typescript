@@ -1008,6 +1008,7 @@ For detailed documentation on the API testing capabilities, see [API_TESTING.md]
 - **Response Validation**: Status codes, JSON body validation, header validation
 - **Data Extraction**: Easy extraction from JSON responses
 - **Token Management**: Token sharing between tests
+- **API Mocking**: Comprehensive API mocking for offline testing and error scenarios
 
 ### Running API Tests
 
@@ -1051,3 +1052,221 @@ apiTest('create new resource', async ({ createClientExt }) => {
 ```
 
 The API tests have their own GitHub Actions workflow and separate reporting for clear separation from UI tests.
+
+## 🎭 API Mocking
+
+The framework includes comprehensive API mocking capabilities for testing without real API dependencies.
+
+For detailed documentation on API mocking, see [Guideline/API_MOCKING_GUIDE.md](Guideline/API_MOCKING_GUIDE.md).
+
+### API Mocking Features
+
+- **Response Mocking**: Mock successful and error responses
+- **Error Scenarios**: 401, 403, 404, 500, rate limits, timeouts
+- **Network Conditions**: Simulate slow networks and failures
+- **GraphQL Support**: Mock GraphQL queries, mutations, and errors
+- **Pagination**: Mock paginated API responses
+- **Request/Response Interception**: Modify requests and responses on the fly
+- **Conditional Mocking**: Different responses based on request data
+- **Pre-built Mock Data**: Ready-to-use generators for users, products, orders, etc.
+
+### Quick Start: API Mocking
+
+```typescript
+import { test } from '@playwright/test';
+import { ApiMockHelper } from '../src/utils/api-mock-helper';
+import { ApiMockService } from '../src/api/ApiMockService';
+import { MockDataGenerators } from '../src/data/api/mock-data';
+
+test('mock successful login', async ({ page }) => {
+  const mockService = new ApiMockService(page);
+  
+  // Mock successful login response
+  await mockService.mockSuccessfulLogin('test@example.com');
+  
+  // Navigate to login page
+  await page.goto('https://example.com/login');
+  
+  // Fill in credentials
+  await page.fill('#email', 'test@example.com');
+  await page.fill('#password', 'password123');
+  await page.click('#login-button');
+  
+  // Verify login success without calling real API
+  await expect(page.locator('.welcome-message')).toBeVisible();
+});
+```
+
+### Basic API Mocking Examples
+
+```typescript
+// Mock successful response
+const mockHelper = new ApiMockHelper(page);
+await mockHelper.mockSuccess(
+  '**/api/users/1',
+  MockDataGenerators.mockUser({ id: 1, name: 'John Doe' })
+);
+
+// Mock error response
+await mockHelper.mockError(
+  '**/api/users/999',
+  'User not found',
+  404
+);
+
+// Mock slow network (3 second delay)
+await mockHelper.mockDelayed(
+  '**/api/slow-endpoint',
+  { data: 'Response' },
+  3000
+);
+
+// Mock GraphQL query
+await mockHelper.mockGraphQL(
+  '**/graphql',
+  'GetUser',
+  { user: MockDataGenerators.mockUser() }
+);
+
+// Mock paginated response
+const products = MockDataGenerators.mockProductList(100);
+await mockHelper.mockPaginated('**/api/products', products, 10);
+```
+
+### Service Layer Mocking
+
+```typescript
+const mockService = new ApiMockService(page);
+
+// E-commerce scenarios
+await mockService.mockProductList(50);        // Mock product catalog
+await mockService.mockGetCart(false);         // Mock cart with items
+await mockService.mockAddToCart();            // Mock add to cart
+await mockService.mockCreateOrder();          // Mock order creation
+await mockService.mockOrderList(10);          // Mock order history
+
+// Error scenarios
+await mockService.mockUnauthorized();         // Mock 401 error
+await mockService.mockForbidden();            // Mock 403 error
+await mockService.mockRateLimit();            // Mock rate limit
+await mockService.mockTimeout();              // Mock timeout
+
+// Authentication
+await mockService.mockSuccessfulLogin();      // Mock login success
+await mockService.mockFailedLogin();          // Mock login failure
+await mockService.mockUserRegistration();     // Mock registration
+```
+
+### Mock Data Generators
+
+```typescript
+// Generate mock data for testing
+const user = MockDataGenerators.mockUser({
+  email: 'custom@example.com',
+  role: 'admin'
+});
+
+const product = MockDataGenerators.mockProduct({
+  name: 'Custom Product',
+  price: 99.99,
+  stock: 100
+});
+
+const order = MockDataGenerators.mockOrder({
+  status: 'shipped',
+  total: 299.99
+});
+
+// Generate lists
+const users = MockDataGenerators.mockUserList(20);
+const products = MockDataGenerators.mockProductList(50);
+const orders = MockDataGenerators.mockOrderList(10);
+
+// Error responses
+const notFoundError = MockDataGenerators.mockNotFoundError('User');
+const validationError = MockDataGenerators.mockValidationError(['email', 'password']);
+const serverError = MockDataGenerators.mockServerError();
+```
+
+### Advanced Mocking Scenarios
+
+```typescript
+// Conditional mocking based on request
+await mockHelper.mockConditional('**/api/users', [
+  {
+    condition: { method: 'GET' },
+    response: { status: 200, body: MockDataGenerators.mockUserList(10) }
+  },
+  {
+    condition: { method: 'POST' },
+    response: { status: 201, body: { message: 'User created' } }
+  }
+]);
+
+// Intercept and modify request
+await mockHelper.interceptRequest('**/api/**', async (request) => {
+  const data = request.postDataJSON();
+  return { ...data, timestamp: Date.now() };
+});
+
+// Intercept and modify response
+await mockHelper.interceptResponse('**/api/products', async (response) => {
+  return { ...response, cached: true };
+});
+
+// Wait for API calls
+const request = await mockHelper.waitForApiCall('**/api/checkout');
+const response = await mockHelper.waitForApiResponse('**/api/cart');
+
+// Clear mocks
+await mockHelper.clearMock('**/api/users');
+await mockHelper.clearAllMocks();
+```
+
+### When to Use API Mocking
+
+✅ **Use API Mocking when:**
+- Testing UI without backend dependencies
+- Simulating error scenarios (500, 404, 401, etc.)
+- Testing slow network conditions
+- Offline development and testing
+- Testing edge cases that are hard to reproduce
+- Avoiding rate limits during development
+- Running tests without external API costs
+
+❌ **Don't use API Mocking when:**
+- Testing actual API integration
+- Validating real API contracts
+- End-to-end integration testing
+- Performance testing with real APIs
+
+### Running API Mock Tests
+
+```bash
+# Run API mocking examples
+npx playwright test tests/api/api-mocking-examples.spec.ts
+
+# Run with UI mode to see mocking in action
+npx playwright test tests/api/api-mocking-examples.spec.ts --ui
+
+# Run specific mock test
+npx playwright test tests/api/api-mocking-examples.spec.ts --grep "mock successful login"
+```
+
+### Benefits of API Mocking
+
+1. **Faster Tests**: No network latency or API delays
+2. **Reliable Tests**: No flakiness from external API issues
+3. **Offline Testing**: Work without internet connection
+4. **Error Testing**: Easily simulate error scenarios
+5. **Cost Savings**: Avoid API usage costs during testing
+6. **Parallel Execution**: No rate limiting concerns
+7. **Consistent Data**: Predictable test data every run
+
+For comprehensive API mocking documentation, examples, and best practices, see [Guideline/API_MOCKING_GUIDE.md](Guideline/API_MOCKING_GUIDE.md).
+
+---
+
+## 🤝 Contributing
+
+
