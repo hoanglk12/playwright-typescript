@@ -15,7 +15,6 @@ A comprehensive Playwright TypeScript testing framework converted from a Maven h
 - **TypeScript**: Full type safety and IntelliSense support
 - **Environment Variables**: Complete configuration through .env files
 
-
 ## 📁 Project Structure
 
 ```
@@ -64,22 +63,26 @@ A comprehensive Playwright TypeScript testing framework converted from a Maven h
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd playwright-converted
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Install Playwright browsers**
+
    ```bash
    npx playwright install
    ```
 
 4. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env file with your specific configurations
@@ -345,6 +348,7 @@ Playwright generates comprehensive HTML reports with:
 - Step-by-step test breakdown
 
 Access reports:
+
 ```bash
 npm run report
 ```
@@ -359,8 +363,10 @@ GitHub Actions automatically:
 - Sends notifications on failure
 
 ### Run with .bat/.sh
+
 **Specify the mode: serial or parallel**
 **Linux/Mac:**
+
 ```bash
 # Parallel mode (default) - 4 workers
 ./run-ui-tests.sh staging
@@ -377,6 +383,7 @@ GitHub Actions automatically:
 ```
 
 **Windows:**
+
 ```bash
 # Parallel mode (default) - 4 workers
 run-ui-tests.bat staging
@@ -415,6 +422,7 @@ run-ui-tests.bat testing parallel 6
 ### 🔧 Configuration
 
 The Playwright configuration is located in `playwright.config.ts` and includes:
+
 - Test and report directories
 - Browser configurations
 - Environment information
@@ -488,6 +496,7 @@ This section provides a comprehensive overview of all implemented features and c
 ### 🔄 Conversion from Maven to Playwright
 
 **Successfully migrated from:**
+
 - **Maven Hybrid Framework** → **Playwright TypeScript Framework**
 - **TestNG** → **Playwright Test Runner**
 - **Jenkins Pipeline** → **GitHub Actions Workflow**
@@ -499,6 +508,7 @@ This section provides a comprehensive overview of all implemented features and c
 **Complete environment separation achieved:**
 
 #### Environment Files Structure
+
 ```
 .env.testing      # Default testing environment (demo sites)
 .env.development  # Development environment with dev URLs
@@ -507,6 +517,7 @@ This section provides a comprehensive overview of all implemented features and c
 ```
 
 #### Environment Variables Coverage
+
 - ✅ **Application URLs**: BankGuru, NopCommerce, Admin panels, APIs
 - ✅ **Test Configuration**: Timeouts, retries, headless mode
 - ✅ **Parallel Execution**: Worker count, performance settings
@@ -516,6 +527,7 @@ This section provides a comprehensive overview of all implemented features and c
 - ✅ **API Configuration**: Base URLs, timeouts, retry logic
 
 #### Environment Usage Examples
+
 ```bash
 # Environment-specific test execution
 npm run test:testing      # Uses .env.testing
@@ -534,6 +546,7 @@ npm run test:nopcommerce:staging
 **Comprehensive parallel testing capabilities:**
 
 #### Parallel Execution Scripts
+
 ```bash
 # Auto-detect optimal worker count
 npm run test:parallel
@@ -554,6 +567,7 @@ WORKERS=50% npm test
 ```
 
 #### Parallel Configuration Features
+
 - ✅ **Dynamic Worker Allocation**: Based on environment and CI/CD context
 - ✅ **Environment-Specific Workers**: Different worker counts per environment
 - ✅ **CI/CD Optimization**: Reduced workers in CI for stability
@@ -561,6 +575,7 @@ WORKERS=50% npm test
 - ✅ **Browser-Specific Parallel**: Multi-browser parallel execution
 
 #### Performance Configurations
+
 ```bash
 # .env.testing - Local development
 PARALLEL_WORKERS=4        # Moderate for local testing
@@ -580,12 +595,14 @@ PARALLEL_WORKERS=1        # Serial for critical validation
 **Comprehensive test execution matrix:**
 
 #### By Environment
+
 - `npm run test:testing` - Demo environment testing
 - `npm run test:development` - Development environment
 - `npm run test:staging` - Staging environment validation
 - `npm run test:production` - Production smoke tests
 
 #### By Browser
+
 - `npm run test:chromium` - Chrome/Chromium testing
 - `npm run test:firefox` - Firefox testing
 - `npm run test:webkit` - Safari/WebKit testing
@@ -593,6 +610,7 @@ PARALLEL_WORKERS=1        # Serial for critical validation
 - `npm run test:all-browsers` - All browsers in parallel
 
 #### By Test Type
+
 - `npm run test:smoke` - Quick smoke tests
 - `npm run test:regression` - Full regression suite
 - `npm run test:smoke:parallel` - Parallel smoke tests
@@ -617,6 +635,7 @@ npm test                           # Default execution (respects environment con
 ### When to Use Simple vs Parallel Execution
 
 **Use Simple Execution (`--workers=1`) when:**
+
 - 🐛 Debugging test failures
 - 🖥️ Limited system resources
 - 🔍 Investigating flaky tests
@@ -625,6 +644,7 @@ npm test                           # Default execution (respects environment con
 - 🎯 Testing specific functionality
 
 **Use Parallel Execution when:**
+
 - ⚡ Need fast feedback on large test suites
 - 💪 Have sufficient system resources
 - ✅ Tests are stable and well-isolated
@@ -753,6 +773,7 @@ npx playwright test tests/admin/login.spec.ts --workers=1 --reporter=html
 ### Common Issues and Solutions
 
 #### Environment Loading Issues
+
 ```bash
 # Issue: Environment not loading correctly
 # Solution: Check .env file exists and has correct syntax
@@ -765,6 +786,7 @@ cross-env NODE_ENV=testing npm test
 ```
 
 #### Parallel Execution Issues
+
 ```bash
 # Issue: Tests failing in parallel but passing in serial
 # Solution: Run with fewer workers or debug isolation
@@ -777,6 +799,7 @@ WORKERS=2 npm test  # Conservative approach
 ```
 
 #### Browser Issues
+
 ```bash
 # Issue: Browsers not installed
 # Solution: Install Playwright browsers
@@ -791,12 +814,14 @@ npm run test:headed
 ### Performance Optimization
 
 #### Worker Count Guidelines
+
 - **Local Development**: 2-4 workers
 - **CI/CD Pipeline**: 2 workers (stability)
 - **Staging Environment**: 4-6 workers
 - **Powerful Machines**: Up to 100% of CPU cores
 
 #### Memory Optimization
+
 ```bash
 # For large test suites
 export NODE_OPTIONS="--max-old-space-size=4096"
@@ -806,24 +831,28 @@ npm test
 ## 📋 Best Practices
 
 ### Test Organization
+
 1. **Group Related Tests**: Use `test.describe()` for logical grouping
 2. **Independent Tests**: Ensure tests don't depend on each other
 3. **Data Isolation**: Use unique test data for each test
 4. **Environment Cleanup**: Clean up test data after execution
 
 ### Page Object Design
+
 1. **Single Responsibility**: One page object per page/component
 2. **Meaningful Names**: Use descriptive method and property names
 3. **Wait Strategies**: Implement proper waiting in page objects
 4. **Error Handling**: Handle expected errors gracefully
 
 ### Environment Management
+
 1. **Sensitive Data**: Never commit production credentials
 2. **Environment Validation**: Validate environment variables on startup
 3. **Fallback Values**: Provide sensible defaults for optional variables
 4. **Documentation**: Document all environment variables
 
 ### Parallel Execution
+
 1. **Test Isolation**: Ensure tests can run independently
 2. **Resource Management**: Avoid shared resources between tests
 3. **Worker Scaling**: Start with fewer workers and scale up
@@ -832,6 +861,7 @@ npm test
 ## 🚀 Advanced Usage
 
 ### Custom Environment Variables
+
 ```bash
 # Create custom .env file
 cp .env.testing .env.custom
@@ -841,6 +871,7 @@ NODE_ENV=custom npm test
 ```
 
 ### Debugging Specific Tests
+
 ```bash
 # Debug single test with traces
 npx playwright test tests/bankguru/login-register.spec.ts --debug --trace on
@@ -850,6 +881,7 @@ npx playwright test -g "TC_01" --headed
 ```
 
 ### CI/CD Integration Examples
+
 ```yaml
 # GitHub Actions matrix strategy
 strategy:
@@ -864,6 +896,7 @@ strategy:
 ```
 
 ### Performance Monitoring
+
 ```bash
 # Monitor test execution time
 ---Linux/Mac---
@@ -874,10 +907,13 @@ Measure-Command { npm run test:api }
 ```
 
 # Run with detailed timing
+
 npx playwright test --reporter=list --verbose
 
 # Generate performance reports
+
 npm test && npm run report
+
 ```
 
 This comprehensive guide covers all aspects of the converted framework, from basic usage to advanced configurations and troubleshooting.
@@ -977,6 +1013,7 @@ The global teardown creates a comprehensive test summary file (`test-summary.txt
 ### Integration with CI/CD
 
 The global setup and teardown are automatically integrated with:
+
 - **GitHub Actions**: Artifact archiving and report publishing
 - **Local Development**: Comprehensive logging and cleanup
 - **Multiple Environments**: Environment-specific configurations
@@ -1226,6 +1263,7 @@ await mockHelper.clearAllMocks();
 ### When to Use API Mocking
 
 ✅ **Use API Mocking when:**
+
 - Testing UI without backend dependencies
 - Simulating error scenarios (500, 404, 401, etc.)
 - Testing slow network conditions
@@ -1235,6 +1273,7 @@ await mockHelper.clearAllMocks();
 - Running tests without external API costs
 
 ❌ **Don't use API Mocking when:**
+
 - Testing actual API integration
 - Validating real API contracts
 - End-to-end integration testing
@@ -1268,5 +1307,3 @@ For comprehensive API mocking documentation, examples, and best practices, see [
 ---
 
 ## 🤝 Contributing
-
-
