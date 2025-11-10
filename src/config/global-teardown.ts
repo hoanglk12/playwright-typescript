@@ -19,6 +19,7 @@ const execAsync = promisify(exec);
  * - Cleanup and resource management
  */
 async function globalTeardown(config: FullConfig) {
+
   console.log('🧹 Starting global teardown...');
   
   // Load environment configuration
