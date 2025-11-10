@@ -1263,10 +1263,6 @@ await mockHelper.clearAllMocks();
 ### When to Use API Mocking
 
 ✅ **Use API Mocking when:**
-<<<<<<< HEAD
-
-=======
->>>>>>> cd1fe45 (Add mocking capabilities)
 - Testing UI without backend dependencies
 - Simulating error scenarios (500, 404, 401, etc.)
 - Testing slow network conditions
@@ -1276,10 +1272,6 @@ await mockHelper.clearAllMocks();
 - Running tests without external API costs
 
 ❌ **Don't use API Mocking when:**
-<<<<<<< HEAD
-
-=======
->>>>>>> cd1fe45 (Add mocking capabilities)
 - Testing actual API integration
 - Validating real API contracts
 - End-to-end integration testing
@@ -1314,8 +1306,4 @@ For comprehensive API mocking documentation, examples, and best practices, see [
 
 ## 🤝 Contributing
 
-<<<<<<< HEAD
-Hoang Pham - Senior Quality Engineer
-=======
 
->>>>>>> cd1fe45 (Add mocking capabilities)
