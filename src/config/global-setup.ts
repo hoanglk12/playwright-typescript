@@ -6,6 +6,8 @@ import type { Environment } from './environment';
 import { TestLogger } from '../utils/test-logger';
 
 async function globalSetup() {
+
+
   console.log('🚀 Starting Global Setup...\n');
   // Clear all logs before starting test execution
   TestLogger.clearLogs();
