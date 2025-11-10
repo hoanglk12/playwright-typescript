@@ -340,5 +340,6 @@ test('PLA_SignIn - should login fail when provide wrong email or password', asyn
     console.log('  Email:', customer.email);
     console.log('  Subscribed:', customer.is_subscribed);
     console.log('  Loyalty Status:', customer.loyalty_program_status);
+    
   });
 });
