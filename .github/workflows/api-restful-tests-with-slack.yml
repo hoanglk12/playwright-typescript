@@ -1,0 +1,193 @@
+name: RESTful API Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: 
+      - 'tests/api/restful-api/**'
+      - 'src/api/**'
+      - 'src/data/restful-api-*'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'tests/api/restful-api/**'
+      - 'src/api/**'
+      - 'src/data/restful-api-*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run tests against'
+        required: true
+        default: 'testing'
+        type: choice
+        options:
+          - testing
+          - staging
+          - production
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Make scripts executable
+      run: chmod +x run-api-tests-nonparallel.sh
+    
+    - name: Run RESTful API tests
+      id: tests
+      continue-on-error: true
+      run: |
+        ENV=${{ github.event.inputs.environment || 'testing' }}
+        ./run-api-tests-nonparallel.sh $ENV serial 1
+      env:
+        CI: true
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: restful-api-test-results
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+
+    - name: Set test status
+      if: always()
+      run: |
+        if [ ${{ steps.tests.outcome }} == 'success' ]; then
+          echo "TEST_STATUS=success" >> $GITHUB_ENV
+        else
+          echo "TEST_STATUS=failure" >> $GITHUB_ENV
+        fi
+
+  notify-slack:
+    name: Send Slack Notification
+    runs-on: ubuntu-latest
+    needs: [api-tests]
+    if: always()
+    steps:
+      - name: Determine test status
+        id: status
+        run: |
+          TEST_RESULT="${{ needs.api-tests.result }}"
+          
+          if [[ "$TEST_RESULT" == "success" ]]; then
+            echo "color=#36a64f" >> $GITHUB_OUTPUT
+            echo "emoji=:white_check_mark:" >> $GITHUB_OUTPUT
+            echo "text=Passed" >> $GITHUB_OUTPUT
+          elif [[ "$TEST_RESULT" == "failure" ]]; then
+            echo "color=#FF0000" >> $GITHUB_OUTPUT
+            echo "emoji=:x:" >> $GITHUB_OUTPUT
+            echo "text=Failed" >> $GITHUB_OUTPUT
+          else
+            echo "color=#FFA500" >> $GITHUB_OUTPUT
+            echo "emoji=:warning:" >> $GITHUB_OUTPUT
+            echo "text=Cancelled" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "${{ steps.status.outputs.emoji }} RESTful API Test Results - ${{ steps.status.outputs.text }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ steps.status.outputs.emoji }} RESTful API Test Results",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:*\n${{ steps.status.outputs.text }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.ref_name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered By:*\n${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\n${{ github.event.inputs.environment || 'testing' }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Test Type:*\nRESTful API"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Commit:* ${{ github.event.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Commit"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+                    }
+                  ]
+                }
+              ],
+              "attachments": [
+                {
+                  "color": "${{ steps.status.outputs.color }}",
+                  "fields": [
+                    {
+                      "title": "Execution Mode",
+                      "value": "Serial (1 worker)",
+                      "short": true
+                    },
+                    {
+                      "title": "Runner",
+                      "value": "ubuntu-latest",
+                      "short": true
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

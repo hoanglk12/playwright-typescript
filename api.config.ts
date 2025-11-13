@@ -62,10 +62,13 @@ export default defineConfig({
     /* Global timeout for API requests */
     actionTimeout: 15000,
     
+    
     /* No browser context needed for API tests */
     // Don't set browser-specific options here
   },
- 
+   testIgnore: [
+    "**/api/api-mocking-examples.spec.ts" /* Ignore a test */
+  ],
   /* Projects for API testing - NO BROWSERS */
   projects: [
     {
