@@ -16,7 +16,7 @@ export default defineConfig({
   /* Skip API tests */
   testIgnore: [
     "**/api/**",
-    "**/profile-listing-page.spec.ts"  /* Ignore a test */
+    // "**/profile-listing-page.spec.ts"  /* Ignore a test */
   ],
 
   /* Maximum number of concurrent worker processes - dynamically configured */
@@ -90,6 +90,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Firefox"],
         viewport: { width: env.viewportWidth, height: env.viewportHeight },
+        ignoreHTTPSErrors: true,
         launchOptions: {
           headless: env.headless,
           firefoxUserPrefs: {
