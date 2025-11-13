@@ -27,14 +27,30 @@ export class HomePage extends BasePage {
   async navigateToHomePage(): Promise<void> {
     const env = getEnvironment();
     await this.page.goto(env.frontSiteUrl);
-    //await this.waitForFullPageLoad();
+    await this.waitForFullPageLoadWithSeperateNetworkidle();
   }
 
   /**
    * Click hamburger menu
    */
   async clickHamburgerMenu(): Promise<void> {
-    await this.clickElement(this.hamburgerMenu);
+    // Firefox-specific handling due to click timeout issues
+    const browserName = this.page.context().browser()?.browserType().name();
+    
+    if (browserName === 'firefox') {
+      // For Firefox, use JavaScript click to avoid Playwright timeout issues
+      await this.page.evaluate(() => {
+        const button = document.querySelector('.header__menu-btn button[aria-label="Menu"]') as HTMLButtonElement;
+        if (button) {
+          button.click();
+        }
+      });
+      // Wait for side navigation to appear (menu opening animation takes ~1 second)
+      await this.page.waitForSelector(this.highlightedText, { timeout: 5000 });
+    } else {
+      // Standard click for other browsers
+      await this.clickElement(this.hamburgerMenu);
+    }
   }
 
   /**
