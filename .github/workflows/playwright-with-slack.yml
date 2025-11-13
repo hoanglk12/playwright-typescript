@@ -50,11 +50,11 @@ on:
           - api
 
 env:
-  TEST_ENV: ${{ inputs.environment || 'testing' }}
-  TEST_MODE: ${{ inputs.mode || 'parallel' }}
-  TEST_WORKERS: ${{ inputs.workers || '4' }}  
-  TEST_BROWSER: ${{ inputs.browser || 'all' }}
-  TEST_TYPE: ${{ inputs.test_type || 'both' }}
+  TEST_ENV: ${{ github.event.inputs && github.event.inputs.environment || 'testing' }}
+  TEST_MODE: ${{ github.event.inputs && github.event.inputs.mode || 'parallel' }}
+  TEST_WORKERS: ${{ github.event.inputs && github.event.inputs.workers || '4' }}  
+  TEST_BROWSER: ${{ github.event.inputs && github.event.inputs.browser || 'all' }}
+  TEST_TYPE: ${{ github.event.inputs && github.event.inputs.test_type || 'both' }}
 
 jobs:
   ui-test:
@@ -297,6 +297,19 @@ jobs:
             echo "text=Partial Success" >> $GITHUB_OUTPUT
           fi
 
+      - name: Sanitize commit message
+        id: commit
+        run: |
+          # Sanitize commit message for JSON payload
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          # Escape quotes and backslashes, replace newlines with spaces
+          SANITIZED=$(echo "$COMMIT_MSG" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/ /g; s/\r/ /g; s/\t/ /g')
+          # Truncate if too long (Slack has limits)
+          if [ ${#SANITIZED} -gt 200 ]; then
+            SANITIZED="${SANITIZED:0:197}..."
+          fi
+          echo "message=$SANITIZED" >> $GITHUB_OUTPUT
+
       - name: Send Slack Notification
         uses: slackapi/slack-github-action@v1.25.0
         with:
@@ -353,7 +366,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Commit:* ${{ github.event.head_commit.message }}"
+                    "text": "*Commit:* ${{ steps.commit.outputs.message }}"
                   }
                 },
                 {

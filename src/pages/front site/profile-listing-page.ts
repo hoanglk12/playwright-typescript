@@ -41,7 +41,18 @@ export class ProfileListingPage extends BasePage {
   }
 
   async getTooltipTextFromSortButton(): Promise<string>{
-   return await this.hoverAndGetTooltipAdvanced(this.sortButtonSelector);
+    // Firefox-specific handling due to hover timeout issues
+    const browserName = this.page.context().browser()?.browserType().name();
+    
+    if (browserName === 'firefox') {
+      // For Firefox, get the title attribute directly instead of hovering
+      await this.waitForElement(this.sortButtonSelector);
+      const title = await this.page.getAttribute(this.sortButtonSelector, 'title');
+      return title || '';
+    } else {
+      // Standard hover approach for other browsers
+      return await this.hoverAndGetTooltipAdvanced(this.sortButtonSelector);
+    }
   }
 
 }
