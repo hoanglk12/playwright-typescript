@@ -74,7 +74,8 @@ test.describe('PLA GraphQL API - Account Management', () => {
     expect(graphqlResponse.errors).toHaveLength(1);
     
     // Verify the error message (using non-null assertion since we checked above)
-    expect(graphqlResponse.errors![0].message).toBe(plaErrorMessages.invalidEmail);
+    // API returns full email in error: "\"invalidemail@mail.com--\" is not a valid email address."
+    expect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidEmail);
     expect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-input');
     
     // Verify that data.createCustomer is null when there's an error
@@ -339,5 +340,6 @@ test('PLA_SignIn - should login fail when provide wrong email or password', asyn
     console.log('  Email:', customer.email);
     console.log('  Subscribed:', customer.is_subscribed);
     console.log('  Loyalty Status:', customer.loyalty_program_status);
+    
   });
 });

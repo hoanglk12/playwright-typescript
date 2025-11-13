@@ -79,12 +79,21 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
       const createAccountVariables = plaTestData.validCustomer;
       
       const createResponse = await client.mutateWrapped(createAccountMutation, createAccountVariables);
-      const createData = await createResponse.getData();
+      const createGraphqlResponse = await createResponse.getGraphQLResponse();
       
-      console.log('✅ Account created with email:', testEmail);
-      console.log('✅ Account created with data:', createData);
+      if (createGraphqlResponse.errors) {
+        const errorMessage = createGraphqlResponse.errors[0]?.message || '';
+        if (errorMessage.includes('already') || errorMessage.includes('exists')) {
+          console.log('⚠️  Account already exists, skipping to sign in...');
+        } else {
+          console.error('❌ Account creation failed:', errorMessage);
+          throw new Error(`Account creation failed: ${errorMessage}`);
+        }
+      } else {
+        console.log('✅ Account created with email:', testEmail);
+      }
       
-      // Step 2: Sign in with the SAME credentials
+      // Step 2: Sign in with the SAME credentials (only works if account was just created with this password)
       const signInMutation = `
         mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
           generateCustomerToken(email: $email, password: $password, remember: $remember) {
@@ -97,8 +106,17 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
       const signInVariables = plaTestData.validCredentials;
       
       const signInResponse = await client.mutateWrapped(signInMutation, signInVariables);
-      const signInData = await signInResponse.getData();
-      customerToken = signInData.generateCustomerToken.token;
+      const signInGraphqlResponse = await signInResponse.getGraphQLResponse();
+      
+      if (signInGraphqlResponse.errors) {
+        const signInError = signInGraphqlResponse.errors[0]?.message || '';
+        console.error('❌ Sign-in failed:', signInError);
+        console.error('This usually means the account exists but has a different password.');
+        console.error('Please delete the existing test account or use a fresh test environment.');
+        throw new Error(`Sign-in failed: ${signInError}`);
+      }
+      
+      customerToken = signInGraphqlResponse.data.generateCustomerToken.token;
       
       // Save to shared state for potential reuse
       setCustomerToken(customerToken);
@@ -353,4 +371,42 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
     console.log("Expected payment method titles: ", expectedTitles);
     expect(paymentMethodTitles).toEqual(expect.arrayContaining(expectedTitles));
   });
+
+  test("PLA_checkUserIsAuthed - return data about cartId, quantity, prices, rewards msg, and qff", async ({
+    createGraphQLClient,
+  }) => {
+    // Ensure we have a valid cartId from previous test
+    expect(cartId).toBeDefined();
+    expect(cartId).toBeTruthy();
+
+  // Create authenticated GraphQL client using environment configuration
+    const authClient = await createGraphQLClient({
+      authType: "bearer" as any, // Using built-in Bearer authentication
+      token: customerToken, // Pass the token directly
+    });
+    const query =`query checkUserIsAuthed($cartId:String!){cart(cart_id:$cartId){id __typename}}`;
+    const variables = { cartId: cartId };
+
+    const response = await authClient.queryWrapped(query, variables);
+
+    // This test should succeed (no errors expected)
+    await response.assertNoErrors();
+    await response.assertHasData();
+
+    
+    //Get response data
+    const data = await response.getData();
+    console.log("checkUserIsAuthed response data: ", data);
+
+    // Add null check before accessing properties
+    expect(data.cart).not.toBeNull();
+    expect(data.cart).toBeDefined();
+
+
+    // Verify cart data
+    expect(data.cart.id).toBe(cartId);
+    expect(data.cart.__typename).toBe('Cart');
+
+  });
+
 });

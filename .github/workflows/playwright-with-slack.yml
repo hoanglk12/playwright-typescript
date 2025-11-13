@@ -1,6 +1,10 @@
-name: Playwright Tests (Legacy - No Notifications)
+name: Playwright Tests (Slack Notifications)
 
 on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
   workflow_dispatch:
     inputs:
       environment:
@@ -60,12 +64,8 @@ jobs:
     if: ${{ inputs.test_type != 'api' }}
     strategy:
       matrix:
-        # os: [ubuntu-latest, windows-latest, macos-latest]
         os: [windows-latest, macos-latest]
         include:
-          # - os: ubuntu-latest
-          #   shell: bash
-          #   script_ext: sh
           - os: windows-latest
             shell: cmd
             script_ext: bat
@@ -263,29 +263,139 @@ jobs:
             ./combined-results/
           retention-days: 30
 
-  notify-results:
-    name: Notify Test Results
+  notify-slack:
+    name: Send Slack Notification
     runs-on: ubuntu-latest
     needs: [ui-test, api-test, test-report]
     if: always()
     steps:
-      - name: Generate notification summary
+      - name: Determine test status
+        id: status
         run: |
-          echo "## 🎭 Playwright Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ env.TEST_ENV }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Mode**: ${{ env.TEST_MODE }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Workers**: ${{ env.TEST_WORKERS }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Browser**: ${{ env.TEST_BROWSER }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Test Type**: ${{ env.TEST_TYPE }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Results" >> $GITHUB_STEP_SUMMARY
-          echo "- **UI Tests**: ${{ needs.ui-test.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **API Tests**: ${{ needs.api-test.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Combined Report**: ${{ needs.test-report.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- Test results are available in the Actions artifacts section" >> $GITHUB_STEP_SUMMARY
-          echo "- Reports include screenshots, videos, and HTML reports" >> $GITHUB_STEP_SUMMARY
-          echo "- Retention period: 30 days" >> $GITHUB_STEP_SUMMARY
+          UI_STATUS="${{ needs.ui-test.result || 'skipped' }}"
+          API_STATUS="${{ needs.api-test.result || 'skipped' }}"
+          
+          if [[ "$UI_STATUS" == "failure" || "$API_STATUS" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "color=#FF0000" >> $GITHUB_OUTPUT
+            echo "emoji=:x:" >> $GITHUB_OUTPUT
+            echo "text=Failed" >> $GITHUB_OUTPUT
+          elif [[ "$UI_STATUS" == "success" && "$API_STATUS" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=#36a64f" >> $GITHUB_OUTPUT
+            echo "emoji=:white_check_mark:" >> $GITHUB_OUTPUT
+            echo "text=Passed" >> $GITHUB_OUTPUT
+          elif [[ "$UI_STATUS" == "cancelled" || "$API_STATUS" == "cancelled" ]]; then
+            echo "status=cancelled" >> $GITHUB_OUTPUT
+            echo "color=#FFA500" >> $GITHUB_OUTPUT
+            echo "emoji=:warning:" >> $GITHUB_OUTPUT
+            echo "text=Cancelled" >> $GITHUB_OUTPUT
+          else
+            echo "status=partial" >> $GITHUB_OUTPUT
+            echo "color=#FFFF00" >> $GITHUB_OUTPUT
+            echo "emoji=:warning:" >> $GITHUB_OUTPUT
+            echo "text=Partial Success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "${{ steps.status.outputs.emoji }} Playwright Test Results - ${{ steps.status.outputs.text }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ steps.status.outputs.emoji }} Playwright Test Results",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:*\n${{ steps.status.outputs.text }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.ref_name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered By:*\n${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\n${{ env.TEST_ENV }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Browser:*\n${{ env.TEST_BROWSER }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*UI Tests:*\n${{ needs.ui-test.result || 'skipped' }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*API Tests:*\n${{ needs.api-test.result || 'skipped' }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Commit:* ${{ github.event.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Commit"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+                    }
+                  ]
+                }
+              ],
+              "attachments": [
+                {
+                  "color": "${{ steps.status.outputs.color }}",
+                  "fields": [
+                    {
+                      "title": "Test Mode",
+                      "value": "${{ env.TEST_MODE }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Workers",
+                      "value": "${{ env.TEST_WORKERS }}",
+                      "short": true
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
