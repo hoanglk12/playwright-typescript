@@ -2,6 +2,7 @@ import { Page } from '@playwright/test';
 import { HomePage } from './home-page';
 import { FormDragAndDropPage } from './form-drag-and-drop';
 import { ProfileListingPage } from './profile-listing-page';
+import { InsightsPage } from './insights-page';
 
 /**
  * Page Generator Manager for BankGuru pages
@@ -33,5 +34,12 @@ export class PageGenerator {
    */
   static getProfileListingPage(page: Page): ProfileListingPage {
     return new ProfileListingPage(page);
+  }
+
+  /**
+   * Get Insights Page instance
+   */
+  static getInsightsPage(page: Page): InsightsPage {
+    return new InsightsPage(page);
   }
 }

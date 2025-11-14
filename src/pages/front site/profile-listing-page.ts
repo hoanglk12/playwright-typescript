@@ -10,8 +10,7 @@ export class ProfileListingPage extends BasePage {
 
 
   private readonly searchTextBox = 'div[role="combobox"] > input';
-  private readonly sortByDropdown = 'div.items-listing__title ~ select';
-  private readonly sortButtonSelector = 'role=button[name="Ascending"]';
+  private readonly sortByDropdown = 'select';
 
   
 
@@ -40,19 +39,38 @@ export class ProfileListingPage extends BasePage {
     await this.enterText(this.searchTextBox, keyword);
   }
 
-  async getTooltipTextFromSortButton(): Promise<string>{
-    // Firefox-specific handling due to hover timeout issues
-    const browserName = this.page.context().browser()?.browserType().name();
+  /**
+   * Get the number of profiles displayed
+   */
+  async getProfileCount(): Promise<number> {
+    return await this.page.locator('a[href*="/people/"]').count();
+  }
+
+  /**
+   * Verify that profiles are sorted in ascending order by surname
+   */
+  async verifyProfilesSortedBySurnameAscending(): Promise<boolean> {
+    // Get all profile name elements from the people listing
+    const profileNameElements = await this.page.locator('a[href*="/people/"]').allTextContents();
     
-    if (browserName === 'firefox') {
-      // For Firefox, get the title attribute directly instead of hovering
-      await this.waitForElement(this.sortButtonSelector);
-      const title = await this.page.getAttribute(this.sortButtonSelector, 'title');
-      return title || '';
-    } else {
-      // Standard hover approach for other browsers
-      return await this.hoverAndGetTooltipAdvanced(this.sortButtonSelector);
+    if (profileNameElements.length < 2) {
+      return true; // If there's 1 or no profiles, consider it sorted
     }
+
+    // Extract surnames (assuming format "First Last" or just "Last")
+    const surnames = profileNameElements.map(name => {
+      const parts = name.trim().split(' ');
+      return parts[parts.length - 1].toLowerCase(); // Get last name
+    });
+
+    // Check if surnames are in ascending order
+    for (let i = 1; i < surnames.length; i++) {
+      if (surnames[i] < surnames[i - 1]) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 
 }

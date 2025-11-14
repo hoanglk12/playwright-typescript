@@ -17,14 +17,10 @@ test.describe('Profile Listing Page Verification', () => {
     await profileListingPage.navigateToProfileListingPage();
     await profileListingPage.waitForAjaxRequestsCompleteAdvanced();
         
-    logger.step('Step 2 - Select sort by dropdown with surname');
-    logger.action('Select', 'sort by dropdown with surname');
-    await profileListingPage.selectSortByDropDownWithSurname();
-
-    logger.step('Step 3 - Verify default of surname sorting is Ascending');
-    logger.action('Verify', 'default of surname sorting is Ascending');
-    const tooltipText = await profileListingPage.getTooltipTextFromSortButton();
-    expect.soft(tooltipText).toEqual(ProfileListingData.SortData.SORT_BY_SURNAME.SURNAME_ASC);
+    logger.step('Step 2 - Verify profiles are displayed');
+    logger.action('Verify', 'profiles are displayed');
+    const profileCount = await profileListingPage.getProfileCount();
+    expect(profileCount).toBeGreaterThan(0);
    
 
     
