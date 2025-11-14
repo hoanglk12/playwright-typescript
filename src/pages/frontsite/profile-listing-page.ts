@@ -11,6 +11,7 @@ export class ProfileListingPage extends BasePage {
 
   private readonly searchTextBox = 'div[role="combobox"] > input';
   private readonly sortByDropdown = 'select[class*="custom-input custom-input"]';
+  private readonly profileAnchorSelector = 'main a[href*="/people/"]';
   // private readonly sortByDropdownSelectedOption = 'select > option:checked';
 
   
@@ -33,6 +34,15 @@ export class ProfileListingPage extends BasePage {
    */
   async selectSortByDropDownWithSurname(): Promise<void> {
     await this.selectDropdownByText(this.sortByDropdown, ProfileListingData.SortData.SORT_BY_SURNAME.SURNAME);
+    // Ensure ascending is selected (some pages expose an explicit Ascending button)
+    try {
+      const ascBtn = this.page.locator('main').locator('button:has-text("Ascending")').first();
+      if (await ascBtn.count() > 0) {
+        await ascBtn.click();
+      }
+    } catch (e) {
+      // ignore if the Ascending control isn't present
+    }
   }
 
   /**
@@ -56,15 +66,23 @@ export class ProfileListingPage extends BasePage {
    * Get the number of profiles displayed
    */
   async getProfileCount(): Promise<number> {
-    return await this.page.locator('main a[href*="/people/"]').count();
+    // Wait for at least one profile anchor to be attached (CI can be slower)
+    try {
+      await this.waitForProfilesToBePresent(1, 30000);
+    } catch (e) {
+      // swallow and return whatever is present (will be asserted by the test)
+    }
+    return await this.page.locator(this.profileAnchorSelector).count();
   }
 
   /**
    * Verify that profiles are sorted in ascending order by surname
    */
   async verifyProfilesSortedBySurnameAscending(): Promise<boolean> {
+    // Ensure profile anchors are present before reading names
+    await this.waitForProfilesToBePresent(1, 30000);
     // Get all profile name elements from the people listing (scope to main area)
-    const profileNameElements = await this.page.locator('main a[href*="/people/"]').allTextContents();
+    const profileNameElements = await this.page.locator(this.profileAnchorSelector).allTextContents();
 
     // Filter out non-name anchors (emails, phones, empty strings) and trim
     const names = profileNameElements
@@ -86,19 +104,52 @@ export class ProfileListingPage extends BasePage {
     const surnames = deduped.map(name => {
       // Remove trailing parentheticals or commas
       const cleaned = name.replace(/\s*[,\(\[].*$/, '').trim();
-      const match = cleaned.match(/([A-Za-zÀ-ÖØ-öø-ÿ'’-]+)\s*$/);
-      const s = match && match[1] ? match[1].toLowerCase() : cleaned.split(' ').pop()!.toLowerCase();
-      return s;
+      const parts = cleaned.split(/\s+/);
+      let key: string;
+      if (parts.length <= 2) {
+        // single or two-token name: use last token as surname
+        key = parts[parts.length - 1];
+      } else {
+        // multi-word surname: assume everything after the first token is the surname/key
+        key = parts.slice(1).join(' ');
+      }
+      return (key || '').toLowerCase();
     });
 
-    // Check if surnames are in ascending lexicographic order
+    // Check if surnames are in ascending lexicographic order (use localeCompare for robustness)
     for (let i = 1; i < surnames.length; i++) {
-      if (surnames[i] < surnames[i - 1]) {
+      const cmp = surnames[i].localeCompare(surnames[i - 1], undefined, { sensitivity: 'base' });
+      if (cmp < 0) {
+        // Debug output to help CI logs diagnose ordering issues
+        // eslint-disable-next-line no-console
+        console.error('Profiles not sorted. First 20 names:', deduped.slice(0, 20));
+        // eslint-disable-next-line no-console
+        console.error('Extracted surnames:', surnames.slice(0, 20));
         return false;
       }
     }
 
     return true;
+  }
+
+  /**
+   * Wait until there are at least `minCount` profile anchors present in the main listing.
+   */
+  async waitForProfilesToBePresent(minCount = 1, timeout = 30000): Promise<void> {
+    const sel = this.profileAnchorSelector;
+    await this.page.waitForFunction(
+      (args: (string | number)[]) => {
+        const s = args[0] as string;
+        const min = args[1] as number;
+        try {
+          return document.querySelectorAll(s).length >= min;
+        } catch (e) {
+          return false;
+        }
+      },
+      [sel, minCount],
+      { timeout }
+    );
   }
 
   /**
