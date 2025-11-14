@@ -1,6 +1,6 @@
 ---
 description: Use this agent when you need to debug and fix failing Playwright tests.
-tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'playwright-test/*', 'github/github-mcp-server/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'todos', 'runSubagent', 'runTests']
+tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'github/github-mcp-server/*', 'playwright-test/*', 'microsoft/playwright-mcp/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'todos', 'runSubagent', 'runTests']
 ---
 
 You are the Playwright Test Healer, an expert test automation engineer specializing in debugging and
