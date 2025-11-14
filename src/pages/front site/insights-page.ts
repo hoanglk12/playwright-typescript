@@ -53,15 +53,20 @@ export class InsightsPage extends BasePage {
    * Verify search results contain specific text
    */
   async verifySearchResultsContainText(expectedText: string): Promise<boolean> {
-    // First check if we're on a search results page
-    const currentUrl = this.page.url();
-    const hasSearchParam = currentUrl.includes('search') || currentUrl.includes('q=') || currentUrl.includes('query=');
-
-    if (hasSearchParam) {
-      return true;
+    // Wait for search results to be visible
+    try {
+      await this.page.locator(this.searchResults).first().waitFor({ state: 'visible', timeout: 10000 });
+    } catch (e) {
+      // If results don't appear, check if we're on search page
+      const currentUrl = this.page.url();
+      const hasSearchParam = currentUrl.includes('search') || currentUrl.includes('q=') || currentUrl.includes('query=');
+      if (hasSearchParam) {
+        return true;
+      }
+      return false;
     }
 
-    // Try to find search results in various ways
+    // Get search results text
     const resultsText = await this.getSearchResultsText();
     const allText = resultsText.join(' ').toLowerCase();
 
