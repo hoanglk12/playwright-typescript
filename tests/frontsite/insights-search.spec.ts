@@ -7,7 +7,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
  * @story Insights Search Functionality
  */
 
-// test.describe('Insights Page Search @insights @frontsite', () => {
+test.describe('Insights Page Search @insights @frontsite', () => {
   //Declare logger for test steps
   const logger = createTestLogger('Insights Search Scenarios');
 
@@ -28,4 +28,4 @@ import { createTestLogger } from '../../src/utils/test-logger';
     const containsBanking = await insightsPage.verifySearchResultsContainText('Banking');
     expect(containsBanking).toBeTruthy();
   });
-// });
+});
