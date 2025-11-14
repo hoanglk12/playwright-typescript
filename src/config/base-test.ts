@@ -1,11 +1,11 @@
 import { test as base } from '@playwright/test';
-import { PageGenerator as FrontSitePageGenerator } from '../pages/front site/page-generator';
+import { PageGenerator as FrontSitePageGenerator } from '../pages/frontsite/page-generator';
 import { PageGenerator as AdminPageGenerator } from '../pages/admin/page-generator';
-import { HomePage } from '../pages/front site/home-page';
+import { HomePage } from '../pages/frontsite/home-page';
 import { LoginPage } from '../pages/admin/login-page';
-import { FormDragAndDropPage } from '@pages/front site/form-drag-and-drop';
-import { ProfileListingPage } from '@pages/front site/profile-listing-page';
-import { InsightsPage } from '@pages/front site/insights-page';
+import { FormDragAndDropPage } from '@pages/frontsite/form-drag-and-drop';
+import { ProfileListingPage } from '@pages/frontsite/profile-listing-page';
+import { InsightsPage } from '@pages/frontsite/insights-page';
 
 
 type CustomFixtures = {
