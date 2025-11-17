@@ -10,6 +10,7 @@ node_modules/
 /test-artifacts/
 /.playwright-report/
 /.playwright/
+.playwright-mcp/
 
 # Test artifacts and logs
 screenshots/
