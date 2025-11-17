@@ -129,3 +129,4 @@ config.local.js
 .prettierrc
 .huskyrc
 .lintstagedrc
+temp_healer.md
