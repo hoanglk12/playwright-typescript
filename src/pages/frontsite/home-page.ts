@@ -8,7 +8,7 @@ import { getEnvironment } from '../../config/environment';
 export class HomePage extends BasePage {
   // Header locators
 
-  private readonly hamburgerMenu = '.header__menu-btn button[aria-label="Menu"]';
+  private readonly hamburgerMenu = 'button[aria-label="Menu"]';
   private readonly logo = '.logo svg.logo__svg';
   private readonly highlightedText = '.side-navigation__link';
   
@@ -34,23 +34,9 @@ export class HomePage extends BasePage {
    * Click hamburger menu
    */
   async clickHamburgerMenu(): Promise<void> {
-    // Firefox-specific handling due to click timeout issues
-    const browserName = this.page.context().browser()?.browserType().name();
-    
-    if (browserName === 'firefox') {
-      // For Firefox, use JavaScript click to avoid Playwright timeout issues
-      await this.page.evaluate(() => {
-        const button = document.querySelector('.header__menu-btn button[aria-label="Menu"]') as HTMLButtonElement;
-        if (button) {
-          button.click();
-        }
-      });
-      // Wait for side navigation to appear (menu opening animation takes ~1 second)
-      await this.page.waitForSelector(this.highlightedText, { timeout: 5000 });
-    } else {
-      // Standard click for other browsers
-      await this.clickElement(this.hamburgerMenu);
-    }
+    await this.clickElement(this.hamburgerMenu);
+    // Wait for side navigation to appear (menu opening animation takes ~1 second)
+    await this.page.waitForSelector(this.highlightedText, { timeout: 5000 });
   }
 
   /**
