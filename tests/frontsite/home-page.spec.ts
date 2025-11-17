@@ -32,10 +32,13 @@ import { createTestLogger } from '../../src/utils/test-logger';
     await homePage.clickHamburgerMenu();
     await homePage.waitForAjaxRequestsCompleteAdvanced();
 
-    // Step 4: Verify highlighted text background color is #003f64
-    logger.step('Step 4 - Verify highlighted text background color is HomeData.HeaderData.NAVIGATION_MENU.highlightedColor');
-    logger.action('Verify', 'highlighted text background color is HomeData.HeaderData.NAVIGATION_MENU.highlightedColor');
-    expect(await homePage.getAllHighlightedTextBackgroundColor()).toContain(HomeData.HeaderData.NAVIGATION_MENU.highlightedColor);
+    // Step 4: Hover over menu text and verify background color is #003f64
+    logger.step('Step 4 - Hover over menu text and verify background color is #003f64');
+    logger.action('Hover', 'menu text');
+    await homePage.hoverElement('.side-navigation__link');
+    logger.action('Verify', 'background color is #003f64');
+    const colors = await homePage.getAllHighlightedTextBackgroundColor();
+    expect(colors[0]).toBe('#003f64');
   
   });
 // });
