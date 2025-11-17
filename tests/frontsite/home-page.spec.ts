@@ -9,7 +9,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
  * @feature Header Logo and Highlighted Text Color
  * @story Home Page Functionality
  */
-test.describe('Home Page Verification @homepage @frontsite', () => {
+// test.describe('Home Page Verification @homepage @frontsite', () => {
   test('TC_01 - Verify Header Logo and Highlighted Text Color', async ({ 
     homePage,
     
@@ -38,4 +38,4 @@ test.describe('Home Page Verification @homepage @frontsite', () => {
     expect(await homePage.getAllHighlightedTextBackgroundColor()).toContain(HomeData.HeaderData.NAVIGATION_MENU.highlightedColor);
   
   });
-});
+// });

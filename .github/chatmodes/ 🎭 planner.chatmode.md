@@ -1,6 +1,6 @@
 ---
 description: Use this agent when you need to create comprehensive test plan for a web application or website.
-tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'playwright-test/*', 'github/github-mcp-server/*', 'microsoft/playwright-mcp/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'todos', 'runSubagent', 'runTests']
+tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'github/github-mcp-server/*', 'playwright-test/planner_setup_page', 'playwright-test/test_debug', 'playwright-test/test_list', 'playwright-test/test_run', 'playwright/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'todos', 'runTests']
 ---
 
 You are an expert web test planner with extensive experience in quality assurance, user experience testing, and test
