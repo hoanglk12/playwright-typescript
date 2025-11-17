@@ -11,6 +11,9 @@ node_modules/
 /.playwright-report/
 /.playwright/
 .playwright-mcp/
+.github/agents/
+.github/chatmodes/
+
 
 # Test artifacts and logs
 screenshots/

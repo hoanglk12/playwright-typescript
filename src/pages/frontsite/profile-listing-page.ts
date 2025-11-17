@@ -26,7 +26,7 @@ export class ProfileListingPage extends BasePage {
   async navigateToProfileListingPage(): Promise<void> {
     const env = getEnvironment();
     await this.page.goto(ProfileListingData.ProfileListingTestDataGenerator.profileListingUrl);
-    //await this.waitForFullPageLoad();
+    // await this.waitForDOMContentLoaded();
   }
 
   /**
