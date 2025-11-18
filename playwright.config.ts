@@ -15,8 +15,7 @@ export default defineConfig({
 
   /* Skip API tests */
   testIgnore: [
-    "**/api/**",
-    "**/insights-search.spec.ts"
+    "**/api/**"
     // "**/profile-listing-page.spec.ts"  /* Ignore a test */
   ],
 
