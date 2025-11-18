@@ -10,6 +10,10 @@ node_modules/
 /test-artifacts/
 /.playwright-report/
 /.playwright/
+.playwright-mcp/
+.github/agents/
+.github/chatmodes/
+
 
 # Test artifacts and logs
 screenshots/
@@ -128,3 +132,4 @@ config.local.js
 .prettierrc
 .huskyrc
 .lintstagedrc
+temp_healer.md
