@@ -27,7 +27,7 @@ export class HomePage extends BasePage {
   async navigateToHomePage(): Promise<void> {
     const env = getEnvironment();
     await this.page.goto(env.frontSiteUrl);
-    await this.waitForFullPageLoadWithSeperateNetworkidle();
+    // await this.waitForPageReady();
   }
 
   /**

@@ -7,7 +7,6 @@ import { FormDragAndDropPage } from '@pages/frontsite/form-drag-and-drop';
 import { ProfileListingPage } from '@pages/frontsite/profile-listing-page';
 import { InsightsPage } from '@pages/frontsite/insights-page';
 
-
 type CustomFixtures = {
   homePage: HomePage;
   loginPage: LoginPage;
@@ -41,9 +40,6 @@ export const test = base.extend<CustomFixtures>({
     const insightsPage = FrontSitePageGenerator.getInsightsPage(page);
     await use(insightsPage);
   },
-
-
- 
 });
 
 export { expect } from '@playwright/test';
