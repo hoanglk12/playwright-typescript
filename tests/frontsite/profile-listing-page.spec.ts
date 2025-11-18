@@ -4,7 +4,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 
 
 test.describe('Profile Listing Page Verification', () => {
-  test('TC_01 - Verify Header Logo and Highlighted Text Color', async ({ 
+  test('TC_01 - Verify Profile Listing Page with Default Sorting', async ({ 
     profileListingPage,
     
   }) => {
