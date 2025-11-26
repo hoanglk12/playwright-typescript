@@ -6,7 +6,7 @@ import { LoginPage } from './login-page';
  * Similar to PageGeneratorManager in the Maven framework
  */
 export class PageGenerator {
-  private page: Page;
+  protected page: Page;
 
   constructor(page: Page) {
     this.page = page;
