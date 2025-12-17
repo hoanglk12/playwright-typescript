@@ -6,11 +6,13 @@ import {
   // plaErrorMessages,
   // expectedCustomerData,
 } from "../../src/data/api/pla-test-data";
-import { getCustomerToken, setCustomerToken, setAddressId, setCustomerId, getCustomerId, getAddressId } from './shared-state';
+import { getCustomerToken, setCustomerToken, setAddressId, setCustomerId, getCustomerId, getAddressId, getCartId, setCartId } from './shared-state';
+import { get } from "http";
 
 let customerToken: string;
 export let customerId: string;
 export let addressId: string;
+export let cartId: string;
 // Reuse the SAME test email generator as pla-account-creation-signin.spec.ts
 const testEmail = getTestEmail();
 
@@ -119,6 +121,30 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
     } else {
       console.log('✅ Using existing shared token from test suite');
     }
+
+    // Try to get cartId from shared state (if running after pla-cart_minicart tests)
+    cartId = getCartId();
+    
+    // If no cartId exists (running standalone), create a new cart
+    if (!cartId) {
+      console.log('No shared cartId found. Creating new cart...');
+      
+      const authClient = await createGraphQLClient({
+        authType: "bearer" as any,
+        token: customerToken,
+      });
+
+      const createCartMutation = `mutation CreateCartAfterSignIn { cartId: createEmptyCart }`;
+      const cartResponse = await authClient.queryWrapped(createCartMutation);
+      const cartData = await cartResponse.getData();
+      
+      cartId = cartData.cartId;
+      setCartId(cartId);
+      
+      console.log('✅ Cart created with ID:', cartId);
+    } else {
+      console.log('✅ Using existing shared cartId from test suite:', cartId);
+    }
   });
 
   test("PLA_getCurrencyData - should get currency code with valid token", async ({
@@ -150,6 +176,34 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
     expect(data.currency.__typename).toBe('Currency');
 });
 
+test("PLA_getDynamicData - should get correct dynamic data with valid cartId", async ({
+    createGraphQLClient,
+  }) => {
+    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+  
+    console.log("Using Cart ID:", cartId);
+    const authClient = await createGraphQLClient({
+      authType: "bearer" as any,
+      token: customerToken,
+    });
+
+    const query = `query GetDynamicData($cart_id:String!){cart(cart_id:$cart_id){dynamic_promo_blocks{discount{phrase __typename}gift{phrase __typename}message{progress_percent phrase success_phrase __typename}__typename}__typename}storeConfig{id store_code ewave_dynamicpromoblocks_discount_enable ewave_dynamicpromoblocks_general_enable ewave_dynamicpromoblocks_gift_enable ewave_dynamicpromoblocks_message_enable __typename}}`;
+   
+    const variables = { cart_id: cartId };
+   const response = await authClient.queryWrapped(query, variables);
+
+    await response.assertNoErrors();
+    await response.assertHasData();
+
+    const data = await response.getData();
+    console.log("Response data:", data);
+
+
+    // Validate customer data
+    expect(data.cart.dynamic_promo_blocks.discount).toBeNull();
+    expect(data.cart.dynamic_promo_blocks.gift).toBeNull();
+    expect(data.cart.dynamic_promo_blocks.message).toBeDefined();
+});
 
 
 

@@ -3,6 +3,7 @@
  * Centralized test data for Account Management tests
  */
 
+import { cartId } from "@tests/api/shared-state";
 import { subscribe } from "diagnostics_channel";
 
 /**
@@ -200,7 +201,7 @@ export const plaTestData = {
     loyalty_program_status: false
   },
 
-
+  cartId: cartId,
   subscribeNewsletterData:{
     isSubscribed: [true, false]
   },
