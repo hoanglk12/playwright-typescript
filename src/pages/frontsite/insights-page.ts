@@ -1,10 +1,14 @@
 import { Page } from '@playwright/test';
 import { BasePage } from '../base-page';
+import { getEnvironment } from '../../config/environment';
+
 
 /**
  * Insights Page Object
  */
 export class InsightsPage extends BasePage {
+  //get environment-specific URL
+  private readonly environment = getEnvironment();
   // Search locators
   private readonly searchToggle = 'button[aria-label*="search" i], .search-toggle, .search-icon, [data-testid*="search"]';
   private readonly searchInput = '//*[@id="pageContent"]//input[@placeholder="Type a keyword here and hit enter to search"]';
@@ -18,7 +22,7 @@ export class InsightsPage extends BasePage {
    * Navigate to Insights page
    */
   async navigateToInsightsPage(): Promise<void> {
-    await this.page.goto('https://ff-fieldfishercom-qa-web-ekfefjdmh6dbg3f7.uksouth-01.azurewebsites.net/en/insights');
+    await this.page.goto(`${this.environment.frontSiteUrl}/insights`);
     await this.waitForDOMContentLoaded();
   }
 
