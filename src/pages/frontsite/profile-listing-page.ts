@@ -1,7 +1,6 @@
 import { Page } from '@playwright/test';
 import { BasePage } from '../base-page';
-import { getEnvironment } from '../../config/environment';
-import * as ProfileListingData  from '../../data/profile-listing-data';
+import * as ProfileListingData from '../../data/profile-listing-data';
 
 /**
  * Profile Listing Page Object
@@ -24,9 +23,9 @@ export class ProfileListingPage extends BasePage {
    * Navigate to FF home page
    */
   async navigateToProfileListingPage(): Promise<void> {
-    const env = getEnvironment();
     await this.page.goto(ProfileListingData.ProfileListingTestDataGenerator.profileListingUrl);
-    // await this.waitForDOMContentLoaded();
+    await this.waitForDOMContentLoaded();
+    await this.waitForProfilesToBePresent(1, 30000);
   }
 
   /**
@@ -43,6 +42,9 @@ export class ProfileListingPage extends BasePage {
     } catch (e) {
       // ignore if the Ascending control isn't present
     }
+    // Wait for AJAX + DOM re-render after sort change
+    await this.waitForAjaxRequestsCompleteAdvanced();
+    await this.waitForProfilesToBePresent(1, 30000);
   }
 
   /**
@@ -100,7 +102,7 @@ export class ProfileListingPage extends BasePage {
     }
 
     // Extract surnames robustly: take the last word-like token (letters, hyphens, apostrophes)
-    const surnameRegex = /([A-Za-zÀ-ÖØ-öø-ÿ'’-]+)\s*$/.exec as any;
+
     const surnames = deduped.map(name => {
       // Remove trailing parentheticals or commas
       const cleaned = name.replace(/\s*[,\(\[].*$/, '').trim();
@@ -138,16 +140,15 @@ export class ProfileListingPage extends BasePage {
   async waitForProfilesToBePresent(minCount = 1, timeout = 30000): Promise<void> {
     const sel = this.profileAnchorSelector;
     await this.page.waitForFunction(
-      (args: (string | number)[]) => {
-        const s = args[0] as string;
-        const min = args[1] as number;
+      (args: [string, number]) => {
+        const [s, min] = args;
         try {
           return document.querySelectorAll(s).length >= min;
         } catch (e) {
           return false;
         }
       },
-      [sel, minCount],
+      [sel, minCount] as [string, number],
       { timeout }
     );
   }

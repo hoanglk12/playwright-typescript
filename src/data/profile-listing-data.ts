@@ -13,7 +13,7 @@ export class ProfileListingTestDataGenerator {
  */
 export const SortData = {
   
-  SORT_BY_DEFAULT: 'Default',
+  SORT_BY_DEFAULT: 'Seniority',
   SORT_BY_SURNAME: {
     SURNAME : 'Surname',
     SURNAME_ASC: 'Ascending',
