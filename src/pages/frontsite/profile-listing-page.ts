@@ -1,132 +1,166 @@
-import { Page } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 import { BasePage } from '../base-page';
 import * as ProfileListingData from '../../data/profile-listing-data';
 
 /**
  * Profile Listing Page Object
+ * Follows Page Object Model (POM) pattern.
+ * Locators use semantic selectors per playwright-expert skill:
+ * getByRole / getByLabel / getByText are preferred over XPath or CSS.
  */
 export class ProfileListingPage extends BasePage {
-
-
-  private readonly searchTextBox = 'div[role="combobox"] > input';
-  private readonly sortByDropdown = 'select[class*="custom-input custom-input"]';
-  private readonly profileAnchorSelector = 'main a[href*="/people/"]';
-  // private readonly sortByDropdownSelectedOption = 'select > option:checked';
-
-  
 
   constructor(page: Page) {
     super(page);
   }
 
+  // ── Semantic Locators (playwright-expert: prefer getByRole/getByLabel/getByText) ──
+
+  /** Sort By <select> — matched by visible option text containing known sort values */
+  private sortByDropdown(): Locator {
+    return this.page
+      .locator('select')
+      .filter({ hasText: /seniority|surname/i })
+      .first();
+  }
+
+  /** Profile card links — getByRole('link') intersected with href attribute (playwright-expert: .and() preferred over CSS-only) */
+  private profileLinks(): Locator {
+    return this.page
+      .getByRole('link')
+      .and(this.page.locator('[href*="/people/"]'));
+  }
+
+  /** Search input — matched by role or label */
+  private searchInput(): Locator {
+    return this.page
+      .getByRole('searchbox')
+      .or(this.page.getByLabel(/search/i))
+      .or(this.page.getByRole('combobox').locator('input'))
+      .first();
+  }
+
   /**
-   * Navigate to FF home page
+   * Navigate to Profile Listing page and wait for profiles to be visible.
+   * Uses Playwright auto-waiting instead of waitForTimeout.
    */
   async navigateToProfileListingPage(): Promise<void> {
     await this.page.goto(ProfileListingData.ProfileListingTestDataGenerator.profileListingUrl);
     await this.waitForDOMContentLoaded();
-    await this.waitForProfilesToBePresent(1, 30000);
+    // Auto-wait: block until at least one profile link is visible (no hard wait)
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
   }
 
   /**
-   * Click hamburger menu
+   * Select Sort By dropdown with Surname option.
+   * Uses semantic locator + Playwright auto-wait after sort change.
    */
   async selectSortByDropDownWithSurname(): Promise<void> {
-    await this.selectDropdownByText(this.sortByDropdown, ProfileListingData.SortData.SORT_BY_SURNAME.SURNAME);
-    // Ensure ascending is selected (some pages expose an explicit Ascending button)
-    try {
-      const ascBtn = this.page.locator('main').locator('button:has-text("Ascending")').first();
-      if (await ascBtn.count() > 0) {
-        await ascBtn.click();
-      }
-    } catch (e) {
-      // ignore if the Ascending control isn't present
+    const dropdown = this.sortByDropdown();
+    await dropdown.waitFor({ state: 'visible', timeout: 10000 });
+    await dropdown.selectOption({ label: ProfileListingData.SortData.SORT_BY_SURNAME.SURNAME });
+
+    // Ensure ascending order is selected — use getByText (playwright-expert: semantic, matches any element type)
+    const ascControl = this.page
+      .getByRole('main')
+      .getByText(ProfileListingData.SortData.SORT_BY_SURNAME.SURNAME_ASC, { exact: true })
+      .first();
+    if (await ascControl.count() > 0) {
+      await ascControl.click();
+      await this.waitForAjaxRequestsCompleteAdvanced();
     }
-    // Wait for AJAX + DOM re-render after sort change
+
+    // Auto-wait for AJAX + first profile link to re-appear after sort change
     await this.waitForAjaxRequestsCompleteAdvanced();
-    await this.waitForProfilesToBePresent(1, 30000);
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 15000 });
   }
 
   /**
-   * Get the label/text of the currently selected option in Sort By dropdown
+   * Get the currently selected Sort By option label.
+   * evaluate() uses HTMLSelectElement — proper Web API type, no 'any'.
    */
   async getSelectedSortByLabel(): Promise<string> {
-    // <option> elements may be hidden; read the selected option via the select element
-    const text = await this.page.locator(this.sortByDropdown).evaluate((el: HTMLSelectElement) => {
-      const opt = el.selectedOptions && el.selectedOptions[0];
-      return opt ? (opt.textContent || '').trim() : '';
+    const dropdown = this.sortByDropdown();
+    await dropdown.waitFor({ state: 'visible', timeout: 10000 });
+    const text = await dropdown.evaluate((el: HTMLSelectElement) => {
+      const selected = el.selectedOptions[0];
+      return selected ? (selected.textContent ?? '').trim() : '';
     });
-    return (text || '').trim();
-  }
-
- 
-  async searchWithKeyword(keyword: string): Promise<void> {
-    await this.enterText(this.searchTextBox, keyword);
+    return text.trim();
   }
 
   /**
-   * Get the number of profiles displayed
+   * Type a keyword into the search input.
+   * Uses semantic locator (getByRole/getByLabel) per playwright-expert skill.
+   */
+  async searchWithKeyword(keyword: string): Promise<void> {
+    const input = this.searchInput();
+    await input.waitFor({ state: 'visible', timeout: 10000 });
+    await input.fill(keyword);
+    await this.page.keyboard.press('Enter');
+    await this.waitForAjaxRequestsCompleteAdvanced();
+  }
+
+  /**
+   * Get the count of profile cards displayed.
+   * Uses Playwright auto-waiting via .waitFor() instead of raw waitForFunction.
    */
   async getProfileCount(): Promise<number> {
-    // Wait for at least one profile anchor to be attached (CI can be slower)
     try {
-      await this.waitForProfilesToBePresent(1, 30000);
-    } catch (e) {
-      // swallow and return whatever is present (will be asserted by the test)
+      await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
+    } catch {
+      // swallow — the count of 0 will be asserted by the test
     }
-    return await this.page.locator(this.profileAnchorSelector).count();
+    return await this.profileLinks().count();
   }
 
   /**
-   * Verify that profiles are sorted in ascending order by surname
+   * Verify profiles are sorted ascending by surname.
+   * Uses semantic profileLinks() locator + Playwright auto-wait.
    */
   async verifyProfilesSortedBySurnameAscending(): Promise<boolean> {
-    // Ensure profile anchors are present before reading names
-    await this.waitForProfilesToBePresent(1, 30000);
-    // Get all profile name elements from the people listing (scope to main area)
-    const profileNameElements = await this.page.locator(this.profileAnchorSelector).allTextContents();
+    // Auto-wait for profile links to be visible before reading names
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
+    const allNames = await this.profileLinks().allTextContents();
 
-    // Filter out non-name anchors (emails, phones, empty strings) and trim
-    const names = profileNameElements
-      .map(n => (n || '').trim())
-      .filter(n => n && !n.includes('@') && !n.toLowerCase().startsWith('tel:') && /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(n));
+    // Filter out empty strings, emails, phone links
+    const names = allNames
+      .map((n) => n.trim())
+      .filter(
+        (n) =>
+          n.length > 0 &&
+          !n.includes('@') &&
+          !n.toLowerCase().startsWith('tel:') &&
+          /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(n)
+      );
 
-    if (names.length < 2) {
-      return true; // If there's 1 or no profiles, consider it sorted
-    }
+    if (names.length < 2) return true;
 
-    // Deduplicate adjacent duplicates (some cards contain duplicated anchor texts)
+    // Deduplicate adjacent duplicates
     const deduped: string[] = [];
     for (let i = 0; i < names.length; i++) {
       if (i === 0 || names[i] !== names[i - 1]) deduped.push(names[i]);
     }
 
-    // Extract surnames robustly: take the last word-like token (letters, hyphens, apostrophes)
-
-    const surnames = deduped.map(name => {
-      // Remove trailing parentheticals or commas
-      const cleaned = name.replace(/\s*[,\(\[].*$/, '').trim();
+    // Extract surname: last token for 1-2 token names; everything after first token for 3+ token names
+    const extractSurname = (fullName: string): string => {
+      const cleaned = fullName.replace(/\s*[,([].*$/, '').trim();
       const parts = cleaned.split(/\s+/);
-      let key: string;
       if (parts.length <= 2) {
-        // single or two-token name: use last token as surname
-        key = parts[parts.length - 1];
-      } else {
-        // multi-word surname: assume everything after the first token is the surname/key
-        key = parts.slice(1).join(' ');
+        return parts[parts.length - 1].toLowerCase();
       }
-      return (key || '').toLowerCase();
-    });
+      // 3+ tokens: compound surname — use everything after the first (given) name
+      return parts.slice(1).join(' ').toLowerCase();
+    };
 
-    // Check if surnames are in ascending lexicographic order (use localeCompare for robustness)
+    const surnames = deduped.map(extractSurname);
+
+    // Verify ascending lexicographic order
     for (let i = 1; i < surnames.length; i++) {
       const cmp = surnames[i].localeCompare(surnames[i - 1], undefined, { sensitivity: 'base' });
       if (cmp < 0) {
-        // Debug output to help CI logs diagnose ordering issues
-        // eslint-disable-next-line no-console
-        console.error('Profiles not sorted. First 20 names:', deduped.slice(0, 20));
-        // eslint-disable-next-line no-console
-        console.error('Extracted surnames:', surnames.slice(0, 20));
+        console.error('Sort order failed at index', i, '— previous:', surnames[i - 1], '| current:', surnames[i]);
+        console.error('First 20 names:', deduped.slice(0, 20));
         return false;
       }
     }
@@ -135,29 +169,12 @@ export class ProfileListingPage extends BasePage {
   }
 
   /**
-   * Wait until there are at least `minCount` profile anchors present in the main listing.
-   */
-  async waitForProfilesToBePresent(minCount = 1, timeout = 30000): Promise<void> {
-    const sel = this.profileAnchorSelector;
-    await this.page.waitForFunction(
-      (args: [string, number]) => {
-        const [s, min] = args;
-        try {
-          return document.querySelectorAll(s).length >= min;
-        } catch (e) {
-          return false;
-        }
-      },
-      [sel, minCount] as [string, number],
-      { timeout }
-    );
-  }
-
-  /**
-   * Get all profile full names shown on the listing
+   * Get all profile full names shown on the listing.
+   * Uses semantic profileLinks() locator.
    */
   async getProfileFullNames(): Promise<string[]> {
-    return await this.page.locator('a[href*="/people/"]').allTextContents();
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
+    return await this.profileLinks().allTextContents();
   }
 
 }
