@@ -3,6 +3,7 @@ import { HomePage } from './home-page';
 import { FormDragAndDropPage } from './form-drag-and-drop';
 import { ProfileListingPage } from './profile-listing-page';
 import { InsightsPage } from './insights-page';
+import { ServicesAZPage } from './services-az-page';
 
 /**
  * Page Generator Manager for BankGuru pages
@@ -41,5 +42,12 @@ export class PageGenerator {
    */
   static getInsightsPage(page: Page): InsightsPage {
     return new InsightsPage(page);
+  }
+
+  /**
+   * Get Services A-Z Page instance
+   */
+  static getServicesAZPage(page: Page): ServicesAZPage {
+    return new ServicesAZPage(page);
   }
 }

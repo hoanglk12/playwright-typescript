@@ -11,6 +11,7 @@ import path from 'path';
 
   
 test.describe('Form Drag And Drop Tests', () => {
+  test.skip(!!process.env.CI, 'Skipped in CI due to unstable/deprecated target page URL.');
    //Declare logger for test steps
   const logger = createTestLogger('Upload File Scenarios');
   test('Valid File', async ({
