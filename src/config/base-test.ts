@@ -6,6 +6,7 @@ import { LoginPage } from '../pages/admin/login-page';
 import { FormDragAndDropPage } from '@pages/frontsite/form-drag-and-drop';
 import { ProfileListingPage } from '@pages/frontsite/profile-listing-page';
 import { InsightsPage } from '@pages/frontsite/insights-page';
+import { ServicesAZPage } from '@pages/frontsite/services-az-page';
 
 type CustomFixtures = {
   homePage: HomePage;
@@ -13,6 +14,7 @@ type CustomFixtures = {
   formDragAndDropPage: FormDragAndDropPage;
   profileListingPage: ProfileListingPage;
   insightsPage: InsightsPage;
+  servicesAZPage: ServicesAZPage;
 };
 
 export const test = base.extend<CustomFixtures>({
@@ -39,6 +41,11 @@ export const test = base.extend<CustomFixtures>({
   insightsPage: async ({ page }, use) => {
     const insightsPage = FrontSitePageGenerator.getInsightsPage(page);
     await use(insightsPage);
+  },
+
+  servicesAZPage: async ({ page }, use) => {
+    const servicesAZPage = FrontSitePageGenerator.getServicesAZPage(page);
+    await use(servicesAZPage);
   },
 });
 
