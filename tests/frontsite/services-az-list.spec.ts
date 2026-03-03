@@ -8,11 +8,11 @@ import { createTestLogger } from '../../src/utils/test-logger';
  * @story Navigate via hamburger menu and filter services by letter
  */
 test.describe('Services A-Z List Tests @services @frontsite', () => {
-  const logger = createTestLogger('Services A-Z List Scenarios');
-
   test('Navigate to Services A-Z via hamburger menu and click a random enabled letter', async ({
     servicesAZPage,
   }) => {
+    // Logger is scoped to this test to avoid shared mutable state between tests
+    const logger = createTestLogger('Services A-Z List Scenarios');
     // ── Step 1: Navigate to Home page ───────────────────────────────
     logger.step('Step 1 - Navigate to Home page');
     logger.action('Navigate', 'home page');

@@ -1,6 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { getEnvironment } from '../../config/environment';
+import { AdminTestData } from '../../data/admin-data';
 
 /**
  * BankGuru Home Page
@@ -9,24 +10,33 @@ import { getEnvironment } from '../../config/environment';
 export class LoginPage extends BasePage {
   private readonly userIdInput: Locator;
   private readonly passwordInput: Locator;
+  /** Use getByRole to avoid coupling to an auto-generated ASP.NET control ID */
   private readonly loginButton: Locator;
   private readonly homeIcon: Locator;
+  /**
+   * Locate error popup by the canonical message from AdminTestData (single source
+   * of truth — avoids duplicating the string in both POM and test data).
+   */
   private readonly errorPopup: Locator;
 
   constructor(page: Page) {
     super(page);
     this.userIdInput = page.locator('#Login1_UserName');
     this.passwordInput = page.locator('#Login1_Password');
-    this.loginButton = page.locator('#Login1_LoginButton');
+    // Semantic role locator — the ASP.NET Login control renders as <button>Sign in</button>
+    this.loginButton = page.getByRole('button', { name: 'Sign in' });
     this.homeIcon = page.locator('#js-nav-breadcrumb i');
-    this.errorPopup = page.getByText('Your sign-in attempt was not successful. Please try again.'); 
+    this.errorPopup = page.getByText(AdminTestData.expectedMessages.errorLogin);
   }
   /**
-   * Navigate to LoginPage login page
-   */  
+   * Navigate to LoginPage login page and wait for it to be fully interactive.
+   * networkidle wait prevents click failures on slower browsers (e.g. Firefox)
+   * where the login button can still appear unresponsive after domcontentloaded.
+   */
   async navigateToCMSLoginPage(): Promise<void> {
     const env = getEnvironment();
     await this.page.goto(env.adminUrl);
+    await this.waitForPageLoad(); // networkidle — ensures all JS has settled
   }
 
   /**
@@ -44,10 +54,13 @@ export class LoginPage extends BasePage {
   }
 
   /**
-   * Click Login Button
+   * Click Login Button.
+   * An explicit timeout override (30 s) is used because Firefox under parallel
+   * load can stall the pointer-action dispatch even on a stable element, which
+   * exhausts the default 20 s actionTimeout.
    */
   async clickLoginButton(): Promise<void> {
-    await this.loginButton.click();
+    await this.loginButton.click({ timeout: 30000 });
   }
 
   
