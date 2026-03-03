@@ -25,7 +25,8 @@ export interface LetterInfo {
  */
 export class ServicesAZPage extends BasePage {
   // ── Navigation locators ───────────────────────────────────────────
-  private readonly hamburgerMenu = 'button[aria-label="Menu"]';
+  /** Semantic role-based locator — avoids brittle aria-label attribute selectors */
+  private readonly hamburgerMenuBtn: Locator;
   private readonly sideNavLink = '.side-navigation__link';
   private readonly servicesExpandButton =
     'nav li:has(> div > a[href="/en/services"]) button';
@@ -46,23 +47,26 @@ export class ServicesAZPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
+    this.hamburgerMenuBtn = page.getByRole('button', { name: 'Menu' });
   }
 
   // ── Navigation helpers ────────────────────────────────────────────
 
   /**
-   * Navigate to the homepage.
+   * Navigate to the homepage and wait for the page to be fully interactive.
+   * Using networkidle ensures JavaScript has finished enabling dynamic elements
+   * (e.g. the hamburger menu button) before any interaction.
    */
   async navigateToHomePage(): Promise<void> {
     await this.page.goto(ServicesAZData.homePageUrl);
-    await this.waitForDOMContentLoaded();
+    await this.waitForPageLoad(); // networkidle — guarantees interactive state
   }
 
   /**
    * Open the hamburger / side navigation menu.
    */
   async openHamburgerMenu(): Promise<void> {
-    await this.clickElement(this.hamburgerMenu);
+    await this.hamburgerMenuBtn.click();
     await this.page.waitForSelector(this.sideNavLink, {
       state: 'visible',
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
@@ -175,8 +179,19 @@ export class ServicesAZPage extends BasePage {
     const heading = this.page.locator(this.sectionHeading(letter));
     await heading.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
-    // Wait for smooth-scroll animation to settle
-    await this.page.waitForTimeout(1500);
+    // Poll until the heading enters the viewport (replaces fixed waitForTimeout).
+    // waitForFunction re-evaluates until the predicate returns truthy.
+    const elementHandle = await heading.elementHandle();
+    if (elementHandle) {
+      await this.page.waitForFunction(
+        (el) => {
+          const rect = (el as Element).getBoundingClientRect();
+          return rect.top >= -50 && rect.bottom <= window.innerHeight + 50;
+        },
+        elementHandle,
+        { timeout: TIMEOUTS.ELEMENT_VISIBLE },
+      ).catch(() => { /* heading may be just outside viewport on narrow screens */ });
+    }
 
     return heading.evaluate((el) => {
       const rect = el.getBoundingClientRect();

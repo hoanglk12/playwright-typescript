@@ -1,6 +1,5 @@
-import { AdminData } from '@data/admin-data';
+import { AdminData, AdminTestData } from '../../src/data/admin-data';
 import { test, expect } from '../../src/config/base-test';
-import * as AdminDataModule from '../../src/data/admin-data';
 import { createTestLogger } from '../../src/utils/test-logger';
 /**
  * Admin Login Tests
@@ -8,7 +7,6 @@ import { createTestLogger } from '../../src/utils/test-logger';
  * @story Login Functionality
  */
 test.describe('Admin Login Tests', () => {
-  
 
   test('TC_01 - Login fails with empty username and empty password', async ({ 
     loginPage,
@@ -21,7 +19,6 @@ test.describe('Admin Login Tests', () => {
     logger.step('Step 1 - Navigate to login page');
     logger.action('Navigate', 'login page');
     await loginPage.navigateToCMSLoginPage();
-    await loginPage.waitForPageLoad();
     
     logger.step('Step 2 - Enter empty credentials');
     logger.action('Fill', 'username field with empty value');
@@ -35,8 +32,8 @@ test.describe('Admin Login Tests', () => {
     await loginPage.clickLoginButton();
     await loginPage.waitForFullPageLoad();
     
-    logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminDataModule.AdminTestData.expectedMessages.errorLogin);
-    expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminDataModule.AdminTestData.expectedMessages.errorLogin);
+    logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminTestData.expectedMessages.errorLogin);
+    expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminTestData.expectedMessages.errorLogin);
       
  });
 
@@ -63,8 +60,8 @@ test.describe('Admin Login Tests', () => {
     await loginPage.clickLoginButton();
     await loginPage.waitForFullPageLoad();
     
-    logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminDataModule.AdminTestData.expectedMessages.errorLogin);
-    expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminDataModule.AdminTestData.expectedMessages.errorLogin);
+    logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminTestData.expectedMessages.errorLogin);
+    expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminTestData.expectedMessages.errorLogin);
        
   });
 });

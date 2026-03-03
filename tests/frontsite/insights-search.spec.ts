@@ -6,14 +6,12 @@ import { createTestLogger } from '../../src/utils/test-logger';
  * @feature Insights Search
  * @story Insights Search Functionality
  */
-
 test.describe('Insights Page Search @insights @frontsite', () => {
-  //Declare logger for test steps
-  const logger = createTestLogger('Insights Search Scenarios');
-
   test('Search for Banking content', async ({
     insightsPage,
   }) => {
+    // Logger is scoped to this test to avoid shared mutable state between tests
+    const logger = createTestLogger('Insights Search Scenarios');
 
     logger.step('Step 1 - Navigate to Insights page');
     logger.action('Navigate', 'insights page');
