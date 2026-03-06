@@ -50,6 +50,9 @@ jobs:
         ./run-api-tests-nonparallel.sh $ENV serial 1
       env:
         CI: true
+        NODE_ENV: ${{ github.event.inputs.environment || 'testing' }}
+        GRAPHQL_BASE_URL: ${{ secrets.GRAPHQL_BASE_URL }}
+        GRAPHQL_ENDPOINT: ${{ secrets.GRAPHQL_ENDPOINT }}
     
     - name: Upload test results
       uses: actions/upload-artifact@v4

@@ -82,6 +82,14 @@ export class ApiResponseWrapper {
    */
   public async json<T = any>(): Promise<T> {
     if (!this.responseBody) {
+      const contentType = this.response.headers()['content-type'] || '';
+      if (!contentType.includes('application/json') && !contentType.includes('application/graphql')) {
+        const text = await this.response.text();
+        throw new Error(
+          `Expected JSON response but got "${contentType}" (HTTP ${this.response.status()}).\n` +
+          `Response body (first 500 chars): ${text.slice(0, 500)}`
+        );
+      }
       this.responseBody = await this.response.json();
     }
     return this.responseBody as T;
