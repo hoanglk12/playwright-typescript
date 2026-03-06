@@ -45,7 +45,7 @@ executors:
   windows-executor:
     machine:
       image: windows-server-2019-vs2019:stable
-    resource_class: windows.medium
+    resource_class: m4pro.medium
     shell: powershell.exe
     working_directory: ~/project
     environment:
