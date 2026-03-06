@@ -1,0 +1,1431 @@
+{
+  "info": {
+    "_postman_id": "pla-graphql-api-tests-v1",
+    "name": "PLA GraphQL API Tests",
+    "description": "PLA (Platypus Shoes) GraphQL API test collection.\n\nCovers 4 feature areas:\n1. Account Creation & Sign In\n2. Cart & MiniCart\n3. My Details (Address Book, Newsletter, Loyalty)\n4. Support Features (Currency, Dynamic Data)\n\n**IMPORTANT – Run order matters.**\nRequests must be run in sequence (top-to-bottom) because later requests\ndepend on values saved by earlier ones (customerToken, cartId, addressId).\n\nSee Guideline/POSTMAN_COLLECTION_GUIDE.md for full usage instructions.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+
+  "variable": [
+    { "key": "baseUrl",        "value": "https://stag-platypus-au.accentgra.com/graphql", "type": "string", "description": "GraphQL API endpoint. Change to match your target environment." },
+    { "key": "testEmail",      "value": "", "type": "string", "description": "Auto-generated per run by collection pre-request script." },
+    { "key": "firstName",      "value": "", "type": "string" },
+    { "key": "lastName",       "value": "", "type": "string" },
+    { "key": "phoneNumber",    "value": "", "type": "string" },
+    { "key": "streetAddress",  "value": "", "type": "string" },
+    { "key": "city",           "value": "", "type": "string" },
+    { "key": "postcode",       "value": "", "type": "string" },
+    { "key": "region",         "value": "", "type": "string" },
+    { "key": "customerToken",  "value": "", "type": "string", "description": "Populated after SignIn." },
+    { "key": "customerId",     "value": "", "type": "string", "description": "Populated after CreateAccount / GetCustomerDetails." },
+    { "key": "cartId",         "value": "", "type": "string", "description": "Populated after CreateCartAfterSignIn." },
+    { "key": "addressId",      "value": "", "type": "string", "description": "Populated after AddNewCustomerAddress." },
+    { "key": "_runInitialized","value": "", "type": "string", "description": "Unused. Kept for backward compatibility. Do not edit." }
+  ],
+
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ─── Collection-level pre-request: initialise random test data once per run ───",
+          "// Generates fresh data the first time testEmail is empty (start of a new run).",
+          "// To get a new email on every run: uncheck 'Keep variable values' in Collection Runner.",
+          "if (!pm.collectionVariables.get('testEmail')) {",
+          "    const ts   = Date.now();",
+          "    const rand = Math.random().toString(36).substring(2, 8);",
+          "    pm.collectionVariables.set('testEmail',     `platest${ts}${rand}@mail.com`);",
+          "",
+          "    const firstNames = ['Alex','Jordan','Taylor','Casey','Morgan','Riley','Avery','Cameron'];",
+          "    const lastNames  = ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis'];",
+          "    pm.collectionVariables.set('firstName', firstNames[Math.floor(Math.random()*firstNames.length)]);",
+          "    pm.collectionVariables.set('lastName',  lastNames[Math.floor(Math.random()*lastNames.length)]);",
+          "",
+          "    const streetNum = Math.floor(1 + Math.random() * 999);",
+          "    const streetNames = ['Main St','High St','George St','King St','Collins St','Bourke St'];",
+          "    pm.collectionVariables.set('streetAddress', `${streetNum} ${streetNames[Math.floor(Math.random()*streetNames.length)]}`);",
+          "",
+          "    const locs = [",
+          "        {city:'SYDNEY',   postcode:'2000', region:'NSW'},",
+          "        {city:'MELBOURNE',postcode:'3000', region:'VIC'},",
+          "        {city:'BRISBANE', postcode:'4000', region:'QLD'},",
+          "        {city:'PERTH',    postcode:'6000', region:'WA'},",
+          "        {city:'ADELAIDE', postcode:'5000', region:'SA'}",
+          "    ];",
+          "    const loc = locs[Math.floor(Math.random()*locs.length)];",
+          "    pm.collectionVariables.set('city',     loc.city);",
+          "    pm.collectionVariables.set('postcode', loc.postcode);",
+          "    pm.collectionVariables.set('region',   loc.region);",
+          "",
+          "    const phoneNum = `04${Math.floor(10000000 + Math.random()*90000000)}`;",
+          "    pm.collectionVariables.set('phoneNumber', phoneNum);",
+          "",
+
+          "    console.log('[INIT] testEmail  :', pm.collectionVariables.get('testEmail'));",
+          "    console.log('[INIT] firstName  :', pm.collectionVariables.get('firstName'));",
+          "    console.log('[INIT] lastName   :', pm.collectionVariables.get('lastName'));",
+          "    console.log('[INIT] location   :', loc.city);",
+          "}"
+        ]
+      }
+    }
+  ],
+
+  "item": [
+
+    {
+      "name": "01 – Account Creation & Sign In",
+      "description": "Create a new PLA customer account, validate error handling, sign in and retrieve customer details.\n\nMaps to: pla-account-creation-signin.spec.ts",
+      "item": [
+
+        {
+          "name": "PLA_CreateAccount – error on invalid email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateAccount($email:String!,$firstname:String!,$lastname:String!,$password:String!,$phone_number:String!,$is_subscribed:Boolean!,$loyalty_program_status:Boolean,$order_number:String,$gender:Int,$date_of_birth:String){createCustomer(input:{email:$email,firstname:$firstname,lastname:$lastname,password:$password,phone_number:$phone_number,is_subscribed:$is_subscribed,loyalty_program_status:$loyalty_program_status,order_number:$order_number,gender:$gender,date_of_birth:$date_of_birth}){customer{id firstname lastname email __typename}}}",
+                "variables": "{\n  \"email\": \"invalidemail@mail.com--\",\n  \"firstname\": \"{{firstName}}\",\n  \"lastname\": \"{{lastName}}\",\n  \"password\": \"Johncena5\",\n  \"phone_number\": \"\",\n  \"is_subscribed\": false,\n  \"loyalty_program_status\": false,\n  \"order_number\": null,\n  \"gender\": 1,\n  \"date_of_birth\": null\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('GraphQL errors array exists with 1 entry', () => {",
+                  "    pm.expect(json.errors).to.be.an('array').with.lengthOf(1);",
+                  "});",
+                  "",
+                  "pm.test('Error message contains invalid email text', () => {",
+                  "    pm.expect(json.errors[0].message).to.include('is not a valid email address.');",
+                  "});",
+                  "",
+                  "pm.test('Error category is graphql-input', () => {",
+                  "    pm.expect(json.errors[0].extensions.category).to.equal('graphql-input');",
+                  "});",
+                  "",
+                  "pm.test('data.createCustomer is null on error', () => {",
+                  "    pm.expect(json.data.createCustomer).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_CreateAccount – create new customer account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateAccount($email:String!,$firstname:String!,$lastname:String!,$password:String!,$phone_number:String!,$is_subscribed:Boolean!,$loyalty_program_status:Boolean,$order_number:String,$gender:Int,$date_of_birth:String){createCustomer(input:{email:$email,firstname:$firstname,lastname:$lastname,password:$password,phone_number:$phone_number,is_subscribed:$is_subscribed,loyalty_program_status:$loyalty_program_status,order_number:$order_number,gender:$gender,date_of_birth:$date_of_birth}){customer{id firstname lastname email __typename}}}",
+                "variables": "{\n  \"email\": \"{{testEmail}}\",\n  \"firstname\": \"{{firstName}}\",\n  \"lastname\": \"{{lastName}}\",\n  \"password\": \"Johncena5\",\n  \"phone_number\": \"\",\n  \"is_subscribed\": false,\n  \"loyalty_program_status\": false,\n  \"order_number\": null,\n  \"gender\": 1,\n  \"date_of_birth\": null\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('data.createCustomer.customer exists', () => {",
+                  "    pm.expect(json.data.createCustomer.customer).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('Customer __typename is Customer', () => {",
+                  "    pm.expect(json.data.createCustomer.customer.__typename).to.equal('Customer');",
+                  "});",
+                  "",
+                  "pm.test('Returned email matches testEmail', () => {",
+                  "    pm.expect(json.data.createCustomer.customer.email)",
+                  "        .to.equal(pm.collectionVariables.get('testEmail'));",
+                  "});",
+                  "",
+                  "pm.test('Returned firstname matches', () => {",
+                  "    pm.expect(json.data.createCustomer.customer.firstname)",
+                  "        .to.equal(pm.collectionVariables.get('firstName'));",
+                  "});",
+                  "",
+                  "pm.test('Returned lastname matches', () => {",
+                  "    pm.expect(json.data.createCustomer.customer.lastname)",
+                  "        .to.equal(pm.collectionVariables.get('lastName'));",
+                  "});",
+                  "",
+                  "pm.test('Customer id is truthy – save to customerId', () => {",
+                  "    pm.expect(json.data.createCustomer.customer.id).to.exist;",
+                  "    pm.collectionVariables.set('customerId', json.data.createCustomer.customer.id);",
+                  "    console.log('[SAVED] customerId:', json.data.createCustomer.customer.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_SignIn – error on wrong credentials",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation SignIn($email:String!,$password:String!,$remember:Boolean){generateCustomerToken(email:$email,password:$password,remember:$remember){token __typename}}",
+                "variables": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"WrongPassword123\",\n  \"remember\": true\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('GraphQL errors array exists with 1 entry', () => {",
+                  "    pm.expect(json.errors).to.be.an('array').with.lengthOf(1);",
+                  "});",
+                  "",
+                  "pm.test('Error message is invalid-credentials text', () => {",
+                  "    pm.expect(json.errors[0].message).to.equal(",
+                  "        'The account sign-in was incorrect or your account is disabled temporarily. Please wait and try again later.'",
+                  "    );",
+                  "});",
+                  "",
+                  "pm.test('Error category is graphql-authentication', () => {",
+                  "    pm.expect(json.errors[0].extensions.category).to.equal('graphql-authentication');",
+                  "});",
+                  "",
+                  "pm.test('data.generateCustomerToken is null on error', () => {",
+                  "    pm.expect(json.data.generateCustomerToken).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_SignIn – generate token for valid credentials",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation SignIn($email:String!,$password:String!,$remember:Boolean){generateCustomerToken(email:$email,password:$password,remember:$remember){token __typename}}",
+                "variables": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Johncena5\",\n  \"remember\": true\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('Token is a non-empty string', () => {",
+                  "    pm.expect(json.data.generateCustomerToken.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('__typename is CustomerToken', () => {",
+                  "    pm.expect(json.data.generateCustomerToken.__typename).to.equal('CustomerToken');",
+                  "});",
+                  "",
+                  "pm.test('Token contains only safe characters (no special chars)', () => {",
+                  "    const token = json.data.generateCustomerToken.token;",
+                  "    pm.expect(token).to.match(/^[a-zA-Z0-9._-]+$/);",
+                  "});",
+                  "",
+                  "pm.test('Save customerToken to collection variable', () => {",
+                  "    const token = json.data.generateCustomerToken.token;",
+                  "    pm.expect(token).to.exist;",
+                  "    pm.collectionVariables.set('customerToken', token);",
+                  "    console.log('[SAVED] customerToken (first 20):', token.substring(0,20) + '...');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_GetCustomerDetails – retrieve details with valid token",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query getCustomerDetails{customer{id ...CustomerInformationFragment ...CustomerLoyaltyFragment __typename}}fragment CustomerInformationFragment on Customer{id firstname lastname email phone_number date_of_birth is_subscribed gender apparel21_id is_qff_member qff_member_number __typename}fragment CustomerLoyaltyFragment on Customer{id loyalty_program_status loyalty{level{accrual_points auto_reward_threshold auto_reward_value description level_id level_point_bonus name sequence __typename}points_balance points_to_next_reward program{apply_reward_threshold description name __typename}rewards{available customer_reward_id expiry_date pending redeemed status total __typename}reward_account_id rewards_balance spend_value_to_next_reward positive_rewards_balance_message __typename}__typename}",
+                "variables": "{}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Guard: ensure customerToken exists before this request runs",
+                  "const token = pm.collectionVariables.get('customerToken');",
+                  "if (!token) { throw new Error('customerToken is not set. Run SignIn first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('data.customer exists', () => {",
+                  "    pm.expect(json.data.customer).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('customer.id is a number and truthy', () => {",
+                  "    pm.expect(json.data.customer.id).to.be.a('number');",
+                  "    pm.expect(json.data.customer.id).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('customer.__typename is Customer', () => {",
+                  "    pm.expect(json.data.customer.__typename).to.equal('Customer');",
+                  "});",
+                  "",
+                  "pm.test('customer.email matches testEmail', () => {",
+                  "    pm.expect(json.data.customer.email)",
+                  "        .to.equal(pm.collectionVariables.get('testEmail'));",
+                  "});",
+                  "",
+                  "pm.test('customer.firstname matches', () => {",
+                  "    pm.expect(json.data.customer.firstname)",
+                  "        .to.equal(pm.collectionVariables.get('firstName'));",
+                  "});",
+                  "",
+                  "pm.test('customer.lastname matches', () => {",
+                  "    pm.expect(json.data.customer.lastname)",
+                  "        .to.equal(pm.collectionVariables.get('lastName'));",
+                  "});",
+                  "",
+                  "pm.test('is_subscribed is false (default)', () => {",
+                  "    pm.expect(json.data.customer.is_subscribed).to.equal(false);",
+                  "});",
+                  "",
+                  "pm.test('Save customerId to collection variable', () => {",
+                  "    pm.collectionVariables.set('customerId', json.data.customer.id);",
+                  "    console.log('[SAVED] customerId:', json.data.customer.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "02 – Cart & MiniCart",
+      "description": "Create carts, fetch cart item counts, and retrieve minicart/full-cart data.\n\nMaps to: pla-cart_minicart.spec.ts\n\nPre-requisite: Folder 01 must have run first (customerToken must be set).",
+      "item": [
+
+        {
+          "name": "PLA_CreateCartAfterSignIn – create empty cart with valid token",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateCartAfterSignIn{cartId:createEmptyCart}",
+                "variables": "{}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('customerToken');",
+                  "if (!token) { throw new Error('customerToken is not set. Run folder 01 first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('cartId is a non-empty string', () => {",
+                  "    pm.expect(json.data.cartId).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('cartId contains only safe characters', () => {",
+                  "    pm.expect(json.data.cartId).to.match(/^[a-zA-Z0-9._-]+$/);",
+                  "});",
+                  "",
+                  "pm.test('Save cartId to collection variable', () => {",
+                  "    pm.collectionVariables.set('cartId', json.data.cartId);",
+                  "    console.log('[SAVED] cartId:', json.data.cartId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_GetItemCount – error with invalid cartId",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query getItemCount($cartId:String!){cart(cart_id:$cartId){id ...CartTriggerFragment __typename}}fragment CartTriggerFragment on Cart{id total_quantity shipping_addresses{street selected_shipping_method{method_code __typename}__typename}__typename}",
+                "variables": "{\n  \"cartId\": \"wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss\"\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('GraphQL errors array exists', () => {",
+                  "    pm.expect(json.errors).to.be.an('array');",
+                  "    pm.expect(json.errors.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('Error message contains invalid cart text', () => {",
+                  "    pm.expect(json.errors[0].message).to.include(",
+                  "        'Could not find a cart with ID \"wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss\"'",
+                  "    );",
+                  "});",
+                  "",
+                  "pm.test('data.cart is null on error', () => {",
+                  "    pm.expect(json.data.cart).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_GetItemCount – return cart data for valid cartId",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query getItemCount($cartId:String!){cart(cart_id:$cartId){id ...CartTriggerFragment __typename}}fragment CartTriggerFragment on Cart{id total_quantity shipping_addresses{street selected_shipping_method{method_code __typename}__typename}__typename}",
+                "variables": "{\n  \"cartId\": \"{{cartId}}\"\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cartId = pm.collectionVariables.get('cartId');",
+                  "if (!cartId) { throw new Error('cartId is not set. Run CreateCartAfterSignIn first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('data.cart is not null', () => {",
+                  "    pm.expect(json.data.cart).to.not.be.null;",
+                  "    pm.expect(json.data.cart).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('cart.id matches cartId variable', () => {",
+                  "    pm.expect(json.data.cart.id).to.equal(pm.collectionVariables.get('cartId'));",
+                  "});",
+                  "",
+                  "pm.test('cart.total_quantity is defined', () => {",
+                  "    pm.expect(json.data.cart.total_quantity).to.not.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('cart.shipping_addresses is an array', () => {",
+                  "    pm.expect(json.data.cart.shipping_addresses).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('cart.__typename is Cart', () => {",
+                  "    pm.expect(json.data.cart.__typename).to.equal('Cart');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_MiniCartQuery – error with invalid cartId",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query MiniCartQuery($cartId:String!){cart(cart_id:$cartId){id ...MiniCartFragment __typename}}fragment MiniCartFragment on Cart{id total_quantity prices{subtotal_including_tax{currency value __typename}grand_total{value currency __typename}special_price_discount{value currency __typename}discounts{amount{currency value __typename}description label __typename}__typename}...ProductListFragment ...MultipleRewardsMessageFragment ...QantasMessageFragment ...AppliedQantasPointsFragment __typename}fragment ProductListFragment on Cart{id items{id prices{row_total_including_tax{value __typename}row_total{value __typename}__typename}custom_options{option_name option_value __typename}product{id name url_key url_suffix sku thumbnail{url __typename}price{regularPrice{amount{currency value __typename}__typename}minimalPrice{amount{value currency __typename}__typename}__typename}stock_status color_name __typename}quantity __typename}__typename}fragment MultipleRewardsMessageFragment on Cart{id multiple_rewards_message __typename}fragment QantasMessageFragment on Cart{id qff_reward{is_qff_member qff_points qff_reward_message __typename}__typename}fragment AppliedQantasPointsFragment on Cart{applied_qantas_points{points_burned dollar_value member_number __typename}__typename}",
+                "variables": "{\n  \"cartId\": \"wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss\"\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('GraphQL errors array exists', () => {",
+                  "    pm.expect(json.errors).to.be.an('array');",
+                  "    pm.expect(json.errors.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('Error message contains invalid cart text', () => {",
+                  "    pm.expect(json.errors[0].message).to.include('Could not find a cart with ID');",
+                  "});",
+                  "",
+                  "pm.test('data.cart is null on error', () => {",
+                  "    pm.expect(json.data.cart).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_MiniCartQuery – return cart data, prices, rewards, qff",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query MiniCartQuery($cartId:String!){cart(cart_id:$cartId){id ...MiniCartFragment __typename}}fragment MiniCartFragment on Cart{id total_quantity prices{subtotal_including_tax{currency value __typename}grand_total{value currency __typename}special_price_discount{value currency __typename}discounts{amount{currency value __typename}description label __typename}__typename}...ProductListFragment ...MultipleRewardsMessageFragment ...QantasMessageFragment ...AppliedQantasPointsFragment __typename}fragment ProductListFragment on Cart{id items{id prices{row_total_including_tax{value __typename}row_total{value __typename}__typename}custom_options{option_name option_value __typename}product{id name url_key url_suffix sku thumbnail{url __typename}price{regularPrice{amount{currency value __typename}__typename}minimalPrice{amount{value currency __typename}__typename}__typename}stock_status color_name __typename}quantity __typename}__typename}fragment MultipleRewardsMessageFragment on Cart{id multiple_rewards_message __typename}fragment QantasMessageFragment on Cart{id qff_reward{is_qff_member qff_points qff_reward_message __typename}__typename}fragment AppliedQantasPointsFragment on Cart{applied_qantas_points{points_burned dollar_value member_number __typename}__typename}",
+                "variables": "{\n  \"cartId\": \"{{cartId}}\"\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cartId = pm.collectionVariables.get('cartId');",
+                  "if (!cartId) { throw new Error('cartId is not set. Run CreateCartAfterSignIn first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('data.cart is not null', () => {",
+                  "    pm.expect(json.data.cart).to.not.be.null;",
+                  "    pm.expect(json.data.cart).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('cart.id matches cartId variable', () => {",
+                  "    pm.expect(json.data.cart.id).to.equal(pm.collectionVariables.get('cartId'));",
+                  "});",
+                  "",
+                  "pm.test('cart.total_quantity is defined', () => {",
+                  "    pm.expect(json.data.cart.total_quantity).to.not.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('cart prices – subtotal_including_tax exists', () => {",
+                  "    pm.expect(json.data.cart.prices.subtotal_including_tax).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('cart prices – grand_total exists', () => {",
+                  "    pm.expect(json.data.cart.prices.grand_total).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('cart prices – special_price_discount exists', () => {",
+                  "    pm.expect(json.data.cart.prices.special_price_discount).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('cart prices – discounts is null (empty cart)', () => {",
+                  "    pm.expect(json.data.cart.prices.discounts).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test('cart prices __typename is CartPrices', () => {",
+                  "    pm.expect(json.data.cart.prices.__typename).to.equal('CartPrices');",
+                  "});",
+                  "",
+                  "pm.test('qff_reward.is_qff_member is false (new account)', () => {",
+                  "    pm.expect(json.data.cart.qff_reward.is_qff_member).to.equal(false);",
+                  "});",
+                  "",
+                  "pm.test('qff_reward.qff_points is 0', () => {",
+                  "    pm.expect(json.data.cart.qff_reward.qff_points).to.equal(0);",
+                  "});",
+                  "",
+                  "pm.test('qff_reward.__typename is QffReward', () => {",
+                  "    pm.expect(json.data.cart.qff_reward.__typename).to.equal('QffReward');",
+                  "});",
+                  "",
+                  "pm.test('applied_qantas_points is null', () => {",
+                  "    pm.expect(json.data.cart.applied_qantas_points).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test('cart.__typename is Cart', () => {",
+                  "    pm.expect(json.data.cart.__typename).to.equal('Cart');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_GetCartDetailsAfterSignIn – full cart details",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query GetCartDetailsAfterSignIn($cartId:String!){cart(cart_id:$cartId){id items{id product{id name sku small_image{url label __typename}price{regularPrice{amount{currency value __typename}__typename}minimalPrice{amount{value currency __typename}__typename}__typename}__typename}quantity ...on ConfigurableCartItem{configurable_options{id option_label value_id value_label __typename}__typename}__typename}prices{grand_total{value currency __typename}__typename}...CartPageFragment __typename}}fragment CartPageFragment on Cart{id total_quantity prices{grand_total{value currency __typename}subtotal_including_tax{currency value __typename}special_price_discount{value currency __typename}discounts{amount{currency value __typename}description label __typename}__typename}available_payment_methods{code title __typename}...ShippingAddressFragment ...AppliedCouponsFragment ...MultipleRewardsMessageFragment ...QantasMessageFragment ...AppliedQantasPointsFragment __typename}fragment ShippingAddressFragment on Cart{shipping_addresses{firstname lastname street postcode city available_shipping_methods{method_code method_title carrier_code carrier_title available amount{value currency __typename}__typename}selected_shipping_method{method_code method_title carrier_code carrier_title amount{currency value __typename}__typename}__typename}__typename}fragment MultipleRewardsMessageFragment on Cart{id multiple_rewards_message __typename}fragment QantasMessageFragment on Cart{id qff_reward{is_qff_member qff_points qff_reward_message __typename}__typename}fragment AppliedQantasPointsFragment on Cart{applied_qantas_points{points_burned dollar_value member_number __typename}__typename}fragment AppliedCouponsFragment on Cart{id applied_coupons{code __typename}__typename}",
+                "variables": "{\n  \"cartId\": \"{{cartId}}\"\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('data.cart is not null', () => {",
+                  "    pm.expect(json.data.cart).to.not.be.null;",
+                  "    pm.expect(json.data.cart).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('cart.id matches cartId', () => {",
+                  "    pm.expect(json.data.cart.id).to.equal(pm.collectionVariables.get('cartId'));",
+                  "});",
+                  "",
+                  "pm.test('cart.items is an array', () => {",
+                  "    pm.expect(json.data.cart.items).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('available_payment_methods is an array', () => {",
+                  "    pm.expect(json.data.cart.available_payment_methods).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('available_payment_methods includes expected codes', () => {",
+                  "    const codes = json.data.cart.available_payment_methods.map(m => m.code);",
+                  "    const expected = ['checkmo','braintree_applepay','free','braintree','braintree_paypal'];",
+                  "    expected.forEach(code => pm.expect(codes).to.include(code));",
+                  "});",
+                  "",
+                  "pm.test('available_payment_methods includes expected titles', () => {",
+                  "    const titles = json.data.cart.available_payment_methods.map(m => m.title);",
+                  "    const expected = ['Check / Money order','Apple Pay','No Payment Information Required','Credit or Debit Card','PayPal'];",
+                  "    expected.forEach(title => pm.expect(titles).to.include(title));",
+                  "});",
+                  "",
+                  "pm.test('cart.shipping_addresses is an array', () => {",
+                  "    pm.expect(json.data.cart.shipping_addresses).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('applied_qantas_points is null', () => {",
+                  "    pm.expect(json.data.cart.applied_qantas_points).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test('applied_coupons is null (no coupon applied)', () => {",
+                  "    pm.expect(json.data.cart.applied_coupons).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_checkUserIsAuthed – verify cart ownership",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query checkUserIsAuthed($cartId:String!){cart(cart_id:$cartId){id __typename}}",
+                "variables": "{\n  \"cartId\": \"{{cartId}}\"\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('cart.id matches cartId', () => {",
+                  "    pm.expect(json.data.cart.id).to.equal(pm.collectionVariables.get('cartId'));",
+                  "});",
+                  "",
+                  "pm.test('cart.__typename is Cart', () => {",
+                  "    pm.expect(json.data.cart.__typename).to.equal('Cart');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "03 – My Details",
+      "description": "Address book CRUD, newsletter subscription toggles, loyalty program toggles.\n\nMaps to: pla-my-details.spec.ts\n\nPre-requisite: Folders 01 & 02 must have run first.",
+      "item": [
+
+        {
+          "name": "PLA_AddNewCustomerAddressToAddressBook",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation AddNewCustomerAddressToAddressBook($address:CustomerAddressInput!){createCustomerAddress(input:$address){id __typename}}",
+                "variables": "{\n  \"address\": {\n    \"firstname\": \"{{firstName}}\",\n    \"lastname\": \"{{lastName}}\",\n    \"street\": [\"{{streetAddress}}\"],\n    \"city\": \"{{city}}\",\n    \"postcode\": \"{{postcode}}\",\n    \"telephone\": \"{{phoneNumber}}\",\n    \"company\": null,\n    \"default_shipping\": true,\n    \"default_billing\": true,\n    \"custom_attributes\": [{\"attribute_code\": \"address_name\", \"value\": \"{{firstName}}'s Address\"}],\n    \"region\": { \"region\": \"{{region}}\" },\n    \"country_code\": \"AU\"\n  }\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('customerToken');",
+                  "if (!token) { throw new Error('customerToken is not set. Run folder 01 first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('createCustomerAddress exists', () => {",
+                  "    pm.expect(json.data.createCustomerAddress).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('id is an integer', () => {",
+                  "    pm.expect(json.data.createCustomerAddress.id.toString()).to.match(/^\\d+$/);",
+                  "});",
+                  "",
+                  "pm.test('__typename is CustomerAddress', () => {",
+                  "    pm.expect(json.data.createCustomerAddress.__typename).to.equal('CustomerAddress');",
+                  "});",
+                  "",
+                  "pm.test('Save addressId to collection variable', () => {",
+                  "    pm.collectionVariables.set('addressId', json.data.createCustomerAddress.id);",
+                  "    console.log('[SAVED] addressId:', json.data.createCustomerAddress.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_GetCustomerAddressesForAddressBook",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query GetCustomerAddressesForAddressBook{customer{id addresses{id ...CustomerAddressFragment __typename}__typename}countries{id full_name_locale __typename}}fragment CustomerAddressFragment on CustomerAddress{__typename id city company country_code default_billing default_shipping firstname lastname middlename postcode region{region __typename}custom_attributes{attribute_code value __typename}street telephone}",
+                "variables": "{}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const customerId = pm.collectionVariables.get('customerId');",
+                  "const addressId  = pm.collectionVariables.get('addressId');",
+                  "const city       = pm.collectionVariables.get('city');",
+                  "const firstName  = pm.collectionVariables.get('firstName');",
+                  "const lastName   = pm.collectionVariables.get('lastName');",
+                  "const postcode   = pm.collectionVariables.get('postcode');",
+                  "const region     = pm.collectionVariables.get('region');",
+                  "const phone      = pm.collectionVariables.get('phoneNumber');",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('customer.id matches saved customerId', () => {",
+                  "    pm.expect(String(json.data.customer.id)).to.equal(String(customerId));",
+                  "});",
+                  "",
+                  "pm.test('addresses array has at least one entry', () => {",
+                  "    pm.expect(json.data.customer.addresses).to.be.an('array');",
+                  "    pm.expect(json.data.customer.addresses.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('first address id matches saved addressId', () => {",
+                  "    pm.expect(String(json.data.customer.addresses[0].id)).to.equal(String(addressId));",
+                  "});",
+                  "",
+                  "pm.test('first address __typename is CustomerAddress', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].__typename).to.equal('CustomerAddress');",
+                  "});",
+                  "",
+                  "pm.test('address city matches', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].city).to.equal(city);",
+                  "});",
+                  "",
+                  "pm.test('address firstname matches', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].firstname).to.equal(firstName);",
+                  "});",
+                  "",
+                  "pm.test('address lastname matches', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].lastname).to.equal(lastName);",
+                  "});",
+                  "",
+                  "pm.test('address country_code is AU', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].country_code).to.equal('AU');",
+                  "});",
+                  "",
+                  "pm.test('address postcode matches', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].postcode).to.equal(postcode);",
+                  "});",
+                  "",
+                  "pm.test('address region.region matches', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].region.region).to.equal(region);",
+                  "});",
+                  "",
+                  "pm.test('address region.__typename is CustomerAddressRegion', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].region.__typename).to.equal('CustomerAddressRegion');",
+                  "});",
+                  "",
+                  "pm.test('address telephone matches', () => {",
+                  "    pm.expect(json.data.customer.addresses[0].telephone).to.equal(phone);",
+                  "});",
+                  "",
+                  "pm.test('customer.__typename is Customer', () => {",
+                  "    pm.expect(json.data.customer.__typename).to.equal('Customer');",
+                  "});",
+                  "",
+                  "pm.test('countries contains Australia (AU)', () => {",
+                  "    const au = json.data.countries.find(c => c.id === 'AU');",
+                  "    pm.expect(au).to.exist;",
+                  "    pm.expect(au.full_name_locale).to.equal('Australia');",
+                  "    pm.expect(au.__typename).to.equal('Country');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_UpdateCustomerAddressInAddressBook",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation UpdateCustomerAddressInAddressBook($addressId:Int!,$updated_address:CustomerAddressInput!){updateCustomerAddress(id:$addressId,input:$updated_address){id __typename}}",
+                "variables": "{\n  \"addressId\": {{addressId}},\n  \"updated_address\": {\n    \"firstname\": \"{{firstName}}\",\n    \"lastname\": \"{{lastName}}\",\n    \"street\": [\"{{streetAddress}}\"],\n    \"city\": \"{{city}}\",\n    \"postcode\": \"{{postcode}}\",\n    \"region\": { \"region\": \"{{region}}\" },\n    \"telephone\": \"{{phoneNumber}}\",\n    \"default_shipping\": false,\n    \"default_billing\": false,\n    \"custom_attributes\": [{\"attribute_code\": \"address_name\", \"value\": \"{{firstName}}'s Address\"}],\n    \"country_code\": \"AU\"\n  }\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const addressId = pm.collectionVariables.get('addressId');",
+                  "if (!addressId) { throw new Error('addressId is not set. Run AddNewCustomerAddress first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const addressId = pm.collectionVariables.get('addressId');",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('updateCustomerAddress exists', () => {",
+                  "    pm.expect(json.data.updateCustomerAddress).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('returned id matches addressId', () => {",
+                  "    pm.expect(json.data.updateCustomerAddress.id).to.equal(parseInt(addressId));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_DeleteCustomerAddressFromAddressBook",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation DeleteCustomerAddressFromAddressBook($addressId:Int!){deleteCustomerAddress(id:$addressId)}",
+                "variables": "{\n  \"addressId\": {{addressId}}\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('deleteCustomerAddress returns true', () => {",
+                  "    pm.expect(json.data.deleteCustomerAddress).to.equal(true);",
+                  "});",
+                  "",
+                  "// Clean up the addressId so subsequent re-runs don't attempt to delete a deleted address",
+                  "pm.collectionVariables.set('addressId', '');"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_SetNewsletterSubscription – subscribe (is_subscribed: true)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation SetNewsletterSubscription($is_subscribed:Boolean!){updateCustomerV2(input:{is_subscribed:$is_subscribed}){customer{id is_subscribed __typename}__typename}}",
+                "variables": "{\n  \"is_subscribed\": true\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const customerId = pm.collectionVariables.get('customerId');",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('updateCustomerV2 exists', () => {",
+                  "    pm.expect(json.data.updateCustomerV2).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('customer.id matches customerId', () => {",
+                  "    pm.expect(String(json.data.updateCustomerV2.customer.id)).to.equal(String(customerId));",
+                  "});",
+                  "",
+                  "pm.test('is_subscribed is now true', () => {",
+                  "    pm.expect(json.data.updateCustomerV2.customer.is_subscribed).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_SetNewsletterSubscription – unsubscribe (is_subscribed: false)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation SetNewsletterSubscription($is_subscribed:Boolean!){updateCustomerV2(input:{is_subscribed:$is_subscribed}){customer{id is_subscribed __typename}__typename}}",
+                "variables": "{\n  \"is_subscribed\": false\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const customerId = pm.collectionVariables.get('customerId');",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('customer.id matches customerId', () => {",
+                  "    pm.expect(String(json.data.updateCustomerV2.customer.id)).to.equal(String(customerId));",
+                  "});",
+                  "",
+                  "pm.test('is_subscribed is now false', () => {",
+                  "    pm.expect(json.data.updateCustomerV2.customer.is_subscribed).to.equal(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_SetLoyaltyAndNewsletterSubscription – unsubscribe both",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation SetLoyaltyAndNewsletterSubscription($is_subscribed:Boolean!,$loyalty_program_status:Boolean){updateCustomerV2(input:{is_subscribed:$is_subscribed,loyalty_program_status:$loyalty_program_status}){customer{id is_subscribed loyalty_program_status __typename}__typename}}",
+                "variables": "{\n  \"is_subscribed\": false,\n  \"loyalty_program_status\": false\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const customerId = pm.collectionVariables.get('customerId');",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('customer.id matches customerId', () => {",
+                  "    pm.expect(String(json.data.updateCustomerV2.customer.id)).to.equal(String(customerId));",
+                  "});",
+                  "",
+                  "pm.test('is_subscribed is false', () => {",
+                  "    pm.expect(json.data.updateCustomerV2.customer.is_subscribed).to.equal(false);",
+                  "});",
+                  "",
+                  "pm.test('loyalty_program_status is false', () => {",
+                  "    pm.expect(json.data.updateCustomerV2.customer.loyalty_program_status).to.equal(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_loyalty – retrieve loyalty/newsletter subscription messages",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query loyalty{multiplerewards_loyalty_newsletter_subscription_messages multiplerewards_loyalty_newsletter_subscription_banner_messages}",
+                "variables": "{}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('multiplerewards_loyalty_newsletter_subscription_messages is defined', () => {",
+                  "    pm.expect(json.data.multiplerewards_loyalty_newsletter_subscription_messages).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('multiplerewards_loyalty_newsletter_subscription_banner_messages is defined', () => {",
+                  "    pm.expect(json.data.multiplerewards_loyalty_newsletter_subscription_banner_messages).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "04 – Support Features",
+      "description": "Store currency data and dynamic promo block data.\n\nMaps to: pla-support-features.spec.ts\n\nPre-requisite: Folders 01 & 02 must have run first (customerToken + cartId).",
+      "item": [
+
+        {
+          "name": "PLA_getCurrencyData – get default display currency",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query getCurrencyData{currency{default_display_currency_code available_currency_codes __typename}}",
+                "variables": "{}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('data.currency exists', () => {",
+                  "    pm.expect(json.data.currency).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('default_display_currency_code is a 3-letter ISO code', () => {",
+                  "    pm.expect(json.data.currency.default_display_currency_code).to.match(/^[A-Z]{3}$/);",
+                  "});",
+                  "",
+                  "pm.test('available_currency_codes contains AUD', () => {",
+                  "    pm.expect(json.data.currency.available_currency_codes).to.include('AUD');",
+                  "});",
+                  "",
+                  "pm.test('__typename is Currency', () => {",
+                  "    pm.expect(json.data.currency.__typename).to.equal('Currency');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "PLA_getDynamicData – dynamic promo blocks for cartId",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query GetDynamicData($cart_id:String!){cart(cart_id:$cart_id){dynamic_promo_blocks{discount{phrase __typename}gift{phrase __typename}message{progress_percent phrase success_phrase __typename}__typename}__typename}storeConfig{id store_code ewave_dynamicpromoblocks_discount_enable ewave_dynamicpromoblocks_general_enable ewave_dynamicpromoblocks_gift_enable ewave_dynamicpromoblocks_message_enable __typename}}",
+                "variables": "{\n  \"cart_id\": \"{{cartId}}\"\n}"
+              }
+            },
+            "url": "{{baseUrl}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cartId = pm.collectionVariables.get('cartId');",
+                  "if (!cartId) { throw new Error('cartId is not set. Run folder 02 first.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('HTTP status is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('No GraphQL errors', () => {",
+                  "    pm.expect(json.errors).to.be.undefined;",
+                  "});",
+                  "",
+                  "pm.test('data.cart exists', () => {",
+                  "    pm.expect(json.data.cart).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('dynamic_promo_blocks exists', () => {",
+                  "    pm.expect(json.data.cart.dynamic_promo_blocks).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('discount is null (empty cart)', () => {",
+                  "    pm.expect(json.data.cart.dynamic_promo_blocks.discount).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test('gift is null (empty cart)', () => {",
+                  "    pm.expect(json.data.cart.dynamic_promo_blocks.gift).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test('message block is defined', () => {",
+                  "    pm.expect(json.data.cart.dynamic_promo_blocks.message).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('storeConfig exists with expected fields', () => {",
+                  "    pm.expect(json.data.storeConfig).to.exist;",
+                  "    pm.expect(json.data.storeConfig.store_code).to.be.a('string');",
+                  "});",
+                  "",
+                  "// ─── End-of-run cleanup: reset run-scoped variables ───────────────────────",
+                  "// Clears testEmail so the next Collection Run always generates a new one.",
+                  "['testEmail','firstName','lastName','phoneNumber','streetAddress',",
+                  " 'city','postcode','region','customerToken','customerId','cartId','addressId']",
+                  "    .forEach(k => pm.collectionVariables.set(k, ''));",
+                  "console.log('[CLEANUP] Run-scoped variables reset. Next run will generate fresh data.');"
+                ]
+              }
+            }
+          ]
+        }
+
+      ]
+    }
+
+  ]
+}
