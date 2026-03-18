@@ -172,17 +172,18 @@ export abstract class BasePage {
   }
 
   /**
-   * Wait for page to load with default networkidle state
+   * Wait for the initial document to be ready for interaction.
+   * Keep networkidle as an opt-in helper for pages that truly require it.
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   /**
    * Wait for page to load with specific load state
    */
   async waitForPageLoadState(
-    state: "load" | "domcontentloaded" | "networkidle" = "networkidle",
+    state: "load" | "domcontentloaded" | "networkidle" = "domcontentloaded",
     timeout: number = TIMEOUTS.PAGE_LOAD_SLOW
   ): Promise<void> {
     await this.page.waitForLoadState(state, { timeout });
@@ -203,7 +204,8 @@ export abstract class BasePage {
   }
 
   /**
-   * Wait for network to be idle (no requests for 500ms)
+    * Wait for network to be idle when a specific flow depends on background
+    * requests settling. Prefer explicit UI readiness checks elsewhere.
    */
   async waitForNetworkIdle(timeout: number = 30000): Promise<void> {
     try {
@@ -257,7 +259,7 @@ export abstract class BasePage {
    */
   async waitForPageLoadWithTimeout(
     timeout: number = 30000,
-    state: "load" | "domcontentloaded" | "networkidle" = "networkidle"
+    state: "load" | "domcontentloaded" | "networkidle" = "domcontentloaded"
   ): Promise<void> {
     await this.page.waitForLoadState(state, { timeout });
   }
@@ -268,7 +270,7 @@ export abstract class BasePage {
   async waitForPageLoadAndVerifyURL(
     expectedUrl: string | RegExp
   ): Promise<void> {
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForLoadState("domcontentloaded");
 
     if (typeof expectedUrl === "string") {
       await this.page.waitForURL(expectedUrl);
