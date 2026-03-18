@@ -172,10 +172,27 @@ export abstract class BasePage {
   }
 
   /**
-   * Wait for page to load with default networkidle state
+   * Wait for page to become interactable.
+   * Uses deterministic load milestones first, then best-effort network idle.
+   * This avoids CI flakiness from long-lived analytics/polling requests.
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState("networkidle");
+    await this.page.waitForLoadState("domcontentloaded", {
+      timeout: TIMEOUTS.PAGE_LOAD,
+    });
+    await this.page.waitForLoadState("load", {
+      timeout: TIMEOUTS.PAGE_LOAD,
+    });
+
+    try {
+      await this.page.waitForLoadState("networkidle", {
+        timeout: TIMEOUTS.PAGE_LOAD_FAST,
+      });
+    } catch {
+      console.warn(
+        "⚠️  networkidle was not reached; continuing after load milestones"
+      );
+    }
   }
 
   /**
@@ -505,6 +522,7 @@ export abstract class BasePage {
       includeUrls?: string[];
       waitForSpinners?: boolean;
       spinnerSelectors?: string[];
+      spinnerTimeout?: number;
       maxRetries?: number;
     } = {}
   ): Promise<void> {
@@ -515,10 +533,13 @@ export abstract class BasePage {
       waitForSpinners = true,
       spinnerSelectors = [
         ".spinner",
-        ".loading",
-        "[data-loading]",
         ".ajax-loader",
+        ".loading-spinner",
+        ".loading-overlay",
+        "[role='progressbar']",
+        "[aria-busy='true']",
       ],
+      spinnerTimeout = Math.min(timeout, 7000),
       maxRetries = 3,
     } = options;
 
@@ -529,7 +550,10 @@ export abstract class BasePage {
 
         // Wait for spinners to disappear if enabled
         if (waitForSpinners) {
-          await this.waitForSpinnersToDisappear(spinnerSelectors, timeout);
+          await this.waitForSpinnersToDisappear(
+            spinnerSelectors,
+            spinnerTimeout
+          );
         }
 
         // If we have include URLs, wait for those specifically
@@ -543,6 +567,11 @@ export abstract class BasePage {
           throw error;
         }
         console.warn(`⚠️  AJAX wait attempt ${attempt} failed, retrying...`);
+
+        if (this.page.isClosed()) {
+          throw error;
+        }
+
         await this.page.waitForTimeout(1000); // Wait before retry
       }
     }

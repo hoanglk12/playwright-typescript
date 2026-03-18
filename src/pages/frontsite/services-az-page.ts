@@ -58,10 +58,14 @@ export class ServicesAZPage extends BasePage {
    * (e.g. the hamburger menu button) before any interaction.
    */
   async navigateToHomePage(): Promise<void> {
-    await this.page.goto(ServicesAZData.homePageUrl);
-    await this.waitForPageLoad(); // networkidle — guarantees interactive state
+    await this.page.goto(ServicesAZData.homePageUrl, {
+      waitUntil: 'domcontentloaded',
+    });
+    await this.hamburgerMenuBtn.waitFor({
+      state: 'visible',
+      timeout: TIMEOUTS.ELEMENT_VISIBLE,
+    });
   }
-
   /**
    * Open the hamburger / side navigation menu.
    */
