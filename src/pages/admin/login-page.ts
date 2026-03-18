@@ -29,14 +29,13 @@ export class LoginPage extends BasePage {
     this.errorPopup = page.getByText(AdminTestData.expectedMessages.errorLogin);
   }
   /**
-   * Navigate to LoginPage login page and wait for it to be fully interactive.
-   * networkidle wait prevents click failures on slower browsers (e.g. Firefox)
-   * where the login button can still appear unresponsive after domcontentloaded.
+   * Navigate to the CMS login page and wait for the login form to be usable.
    */
   async navigateToCMSLoginPage(): Promise<void> {
     const env = getEnvironment();
-    await this.page.goto(env.adminUrl);
-    await this.waitForPageLoad(); // networkidle — ensures all JS has settled
+    await this.page.goto(env.adminUrl, { waitUntil: 'domcontentloaded' });
+    await this.waitForPageLoad();
+    await this.loginButton.waitFor({ state: 'visible' });
   }
 
   /**
