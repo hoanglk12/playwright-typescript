@@ -23,13 +23,12 @@ export class HomePage extends BasePage {
 
   /**
    * Navigate to FF home page and wait for the page to be fully interactive.
-   * networkidle wait ensures JavaScript has finished enabling dynamic elements
-   * (e.g. the hamburger menu button) before any interaction begins.
+   * Uses resilient load milestones so CI background traffic does not block tests.
    */
   async navigateToHomePage(): Promise<void> {
     const env = getEnvironment();
     await this.page.goto(env.frontSiteUrl);
-    await this.waitForPageLoad(); // networkidle — guarantees interactive state
+    await this.waitForPageLoad();
   }
 
   /**
