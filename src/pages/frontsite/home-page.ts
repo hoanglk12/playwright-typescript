@@ -22,13 +22,14 @@ export class HomePage extends BasePage {
   }
 
   /**
-   * Navigate to FF home page and wait for the menu control used by this page.
+   * Navigate to FF home page and wait for the page to be fully interactive.
+   * networkidle wait ensures JavaScript has finished enabling dynamic elements
+   * (e.g. the hamburger menu button) before any interaction begins.
    */
   async navigateToHomePage(): Promise<void> {
     const env = getEnvironment();
-    await this.page.goto(env.frontSiteUrl, { waitUntil: 'domcontentloaded' });
-    await this.waitForPageLoad();
-    await this.hamburgerMenuBtn.waitFor({ state: 'visible' });
+    await this.page.goto(env.frontSiteUrl);
+    await this.waitForPageLoad(); // networkidle — guarantees interactive state
   }
 
   /**

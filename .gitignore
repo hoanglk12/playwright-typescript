@@ -33,7 +33,6 @@ test-summary.txt
 /html-report/
 /api-report/
 /api-results/
-accessibility-report/
 
 # Authentication states
 .auth/

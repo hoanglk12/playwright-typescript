@@ -53,17 +53,13 @@ export class ServicesAZPage extends BasePage {
   // ── Navigation helpers ────────────────────────────────────────────
 
   /**
-   * Navigate to the homepage and wait for the menu control needed by this flow.
-   * Avoid networkidle here because the homepage keeps background requests alive.
+   * Navigate to the homepage and wait for the page to be fully interactive.
+   * Using networkidle ensures JavaScript has finished enabling dynamic elements
+   * (e.g. the hamburger menu button) before any interaction.
    */
   async navigateToHomePage(): Promise<void> {
-    await this.page.goto(ServicesAZData.homePageUrl, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.hamburgerMenuBtn.waitFor({
-      state: 'visible',
-      timeout: TIMEOUTS.ELEMENT_VISIBLE,
-    });
+    await this.page.goto(ServicesAZData.homePageUrl);
+    await this.waitForPageLoad(); // networkidle — guarantees interactive state
   }
 
   /**
