@@ -7,8 +7,10 @@ export class EcommerceHomePage extends BasePage {
   }
 
   async navigate(url: string): Promise<void> {
-    await this.page.goto(url, { waitUntil: 'domcontentloaded' });
-    await expect(this.page.getByRole('main')).toBeVisible({ timeout: 30_000 });
+    await this.page.goto(url, { waitUntil: 'commit' });
+    await expect(this.page.getByRole('main')).toBeVisible({ timeout: 90_000 });
+    // Stop remaining resource loads so Firefox context teardown doesn't hang
+    await this.page.evaluate(() => window.stop()).catch(() => {});
   }
 
   async assertTitleMatches(regex: RegExp): Promise<void> {

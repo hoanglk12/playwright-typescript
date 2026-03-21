@@ -1,12 +1,14 @@
 import { test as base } from '@playwright/test';
 import { PageGenerator as FrontSitePageGenerator } from '../pages/frontsite/page-generator';
 import { PageGenerator as AdminPageGenerator } from '../pages/admin/page-generator';
+import { PageGenerator as EcommercePageGenerator } from '../pages/ecommerce/page-generator';
 import { HomePage } from '../pages/frontsite/home-page';
 import { LoginPage } from '../pages/admin/login-page';
 import { FormDragAndDropPage } from '@pages/frontsite/form-drag-and-drop';
 import { ProfileListingPage } from '@pages/frontsite/profile-listing-page';
 import { InsightsPage } from '@pages/frontsite/insights-page';
 import { ServicesAZPage } from '@pages/frontsite/services-az-page';
+import { EcommerceHomePage } from '@pages/ecommerce/home-page';
 
 type CustomFixtures = {
   homePage: HomePage;
@@ -15,6 +17,7 @@ type CustomFixtures = {
   profileListingPage: ProfileListingPage;
   insightsPage: InsightsPage;
   servicesAZPage: ServicesAZPage;
+  ecommerceHomePage: EcommerceHomePage;
 };
 
 export const test = base.extend<CustomFixtures>({
@@ -46,6 +49,11 @@ export const test = base.extend<CustomFixtures>({
   servicesAZPage: async ({ page }, use) => {
     const servicesAZPage = FrontSitePageGenerator.getServicesAZPage(page);
     await use(servicesAZPage);
+  },
+
+  ecommerceHomePage: async ({ page }, use) => {
+    const ecommerceHomePage = EcommercePageGenerator.getEcommerceHomePage(page);
+    await use(ecommerceHomePage);
   },
 });
 
