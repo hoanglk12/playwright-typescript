@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { BasePage } from '../base-page';
+import { TIMEOUTS } from '../../constants/timeouts';
 
 export class EcommerceHomePage extends BasePage {
   constructor(page: Page) {
@@ -7,14 +8,19 @@ export class EcommerceHomePage extends BasePage {
   }
 
   async navigate(url: string): Promise<void> {
+    // 'commit' fires as soon as the server starts sending the document —
+    // far faster than 'load'/'domcontentloaded' on SPAs that have dozens of
+    // 3rd-party analytics/tracking scripts (FullStory, TikTok, Insider, Adobe,
+    // BazaarVoice, etc.) that can delay those events by 2+ minutes on Firefox.
+    // Do NOT call waitForAjaxRequestsCompleteAdvanced() — continuous analytics
+    // and GraphQL XHRs on these SPAs keep pendingRequests non-empty forever.
     await this.page.goto(url, { waitUntil: 'commit' });
-    await expect(this.page.getByRole('main')).toBeVisible({ timeout: 90_000 });
-    // Stop remaining resource loads so Firefox context teardown doesn't hang
-    await this.page.evaluate(() => window.stop()).catch(() => {});
+    // Wait for React to hydrate and render the main content area
+    await this.page.locator('main').waitFor({ state: 'visible' });
   }
 
   async assertTitleMatches(regex: RegExp): Promise<void> {
-    await expect(this.page).toHaveTitle(regex, { timeout: 15_000 });
+    await expect(this.page).toHaveTitle(regex, { timeout: TIMEOUTS.PAGE_LOAD_SLOW });
   }
 
   async assertMainContentVisible(): Promise<void> {
@@ -29,11 +35,16 @@ export class EcommerceHomePage extends BasePage {
     await expect
       .poll(
         async () => {
-          return this.page.evaluate(() => {
-            const headerText = (document.querySelector('header')?.textContent || '').trim();
-            const bodyText = (document.body?.innerText || '').trim();
-            return `${headerText}\n${bodyText.slice(0, 8000)}`;
-          });
+          try {
+            return await this.page.evaluate(() => {
+              const headerText = (document.querySelector('header')?.textContent || '').trim();
+              const bodyText = (document.body?.innerText || '').trim();
+              return `${headerText}\n${bodyText.slice(0, 8000)}`;
+            });
+          } catch {
+            // Navigation may destroy the execution context; return empty to let poll retry
+            return '';
+          }
         },
         {
           message: `Expected promotional text on ${siteName}`,

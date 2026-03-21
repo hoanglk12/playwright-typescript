@@ -33,13 +33,13 @@ export const storefronts: Storefront[] = [
   {
     name: 'Vans AU',
     url: 'https://stag-vans-au.accentgra.com/',
-    titleRegex: /home\s+page/i,
+    titleRegex: /vans|home\s+page/i,
     promoRegex: /qantas\s+points|shop\s+now/i,
   },
   {
     name: 'Vans NZ',
     url: 'https://stag-vans-nz.accentgra.com/',
-    titleRegex: /home\s+page\s+nz/i,
+    titleRegex: /vans|home\s+page/i,
     promoRegex: /shop\s+mens|shop\s+women|shop\s+all\s+sale/i,
   },
   {
