@@ -28,7 +28,7 @@ export const storefronts: Storefront[] = [
     name: 'Skechers NZ',
     url: 'https://stag-skechers-nz.accentgra.com/',
     titleRegex: /skechers/i,
-    promoRegex: /spend\s*&\s*save|shop\s+sale/i,
+    promoRegex: /spend\s*&\s*save|shop\s+sale|outlet\s+clothing/i,
   },
   {
     name: 'Vans AU',
