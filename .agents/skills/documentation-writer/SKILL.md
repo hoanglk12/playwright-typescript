@@ -1,5 +1,6 @@
 ---
 name: "documentation-writer"
+description: Use when writing or improving technical documentation, JSDoc comments, or updating README/guide files for code clarity and maintainability.
 ---
 # Technical Documentation & JSDoc Writer
 
