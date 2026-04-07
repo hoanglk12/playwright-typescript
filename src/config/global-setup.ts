@@ -16,7 +16,14 @@ async function globalSetup() {
   TestLogger.initializeLogging();
   // Load environment configuration
   const environment = getEnvironment();
-  console.log(`📋 Environment: ${process.env}`);
+  console.log('📋 Environment configuration:', {
+    name: process.env.NODE_ENV || process.env.ENV || 'testing',
+    browser: environment.defaultBrowser,
+    headless: environment.headless,
+    timeout: environment.timeout,
+    retries: environment.retries,
+    parallelWorkers: environment.parallelWorkers,
+  });
   console.log(`🌐 Admin URL: ${environment.adminUrl}`);
   console.log(`🌐 FrontSite URL: ${environment.frontSiteUrl}\n`);
   

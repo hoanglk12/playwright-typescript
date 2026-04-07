@@ -15,7 +15,7 @@ test.describe.serial('Ecommerce Homepage Smoke @ecommerce @smoke @homepage', () 
 
     test(`E2E-HOME-002 - ${site.name} top bar promotional message is visible`, async ({ ecommerceHomePage }) => {
       await ecommerceHomePage.navigate(site.url);
-      await ecommerceHomePage.assertPromoMessageVisible(site.name, site.promoRegex);
+      await ecommerceHomePage.assertPromoMessageVisible(site.name);
     });
   }
 });

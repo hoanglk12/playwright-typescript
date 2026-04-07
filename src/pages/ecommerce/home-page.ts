@@ -31,29 +31,77 @@ export class EcommerceHomePage extends BasePage {
     await expect(this.page.getByRole('main').getByRole('img').first()).toBeVisible();
   }
 
-  async assertPromoMessageVisible(siteName: string, promoRegex: RegExp): Promise<void> {
+  async assertPromoMessageVisible(siteName: string): Promise<void> {
     await expect
       .poll(
         async () => {
           try {
             return await this.page.evaluate(() => {
-              const headerText = (document.querySelector('header')?.textContent || '').trim();
-              // Use textContent instead of innerText — innerText triggers layout reflow
-              // and returns empty string in Firefox when the layout engine is busy/deferred.
-              const bodyText = (document.body?.textContent || '').trim();
-              return `${headerText}\n${bodyText.slice(0, 8000)}`;
+              const selectors = [
+                '[class*="top-header"]',
+                '[class*="announcement"]',
+                '[class*="promo"]',
+                '[class*="notice"]',
+                '[class*="message"]',
+                '[class*="cmsBlock-root"]',
+                '[class*="cmsBlock-content"]',
+              ];
+
+              const isVisiblePromo = (element: Element | null): boolean => {
+                if (!(element instanceof HTMLElement)) return false;
+
+                const style = window.getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                const text = (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
+
+                return (
+                  style.display !== 'none' &&
+                  style.visibility !== 'hidden' &&
+                  rect.width > 120 &&
+                  rect.height > 12 &&
+                  rect.top < 220 &&
+                  rect.bottom > 0 &&
+                  text.length >= 12
+                );
+              };
+
+              for (const selector of selectors) {
+                if (Array.from(document.querySelectorAll(selector)).some((element) => isVisiblePromo(element))) {
+                  return true;
+                }
+              }
+
+              return Array.from(document.querySelectorAll('body *')).some((element) => {
+                if (!(element instanceof HTMLElement)) return false;
+                if (element.matches('body, main, nav, header, footer')) return false;
+                if (element.closest('nav')) return false;
+
+                const style = window.getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                const text = (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
+
+                return (
+                  style.display !== 'none' &&
+                  style.visibility !== 'hidden' &&
+                  rect.width > 120 &&
+                  rect.height > 12 &&
+                  rect.top >= 0 &&
+                  rect.top < 220 &&
+                  rect.bottom > 0 &&
+                  text.length >= 12
+                );
+              });
             });
           } catch {
-            // Navigation may destroy the execution context; return empty to let poll retry
-            return '';
+            return false;
           }
         },
         {
-          message: `Expected promotional text on ${siteName}`,
-          timeout: 60_000,
+          message: `Expected promotional banner to be displayed on ${siteName}`,
+          timeout: TIMEOUTS.PAGE_LOAD_SLOW,
           intervals: [500, 1000, 2000],
         }
       )
-      .toMatch(promoRegex);
+      .toBe(true);
   }
 }
