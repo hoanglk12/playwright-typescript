@@ -54,6 +54,15 @@ export const test = base.extend<CustomFixtures>({
   ecommerceHomePage: async ({ page }, use) => {
     const ecommerceHomePage = EcommercePageGenerator.getEcommerceHomePage(page);
     await use(ecommerceHomePage);
+    // Firefox only: navigate to about:blank before fixture teardown so the
+    // browser context closes cleanly. Firefox's Juggler protocol hangs on
+    // context.close() when staging SPAs have active service workers and
+    // persistent analytics/WebSocket connections. about:blank triggers the
+    // unload lifecycle (deregisters service workers, closes connections).
+    // Chromium handles context teardown cleanly without this workaround.
+    if (page.context().browser()?.browserType().name() === 'firefox') {
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
+    }
   },
 });
 
