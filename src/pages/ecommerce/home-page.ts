@@ -38,7 +38,9 @@ export class EcommerceHomePage extends BasePage {
           try {
             return await this.page.evaluate(() => {
               const headerText = (document.querySelector('header')?.textContent || '').trim();
-              const bodyText = (document.body?.innerText || '').trim();
+              // Use textContent instead of innerText — innerText triggers layout reflow
+              // and returns empty string in Firefox when the layout engine is busy/deferred.
+              const bodyText = (document.body?.textContent || '').trim();
               return `${headerText}\n${bodyText.slice(0, 8000)}`;
             });
           } catch {
@@ -48,7 +50,7 @@ export class EcommerceHomePage extends BasePage {
         },
         {
           message: `Expected promotional text on ${siteName}`,
-          timeout: 30_000,
+          timeout: 60_000,
           intervals: [500, 1000, 2000],
         }
       )

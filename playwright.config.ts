@@ -16,7 +16,6 @@ export default defineConfig({
   /* Skip API tests */
   testIgnore: [
     "**/api/**",
-    "**/homepage-smoke.spec.ts",  /* Ignore flaky homepage smoke tests on staging SPAs until we can stabilize them with better loading/waiting strategies */
     // "**/profile-listing-page.spec.ts"  /* Ignore a test */
   ],
 

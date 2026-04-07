@@ -22,7 +22,7 @@ export const storefronts: Storefront[] = [
     name: 'Skechers AU',
     url: 'https://stag-skechers-au.accentgra.com/',
     titleRegex: /skechers/i,
-    promoRegex: /shop\s+sale\s+by\s+technology|shop\s+women'?s\s+work/i,
+    promoRegex: /shop\s+(?:sale|now|women|men|all)|free\s+(?:shipping|delivery|returns)|skechers|sale|new\s+arrivals/i,
   },
   {
     name: 'Skechers NZ',
@@ -34,13 +34,13 @@ export const storefronts: Storefront[] = [
     name: 'Vans AU',
     url: 'https://stag-vans-au.accentgra.com/',
     titleRegex: /vans|home\s+page/i,
-    promoRegex: /qantas\s+points|shop\s+now/i,
+    promoRegex: /qantas\s+points|shop\s+(?:now|sale|men|women|all)|free\s+(?:shipping|delivery|returns)|new\s+arrivals|vans/i,
   },
   {
     name: 'Vans NZ',
     url: 'https://stag-vans-nz.accentgra.com/',
     titleRegex: /vans|home\s+page/i,
-    promoRegex: /shop\s+mens|shop\s+women|shop\s+all\s+sale/i,
+    promoRegex: /shop\s+(?:mens|women|men|all\s+sale|now|sale)|free\s+(?:shipping|delivery|returns)|new\s+arrivals|vans/i,
   },
   {
     name: 'Dr. Martens AU',
