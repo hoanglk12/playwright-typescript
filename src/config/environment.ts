@@ -55,11 +55,11 @@ function loadEnvironmentFile(envName: string): void {
   const envPath = path.resolve(process.cwd(), envFile);
   
   try {
-    dotenv.config({ path: envPath });
+    dotenv.config({ path: envPath, quiet: true });
     console.log(`✅ Loaded environment configuration from: ${envFile}`);
   } catch (error) {
     console.warn(`⚠️  Could not load ${envFile}, falling back to default .env`);
-    dotenv.config(); // Load default .env file
+    dotenv.config({ quiet: true }); // Load default .env file
   }
 }
 
