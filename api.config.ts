@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 /**
  * Read environment variables from file.
  */
-require('dotenv').config({ path: '.env.testing' });
+require('dotenv').config({ path: '.env.testing', quiet: true });
 import { getApiEnvironment } from './src/api/config/environment';
 const env = getApiEnvironment();
 /**

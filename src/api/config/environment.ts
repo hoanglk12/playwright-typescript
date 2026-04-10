@@ -23,12 +23,12 @@ export function getApiEnvironment(): ApiEnvironment {
   const envPath = `.env.${env}`;
   
   if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath });
+    dotenv.config({ path: envPath, quiet: true });
   }
   
   // Fallback to default .env file if exists
   if (fs.existsSync('.env')) {
-    dotenv.config({ path: '.env' });
+    dotenv.config({ path: '.env', quiet: true });
   }
   
   // Detect CI environment
