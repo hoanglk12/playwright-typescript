@@ -13,7 +13,6 @@
     "declaration": true,
     "outDir": "./dist",
     "rootDir": ".",
-    "baseUrl": ".",
     "paths": {
       "@pages/*": ["./src/pages/*"],
       "@tests/*": ["./tests/*"],
