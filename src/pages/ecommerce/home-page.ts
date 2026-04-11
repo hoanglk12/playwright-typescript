@@ -31,6 +31,74 @@ export class EcommerceHomePage extends BasePage {
     await expect(this.page.getByRole('main').getByRole('img').first()).toBeVisible();
   }
 
+  /**
+   * E2E-HOME-003 — AU sites only.
+   *
+   * The top bar (.top-header-desktop) on AU storefronts contains an anchor link
+   * "Earn 2 Qantas Points per $1 spent*". We poll until the bar has hydrated
+   * (React may not have rendered it yet when <main> first appears) and then
+   * assert the Qantas text is present.
+   */
+  async assertQantasPointsVisible(siteName: string): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          try {
+            return await this.page.evaluate(() => {
+              const topBar = document.querySelector('.top-header-desktop');
+              if (!topBar) return null; // bar not in DOM yet — keep polling
+              const text = (topBar instanceof HTMLElement ? topBar.innerText : topBar.textContent ?? '').toLowerCase();
+              return text.includes('qantas');
+            });
+          } catch {
+            return null;
+          }
+        },
+        {
+          message: `Expected Qantas Points link to be visible in top bar on AU site: ${siteName}`,
+          timeout: TIMEOUTS.PAGE_LOAD_SLOW,
+          intervals: [500, 1000, 2000],
+        }
+      )
+      .toBe(true);
+  }
+
+  /**
+   * E2E-HOME-003 — NZ sites only.
+   *
+   * The top bar on NZ storefronts does NOT contain Qantas text at all (the word
+   * does not appear in the DOM). We first wait for the bar to render
+   * (confirmed by the "shipping" text that is present on every site), then
+   * assert that "qantas" is absent from its inner text.
+   */
+  async assertQantasPointsAbsent(siteName: string): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          try {
+            return await this.page.evaluate(() => {
+              const topBar = document.querySelector('.top-header-desktop');
+              if (!topBar) return null; // bar not in DOM yet — keep polling
+              const text = (topBar instanceof HTMLElement ? topBar.innerText : topBar.textContent ?? '').toLowerCase();
+              // Guard: only conclude once the bar's own content has hydrated.
+              // Different sites use different wording: Platypus/Skechers say "shipping",
+              // Vans says "delivery". Accept either to avoid a permanent null on Vans NZ.
+              if (!text.includes('shipping') && !text.includes('delivery')) return null;
+              return !text.includes('qantas');
+            });
+          } catch {
+            return null;
+          }
+        },
+        {
+          message: `Expected Qantas Points to be absent from top bar on NZ site: ${siteName}`,
+          timeout: TIMEOUTS.PAGE_LOAD_SLOW,
+          intervals: [500, 1000, 2000],
+        }
+      )
+      .toBe(true);
+  }
+
   async assertPromoMessageVisible(siteName: string): Promise<void> {
     await expect
       .poll(
