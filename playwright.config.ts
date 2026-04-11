@@ -87,6 +87,8 @@ export default defineConfig({
 
     {
       name: "firefox",
+      // In CI, ecommerce/smoke tests run on Chromium only — skip them here
+      testIgnore: process.env.CI ? ["**/ecommerce/smoke/**"] : [],
       use: {
         ...devices["Desktop Firefox"],
         viewport: { width: env.viewportWidth, height: env.viewportHeight },
