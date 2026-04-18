@@ -39,11 +39,16 @@ export class ServicesAZPage extends BasePage {
   private readonly letterLinkSelector = (letter: string) =>
     `a[aria-label="Letter ${letter}"]`;
   /** Section heading for a given letter (e.g. <h2>D</h2>) */
-  private readonly sectionHeading = (letter: string) =>
-    `main h2:text-is("${letter}")`;
+  private sectionHeading(letter: string): Locator {
+    return this.page.locator('main h2').filter({ hasText: new RegExp(`^${letter}$`) });
+  }
   /** Service items within the section that follows the heading */
-  private readonly sectionServiceLinks = (letter: string) =>
-    `main div.az-list__listing-segment-inner:has(h2:text-is("${letter}")) ul a`;
+  private sectionServiceLinks(letter: string): Locator {
+    return this.page
+      .locator('main div.az-list__listing-segment-inner')
+      .filter({ has: this.page.locator('h2').filter({ hasText: new RegExp(`^${letter}$`) }) })
+      .locator('ul a');
+  }
 
   constructor(page: Page) {
     super(page);
@@ -71,7 +76,7 @@ export class ServicesAZPage extends BasePage {
    */
   async openHamburgerMenu(): Promise<void> {
     await this.hamburgerMenuBtn.click();
-    await this.page.waitForSelector(this.sideNavLink, {
+    await this.page.locator(this.sideNavLink).first().waitFor({
       state: 'visible',
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
@@ -97,7 +102,7 @@ export class ServicesAZPage extends BasePage {
       this.page.locator(this.servicesAZLink).click(),
     ]);
     // Confirm we actually landed on the A-Z page
-    await this.page.waitForSelector('main h1', {
+    await this.page.locator('main h1').first().waitFor({
       state: 'visible',
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
@@ -180,7 +185,7 @@ export class ServicesAZPage extends BasePage {
    * inside the current viewport (i.e. the page scrolled to it).
    */
   async isSectionHeadingInViewport(letter: string): Promise<boolean> {
-    const heading = this.page.locator(this.sectionHeading(letter));
+    const heading = this.sectionHeading(letter);
     await heading.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
     // Poll until the heading enters the viewport (replaces fixed waitForTimeout).
@@ -214,7 +219,7 @@ export class ServicesAZPage extends BasePage {
    * Get the list of service names displayed under a letter section.
    */
   async getServiceNamesForLetter(letter: string): Promise<string[]> {
-    const links = this.page.locator(this.sectionServiceLinks(letter));
+    const links = this.sectionServiceLinks(letter);
     return links.allTextContents();
   }
 

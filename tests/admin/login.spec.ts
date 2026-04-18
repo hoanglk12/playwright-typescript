@@ -30,7 +30,7 @@ test.describe('Admin Login Tests', () => {
     logger.step('Step 3 - Click login button to attempt login');
     logger.action('Click', 'login button');
     await loginPage.clickLoginButton();
-    await loginPage.waitForFullPageLoad();
+    await loginPage.waitForPageLoad();
     
     logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminTestData.expectedMessages.errorLogin);
     expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminTestData.expectedMessages.errorLogin);
@@ -58,7 +58,7 @@ test.describe('Admin Login Tests', () => {
     logger.step('Step 3 - Click login button to attempt login');
     logger.action('Click', 'login button');
     await loginPage.clickLoginButton();
-    await loginPage.waitForFullPageLoad();
+    await loginPage.waitForPageLoad();
     
     logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminTestData.expectedMessages.errorLogin);
     expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminTestData.expectedMessages.errorLogin);

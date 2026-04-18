@@ -17,7 +17,7 @@ test.describe('Home Page Verification @homepage @frontsite', () => {
     logger.step('Step 1 - Navigate to home page');
     logger.action('Navigate', 'home page');
     await homePage.navigateToHomePage();
-    await homePage.waitForAjaxRequestsCompleteAdvanced();
+    await homePage.waitForAjaxRequestsComplete();
 
     logger.step('Step 2 - Verify FF logo is displayed');
     logger.action('Verify', 'FF logo is displayed');
@@ -26,7 +26,7 @@ test.describe('Home Page Verification @homepage @frontsite', () => {
     logger.step('Step 3 - Click hamburger icon');
     logger.action('Click', 'hamburger icon');
     await homePage.clickHamburgerMenu();
-    await homePage.waitForAjaxRequestsCompleteAdvanced();
+    await homePage.waitForAjaxRequestsComplete();
 
     // Step 4: Hover over navigation links and verify background color matches brand colour
     logger.step(`Step 4 - Hover over navigation links and verify background colour is ${HeaderData.NAVIGATION_MENU.highlightedColor}`);

@@ -1,12 +1,22 @@
-import { Page } from "@playwright/test";
+import { Page, Route, Request } from "@playwright/test";
 
 /** Network interception, API mocking, monitoring, and performance metrics. */
 export class NetworkHelper {
   constructor(private readonly page: Page) {}
 
-  async monitorNetworkRequests(urlPattern?: string | RegExp): Promise<string[]> {
+  /**
+   * Start collecting matching request URLs. Returns the live array and a stop function.
+   * Call stop() when done to remove the listener.
+   *
+   * @example
+   * const { requests, stop } = this.network.monitorNetworkRequests('/api/');
+   * await doSomething();
+   * stop();
+   * expect(requests).toContain(...);
+   */
+  monitorNetworkRequests(urlPattern?: string | RegExp): { requests: string[]; stop: () => void } {
     const requests: string[] = [];
-    this.page.on("request", (request) => {
+    const handler = (request: Request) => {
       const url = request.url();
       if (!urlPattern) {
         requests.push(url);
@@ -15,8 +25,9 @@ export class NetworkHelper {
       } else if (urlPattern instanceof RegExp && urlPattern.test(url)) {
         requests.push(url);
       }
-    });
-    return requests;
+    };
+    this.page.on("request", handler);
+    return { requests, stop: () => this.page.off("request", handler) };
   }
 
   async blockResources(resourceTypes: string[]): Promise<void> {
@@ -41,10 +52,10 @@ export class NetworkHelper {
 
   async interceptRequest(
     urlPattern: string | RegExp,
-    modifier: (request: ReturnType<typeof this.page.route> extends Promise<infer R> ? R : never) => void
+    modifier: (route: Route) => void
   ): Promise<void> {
     await this.page.route(urlPattern, (route) => {
-      modifier(route as never);
+      modifier(route);
       route.continue();
     });
   }
