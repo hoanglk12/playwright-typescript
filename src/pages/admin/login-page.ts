@@ -21,8 +21,9 @@ export class LoginPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.userIdInput = page.locator('#Login1_UserName');
-    this.passwordInput = page.locator('#Login1_Password');
+    // getByLabel matches the <label for="Login1_UserName"> rendered by ASP.NET Login control
+    this.userIdInput = page.getByLabel('User Name');
+    this.passwordInput = page.getByLabel('Password');
     // Semantic role locator — the ASP.NET Login control renders as <button>Sign in</button>
     this.loginButton = page.getByRole('button', { name: 'Sign in' });
     this.homeIcon = page.locator('#js-nav-breadcrumb i');

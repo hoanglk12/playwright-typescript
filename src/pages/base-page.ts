@@ -26,7 +26,7 @@ import {
  * The delegated methods below keep the existing page-object call-sites working.
  */
 export abstract class BasePage {
-  protected readonly page: Page;
+  protected page: Page;
 
   // ── Helpers (use these in subclasses for new code) ──────────────────────────
   protected readonly waits: WaitHelper;
@@ -90,7 +90,7 @@ export abstract class BasePage {
   async switchToWindowByTitle(expectedTitle: string): Promise<void> {
     for (const pg of this.page.context().pages()) {
       if ((await pg.title()) === expectedTitle) {
-        (this as unknown as { page: Page }).page = pg;
+        this.page = pg;
         await pg.bringToFront();
         break;
       }
@@ -100,7 +100,7 @@ export abstract class BasePage {
   async switchToWindowById(parentPage: Page): Promise<void> {
     for (const pg of this.page.context().pages()) {
       if (pg !== parentPage) {
-        (this as unknown as { page: Page }).page = pg;
+        this.page = pg;
         await pg.bringToFront();
         break;
       }
@@ -112,7 +112,7 @@ export abstract class BasePage {
     if (index < 0 || index >= allPages.length) {
       throw new Error(`Window index ${index} out of range. Available: ${allPages.length}`);
     }
-    (this as unknown as { page: Page }).page = allPages[index];
+    this.page = allPages[index];
     await this.page.bringToFront();
   }
 
@@ -122,7 +122,7 @@ export abstract class BasePage {
       const match =
         typeof urlPattern === "string" ? url.includes(urlPattern) : urlPattern.test(url);
       if (match) {
-        (this as unknown as { page: Page }).page = pg;
+        this.page = pg;
         await pg.bringToFront();
         return true;
       }
@@ -133,7 +133,7 @@ export abstract class BasePage {
   async switchToLatestWindow(): Promise<void> {
     const allPages = this.page.context().pages();
     if (allPages.length > 0) {
-      (this as unknown as { page: Page }).page = allPages[allPages.length - 1];
+      this.page = allPages[allPages.length - 1];
       await this.page.bringToFront();
     }
   }
@@ -162,7 +162,7 @@ export abstract class BasePage {
 
   async waitForNewWindowAndSwitch(timeout = 10000): Promise<void> {
     const newPage = await this.page.context().waitForEvent("page", { timeout });
-    (this as unknown as { page: Page }).page = newPage;
+    this.page = newPage;
     await newPage.bringToFront();
     await newPage.waitForLoadState("domcontentloaded");
   }
@@ -170,7 +170,7 @@ export abstract class BasePage {
   async openNewTab(url?: string): Promise<void> {
     const newPage = await this.page.context().newPage();
     if (url) await newPage.goto(url);
-    (this as unknown as { page: Page }).page = newPage;
+    this.page = newPage;
     await newPage.bringToFront();
   }
 

@@ -25,7 +25,7 @@ export class FormDragAndDropPage extends BasePage {
   async navigateToFormPage(): Promise<void> {
     //const env = getEnvironment();
     await this.page.goto(DragAndDropData.formPageUrl);
-    await this.waitForDOMContentLoaded();
+    await this.waitForPageLoadState('domcontentloaded');
   }
   /**
    * Click upload file element
@@ -43,9 +43,7 @@ export class FormDragAndDropPage extends BasePage {
   }
   async getAlertText(): Promise<string> {
     const dialog = await this.page.waitForEvent('dialog');
-    const dialogMessage = dialog.message();
-    console.log('Dialog message:', dialogMessage);
-    return dialogMessage;
+    return dialog.message();
 }
 
 }

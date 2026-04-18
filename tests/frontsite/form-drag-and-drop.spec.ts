@@ -12,14 +12,12 @@ import path from 'path';
   
 test.describe('Form Drag And Drop Tests', () => {
   test.skip(!!process.env.CI, 'Skipped in CI due to unstable/deprecated target page URL.');
-   //Declare logger for test steps
-  const logger = createTestLogger('Upload File Scenarios');
+
   test('Valid File', async ({
     formDragAndDropPage,
 
   }) => {
-     
-      
+    const logger = createTestLogger('Upload File Scenarios');
     logger.step('Step 1 - Navigate to Form page');
     logger.action('Navigate', 'form page');
     await formDragAndDropPage.navigateToFormPage();
@@ -35,8 +33,9 @@ test.describe('Form Drag And Drop Tests', () => {
   });
   test('Invalid File @invalid file', async ({
     formDragAndDropPage,
-     
+
   }) => {
+    const logger = createTestLogger('Upload File Scenarios');
     logger.step('Step 1 - Navigate to Form page');
     logger.action('Navigate', 'form page');
     await formDragAndDropPage.navigateToFormPage();

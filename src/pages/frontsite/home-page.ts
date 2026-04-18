@@ -37,7 +37,7 @@ export class HomePage extends BasePage {
   async clickHamburgerMenu(): Promise<void> {
     await this.hamburgerMenuBtn.click();
     // Wait for side navigation links to appear after menu animation
-    await this.page.waitForSelector(this.sideNavLink, { state: 'visible', timeout: 5000 });
+    await this.page.locator(this.sideNavLink).first().waitFor({ state: 'visible', timeout: 5000 });
   }
 
   /**

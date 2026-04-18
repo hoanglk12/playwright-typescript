@@ -46,7 +46,7 @@ export class ProfileListingPage extends BasePage {
    */
   async navigateToProfileListingPage(): Promise<void> {
     await this.page.goto(ProfileListingData.ProfileListingTestDataGenerator.profileListingUrl);
-    await this.waitForDOMContentLoaded();
+    await this.waitForPageLoadState('domcontentloaded');
     // Auto-wait: block until at least one profile link is visible (no hard wait)
     await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
   }
@@ -67,11 +67,11 @@ export class ProfileListingPage extends BasePage {
       .first();
     if (await ascControl.count() > 0) {
       await ascControl.click();
-      await this.waitForAjaxRequestsCompleteAdvanced();
+      await this.waitForAjaxRequestsComplete();
     }
 
     // Auto-wait for AJAX + first profile link to re-appear after sort change
-    await this.waitForAjaxRequestsCompleteAdvanced();
+    await this.waitForAjaxRequestsComplete();
     await this.profileLinks().first().waitFor({ state: 'visible', timeout: 15000 });
   }
 
@@ -98,7 +98,7 @@ export class ProfileListingPage extends BasePage {
     await input.waitFor({ state: 'visible', timeout: 10000 });
     await input.fill(keyword);
     await this.page.keyboard.press('Enter');
-    await this.waitForAjaxRequestsCompleteAdvanced();
+    await this.waitForAjaxRequestsComplete();
   }
 
   /**
@@ -159,8 +159,6 @@ export class ProfileListingPage extends BasePage {
     for (let i = 1; i < surnames.length; i++) {
       const cmp = surnames[i].localeCompare(surnames[i - 1], undefined, { sensitivity: 'base' });
       if (cmp < 0) {
-        console.error('Sort order failed at index', i, '— previous:', surnames[i - 1], '| current:', surnames[i]);
-        console.error('First 20 names:', deduped.slice(0, 20));
         return false;
       }
     }

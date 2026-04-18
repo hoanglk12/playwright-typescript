@@ -15,7 +15,7 @@ test.describe('Profile Listing Page Verification', () => {
     logger.step('Step 1 - Navigate to profile listing page');
     logger.action('Navigate', 'profile listing page');
     await profileListingPage.navigateToProfileListingPage();
-    await profileListingPage.waitForAjaxRequestsCompleteAdvanced();
+    await profileListingPage.waitForAjaxRequestsComplete();
         
     logger.step('Step 2 - Verify profiles are displayed');
     logger.action('Verify', 'profiles are displayed');
@@ -31,7 +31,7 @@ test.describe('Profile Listing Page Verification', () => {
     logger.action('Select and Verify', 'select Surname and verify ascending sort');
     await profileListingPage.selectSortByDropDownWithSurname();
     // wait a bit for sorting to apply
-    await profileListingPage.waitForAjaxRequestsCompleteAdvanced();
+    await profileListingPage.waitForAjaxRequestsComplete();
     const isSorted = await profileListingPage.verifyProfilesSortedBySurnameAscending();
     expect(isSorted).toBeTruthy();
    

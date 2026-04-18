@@ -34,7 +34,7 @@ export class InsightsPage extends BasePage {
    */
   async navigateToInsightsPage(): Promise<void> {
     await this.page.goto(`${this.environment.frontSiteUrl}/insights`);
-    await this.waitForDOMContentLoaded();
+    await this.waitForPageLoadState('domcontentloaded');
   }
 
   /**
