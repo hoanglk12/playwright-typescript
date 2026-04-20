@@ -18,15 +18,15 @@ export class InsightsPage extends BasePage {
 
   /**
    * Container that holds all returned article cards.
-   * Class-name selector kept because there is no ARIA landmark or role that
-   * uniquely identifies this list; revisit if a data-testid is added.
+   * Uses .article-list-container — always present on the page, content
+   * updates after search without a full navigation.
    */
   private readonly searchResults: Locator;
 
   constructor(page: Page) {
     super(page);
     this.searchInput = page.getByPlaceholder('Type a keyword here and hit enter to search');
-    this.searchResults = page.locator('div.article-card__list-results');
+    this.searchResults = page.locator('div.article-list-container');
   }
 
   /**
@@ -48,12 +48,13 @@ export class InsightsPage extends BasePage {
     // pressSequentially fires real keyboard events, which the search field may require
     await this.searchInput.pressSequentially(searchText, { delay: 50 });
     await this.searchInput.press('Enter');
+    // Wait for URL to update with searchText param — confirms search was submitted
+    await this.page.waitForURL(/searchText=/, { timeout: 10000 }).catch(() => {});
+  }
 
-    // Wait for results container to appear; if it never appears the search may
-    // have navigated to a search-results URL — handled in verifySearchResultsContainText.
-    await this.searchResults.first()
-      .waitFor({ state: 'visible', timeout: 10000 })
-      .catch(() => { /* results may come via page navigation */ });
+  /** Locator for search results container — use with toContainText() assertion */
+  get resultsContainer() {
+    return this.searchResults;
   }
 
   /**

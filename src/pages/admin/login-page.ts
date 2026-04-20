@@ -17,7 +17,7 @@ export class LoginPage extends BasePage {
    * Locate error popup by the canonical message from AdminTestData (single source
    * of truth — avoids duplicating the string in both POM and test data).
    */
-  private readonly errorPopup: Locator;
+  readonly errorPopup: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -62,6 +62,7 @@ export class LoginPage extends BasePage {
    */
   async clickLoginButton(): Promise<void> {
     await this.loginButton.click({ timeout: 30000 });
+    await this.waitForPageLoad();
   }
 
   

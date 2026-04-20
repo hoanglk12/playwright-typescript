@@ -59,6 +59,11 @@ export class HomePage extends BasePage {
     return await this.isElementDisplayed(this.logo);
   }
 
+  /** Locator for the first side-navigation link — use with toHaveCSS() assertion */
+  get firstNavLink() {
+    return this.page.locator(this.sideNavLink).first();
+  }
+
   /**
    * Return computed background-color (hex) for all side-navigation links
    */

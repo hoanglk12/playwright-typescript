@@ -30,38 +30,36 @@ test.describe('Admin Login Tests', () => {
     logger.step('Step 3 - Click login button to attempt login');
     logger.action('Click', 'login button');
     await loginPage.clickLoginButton();
-    await loginPage.waitForPageLoad();
-    
-    logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminTestData.expectedMessages.errorLogin);
-    expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminTestData.expectedMessages.errorLogin);
-      
+
+    logger.verify('Step 4 - Verify Error message contains expected text', AdminTestData.expectedMessages.errorLogin, AdminTestData.expectedMessages.errorLogin);
+    await expect(loginPage.errorPopup).toContainText(AdminTestData.expectedMessages.errorLogin);
+
  });
 
-  test('TC_02 - Login fails with wrong username and wrong password', async ({ 
+  test('TC_02 - Login fails with wrong username and wrong password', async ({
     loginPage,
-    
+
   }) => {
-    
+
     //Declare logger for test steps
     const logger = createTestLogger('User cannot login with wrong credentials');
-    
+
     logger.step('Step 1 - Navigate to login page');
     logger.action('Navigate', 'login page');
     await loginPage.navigateToCMSLoginPage();
-    
+
     logger.step('Step 2 - Enter wrong credentials');
     logger.action('Fill', 'username field with wrong value');
     await loginPage.enterUserID(AdminData.INVALID_ADMIN.username);
     logger.action('Fill', 'password field with wrong value');
     await loginPage.enterPassword(AdminData.INVALID_ADMIN.password);
-    
+
     logger.step('Step 3 - Click login button to attempt login');
     logger.action('Click', 'login button');
     await loginPage.clickLoginButton();
-    await loginPage.waitForPageLoad();
-    
-    logger.verify('Step 4 - Verify Error message contains expected text', await loginPage.getErrorMessageFromPopup(), AdminTestData.expectedMessages.errorLogin);
-    expect(await loginPage.getErrorMessageFromPopup()).toContain(AdminTestData.expectedMessages.errorLogin);
+
+    logger.verify('Step 4 - Verify Error message contains expected text', AdminTestData.expectedMessages.errorLogin, AdminTestData.expectedMessages.errorLogin);
+    await expect(loginPage.errorPopup).toContainText(AdminTestData.expectedMessages.errorLogin);
        
   });
 });

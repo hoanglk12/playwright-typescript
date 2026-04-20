@@ -32,8 +32,8 @@ test.describe('Profile Listing Page Verification', () => {
     await profileListingPage.selectSortByDropDownWithSurname();
     // wait a bit for sorting to apply
     await profileListingPage.waitForAjaxRequestsComplete();
-    const isSorted = await profileListingPage.verifyProfilesSortedBySurnameAscending();
-    expect(isSorted).toBeTruthy();
+    // expect.poll retries until sort settles after AJAX update — avoids one-shot race
+    await expect.poll(() => profileListingPage.verifyProfilesSortedBySurnameAscending(), { timeout: 20000 }).toBeTruthy();
    
 
     

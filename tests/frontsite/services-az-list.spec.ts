@@ -47,8 +47,8 @@ test.describe('Services A-Z List Tests @services @frontsite', () => {
     // ── Step 6: Verify the page scrolls to the correct section ──────
     logger.step(`Step 6 - Verify page scrolled to section "${clickedLetter}"`);
     logger.action('Verify', `section heading "${clickedLetter}" is in viewport`);
-    const isVisible = await servicesAZPage.isSectionHeadingInViewport(clickedLetter);
-    expect(isVisible).toBeTruthy();
+    // toBeInViewport retries until scroll animation completes — avoids one-shot race
+    await expect(servicesAZPage.getSectionHeading(clickedLetter)).toBeInViewport({ timeout: 10000 });
 
     // ── Step 7: Verify the section has at least one service link ─────
     logger.step(`Step 7 - Verify section "${clickedLetter}" has services`);
