@@ -9,6 +9,7 @@ import { ProfileListingPage } from '@pages/frontsite/profile-listing-page';
 import { InsightsPage } from '@pages/frontsite/insights-page';
 import { ServicesAZPage } from '@pages/frontsite/services-az-page';
 import { EcommerceHomePage } from '@pages/ecommerce/home-page';
+import { PercyHelper } from '../pages/helpers';
 
 type CustomFixtures = {
   homePage: HomePage;
@@ -18,6 +19,7 @@ type CustomFixtures = {
   insightsPage: InsightsPage;
   servicesAZPage: ServicesAZPage;
   ecommerceHomePage: EcommerceHomePage;
+  percyHelper: PercyHelper;
 };
 
 export const test = base.extend<CustomFixtures>({
@@ -49,6 +51,10 @@ export const test = base.extend<CustomFixtures>({
   servicesAZPage: async ({ page }, use) => {
     const servicesAZPage = FrontSitePageGenerator.getServicesAZPage(page);
     await use(servicesAZPage);
+  },
+
+  percyHelper: async ({ page }, use) => {
+    await use(new PercyHelper(page));
   },
 
   ecommerceHomePage: async ({ page }, use) => {

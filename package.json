@@ -26,6 +26,12 @@
     "test:testing": "cross-env NODE_ENV=testing npm test",
     "test:staging": "cross-env NODE_ENV=staging npm test",
     "test:production": "cross-env NODE_ENV=production npm test",
+    "test:percy": "dotenv -e .env.testing -- percy exec -- playwright test --workers=1 --project=chromium",
+    "test:percy:testing": "dotenv -e .env.testing -- percy exec -- playwright test --workers=1 --project=chromium",
+    "test:percy:staging": "dotenv -e .env.staging -- percy exec -- playwright test --workers=1 --project=chromium",
+    "test:percy:smoke": "dotenv -e .env.testing -- percy exec -- playwright test tests/ecommerce/smoke --workers=1 --project=chromium",
+    "test:percy:admin": "dotenv -e .env.testing -- percy exec -- playwright test tests/admin --workers=1 --project=chromium",
+    "test:percy:login": "dotenv -e .env.testing -- percy exec -- playwright test tests/admin/login.spec.ts --workers=1 --project=chromium",
     "clean": "rimraf test-results api-results playwright-report api-report blob-report .auth",
     "clean:api": "rimraf test-results/api api-results api-report",
     "report": "playwright show-report",
@@ -67,9 +73,12 @@
     "automation"
   ],
   "devDependencies": {
+    "@percy/cli": "^1.31.11",
+    "@percy/playwright": "^1.1.0",
     "@playwright/test": "^1.59.1",
     "@types/node": "^24.12.2",
     "cross-env": "^10.1.0",
+    "dotenv-cli": "^11.0.0",
     "md-to-pdf": "^5.2.5",
     "rimraf": "^6.1.3",
     "typescript": "^5.9.3"
