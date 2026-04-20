@@ -31,33 +31,51 @@ export class NetworkHelper {
   }
 
   async blockResources(resourceTypes: string[]): Promise<void> {
-    await this.page.route("**/*", (route) => {
-      if (resourceTypes.includes(route.request().resourceType())) {
-        route.abort();
-      } else {
-        route.continue();
-      }
-    });
+    try {
+      await this.page.route("**/*", (route) => {
+        if (resourceTypes.includes(route.request().resourceType())) {
+          route.abort();
+        } else {
+          route.continue();
+        }
+      });
+    } catch (err) {
+      throw new Error(
+        `blockResources failed for types [${resourceTypes.join(", ")}]: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   async mockApiResponse(urlPattern: string | RegExp, responseData: unknown): Promise<void> {
-    await this.page.route(urlPattern, (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(responseData),
+    try {
+      await this.page.route(urlPattern, (route) => {
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(responseData),
+        });
       });
-    });
+    } catch (err) {
+      throw new Error(
+        `mockApiResponse failed for pattern "${urlPattern}": ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   async interceptRequest(
     urlPattern: string | RegExp,
     modifier: (route: Route) => void
   ): Promise<void> {
-    await this.page.route(urlPattern, (route) => {
-      modifier(route);
-      route.continue();
-    });
+    try {
+      await this.page.route(urlPattern, (route) => {
+        modifier(route);
+        route.continue();
+      });
+    } catch (err) {
+      throw new Error(
+        `interceptRequest failed for pattern "${urlPattern}": ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   async getPerformanceMetrics(): Promise<{
@@ -65,16 +83,25 @@ export class NetworkHelper {
     domReady: number;
     firstPaint: number;
   }> {
-    return await this.page.evaluate(() => {
-      const [nav] = performance.getEntriesByType(
-        "navigation"
-      ) as PerformanceNavigationTiming[];
-      return {
-        loadTime: nav ? nav.loadEventEnd - nav.startTime : 0,
-        domReady: nav ? nav.domContentLoadedEventEnd - nav.startTime : 0,
-        firstPaint: performance.getEntriesByType("paint")[0]?.startTime ?? 0,
-      };
-    });
+    try {
+      return await this.page.evaluate(() => {
+        if (typeof performance === "undefined" || typeof performance.getEntriesByType !== "function") {
+          return { loadTime: 0, domReady: 0, firstPaint: 0 };
+        }
+        const [nav] = performance.getEntriesByType(
+          "navigation"
+        ) as PerformanceNavigationTiming[];
+        return {
+          loadTime: nav ? nav.loadEventEnd - nav.startTime : 0,
+          domReady: nav ? nav.domContentLoadedEventEnd - nav.startTime : 0,
+          firstPaint: performance.getEntriesByType("paint")[0]?.startTime ?? 0,
+        };
+      });
+    } catch (err) {
+      throw new Error(
+        `getPerformanceMetrics failed (performance API may be unavailable): ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   async takeElementScreenshot(selector: string, path: string): Promise<void> {
