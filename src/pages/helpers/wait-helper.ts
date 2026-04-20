@@ -248,7 +248,7 @@ export class WaitHelper {
 
   // ── Utility ─────────────────────────────────────────────────────────────────
 
-  /** Intentional pause — only use in polling helpers, never directly in tests. */
+  /** @internal Intentional pause — only use inside WaitHelper polling loops, never directly in tests or page objects. */
   async sleep(milliseconds: number): Promise<void> {
     await this.page.waitForTimeout(milliseconds);
   }

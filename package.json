@@ -9,7 +9,9 @@
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
+    "test:headless": "cross-env HEADLESS=true playwright test",
     "test:ui": "playwright test --ui",
+    "test:ui:headless": "cross-env HEADLESS=true playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:serial": "playwright test --workers=1",
     "test:simple": "playwright test --workers=1 --project=chromium",

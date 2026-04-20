@@ -80,11 +80,11 @@ export abstract class BasePage {
   // Kept here because these methods mutate this.page.
 
   async acceptAlert(): Promise<void> {
-    this.page.on("dialog", (dialog) => dialog.accept());
+    this.page.once("dialog", (dialog) => dialog.accept());
   }
 
   async dismissAlert(): Promise<void> {
-    this.page.on("dialog", (dialog) => dialog.dismiss());
+    this.page.once("dialog", (dialog) => dialog.dismiss());
   }
 
   async switchToWindowByTitle(expectedTitle: string): Promise<void> {
@@ -198,8 +198,14 @@ export abstract class BasePage {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  async executeScript<T>(script: string, ...args: unknown[]): Promise<T> {
-    return await this.page.evaluate(script, ...args) as T;
+  async executeScript<T>(fn: () => T | Promise<T>): Promise<T>;
+  /** @deprecated Pass a typed function instead: executeScript(() => expression) */
+  async executeScript<T>(script: string, ...args: unknown[]): Promise<T>;
+  async executeScript<T>(fnOrScript: (() => T | Promise<T>) | string, ...args: unknown[]): Promise<T> {
+    if (typeof fnOrScript === "string") {
+      return await this.page.evaluate(fnOrScript, ...args) as T;
+    }
+    return await this.page.evaluate(fnOrScript);
   }
 
   async getWindowSize(): Promise<{ width: number; height: number }> {
@@ -262,7 +268,6 @@ export abstract class BasePage {
   async waitForAllImagesLoaded(): Promise<void> { return this.waits.waitForAllImagesLoaded(); }
   async waitForSpinnersToDisappear(selectors: string[], timeout?: number): Promise<void> { return this.waits.waitForSpinnersToDisappear(selectors, timeout); }
   async waitForConsoleMessage(messageText: string, timeout?: number): Promise<void> { return this.waits.waitForConsoleMessage(messageText, timeout); }
-  async sleep(ms: number): Promise<void> { return this.waits.sleep(ms); }
 
   // elements
   async isElementDisplayed(selector: string): Promise<boolean> { return this.elements.isElementDisplayed(selector); }

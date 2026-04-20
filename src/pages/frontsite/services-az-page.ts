@@ -42,6 +42,11 @@ export class ServicesAZPage extends BasePage {
   private sectionHeading(letter: string): Locator {
     return this.page.locator('main h2').filter({ hasText: new RegExp(`^${letter}$`) });
   }
+
+  /** Public accessor — use with toBeInViewport() assertion */
+  getSectionHeading(letter: string): Locator {
+    return this.sectionHeading(letter);
+  }
   /** Service items within the section that follows the heading */
   private sectionServiceLinks(letter: string): Locator {
     return this.page

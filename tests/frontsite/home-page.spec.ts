@@ -33,7 +33,7 @@ test.describe('Home Page Verification @homepage @frontsite', () => {
     logger.action('Hover', 'navigation links');
     await homePage.hoverNavigationLinks();
     logger.action('Verify', `background colour is ${HeaderData.NAVIGATION_MENU.highlightedColor}`);
-    const colors = await homePage.getAllHighlightedTextBackgroundColor();
-    expect(colors[0]).toBe(HeaderData.NAVIGATION_MENU.highlightedColor);
+    // toHaveCSS retries until the CSS transition settles — avoids one-shot race on :hover
+    await expect(homePage.firstNavLink).toHaveCSS('background-color', 'rgb(0, 63, 100)');
   });
 });
