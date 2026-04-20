@@ -61,7 +61,7 @@ export class LoginPage extends BasePage {
    * exhausts the default 20 s actionTimeout.
    */
   async clickLoginButton(): Promise<void> {
-    await this.loginButton.click({ timeout: 30000 });
+    await this.loginButton.click();
     await this.waitForPageLoad();
   }
 

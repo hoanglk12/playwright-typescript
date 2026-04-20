@@ -12,6 +12,14 @@ import { TIMEOUTS } from "../../constants/timeouts";
 export class WaitHelper {
   constructor(private readonly page: Page) {}
 
+  private getPageContext(): string {
+    try {
+      return this.page.url() || "(no URL yet)";
+    } catch {
+      return "(page context unavailable)";
+    }
+  }
+
   // ── Page-level waits ────────────────────────────────────────────────────────
 
   async waitForPageLoad(): Promise<void> {
@@ -20,7 +28,9 @@ export class WaitHelper {
     try {
       await this.page.waitForLoadState("networkidle", { timeout: TIMEOUTS.PAGE_LOAD_FAST });
     } catch {
-      console.warn("⚠️  networkidle not reached; continuing after load milestones");
+      console.warn(
+        `⚠️  networkidle not reached after ${TIMEOUTS.PAGE_LOAD_FAST}ms; continuing. URL: ${this.getPageContext()}`
+      );
     }
   }
 
@@ -31,11 +41,13 @@ export class WaitHelper {
     await this.page.waitForLoadState(state, { timeout });
   }
 
-  async waitForNetworkIdle(timeout: number = TIMEOUTS.NETWORK_IDLE): Promise<void> {
+  async waitForNetworkIdle(timeout: number = TIMEOUTS.NETWORK_IDLE, throwOnTimeout: boolean = false): Promise<void> {
     try {
       await this.page.waitForLoadState("networkidle", { timeout });
     } catch {
-      console.warn("⚠️  Network idle timeout reached");
+      const msg = `⚠️  Network idle timeout after ${timeout}ms. URL: ${this.getPageContext()}`;
+      console.warn(msg);
+      if (throwOnTimeout) throw new Error(msg);
     }
   }
 
@@ -65,7 +77,7 @@ export class WaitHelper {
       await this.waitForAllImagesLoaded();
     }
     if (waitForFonts) {
-      await this.page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+      await this.page.waitForFunction(() => document.fonts.ready, { timeout: TIMEOUTS.TIMEOUT_MEDIUM });
     }
     if (waitForAjax) {
       await this.waitForAjaxRequestsComplete(timeout);
@@ -145,7 +157,8 @@ export class WaitHelper {
 
   async waitForAjaxRequestsComplete(
     timeout: number = TIMEOUTS.TIMEOUT_LONG,
-    excludeUrls: string[] = []
+    excludeUrls: string[] = [],
+    throwOnTimeout: boolean = false
   ): Promise<void> {
     const startTime = Date.now();
     const pending = new Set<string>();
@@ -167,12 +180,15 @@ export class WaitHelper {
     try {
       while (pending.size > 0) {
         if (Date.now() - startTime > timeout) {
-          console.warn(`⚠️  AJAX timeout. Pending: ${[...pending].join(", ")}`);
+          const pendingList = [...pending];
+          const msg = `⚠️  AJAX timeout after ${timeout}ms. ${pendingList.length} request(s) pending. URL: ${this.getPageContext()}. Pending: ${pendingList.join(", ")}`;
+          console.warn(msg);
+          if (throwOnTimeout) throw new Error(msg);
           break;
         }
         await this.sleep(100);
       }
-      await this.page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+      await this.page.waitForLoadState("networkidle", { timeout: TIMEOUTS.TIMEOUT_SHORT }).catch(() => {});
     } finally {
       this.page.off("request", onRequest);
       this.page.off("response", onResponse);
