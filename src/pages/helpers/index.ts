@@ -6,3 +6,5 @@ export { FileHelper } from "./file-helper";
 export { StorageHelper } from "./storage-helper";
 export { NetworkHelper } from "./network-helper";
 export { TableHelper } from "./table-helper";
+export { PercyHelper } from "./percy-helper";
+export type { PercySnapshotOptions } from "./percy-helper";

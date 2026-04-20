@@ -7,7 +7,7 @@ test.describe.serial('Ecommerce Homepage Smoke @ecommerce @smoke @homepage', () 
   test.slow();
 
   for (const site of storefronts) {
-    test(`E2E-HOME-001 - ${site.name} homepage loads with expected title and hero`, async ({ ecommerceHomePage }) => {
+    test(`E2E-HOME-001 - ${site.name} homepage loads with expected title and hero`, async ({ ecommerceHomePage, percyHelper }) => {
       const logger = createTestLogger(`${site.name} - Homepage Load`);
 
       logger.step('Step 1 - Navigate to homepage');
@@ -21,9 +21,12 @@ test.describe.serial('Ecommerce Homepage Smoke @ecommerce @smoke @homepage', () 
 
       logger.step('Step 4 - Assert hero visible');
       await ecommerceHomePage.assertHeroVisible();
+
+      logger.step('Step 5 - Percy snapshot');
+      await percyHelper.snapshot(`${site.name} - Homepage Hero`);
     });
 
-    test(`E2E-HOME-002 - ${site.name} top bar promotional message is visible`, async ({ ecommerceHomePage }) => {
+    test(`E2E-HOME-002 - ${site.name} top bar promotional message is visible`, async ({ ecommerceHomePage, percyHelper }) => {
       const logger = createTestLogger(`${site.name} - Promo Message`);
 
       logger.step('Step 1 - Navigate to homepage');
@@ -31,9 +34,12 @@ test.describe.serial('Ecommerce Homepage Smoke @ecommerce @smoke @homepage', () 
 
       logger.step('Step 2 - Assert promo message visible');
       await ecommerceHomePage.assertPromoMessageVisible(site.name);
+
+      logger.step('Step 3 - Percy snapshot');
+      await percyHelper.snapshot(`${site.name} - Promo Message`);
     });
 
-    test(`E2E-HOME-003 - ${site.name} Qantas Points link is visible on AU sites only`, async ({ ecommerceHomePage }) => {
+    test(`E2E-HOME-003 - ${site.name} Qantas Points link is visible on AU sites only`, async ({ ecommerceHomePage, percyHelper }) => {
       const logger = createTestLogger(`${site.name} - Qantas Points`);
 
       logger.step('Step 1 - Navigate to homepage');
@@ -45,6 +51,9 @@ test.describe.serial('Ecommerce Homepage Smoke @ecommerce @smoke @homepage', () 
       } else {
         await ecommerceHomePage.assertQantasPointsAbsent(site.name);
       }
+
+      logger.step('Step 3 - Percy snapshot');
+      await percyHelper.snapshot(`${site.name} - Qantas Points`);
     });
   }
 });
