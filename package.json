@@ -26,7 +26,7 @@
     "test:testing": "cross-env NODE_ENV=testing npm test",
     "test:staging": "cross-env NODE_ENV=staging npm test",
     "test:production": "cross-env NODE_ENV=production npm test",
-    "clean": "rimraf test-results api-results playwright-report api-report blob-report .auth",
+    "clean": "rimraf test-results api-results playwright-report api-report blob-report .auth lighthouse-reports .lighthouseci",
     "clean:api": "rimraf test-results/api api-results api-report",
     "report": "playwright show-report",
     "report:open": "npx playwright show-report --port 9323",
@@ -56,7 +56,11 @@
     "docker:dev:stop": "docker-compose stop playwright-dev",
     "docker:clean": "docker-compose down --volumes --remove-orphans && docker system prune -f",
     "docker:logs": "docker-compose logs -f",
-    "docker:rebuild": "docker-compose build --no-cache"
+    "docker:rebuild": "docker-compose build --no-cache",
+    "lhci:run": "lhci collect --config=lighthouserc.js && lhci upload --config=lighthouserc.js && lhci assert --config=lighthouserc.js",
+    "lhci:collect": "lhci collect --config=lighthouserc.js",
+    "lhci:upload": "lhci upload --config=lighthouserc.js",
+    "lhci:assert": "lhci assert --config=lighthouserc.js"
   },
   "keywords": [
     "playwright",
@@ -67,6 +71,7 @@
     "automation"
   ],
   "devDependencies": {
+    "@lhci/cli": "^0.15.0",
     "@playwright/test": "^1.59.1",
     "@types/node": "^24.12.2",
     "cross-env": "^10.1.0",

@@ -1,0 +1,140 @@
+name: Lighthouse CI - E-commerce Storefronts
+
+on:
+  workflow_dispatch:
+    inputs:
+      number_of_runs:
+        description: 'Lighthouse runs per URL (higher = more stable median)'
+        required: false
+        default: '3'
+        type: choice
+        options:
+          - '1'
+          - '3'
+          - '5'
+
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'src/data/ecommerce/**'
+      - 'lighthouserc.js'
+      - '.github/workflows/lighthouse-ci.yml'
+
+  # Uncomment to audit on every PR that touches e-commerce files.
+  # Note: 7 storefronts × 3 runs ≈ 20–30 min of execution time.
+  # pull_request:
+  #   branches: [main, master, develop]
+  #   paths:
+  #     - 'src/data/ecommerce/**'
+  #     - 'lighthouserc.js'
+
+env:
+  NODE_VERSION: '22'
+  LHCI_RUNS: ${{ inputs.number_of_runs || '3' }}
+
+jobs:
+  lighthouse-audit:
+    name: Lighthouse Audit (E-commerce Storefronts)
+    runs-on: ubuntu-latest
+    # 7 URLs × 3 runs × ~60 s/run ≈ 21 min; 45 min provides buffer
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Chrome installation
+        run: |
+          echo "Chrome version:"
+          google-chrome --version || chromium-browser --version || echo "Chrome not found — LHCI will attempt auto-install"
+
+      - name: Override numberOfRuns if dispatched manually
+        if: ${{ inputs.number_of_runs != '' }}
+        run: |
+          # Patch lighthouserc.js at runtime so manual dispatches can tune run count
+          # without committing a config change. Uses node to keep it cross-platform.
+          node -e "
+            const fs = require('fs');
+            const content = fs.readFileSync('lighthouserc.js', 'utf8');
+            const patched = content.replace(
+              /numberOfRuns:\s*\d+/,
+              'numberOfRuns: ${{ env.LHCI_RUNS }}'
+            );
+            fs.writeFileSync('lighthouserc.js', patched);
+            console.log('numberOfRuns patched to ${{ env.LHCI_RUNS }}');
+          "
+
+      # lhci autorun is NOT used here because it requires a staticDistDir or
+      # startServerCommand. We audit live URLs, so the three steps are run
+      # explicitly: collect → upload → assert.
+
+      - name: Collect Lighthouse reports
+        run: npx lhci collect --config=lighthouserc.js
+        env:
+          LHCI_NO_ANONYMOUS_USAGE_STATISTICS: 'true'
+
+      - name: Upload reports to filesystem output dir
+        # Always runs so reports are available even when assertions fail
+        if: always()
+        run: npx lhci upload --config=lighthouserc.js
+        env:
+          LHCI_NO_ANONYMOUS_USAGE_STATISTICS: 'true'
+
+      - name: Assert Lighthouse thresholds
+        # Always runs after collect; failures here set job status to failed
+        if: always()
+        run: npx lhci assert --config=lighthouserc.js
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: |
+            lighthouse-reports/
+            .lighthouseci/
+          retention-days: 30
+
+      - name: Generate job summary
+        if: always()
+        run: |
+          echo "## Lighthouse CI - E-commerce Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storefronts audited**: 7 (Platypus AU/NZ, Skechers AU/NZ, Vans AU/NZ, Dr. Martens AU)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runs per URL**: ${{ env.LHCI_RUNS }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Form factor**: Desktop (1350×940)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Throttling**: Simulated cable (40 ms RTT, 10 Mbps)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Assertion Thresholds" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Level | Threshold |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | warn | ≥ 40 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Accessibility | **error** | ≥ 70 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Best Practices | warn | ≥ 70 |" >> $GITHUB_STEP_SUMMARY
+          echo "| SEO | warn | ≥ 70 |" >> $GITHUB_STEP_SUMMARY
+          echo "| LCP | warn | ≤ 4 000 ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| TBT | warn | ≤ 800 ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| CLS | warn | ≤ 0.25 |" >> $GITHUB_STEP_SUMMARY
+          echo "| image-alt / document-title / html-has-lang | **error** | must pass |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Full HTML and JSON reports uploaded as **lighthouse-reports** artifact (30-day retention)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Assert result notice
+        if: failure()
+        run: |
+          echo "::error::One or more Lighthouse assertions failed."
+          echo "::error::Download the 'lighthouse-reports' artifact and open the HTML reports to identify failing audits."
+          echo "::error::Errors (accessibility score < 0.7, missing image-alt/title/lang) must be fixed before merge."
+          echo "::error::Warnings indicate regressions to investigate but do not block the build by themselves."
