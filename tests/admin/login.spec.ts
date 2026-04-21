@@ -8,9 +8,9 @@ import { createTestLogger } from '../../src/utils/test-logger';
  */
 test.describe('Admin Login Tests', () => {
 
-  test('TC_01 - Login fails with empty username and empty password', async ({ 
+  test('TC_01 - Login fails with empty username and empty password', async ({
     loginPage,
-    
+    percyHelper,
   }) => {
     //Declare logger for test steps
     const logger = createTestLogger('User cannot login with empty credentials');
@@ -34,11 +34,13 @@ test.describe('Admin Login Tests', () => {
     logger.verify('Step 4 - Verify Error message contains expected text', AdminTestData.expectedMessages.errorLogin, AdminTestData.expectedMessages.errorLogin);
     await expect(loginPage.errorPopup).toContainText(AdminTestData.expectedMessages.errorLogin);
 
- });
+    logger.step('Step 5 - Percy snapshot');
+    await percyHelper.snapshot('Admin Login - Empty Credentials Error');
+  });
 
   test('TC_02 - Login fails with wrong username and wrong password', async ({
     loginPage,
-
+    percyHelper,
   }) => {
 
     //Declare logger for test steps
@@ -60,6 +62,8 @@ test.describe('Admin Login Tests', () => {
 
     logger.verify('Step 4 - Verify Error message contains expected text', AdminTestData.expectedMessages.errorLogin, AdminTestData.expectedMessages.errorLogin);
     await expect(loginPage.errorPopup).toContainText(AdminTestData.expectedMessages.errorLogin);
-       
+
+    logger.step('Step 5 - Percy snapshot');
+    await percyHelper.snapshot('Admin Login - Wrong Credentials Error');
   });
 });
