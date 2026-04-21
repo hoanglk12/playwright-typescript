@@ -228,7 +228,7 @@ export abstract class BasePage {
   async waitForPageLoadState(state?: "load" | "domcontentloaded" | "networkidle", timeout?: number): Promise<void> {
     return this.waits.waitForPageLoadState(state, timeout);
   }
-  async waitForNetworkIdle(timeout?: number): Promise<void> { return this.waits.waitForNetworkIdle(timeout); }
+  async waitForNetworkIdle(timeout?: number, throwOnTimeout?: boolean): Promise<void> { return this.waits.waitForNetworkIdle(timeout, throwOnTimeout); }
   async waitForCompletePageLoad(options?: Parameters<WaitHelper["waitForCompletePageLoad"]>[0]): Promise<void> {
     return this.waits.waitForCompletePageLoad(options);
   }
@@ -264,7 +264,7 @@ export abstract class BasePage {
   async waitForElementAttribute(selector: string, attribute: string, expectedValue: string, timeout?: number): Promise<void> { return this.waits.waitForElementAttribute(selector, attribute, expectedValue, timeout); }
   async waitForCustomCondition(condition: () => Promise<boolean> | boolean, options?: { timeout?: number; interval?: number }): Promise<void> { return this.waits.waitForCustomCondition(condition, options); }
   async waitForAjaxRequest(urlPattern: string | RegExp, timeout?: number): Promise<void> { return this.waits.waitForAjaxRequest(urlPattern, timeout); }
-  async waitForAjaxRequestsComplete(timeout?: number, excludeUrls?: string[]): Promise<void> { return this.waits.waitForAjaxRequestsComplete(timeout, excludeUrls); }
+  async waitForAjaxRequestsComplete(timeout?: number, excludeUrls?: string[], throwOnTimeout?: boolean): Promise<void> { return this.waits.waitForAjaxRequestsComplete(timeout, excludeUrls, throwOnTimeout); }
   async waitForAllImagesLoaded(): Promise<void> { return this.waits.waitForAllImagesLoaded(); }
   async waitForSpinnersToDisappear(selectors: string[], timeout?: number): Promise<void> { return this.waits.waitForSpinnersToDisappear(selectors, timeout); }
   async waitForConsoleMessage(messageText: string, timeout?: number): Promise<void> { return this.waits.waitForConsoleMessage(messageText, timeout); }
