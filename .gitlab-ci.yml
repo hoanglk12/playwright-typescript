@@ -1,5 +1,6 @@
 stages:
   - ui-test
+  - visual-test
   - api-test
   - test-report
   - notify-results
@@ -297,6 +298,29 @@ notify_results:
     paths:
       - pipeline_summary.md
     expire_in: 30 days
+
+visual_test:
+  stage: visual-test
+  image: mcr.microsoft.com/playwright:v1.40.0-focal
+  timeout: 30 minutes
+  rules:
+    - if: $TEST_TYPE != "api"
+      when: on_success
+  needs:
+    - ui_test_linux
+  variables:
+    NODE_ENV: testing
+  before_script:
+    - npm ci
+    - npx playwright install chromium --with-deps
+  script:
+    - NODE_ENV=testing npx percy exec -- npx playwright test tests/admin tests/ecommerce/smoke --workers=1 --project=chromium
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    expire_in: 14 days
 
 pages:
   stage: notify-results
