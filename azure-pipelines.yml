@@ -267,12 +267,54 @@ stages:
       condition: always()
       displayName: 'Upload API Test Results'
 
+- stage: VisualTests
+  displayName: 'Percy Visual Tests'
+  condition: and(succeeded(), ne('${{ parameters.test_type }}', 'api'))
+  dependsOn: UITests
+  jobs:
+  - job: PercyVisualTests
+    displayName: 'Run Percy Snapshots'
+    timeoutInMinutes: '30'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+      displayName: 'Install Node.js'
+
+    - script: npm ci
+      displayName: 'Install dependencies'
+
+    - script: npx playwright install chromium --with-deps
+      displayName: 'Install Chromium'
+
+    - script: NODE_ENV=testing npx percy exec -- npx playwright test tests/admin tests/ecommerce/smoke --workers=1 --project=chromium
+      displayName: 'Run Percy visual snapshots'
+      env:
+        PERCY_TOKEN: $(PERCY_TOKEN)
+
+    - task: PublishPipelineArtifact@0
+      inputs:
+        targetPath: playwright-report/
+        artifactName: 'percy-playwright-report'
+      condition: always()
+      displayName: 'Upload Percy Playwright report'
+
+    - task: PublishPipelineArtifact@0
+      inputs:
+        targetPath: test-results/
+        artifactName: 'percy-test-results'
+      condition: always()
+      displayName: 'Upload Percy test results'
+
 - stage: TestReport
   displayName: 'Generate Combined Test Report'
   condition: always()
-  dependsOn: 
+  dependsOn:
     - UITests
     - APITests
+    - VisualTests
   jobs:
   - job: TestReport
     displayName: 'Combine and Publish All Reports'

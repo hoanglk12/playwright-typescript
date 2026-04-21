@@ -1,0 +1,85 @@
+name: Percy Visual Tests
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - src/**
+      - tests/**
+      - percy.yml
+      - '*.config.ts'
+      - package.json
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - src/**
+      - tests/**
+      - percy.yml
+      - '*.config.ts'
+      - package.json
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Test suite to snapshot'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - smoke
+          - admin
+
+env:
+  NODE_ENV: testing
+  PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+
+jobs:
+  visual-test:
+    name: Percy Visual Snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Percy snapshots (all)
+        if: ${{ inputs.suite == 'all' || inputs.suite == '' }}
+        run: NODE_ENV=testing npx percy exec -- npx playwright test tests/admin tests/ecommerce/smoke --workers=1 --project=chromium
+
+      - name: Run Percy snapshots (smoke only)
+        if: ${{ inputs.suite == 'smoke' }}
+        run: NODE_ENV=testing npx percy exec -- npx playwright test tests/ecommerce/smoke --workers=1 --project=chromium
+
+      - name: Run Percy snapshots (admin only)
+        if: ${{ inputs.suite == 'admin' }}
+        run: NODE_ENV=testing npx percy exec -- npx playwright test tests/admin --workers=1 --project=chromium
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: percy-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

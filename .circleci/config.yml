@@ -321,6 +321,22 @@ jobs:
       - store_artifacts:
           path: ./combined-report/
 
+  visual-test:
+    executor: linux-executor
+    steps:
+      - install-dependencies
+      - cache-playwright-browsers
+      - run:
+          name: Run Percy visual snapshots
+          command: NODE_ENV=testing npx percy exec -- npx playwright test tests/admin tests/ecommerce/smoke --workers=1 --project=chromium
+          environment:
+            PERCY_TOKEN: $PERCY_TOKEN
+          no_output_timeout: 30m
+      - store_artifacts:
+          path: playwright-report/
+      - store_artifacts:
+          path: test-results/
+
   notify-results:
     executor: linux-executor
     steps:
@@ -369,12 +385,21 @@ workflows:
               only: [main, master, develop]
           context: playwright-testing
 
+      - visual-test:
+          requires:
+            - ui-test-linux
+          filters:
+            branches:
+              only: [main, master, develop]
+          context: playwright-testing
+
       - test-report:
           requires:
             - ui-test-linux
             - ui-test-windows
             - ui-test-macos
             - api-test
+            - visual-test
           filters:
             branches:
               only: [main, master, develop]
