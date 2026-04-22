@@ -33,19 +33,9 @@ export class ServicesAZPage extends BasePage {
   private readonly servicesAZLink = 'nav a[href="/en/services/services-a-z-list"]';
 
   // ── A-Z page locators ─────────────────────────────────────────────
-  /** The <ul> that contains all 26 letter filter links */
-  private readonly letterList = 'main ul';
-  /** Individual letter link selector pattern – the accessible name is "Letter X" */
-  private readonly letterLinkSelector = (letter: string) =>
-    `a[aria-label="Letter ${letter}"]`;
-  /** Section heading for a given letter (e.g. <h2>D</h2>) */
-  private sectionHeading(letter: string): Locator {
-    return this.page.locator('main h2').filter({ hasText: new RegExp(`^${letter}$`) });
-  }
-
-  /** Public accessor — use with toBeInViewport() assertion */
+  /** Section heading for a given letter (e.g. <h2>D</h2>) — use with toBeInViewport() */
   getSectionHeading(letter: string): Locator {
-    return this.sectionHeading(letter);
+    return this.page.locator('main h2').filter({ hasText: new RegExp(`^${letter}$`) });
   }
   /** Service items within the section that follows the heading */
   private sectionServiceLinks(letter: string): Locator {
@@ -190,7 +180,7 @@ export class ServicesAZPage extends BasePage {
    * inside the current viewport (i.e. the page scrolled to it).
    */
   async isSectionHeadingInViewport(letter: string): Promise<boolean> {
-    const heading = this.sectionHeading(letter);
+    const heading = this.getSectionHeading(letter);
     await heading.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
     // Poll until the heading enters the viewport (replaces fixed waitForTimeout).
@@ -207,7 +197,7 @@ export class ServicesAZPage extends BasePage {
       ).catch(() => { /* heading may be just outside viewport on narrow screens */ });
     }
 
-    return heading.evaluate((el) => {
+    return heading.evaluate((el: Element) => {
       const rect = el.getBoundingClientRect();
       // Allow heading to be anywhere in the visible viewport
       // (sticky header may push it down, so we use a generous range)
