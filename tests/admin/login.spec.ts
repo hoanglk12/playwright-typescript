@@ -1,5 +1,5 @@
 import { AdminData, AdminTestData } from '../../src/data/admin-data';
-import { test, expect } from '../../src/config/base-test';
+import { test, expect } from '@config/base-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 /**
  * Admin Login Tests
