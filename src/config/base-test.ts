@@ -1,7 +1,4 @@
 import { test as base } from '@playwright/test';
-import { PageGenerator as FrontSitePageGenerator } from '../pages/frontsite/page-generator';
-import { PageGenerator as AdminPageGenerator } from '../pages/admin/page-generator';
-import { PageGenerator as EcommercePageGenerator } from '../pages/ecommerce/page-generator';
 import { HomePage } from '../pages/frontsite/home-page';
 import { LoginPage } from '../pages/admin/login-page';
 import { FormDragAndDropPage } from '@pages/frontsite/form-drag-and-drop';
@@ -24,33 +21,27 @@ type CustomFixtures = {
 
 export const test = base.extend<CustomFixtures>({
   homePage: async ({ page }, use) => {
-    const homePage = FrontSitePageGenerator.getHomePage(page);
-    await use(homePage);
+    await use(new HomePage(page));
   },
 
   loginPage: async ({ page }, use) => {
-    const loginPage = AdminPageGenerator.getLoginPage(page);
-    await use(loginPage);
+    await use(new LoginPage(page));
   },
 
   formDragAndDropPage: async ({ page }, use) => {
-    const formDragAndDropPage = FrontSitePageGenerator.getFormDragAndDropPage(page);
-    await use(formDragAndDropPage);
+    await use(new FormDragAndDropPage(page));
   },
 
   profileListingPage: async ({ page }, use) => {
-    const profileListingPage = FrontSitePageGenerator.getProfileListingPage(page);
-    await use(profileListingPage);
+    await use(new ProfileListingPage(page));
   },
 
   insightsPage: async ({ page }, use) => {
-    const insightsPage = FrontSitePageGenerator.getInsightsPage(page);
-    await use(insightsPage);
+    await use(new InsightsPage(page));
   },
 
   servicesAZPage: async ({ page }, use) => {
-    const servicesAZPage = FrontSitePageGenerator.getServicesAZPage(page);
-    await use(servicesAZPage);
+    await use(new ServicesAZPage(page));
   },
 
   percyHelper: async ({ page }, use) => {
@@ -58,8 +49,7 @@ export const test = base.extend<CustomFixtures>({
   },
 
   ecommerceHomePage: async ({ page }, use) => {
-    const ecommerceHomePage = EcommercePageGenerator.getEcommerceHomePage(page);
-    await use(ecommerceHomePage);
+    await use(new EcommerceHomePage(page));
     // Firefox only: navigate to about:blank before fixture teardown so the
     // browser context closes cleanly. Firefox's Juggler protocol hangs on
     // context.close() when staging SPAs have active service workers and
