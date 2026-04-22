@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__vercel__get_deployment",
+      "mcp__vercel__list_deployments",
+      "mcp__vercel__get_project",
+      "mcp__vercel__list_projects",
+      "mcp__vercel__get_runtime_logs",
+      "mcp__vercel__web_fetch_vercel_url"
+    ]
+  }
+}
