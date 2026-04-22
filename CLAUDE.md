@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Playwright TypeScript Automation Framework
 
 ## Architecture
@@ -15,7 +19,7 @@ Composition-based Page Object Model. `BasePage` owns 8 helper instances — **ne
 | `this.network` | `NetworkHelper` | Route mocking, request interception, performance |
 | `this.tables` | `TableHelper` | HTML table interactions |
 
-New browser interaction → add it to the appropriate helper class in [src/pages/helpers/](src/pages/helpers/), not to `BasePage`.
+New browser interaction → add it to the appropriate helper class in [src/pages/helpers/](src/pages/helpers/), not to `BasePage`. The `BasePage` retains backward-compatible delegations (e.g. `page.clickElement()` still works) but new code should call helpers directly: `this.elements.clickElement()`.
 
 ## Path Aliases (tsconfig)
 
@@ -26,6 +30,8 @@ New browser interaction → add it to the appropriate helper class in [src/pages
 @config/*  → src/config/*
 @data/*    → src/data/*
 ```
+
+There is no `@constants` alias — import timeouts via `@config/../constants/timeouts` or a relative path.
 
 ## Import Convention — Critical
 
@@ -65,7 +71,6 @@ export class MyPage extends BasePage {
 
   async clickSubmit(): Promise<void> {
     await this.elements.clickElement('[data-testid="submit"]');
-    // or: await this.submitBtn.click();
   }
 }
 ```
@@ -102,24 +107,59 @@ Never hardcode test data in spec files. Create typed data modules in `src/data/`
 
 ## API Tests
 
-- Entry point: `src/api/ApiTest.ts` (extends base test with `restfulApiClient`, `restfulDeviceClient` fixtures)
+- Entry point: `src/api/ApiTest.ts` (extends base test with `restfulApiClient`, `restfulDeviceClient`, `bookingService`, `graphqlClient` fixtures)
 - Services: `src/api/services/{service-name}/`
 - Models live alongside services; response assertions use `ApiResponse` chaining (`.assertStatus()`, `.assertJsonPath()`, etc.)
+- **GraphQL**: `GraphQLClient` is a dedicated client for queries/mutations — use `graphqlClient` fixture in API tests
+- **Cross-test token sharing**: `ApiClient.storeToken(key, token)` / `ApiClient.getToken(key)` / `ApiClient.withStoredToken(options, tokenKey)` — use this for auth tokens that must persist across tests within a single worker
 - Run: `npm run test:api` — executes with 1 worker to avoid rate-limiting
 
 ## Run Commands
 
 ```bash
+# Core
 npm test                        # headless, chromium + firefox, 50% workers
 npm run test:headed             # visible browser
 npm run test:debug              # Playwright inspector
 npm run test:serial             # 1 worker (flaky investigation)
 npm run test:ui                 # interactive UI mode
-npm run test:api                # API tests (serial)
+
+# Single test file or folder
+npx playwright test tests/frontsite/home-page.spec.ts
+npx playwright test tests/frontsite/home-page.spec.ts --headed
+npx playwright test --grep "TC_01"    # run by test name pattern
+
+# Faster one-browser runs
+npm run test:simple             # chromium only, 1 worker
+npm run test:simple:admin       # admin area only
+npm run test:simple:frontsite   # frontsite area only
+npm run test:simple:login       # login tests only
+
+# Environments
 npm run test:testing            # against testing environment
 npm run test:staging            # against staging environment
+
+# API
+npm run test:api                # all API tests (serial)
+npm run test:api:booker         # restful-booker tests only
+npm run test:api:device-booker  # device + booker combined
+
+# Visual regression (Percy)
+npm run test:percy              # full Percy run
+npm run test:percy:smoke        # smoke subset with Percy
+npm run test:percy:admin        # admin pages with Percy
+
+# Docker
+npm run docker:build            # build test image
+npm run docker:test             # run full suite in Docker
+npm run docker:test:chromium    # Docker chromium only
+npm run docker:test:api         # Docker API tests
+
+# Utilities
 npm run report                  # open HTML report
 npm run lint                    # tsc type-check (no emit)
+npm run clean                   # remove test artifacts
+npm run codegen                 # Playwright codegen recorder
 ```
 
 ## Environment Configuration
@@ -134,6 +174,8 @@ NODE_ENV=production npm test    # loads .env.production
 
 Key env vars: `FRONT_SITE_URL`, `ADMIN_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `TRACE_MODE`, `SCREENSHOT_MODE`, `VIDEO_MODE`.
 
+Both `playwright.config.ts` and `api.config.ts` auto-detect CI environments (`CI`, `GITLAB_CI`, `TF_BUILD`, `GITHUB_ACTIONS`) to adjust retries and timeouts automatically.
+
 ## Firefox Teardown — Do Not Remove
 
 The `ecommerceHomePage` fixture in `base-test.ts` navigates to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround.
@@ -141,7 +183,7 @@ The `ecommerceHomePage` fixture in `base-test.ts` navigates to `about:blank` bef
 ## Global Lifecycle
 
 - **Setup** (`src/config/global-setup.ts`): clears logs, loads env, cleans/creates output dirs, validates browser installations, tests connectivity to target apps
-- **Teardown** (`src/config/global-teardown.ts`): generates reports, creates `test-summary.txt`, archives artifacts in CI, cleans temp files
+- **Teardown** (`src/config/global-teardown.ts`): generates reports, creates `test-summary.txt`, archives artifacts in CI only, cleans temp files
 
 ## Logging
 
@@ -157,12 +199,14 @@ Logs write to `./test-logs/test-execution.log` and attach to Playwright HTML rep
 
 ## Timeouts
 
-Use named constants from `src/constants/timeouts.ts` — never magic numbers:
+Use named constants from `src/constants/timeouts.ts` — never magic numbers. Constants are CI-aware (longer in CI, shorter locally):
 
 ```ts
 import { TIMEOUTS } from '@config/../constants/timeouts';
 await page.waitForSelector(sel, { timeout: TIMEOUTS.ELEMENT_VISIBLE });
 ```
+
+Key constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`, `DRAG_DROP`, `API_RESPONSE`, `API_RESPONSE_SLOW`.
 
 ## Skills Available
 
