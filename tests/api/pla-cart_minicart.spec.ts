@@ -10,8 +10,7 @@
  * API Endpoint: Configured via environment (graphqlApiBaseUrl)
  */
 
-import { apiTest as test } from "../../src/api/ApiTest";
-import { expect } from "@playwright/test";
+import { apiTest as test, expect } from "../../src/api/ApiTest";
 import {
   plaTestData,
   plaErrorMessages,

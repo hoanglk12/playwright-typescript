@@ -1,4 +1,4 @@
-import { test, expect } from '../../src/config/base-test';
+import { test, expect } from '@config/base-test';
 import { ServicesAZData } from '../../src/data/services-az-data';
 import { createTestLogger } from '../../src/utils/test-logger';
 

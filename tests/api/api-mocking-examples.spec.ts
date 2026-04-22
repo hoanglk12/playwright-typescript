@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@config/base-test';
 import { ApiMockHelper } from '../../src/utils/api-mock-helper';
 import { ApiMockService } from '../../src/api/ApiMockService';
 import { MockDataGenerators } from '../../src/data/api/mock-data';

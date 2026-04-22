@@ -1,4 +1,4 @@
-import { test, expect } from '../../src/config/base-test';
+import { test, expect } from '@config/base-test';
 import { DragAndDropData } from '../../src/data/drag-and-drop-data';
 import { createTestLogger } from '../../src/utils/test-logger';
 import path from 'path';
