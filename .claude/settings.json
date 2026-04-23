@@ -15,5 +15,42 @@
       "mcp__vercel__get_runtime_logs",
       "mcp__vercel__web_fetch_vercel_url"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';const isTs=f.endsWith('.ts')||f.endsWith('.tsx');process.exit(isTs?0:1);})\" && npx tsc --noEmit 2>&1 || true",
+            "timeout": 60,
+            "statusMessage": "TypeScript type-checking..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const cmd=(j.tool_input||{}).command||'';const isTest=/npm (run )?test|npx playwright test/.test(cmd);if(isTest)console.log(JSON.stringify({systemMessage:'Tests complete. Open report: npm run report'}));process.exit(0);})\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "output=$(npx tsc --noEmit 2>&1); rc=$?; echo \"$output\"; [ $rc -ne 0 ] && exit 2 || exit 0",
+            "timeout": 60,
+            "asyncRewake": true,
+            "statusMessage": "Final TypeScript check..."
+          }
+        ]
+      }
+    ]
   }
 }
