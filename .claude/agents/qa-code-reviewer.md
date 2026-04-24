@@ -1,6 +1,14 @@
 ---
 name: qa-code-reviewer
-description: Use this agent when you need to audit Playwright TypeScript test code for quality, correctness, security, and adherence to the project's framework standards. Invoke after the automation-test-architect writes code, or any time you want a review of existing test files, page objects, helpers, or data modules. Examples: "Review this code based on project standards", "Audit my new page object", "Check if this test follows our conventions", "Find issues in my spec file".
+description: >
+  SUB-AGENT — dispatched by qa-orchestrator at the end of every code-producing
+  workflow. Also invoke directly to audit Playwright TypeScript test code for quality,
+  correctness, security, and adherence to the project's framework standards. Invoke
+  after the automation-test-architect writes code, or any time you want a review of
+  existing test files, page objects, helpers, or data modules. Examples: "Review this
+  code based on project standards", "Audit my new page object", "Check if this test
+  follows our conventions", "Find issues in my spec file". For multi-step workflows
+  ending in review, prefer invoking qa-orchestrator instead.
 tools: Glob, Grep, Read, LS, Edit
 model: sonnet
 color: orange

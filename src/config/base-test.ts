@@ -6,6 +6,7 @@ import { ProfileListingPage } from '@pages/frontsite/profile-listing-page';
 import { InsightsPage } from '@pages/frontsite/insights-page';
 import { ServicesAZPage } from '@pages/frontsite/services-az-page';
 import { EcommerceHomePage } from '@pages/ecommerce/home-page';
+import { EcommerceNavPage } from '@pages/ecommerce/nav-page';
 import { PercyHelper } from '../pages/helpers';
 
 type CustomFixtures = {
@@ -16,6 +17,7 @@ type CustomFixtures = {
   insightsPage: InsightsPage;
   servicesAZPage: ServicesAZPage;
   ecommerceHomePage: EcommerceHomePage;
+  ecommerceNavPage: EcommerceNavPage;
   percyHelper: PercyHelper;
 };
 
@@ -56,6 +58,13 @@ export const test = base.extend<CustomFixtures>({
     // persistent analytics/WebSocket connections. about:blank triggers the
     // unload lifecycle (deregisters service workers, closes connections).
     // Chromium handles context teardown cleanly without this workaround.
+    if (page.context().browser()?.browserType().name() === 'firefox') {
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
+    }
+  },
+
+  ecommerceNavPage: async ({ page }, use) => {
+    await use(new EcommerceNavPage(page));
     if (page.context().browser()?.browserType().name() === 'firefox') {
       await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
     }
