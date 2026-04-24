@@ -56,6 +56,10 @@ export abstract class BasePage {
     await this.page.goto(url);
   }
 
+  protected async gotoWithOptions(url: string, options?: Parameters<Page['goto']>[1]): Promise<void> {
+    await this.page.goto(url, options);
+  }
+
   async getCurrentUrl(): Promise<string> {
     return this.page.url();
   }

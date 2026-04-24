@@ -30,4 +30,9 @@ export const TIMEOUTS = {
   TIMEOUT_SHORT: 7000,
   TIMEOUT_MEDIUM: 10000,
   TIMEOUT_LONG: 30000,
+
+  // Polling intervals for expect.poll / waitForCustomCondition
+  POLL_INTERVAL_FAST: 500,
+  POLL_INTERVAL_NORMAL: 1000,
+  POLL_INTERVAL_SLOW: 2000,
 } as const;

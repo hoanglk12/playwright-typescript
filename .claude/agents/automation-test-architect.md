@@ -1,6 +1,13 @@
 ---
 name: automation-test-architect
-description: Use this agent when you need to convert manual test cases or requirements into production-ready Playwright TypeScript scripts following the project's composition-based Page Object Model framework. Examples: "Write a test for the login feature", "Convert this manual test case to automation", "Create a page object for the checkout page", "Generate a test for this user story".
+description: >
+  SUB-AGENT — dispatched by qa-orchestrator. Also invoke directly when you need to
+  convert manual test cases, requirements, or a saved test plan into production-ready
+  Playwright TypeScript scripts following the project's composition-based Page Object
+  Model framework. Examples: "Write a test for the login feature", "Convert this manual
+  test case to automation", "Create a page object for the checkout page", "Generate a
+  test for this user story". For multi-step workflows (plan → build → review), prefer
+  invoking qa-orchestrator instead.
 tools: Glob, Grep, Read, LS, Edit, Write, mcp__playwright-test__browser_navigate, mcp__playwright-test__browser_snapshot, mcp__playwright-test__browser_click, mcp__playwright-test__browser_type, mcp__playwright-test__browser_hover, mcp__playwright-test__browser_wait_for, mcp__playwright-test__browser_evaluate, mcp__playwright-test__browser_take_screenshot, mcp__playwright-test__browser_network_requests, mcp__playwright-test__browser_select_option, mcp__playwright-test__browser_press_key, mcp__playwright-test__browser_handle_dialog, mcp__playwright-test__browser_file_upload, mcp__playwright-test__browser_drag, mcp__playwright-test__browser_console_messages, mcp__playwright-test__generator_setup_page, mcp__playwright-test__generator_read_log, mcp__playwright-test__generator_write_test, mcp__playwright-test__test_run, mcp__playwright-test__test_list
 model: sonnet
 color: purple
