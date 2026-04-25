@@ -4,6 +4,9 @@ import { createTestLogger } from '@utils/test-logger';
 
 const navStorefronts = storefronts.filter((s) => s.navLinks.length > 0);
 const womensSites = storefronts.filter((s) => !!s.womensNavLabel);
+const mensSites = storefronts.filter((s) => !!s.mensNavLabel);
+const kidsSites = storefronts.filter((s) => !!s.kidsNavLabel);
+const saleSites = storefronts.filter((s) => !!s.saleNavLabel);
 
 test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => {
   // All sites require SPA hydration polling before link assertions — triple timeout covers the slowest staging site
@@ -55,6 +58,81 @@ test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation',
       const currentUrl = await ecommerceNavPage.getCurrentUrl();
       logger.verify(`${site.name} URL contains women PLP path`, true, /women/i.test(currentUrl));
       expect(currentUrl, `URL should indicate women's PLP on ${site.name}`).toMatch(/women/i);
+    });
+  }
+
+  // E2E-NAV-003 — MENS link navigates to mens PLP
+  for (const [index, site] of mensSites.entries()) {
+    const tcId = `E2E-NAV-M${String(index + 1).padStart(3, '0')}`;
+
+    test(`${tcId} - ${site.name} ${site.mensNavLabel} link navigates to mens PLP`, async ({ ecommerceNavPage }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} mens nav`);
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step('Step 3 - Click men\'s nav link');
+      await ecommerceNavPage.clickNavLink(site.mensNavLabel!);
+
+      logger.step('Step 4 - Assert URL navigates to men\'s PLP');
+      await ecommerceNavPage.waitForUrlContaining(/\/men/i);
+
+      const currentUrl = await ecommerceNavPage.getCurrentUrl();
+      logger.verify(`${site.name} URL contains mens PLP path`, true, /\/men/i.test(currentUrl));
+      expect(currentUrl, `URL should indicate men's PLP on ${site.name}`).toMatch(/\/men/i);
+    });
+  }
+
+  // E2E-NAV-004 — KIDS link navigates to kids PLP
+  for (const [index, site] of kidsSites.entries()) {
+    const tcId = `E2E-NAV-K${String(index + 1).padStart(3, '0')}`;
+
+    test(`${tcId} - ${site.name} ${site.kidsNavLabel} link navigates to kids PLP`, async ({ ecommerceNavPage }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} kids nav`);
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step('Step 3 - Click kids nav link');
+      await ecommerceNavPage.clickNavLink(site.kidsNavLabel!);
+
+      logger.step('Step 4 - Assert URL navigates to kids PLP');
+      await ecommerceNavPage.waitForUrlContaining(/\/kids/i);
+
+      const currentUrl = await ecommerceNavPage.getCurrentUrl();
+      logger.verify(`${site.name} URL contains kids PLP path`, true, /\/kids/i.test(currentUrl));
+      expect(currentUrl, `URL should indicate kids PLP on ${site.name}`).toMatch(/\/kids/i);
+    });
+  }
+
+  // E2E-NAV-005 — SALE link (label varies per site: SALE, OUTLET, BLACK FRIDAY) navigates to sale PLP
+  for (const [index, site] of saleSites.entries()) {
+    const tcId = `E2E-NAV-S${String(index + 1).padStart(3, '0')}`;
+
+    test(`${tcId} - ${site.name} ${site.saleNavLabel} link navigates to sale PLP`, async ({ ecommerceNavPage }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} sale nav`);
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step('Step 3 - Click sale nav link');
+      await ecommerceNavPage.clickNavLink(site.saleNavLabel!);
+
+      logger.step('Step 4 - Assert URL navigates to sale PLP');
+      await ecommerceNavPage.waitForUrlContaining(/\/sale/i);
+
+      const currentUrl = await ecommerceNavPage.getCurrentUrl();
+      logger.verify(`${site.name} URL contains sale PLP path`, true, /\/sale/i.test(currentUrl));
+      expect(currentUrl, `URL should indicate sale PLP on ${site.name}`).toMatch(/\/sale/i);
     });
   }
 });
