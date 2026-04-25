@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { type Locator, Page } from "@playwright/test";
 import { TIMEOUTS } from "../../constants/timeouts";
 import { WaitHelper } from "./wait-helper";
 
@@ -288,5 +288,25 @@ export class ElementHelper {
     await this.waits.waitForElement(sourceSelector);
     await this.waits.waitForElement(targetSelector);
     await this.page.dragAndDrop(sourceSelector, targetSelector);
+  }
+
+  // ── Locator-based operations ─────────────────────────────────────────────────
+  // Use these when a dynamic or chained Locator cannot be expressed as a plain CSS/text selector.
+
+  locator(selector: string): Locator {
+    return this.page.locator(selector);
+  }
+
+  async clickLocator(locator: Locator): Promise<void> {
+    await locator.waitFor({ state: "visible", timeout: TIMEOUTS.ELEMENT_CLICKABLE });
+    await locator.click();
+  }
+
+  async isLocatorVisible(locator: Locator): Promise<boolean> {
+    return locator.isVisible();
+  }
+
+  async getLocatorAttribute(locator: Locator, attribute: string): Promise<string | null> {
+    return locator.getAttribute(attribute);
   }
 }

@@ -3,6 +3,7 @@ import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
 
 const navStorefronts = storefronts.filter((s) => s.navLinks.length > 0);
+const womensSites = storefronts.filter((s) => !!s.womensNavLabel);
 
 test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => {
   // All sites require SPA hydration polling before link assertions — triple timeout covers the slowest staging site
@@ -30,6 +31,30 @@ test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation',
         logger.verify(`Nav link "${label}" has a valid href on ${site.name}`, true, !!href);
         expect(href, `Nav link "${label}" on ${site.name} should have a valid href`).toMatch(/^(\/|https?:\/\/)/);
       }
+    });
+  }
+
+  for (const [index, site] of womensSites.entries()) {
+    const tcId = `E2E-NAV-W${String(index + 1).padStart(3, '0')}`;
+
+    test(`${tcId} - ${site.name} ${site.womensNavLabel} link navigates to womens PLP`, async ({ ecommerceNavPage }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} women nav`);
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step('Step 3 - Click women\'s nav link');
+      await ecommerceNavPage.clickNavLink(site.womensNavLabel!);
+
+      logger.step('Step 4 - Assert URL navigates to women\'s PLP');
+      await ecommerceNavPage.waitForUrlContaining(/women/i);
+
+      const currentUrl = await ecommerceNavPage.getCurrentUrl();
+      logger.verify(`${site.name} URL contains women PLP path`, true, /women/i.test(currentUrl));
+      expect(currentUrl, `URL should indicate women's PLP on ${site.name}`).toMatch(/women/i);
     });
   }
 });

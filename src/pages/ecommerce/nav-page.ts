@@ -13,11 +13,9 @@ export class EcommerceNavPage extends BasePage {
     await this.waits.waitForElement('main', TIMEOUTS.ELEMENT_VISIBLE);
   }
 
-  // React SPA hydration completes asynchronously after <main> becomes visible.
-  // Without this gate, link assertions fail on slow-network CI before the nav DOM is populated.
-  // These SPAs render nav links as main > div > ul > li > a (no <header> or <nav> element).
+  // Polls until React SPA hydration populates nav links in <main> (no <header>/<nav> exists).
   async waitForNavHydration(): Promise<void> {
-    await this.waitForCustomCondition(
+    await this.waits.waitForCustomCondition(
       async () => {
         try {
           return await this.executeScript(() => {
@@ -32,20 +30,25 @@ export class EcommerceNavPage extends BasePage {
   }
 
   async isNavLinkVisible(label: string): Promise<boolean> {
-    return this.navLink(label).isVisible();
+    return this.elements.isLocatorVisible(this.navLink(label));
   }
 
   async getNavLinkHref(label: string): Promise<string | null> {
-    return this.navLink(label).getAttribute('href');
+    return this.elements.getLocatorAttribute(this.navLink(label), 'href');
   }
 
-  // Scoped to <main> to exclude footer anchors sharing the same label text.
-  // These SPAs use no <header> element — nav links live in main > div > ul > li > a.
-  // Declared as a factory (not a class field) because the name is dynamic per invocation.
-  // Regex-escaped so labels with special characters (e.g. "Dr.") match literally.
+  async clickNavLink(label: string): Promise<void> {
+    await this.elements.clickLocator(this.navLink(label));
+  }
+
+  async waitForUrlContaining(pattern: RegExp): Promise<void> {
+    await this.waits.waitForUrlMatches(pattern, TIMEOUTS.PAGE_LOAD);
+  }
+
+  // Scoped to <main> to avoid footer link collisions; label regex-escaped for special chars (e.g. "Dr.").
   private navLink(label: string): Locator {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return this.page
+    return this.elements
       .locator('main')
       .getByRole('link', { name: new RegExp(`^${escaped}$`, 'i') })
       .first();
