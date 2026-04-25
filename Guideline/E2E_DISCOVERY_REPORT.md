@@ -3,6 +3,7 @@
 > Exported from: E2E-Discovery-Report.pdf (March 20, 2026)
 > Purpose: Full context for QA agents to plan, build, and verify automation across 4 e-commerce storefronts.
 > Total scenarios documented: 108 across 13 feature areas.
+> Sites covered: 8 storefronts (Platypus, Skechers, Vans, Dr. Martens — AU + NZ each). Vans and Dr. Martens nav links pending staging configuration.
 
 ---
 
@@ -14,6 +15,10 @@
 | 2 | Platypus NZ | https://stag-platypus-nz.accentgra.com | Platypus Shoes | New Zealand (NZD) |
 | 3 | Skechers AU | https://stag-skechers-au.accentgra.com | Skechers | Australia (AUD) |
 | 4 | Skechers NZ | https://stag-skechers-nz.accentgra.com | Skechers | New Zealand (NZD) |
+| 5 | Vans AU | https://stag-vans-au.accentgra.com | Vans | Australia (AUD) |
+| 6 | Vans NZ | https://stag-vans-nz.accentgra.com | Vans | New Zealand (NZD) |
+| 7 | Dr. Martens AU | https://stag-drmartens-au.accentgra.com | Dr. Martens | Australia (AUD) |
+| 8 | Dr. Martens NZ | https://stag-drmartens-nz.accentgra.com | Dr. Martens | New Zealand (NZD) |
 
 **Tech stack:** Adobe Commerce (Magento) with a custom PWA-style storefront. Modal-based login/cart. Zendesk chat. Adobe DTM analytics.
 
@@ -35,6 +40,25 @@
 | BNPL (Afterpay/PayPal) | Yes | Yes | Yes | Yes |
 | Free shipping threshold | $150 | $150 | $150 | $150 |
 | Zendesk chat | inferred | inferred | Yes | Yes |
+
+### Vans & Dr. Martens — Regional Differences
+
+> Nav links are pending staging configuration for all four sites (`navLinks: []` in `storefronts.ts`). Features marked **TBD** require site profiling once staging is configured.
+
+| Feature | Vans AU | Vans NZ | Dr. Martens AU | Dr. Martens NZ |
+|---|---|---|---|---|
+| Currency | AUD | NZD | AUD | NZD |
+| Qantas Points | Yes | **No** | Yes | **No** |
+| Loyalty Program | TBD | TBD | TBD | TBD |
+| Nav links configured | **No (pending)** | **No (pending)** | **No (pending)** | **No (pending)** |
+| WOMENS nav | TBD | TBD | TBD | TBD |
+| CLOTHING nav | TBD | TBD | TBD | TBD |
+| PRESALE nav | TBD | TBD | TBD | TBD |
+| BRANDS nav | TBD | TBD | TBD | TBD |
+| Spend & Save promo | TBD | TBD | TBD | TBD |
+| BNPL (Afterpay/PayPal) | TBD | TBD | TBD | TBD |
+| Free shipping threshold | TBD | TBD | TBD | TBD |
+| Zendesk chat | TBD | TBD | TBD | TBD |
 
 ---
 
@@ -67,6 +91,25 @@
 | Vimeo product video | Yes | inferred | inferred | inferred |
 | Product ratings/reviews | Yes | Yes | Yes | Yes |
 | 404 error page | Yes | Yes | Yes | Yes |
+
+### Vans & Dr. Martens — Feature Coverage
+
+> Vans and Dr. Martens share the same Adobe Commerce / PWA-style stack. Features below reflect what is confirmed from staging access. Items marked **TBD** require profiling after nav staging config is complete.
+
+| Module | Vans AU | Vans NZ | Dr. Martens AU | Dr. Martens NZ |
+|---|---|---|---|---|
+| Homepage hero + banners | Yes | Yes | Yes | Yes |
+| Top bar with promos | Yes | Yes | Yes | Yes |
+| Qantas Points integration | Yes | No | Yes | No |
+| Navigation menu | **TBD (pending nav config)** | **TBD (pending nav config)** | **TBD (pending nav config)** | **TBD (pending nav config)** |
+| Search (inline) | TBD | TBD | TBD | TBD |
+| Wishlist page | TBD | TBD | TBD | TBD |
+| Account modal (login/register) | TBD | TBD | TBD | TBD |
+| Mini cart overlay | TBD | TBD | TBD | TBD |
+| PLP with filters + sort | TBD | TBD | TBD | TBD |
+| PDP with variants | TBD | TBD | TBD | TBD |
+| Afterpay / BNPL messaging | TBD | TBD | TBD | TBD |
+| 404 error page | TBD | TBD | TBD | TBD |
 
 ---
 
@@ -155,11 +198,15 @@ src/
 ## 6. Playwright Multi-Site Project Config
 
 ```ts
-// playwright.config.ts — add these projects for the 4 sites
-{ name: 'platypus-au', use: { baseURL: process.env.PLATYPUS_AU_URL } },
-{ name: 'platypus-nz', use: { baseURL: process.env.PLATYPUS_NZ_URL } },
-{ name: 'skechers-au', use: { baseURL: process.env.SKECHERS_AU_URL } },
-{ name: 'skechers-nz', use: { baseURL: process.env.SKECHERS_NZ_URL } },
+// playwright.config.ts — add these projects for all 8 sites
+{ name: 'platypus-au',  use: { baseURL: process.env.PLATYPUS_AU_URL } },
+{ name: 'platypus-nz',  use: { baseURL: process.env.PLATYPUS_NZ_URL } },
+{ name: 'skechers-au',  use: { baseURL: process.env.SKECHERS_AU_URL } },
+{ name: 'skechers-nz',  use: { baseURL: process.env.SKECHERS_NZ_URL } },
+{ name: 'vans-au',      use: { baseURL: process.env.VANS_AU_URL } },
+{ name: 'vans-nz',      use: { baseURL: process.env.VANS_NZ_URL } },
+{ name: 'drmartens-au', use: { baseURL: process.env.DRMARTENS_AU_URL } },
+{ name: 'drmartens-nz', use: { baseURL: process.env.DRMARTENS_NZ_URL } },
 ```
 
 ```bash
@@ -168,6 +215,10 @@ PLATYPUS_AU_URL=https://stag-platypus-au.accentgra.com
 PLATYPUS_NZ_URL=https://stag-platypus-nz.accentgra.com
 SKECHERS_AU_URL=https://stag-skechers-au.accentgra.com
 SKECHERS_NZ_URL=https://stag-skechers-nz.accentgra.com
+VANS_AU_URL=https://stag-vans-au.accentgra.com
+VANS_NZ_URL=https://stag-vans-nz.accentgra.com
+DRMARTENS_AU_URL=https://stag-drmartens-au.accentgra.com
+DRMARTENS_NZ_URL=https://stag-drmartens-nz.accentgra.com
 ```
 
 ---
@@ -545,16 +596,27 @@ All mobile tests use 375px viewport.
 
 | Trigger | Suite | Scope | Parallelism |
 |---|---|---|---|
-| PR / Push | Smoke | `@smoke` across 4 sites | 4 projects × ~6 specs |
+| PR / Push | Smoke | `@smoke` across 8 sites | 8 projects × ~6 specs |
 | Nightly | Full regression | `@regression` + `@smoke` | 50% workers |
 | Pre-release | Full + mobile | All tags | Full parallelism |
 
 **CLI commands per site:**
 ```bash
+# Platypus
 npx playwright test --project=platypus-au --grep @smoke
 npx playwright test --project=platypus-nz --grep @smoke
+
+# Skechers
 npx playwright test --project=skechers-au --grep @smoke
 npx playwright test --project=skechers-nz --grep @smoke
+
+# Vans
+npx playwright test --project=vans-au --grep @smoke
+npx playwright test --project=vans-nz --grep @smoke
+
+# Dr. Martens
+npx playwright test --project=drmartens-au --grep @smoke
+npx playwright test --project=drmartens-nz --grep @smoke
 ```
 
 **Flaky test strategy:**

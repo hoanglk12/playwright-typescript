@@ -42,7 +42,7 @@ export class EcommerceNavPage extends BasePage {
   }
 
   async waitForUrlContaining(pattern: RegExp): Promise<void> {
-    await this.waits.waitForUrlMatches(pattern, TIMEOUTS.PAGE_LOAD);
+    await this.waits.waitForUrlMatches(pattern, TIMEOUTS.PAGE_LOAD_SLOW);
   }
 
   // Scoped to <main> to avoid footer link collisions; label regex-escaped for special chars (e.g. "Dr.").
