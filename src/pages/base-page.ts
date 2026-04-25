@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { type Locator, Page } from "@playwright/test";
 import {
   WaitHelper,
   ElementHelper,
@@ -306,6 +306,10 @@ export abstract class BasePage {
   async scrollByPixels(x: number, y: number): Promise<void> { return this.elements.scrollByPixels(x, y); }
   async dragAndDrop(sourceSelector: string, targetSelector: string): Promise<void> { return this.elements.dragAndDrop(sourceSelector, targetSelector); }
   async hoverAndGetTooltipAdvanced(selector: string, options?: Parameters<ElementHelper["hoverAndGetTooltipAdvanced"]>[1]): Promise<string> { return this.elements.hoverAndGetTooltipAdvanced(selector, options); }
+  locator(selector: string): Locator { return this.elements.locator(selector); }
+  async clickLocator(locator: Locator): Promise<void> { return this.elements.clickLocator(locator); }
+  async isLocatorVisible(locator: Locator): Promise<boolean> { return this.elements.isLocatorVisible(locator); }
+  async getLocatorAttribute(locator: Locator, attribute: string): Promise<string | null> { return this.elements.getLocatorAttribute(locator, attribute); }
 
   // style
   protected rgbToHex(r: number, g: number, b: number): string { return this.style.rgbToHex(r, g, b); }
