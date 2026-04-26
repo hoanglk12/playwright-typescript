@@ -32,6 +32,7 @@ on:
 env:
   NODE_ENV: testing
   PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+  HEADLESS: "true"
 
 jobs:
   visual-test:

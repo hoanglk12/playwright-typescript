@@ -135,4 +135,40 @@ test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation',
       expect(currentUrl, `URL should indicate sale PLP on ${site.name}`).toMatch(/\/sale/i);
     });
   }
+
+  // E2E-NAV-009 — Logo click returns to homepage from any page (all 8 storefronts)
+  for (const site of storefronts) {
+    const interiorLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.kidsNavLabel;
+    if (!interiorLabel) continue;
+
+    test(`E2E-NAV-009 - ${site.name} logo click returns to homepage`, async ({ ecommerceNavPage }) => {
+      const logger = createTestLogger(`E2E-NAV-009 - ${site.name} logo click`);
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step(`Step 3 - Click "${interiorLabel}" nav link to leave homepage`);
+      await ecommerceNavPage.clickNavLink(interiorLabel);
+
+      logger.step('Step 4 - Confirm we navigated away from root');
+      const plpUrl = await ecommerceNavPage.getCurrentUrl();
+      const rootPattern = new RegExp(`^${site.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+      logger.verify(`${site.name} is no longer at site root`, true, !rootPattern.test(plpUrl));
+      expect(plpUrl, `Should have navigated away from root on ${site.name}`).not.toMatch(rootPattern);
+
+      logger.step('Step 5 - Click the site logo');
+      await ecommerceNavPage.clickLogo();
+
+      logger.step('Step 6 - Assert URL returned to site root');
+      await ecommerceNavPage.waitForHomepage(site.url);
+
+      const homeUrl = await ecommerceNavPage.getCurrentUrl();
+      const homePattern = new RegExp(`^${site.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\/$/, '')}\\/?$`);
+      logger.verify(`${site.name} URL returned to homepage after logo click`, site.url, homeUrl);
+      expect(homeUrl, `Logo click should return to homepage on ${site.name}`).toMatch(homePattern);
+    });
+  }
 });
