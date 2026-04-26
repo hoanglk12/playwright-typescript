@@ -45,6 +45,15 @@ export class EcommerceNavPage extends BasePage {
     await this.waits.waitForUrlMatches(pattern, TIMEOUTS.PAGE_LOAD_SLOW);
   }
 
+  async clickLogo(): Promise<void> {
+    await this.elements.clickLocator(this.logoLink());
+  }
+
+  async waitForHomepage(siteUrl: string): Promise<void> {
+    const escaped = siteUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\/$/, '');
+    await this.waits.waitForUrlMatches(new RegExp(`^${escaped}\\/?$`), TIMEOUTS.PAGE_LOAD_SLOW);
+  }
+
   // Scoped to <main> to avoid footer link collisions; label regex-escaped for special chars (e.g. "Dr.").
   private navLink(label: string): Locator {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -52,5 +61,10 @@ export class EcommerceNavPage extends BasePage {
       .locator('main')
       .getByRole('link', { name: new RegExp(`^${escaped}$`, 'i') })
       .first();
+  }
+
+  // Logo is an <a href="/"> inside <main> across all 8 SPA storefronts (no <header>/<nav> element).
+  private logoLink(): Locator {
+    return this.elements.locator('main a[href="/"]').first();
   }
 }
