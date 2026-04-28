@@ -7,6 +7,7 @@ import { InsightsPage } from '@pages/frontsite/insights-page';
 import { ServicesAZPage } from '@pages/frontsite/services-az-page';
 import { EcommerceHomePage } from '@pages/ecommerce/home-page';
 import { EcommerceNavPage } from '@pages/ecommerce/nav-page';
+import { EcommerceSearchPage } from '@pages/ecommerce/search-page';
 import { PercyHelper } from '../pages/helpers';
 
 type CustomFixtures = {
@@ -18,6 +19,7 @@ type CustomFixtures = {
   servicesAZPage: ServicesAZPage;
   ecommerceHomePage: EcommerceHomePage;
   ecommerceNavPage: EcommerceNavPage;
+  ecommerceSearchPage: EcommerceSearchPage;
   percyHelper: PercyHelper;
 };
 
@@ -65,6 +67,13 @@ export const test = base.extend<CustomFixtures>({
 
   ecommerceNavPage: async ({ page }, use) => {
     await use(new EcommerceNavPage(page));
+    if (page.context().browser()?.browserType().name() === 'firefox') {
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
+    }
+  },
+
+  ecommerceSearchPage: async ({ page }, use) => {
+    await use(new EcommerceSearchPage(page));
     if (page.context().browser()?.browserType().name() === 'firefox') {
       await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
     }
