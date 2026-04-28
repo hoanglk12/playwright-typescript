@@ -14,6 +14,8 @@ export interface Storefront {
   kidsNavLabel?: string;
   /** Label of the sale category nav link (may vary: SALE, OUTLET, BLACK FRIDAY, etc.); undefined if absent (E2E-NAV-005) */
   saleNavLabel?: string;
+  /** Stable search term confirmed to return product results (E2E-SRCH-001) */
+  searchTerm: string;
 }
 
 export const storefronts: readonly Storefront[] = [
@@ -27,6 +29,7 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MENS',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
+    searchTerm: 'Nike',
   },
   {
     name: 'Platypus NZ',
@@ -38,6 +41,7 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MENS',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
+    searchTerm: 'Nike',
   },
   {
     name: 'Skechers AU',
@@ -49,6 +53,7 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MENS',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
+    searchTerm: 'Go Walk',
   },
   {
     name: 'Skechers NZ',
@@ -60,6 +65,7 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MENS',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
+    searchTerm: 'Go Walk',
   },
   {
     name: 'Vans AU',
@@ -72,6 +78,7 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MEN',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'OUTLET',  // OUTLET navigates to /shop/sale
+    searchTerm: 'Old Skool',
   },
   {
     name: 'Vans NZ',
@@ -83,6 +90,7 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MEN',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
+    searchTerm: 'Old Skool',
   },
   {
     name: 'Dr. Martens AU',
@@ -94,6 +102,7 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MEN',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
+    searchTerm: '1460',
   },
   {
     name: 'Dr. Martens NZ',
@@ -106,5 +115,6 @@ export const storefronts: readonly Storefront[] = [
     mensNavLabel: 'MEN',
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'BLACK FRIDAY',  // staging seasonal label — navigates to /shop/sale
+    searchTerm: '1460',
   },
 ];
