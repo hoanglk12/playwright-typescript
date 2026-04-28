@@ -302,12 +302,10 @@ jobs:
 
       - name: Sanitize commit message
         id: commit
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          # Sanitize commit message for JSON payload
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          # Escape quotes and backslashes, replace newlines with spaces
           SANITIZED=$(echo "$COMMIT_MSG" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/ /g; s/\r/ /g; s/\t/ /g')
-          # Truncate if too long (Slack has limits)
           if [ ${#SANITIZED} -gt 200 ]; then
             SANITIZED="${SANITIZED:0:197}..."
           fi
