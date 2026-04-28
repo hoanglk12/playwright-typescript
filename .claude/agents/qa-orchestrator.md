@@ -55,8 +55,9 @@ Only read what is directly relevant. Do not perform exhaustive codebase tours be
 | `playwright-test-generator` | blue | Executes plan steps in browser, emits raw spec files |
 | `automation-test-architect` | purple | Converts requirements / raw specs → production POM code |
 | `playwright-test-healer` | red | Debugs and fixes failing tests |
-| `qa-code-reviewer` | orange | Audits code against 10-point framework checklist |
+| `qa-code-reviewer` | orange | Audits code against framework quality checklist |
 | `devops-cicd-specialist` | cyan | Parses CI reports, classifies failures, recommends fixes |
+| `security-reviewer` | magenta | Scans for secrets, vulnerable deps, unsafe eval patterns, CI permission issues |
 
 ---
 
@@ -225,6 +226,37 @@ where the user explicitly asks for healing or a final test run
 
 ---
 
+### WORKFLOW-8: Security Audit
+
+**Trigger phrases:** "security audit", "security review", "scan for secrets",
+"scan for credentials", "check for vulnerabilities", "npm audit", "dependency audit",
+"are there hardcoded tokens", "before merge security check"
+
+**Pipeline:** `security-reviewer` only
+
+**Steps:**
+1. Determine scope:
+   - **Full project scan** (default): pass `src/`, `tests/`, `.github/workflows/`,
+     `.env*`, `package.json` as the scope
+   - **Branch-scoped scan**: if the user says "review my changes" or "before merge",
+     run `git diff --name-only main...HEAD` to get the changed file list and pass only
+     those files, plus always include `package.json` and `.github/workflows/`
+2. Dispatch `security-reviewer` with the scope and the handoff context block
+3. Pass the full security report through to the user without interpretation
+4. If findings include CRITICAL or HIGH severity:
+   - Surface the specific findings clearly and ask the user if they want the
+     `automation-test-architect` or `playwright-test-healer` to apply the fixes
+   - Do NOT auto-dispatch a fix agent — security remediation requires explicit approval
+
+**Notes:**
+- `security-reviewer` is audit-only. It does not modify files.
+- Do not chain `qa-code-reviewer` after this workflow — they have non-overlapping scopes.
+- If the user asks to fix the findings after seeing the report, route credential/data
+  fixes to `automation-test-architect` and test-code fixes to `playwright-test-healer`,
+  then re-run `security-reviewer` to confirm the findings are resolved.
+
+---
+
 ## Handoff Context Template
 
 Every Task dispatch must include this structured block — populate every field:
@@ -272,11 +304,13 @@ Use this order when classifying an incoming request:
    or **WORKFLOW-4** (if it is a CI batch or multiple tests)
 3. "Record" / "capture" / "watch" / "generate from browser" → **WORKFLOW-3**
 4. "From scratch" / "no tests yet" / "full coverage" / "explore the app" → **WORKFLOW-2**
-5. "Review" / "audit" / "quality check" / "before merge" → **WORKFLOW-5**
-6. "Write and run" / "write then fix" / "implement and validate" / "full delivery" / user
+5. "Review" / "audit" / "quality check" / "before merge" (code quality) → **WORKFLOW-5**
+6. "Security" / "secrets" / "credentials" / "vulnerability" / "npm audit" / "hardcoded token"
+   / "security review" / "security audit" / "scan for" → **WORKFLOW-8**
+7. "Write and run" / "write then fix" / "implement and validate" / "full delivery" / user
    explicitly mentions healing or a final run after writing → **WORKFLOW-7**
-7. Requirement / user story / manual test case / "write tests for X" (no run requested) → **WORKFLOW-1**
-8. Ambiguous → ask one question: "Do you have existing requirements, or should I explore the
+8. Requirement / user story / manual test case / "write tests for X" (no run requested) → **WORKFLOW-1**
+9. Ambiguous → ask one question: "Do you have existing requirements, or should I explore the
    live app first?" (existing requirements → WORKFLOW-1; explore first → WORKFLOW-2)
 
 ---
@@ -299,3 +333,6 @@ Use this order when classifying an incoming request:
   appropriate sub-agent.
 - **Do not re-read the full codebase** before each sub-agent dispatch. Read only what is
   needed to populate the handoff context template.
+- **Never auto-fix security findings** — WORKFLOW-8 is audit-only. Do not dispatch a fix
+  agent after `security-reviewer` without explicit user approval. Security remediation
+  must be a conscious, user-confirmed decision.

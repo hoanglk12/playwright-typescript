@@ -146,6 +146,23 @@ await page.waitForSelector('.modal', { timeout: TIMEOUTS.DIALOG_APPEAR });
 - [ ] No `@ts-ignore` or `@ts-expect-error` without explanatory comment
 - [ ] No unused variables or parameters
 - [ ] Interfaces/types defined for complex data structures
+- [ ] No unsafe property access on potentially null/undefined values — use optional chaining or explicit null checks
+- [ ] No unguarded array index access (`arr[0]`, `arr[arr.length - 1]`) without a prior length check in page/helper methods
+- [ ] No truthy checks (`if (value)`) where `0`, `""`, or `false` are valid values
+
+```ts
+// WARNING — unsafe access in page object method
+async getFirstResult(): Promise<string> {
+  const items = await this.elements.getAllTexts(this.resultItems);
+  return items[0]; // throws if empty
+}
+
+// Correct
+async getFirstResult(): Promise<string | undefined> {
+  const items = await this.elements.getAllTexts(this.resultItems);
+  return items.length > 0 ? items[0] : undefined;
+}
+```
 
 ---
 
@@ -167,6 +184,21 @@ await page.waitForSelector('.modal', { timeout: TIMEOUTS.DIALOG_APPEAR });
 - [ ] No hardcoded test ordering or dependencies between tests
 - [ ] No `console.log()` — use `logger.*` methods
 - [ ] Firefox teardown: if the `ecommerceHomePage` fixture is modified, the `about:blank` navigation before teardown must be preserved (prevents Firefox Juggler hang on SPA cleanup)
+- [ ] No unhandled promise rejections in helper/utility methods — every `async` function must either `await` or explicitly handle errors; no floating promises
+
+```ts
+// WARNING — floating promise, rejection silently lost
+async setup(): Promise<void> {
+  this.network.interceptRequests('/api/data'); // not awaited
+  await this.navigateTo('/page');
+}
+
+// Correct
+async setup(): Promise<void> {
+  await this.network.interceptRequests('/api/data');
+  await this.navigateTo('/page');
+}
+```
 
 ---
 
@@ -186,6 +218,28 @@ await page.waitForSelector('.modal', { timeout: TIMEOUTS.DIALOG_APPEAR });
 - [ ] Test data: `src/data/`
 - [ ] Utilities: `src/utils/`
 - [ ] New page objects registered as fixtures in `src/config/base-test.ts`
+
+---
+
+### 11. Dead Code
+
+- [ ] No unused imports (beyond what TypeScript already flags)
+- [ ] No unreferenced helper methods in page objects (methods declared but never called from any spec)
+- [ ] No orphaned page object classes missing their fixture registration in `src/config/base-test.ts`
+- [ ] No data modules in `src/data/` with no imports in any spec or page file
+- [ ] No commented-out test blocks (`// test(...)`) — delete them or open a ticket
+
+```ts
+// WARNING — registered but never used in any spec
+export class LegacyAdminPage extends BasePage {
+  // no tests import or use this fixture
+}
+
+// SUGGESTION — dead method
+async clickOldButton(): Promise<void> { // no caller
+  await this.elements.clickElement(this.oldBtn);
+}
+```
 
 ---
 
