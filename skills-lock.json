@@ -26,6 +26,12 @@
       "sourceType": "github",
       "computedHash": "6db654e753257e642d6507d59b4fc633a2382e93429748ba0fb6817c23ef5216"
     },
+    "security-reviewer": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/security-reviewer/SKILL.md",
+      "computedHash": "a01a68ffc92548e79041495b3dc345ec7ac2ff7489a75c8ed4eaacfdfb689748"
+    },
     "seo": {
       "source": "addyosmani/web-quality-skills",
       "sourceType": "github",
