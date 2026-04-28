@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(npx tsc --noEmit)",
       "Bash(npm list *)",
@@ -14,8 +13,14 @@
       "mcp__vercel__get_project",
       "mcp__vercel__list_projects",
       "mcp__vercel__get_runtime_logs",
-      "mcp__vercel__web_fetch_vercel_url"
-    ]
+      "mcp__vercel__web_fetch_vercel_url",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(xargs grep *)",
+      "Bash(npx prettier --write *)",
+      "Bash(npx playwright test *)"
+    ],
+    "defaultMode": "bypassPermissions"
   },
   "hooks": {
     "PostToolUse": [
@@ -24,9 +29,21 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';if(f.endsWith('.ts')||f.endsWith('.tsx')){const {spawnSync}=require('child_process');spawnSync('npx',['prettier','--write',f],{stdio:'inherit'});}process.exit(0);})\" 2>/dev/null || true",
+            "statusMessage": "Formatting code..."
+          },
+          {
+            "type": "command",
             "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';const isTs=f.endsWith('.ts')||f.endsWith('.tsx');process.exit(isTs?0:1);})\" && npx tsc --noEmit 2>&1 || true",
             "timeout": 60,
             "statusMessage": "TypeScript type-checking..."
+          },
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';if(f.endsWith('.spec.ts')){const {spawnSync}=require('child_process');const r=spawnSync('npx',['playwright','test',f,'--reporter=list','--project=chromium'],{stdio:'inherit'});if(r.status!==0)process.exit(2);}process.exit(0);})\"",
+            "timeout": 300,
+            "asyncRewake": true,
+            "statusMessage": "Running related Playwright tests..."
           }
         ]
       },
@@ -47,8 +64,8 @@
             "type": "command",
             "command": "output=$(npx tsc --noEmit 2>&1); rc=$?; echo \"$output\"; [ $rc -ne 0 ] && exit 2 || exit 0",
             "timeout": 60,
-            "asyncRewake": true,
-            "statusMessage": "Final TypeScript check..."
+            "statusMessage": "Final TypeScript check...",
+            "asyncRewake": true
           }
         ]
       }
