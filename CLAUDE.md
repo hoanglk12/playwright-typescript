@@ -286,8 +286,12 @@ Specialised sub-agents live in `.claude/agents/` and are invoked automatically b
 | `qa-code-reviewer` | Audits test code for quality, correctness, and framework adherence |
 | `qa-orchestrator` | Single entry point for any multi-step QA automation request |
 | `security-reviewer` | Scans for secrets, vulnerable deps, unsafe patterns, and CI permission issues |
+| `technical-research-agent` | Researches SDKs, integrations, upgrades, scalability — produces a structured Technical Research Report. No code edits. |
+| `technical-implementation-agent` | Implements approved technical changes from a Research Report (framework, config, deps, CI). Only runs after user approval. |
 
 Use `qa-orchestrator` as the default entry point for any end-to-end QA workflow (plan → build → review → fix).
+
+For framework/infra/integration changes (new SDK, Playwright upgrade, CI rework, scalability work), `qa-orchestrator` runs a two-stage pipeline: `technical-research-agent` produces a report → **user approves** → `technical-implementation-agent` applies the change → `qa-code-reviewer` + `devops-cicd-specialist` verify. Research never auto-flows into implementation; user approval is a hard gate, even if you say "just do it".
 
 ## Skills Available
 
