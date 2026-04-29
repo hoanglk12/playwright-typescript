@@ -12,7 +12,7 @@ description: >
   Do NOT use when you already know the exact single specialist you need and the task
   is self-contained ("just fix test X" → use playwright-test-healer directly;
   "just review this file" → use qa-code-reviewer directly).
-tools: Glob, Grep, Read, LS
+tools: Glob, Grep, Read, LS, Task
 model: sonnet
 color: yellow
 ---

@@ -16,6 +16,13 @@ export interface Storefront {
   saleNavLabel?: string;
   /** Stable search term confirmed to return product results (E2E-SRCH-001) */
   searchTerm: string;
+  /**
+   * Regex matching the URL after submitting a search (E2E-SRCH-006).
+   * Defaults to /search/i. Platypus is variable: submitting "Nike" sometimes
+   * lands on /search?q=nike (staging) and sometimes redirects to /shop/nike
+   * (production brand page) — its pattern accepts both.
+   */
+  searchResultUrlPattern?: RegExp;
 }
 
 export const storefronts: readonly Storefront[] = [
@@ -30,6 +37,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Nike',
+    searchResultUrlPattern: /(search|\/shop\/)/i,
   },
   {
     name: 'Platypus NZ',
@@ -42,6 +50,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Nike',
+    searchResultUrlPattern: /(search|\/shop\/)/i,
   },
   {
     name: 'Skechers AU',
