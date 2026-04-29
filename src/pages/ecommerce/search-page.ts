@@ -12,11 +12,20 @@ export class EcommerceSearchPage extends BasePage {
     await this.waits.waitForElement('main', TIMEOUTS.ELEMENT_VISIBLE);
   }
 
-  async search(term: string): Promise<void> {
+  async search(term: string, urlPattern: RegExp = /search/i): Promise<void> {
     await this.waits.waitForElement('input[type="text"]', TIMEOUTS.ELEMENT_VISIBLE);
     await this.elements.enterText('input[type="text"]', term);
     await this.elements.pressKey('Enter');
-    await this.waits.waitForUrlMatches(/search/i, TIMEOUTS.PAGE_LOAD_SLOW);
+    await this.waits.waitForUrlMatches(urlPattern, TIMEOUTS.PAGE_LOAD_SLOW);
+    await this.waits.waitForElement('main', TIMEOUTS.ELEMENT_VISIBLE);
+  }
+
+  async searchByIcon(term: string, urlPattern: RegExp = /search/i): Promise<void> {
+    await this.waits.waitForElement('div.search input[type="text"]', TIMEOUTS.ELEMENT_VISIBLE);
+    await this.elements.enterText('div.search input[type="text"]', term);
+    await this.waits.waitForElement('div.search svg.icon', TIMEOUTS.ELEMENT_VISIBLE);
+    await this.elements.clickElement('div.search svg.icon');
+    await this.waits.waitForUrlMatches(urlPattern, TIMEOUTS.PAGE_LOAD_SLOW);
     await this.waits.waitForElement('main', TIMEOUTS.ELEMENT_VISIBLE);
   }
 
