@@ -58,6 +58,8 @@ Only read what is directly relevant. Do not perform exhaustive codebase tours be
 | `qa-code-reviewer` | orange | Audits code against framework quality checklist |
 | `devops-cicd-specialist` | cyan | Parses CI reports, classifies failures, recommends fixes |
 | `security-reviewer` | magenta | Scans for secrets, vulnerable deps, unsafe eval patterns, CI permission issues |
+| `technical-research-agent` | teal | Researches SDKs/integrations/upgrades/scalability; produces a Technical Research Report. No code edits. |
+| `technical-implementation-agent` | gold | Implements approved technical changes from a Research Report. Edits framework code, config, deps, CI. |
 
 ---
 
@@ -257,6 +259,75 @@ where the user explicitly asks for healing or a final test run
 
 ---
 
+### WORKFLOW-9: Technical Research (audit-only)
+
+**Trigger phrases:** "research X", "investigate adding X", "compare A vs B", "is it
+feasible to X", "what's the upgrade impact", "evaluate this SDK", "scalability of X",
+"research the impact of upgrading Playwright"
+
+**Pipeline:** `technical-research-agent` only
+
+**Steps:**
+1. Clarify the research objective with the user if vague (one question max — what
+   library/vendor/upgrade and what the success criterion looks like)
+2. Read `package.json` to capture current dependency versions for the handoff context
+3. Read `playwright.config.ts`, `api.config.ts`, and `src/config/base-test.ts` only if the
+   research target plausibly affects them — pass a short summary in the handoff context
+4. Dispatch `technical-research-agent` with handoff context including project stack
+   constraints (Playwright version, Node version, TS strict mode, existing integrations)
+5. Pass the full Technical Research Report through to the user without interpretation
+6. **Do NOT auto-dispatch the implementation agent.** Ask the user explicitly:
+   "The research recommends X. Do you want me to proceed with WORKFLOW-10 (implement)?"
+
+Use this workflow when the user wants information, comparison, or feasibility analysis
+without committing to a change.
+
+---
+
+### WORKFLOW-10: Research-Then-Implement (full delivery)
+
+**Trigger phrases:** "research and implement X", "add Allure reporter", "upgrade Playwright
+to X", "integrate vendor Y", "apply this migration", "add observability for X" — OR a
+follow-up to WORKFLOW-9 where the user approves the recommendation ("approved, proceed",
+"yes implement", "go ahead with that")
+
+**Pipeline:** `technical-research-agent` → **(user approval gate)** →
+`technical-implementation-agent` → `qa-code-reviewer` → `devops-cicd-specialist` (verify-only)
+
+**Steps:**
+1. **If no prior research report exists**, dispatch `technical-research-agent` first
+   (same as WORKFLOW-9 steps 1–5). Surface the report to the user and **stop for explicit
+   approval**. This gate is non-skippable — even if the user originally said "research and
+   implement", confirm the recommendation before proceeding.
+2. Once the user approves, dispatch `technical-implementation-agent` with handoff context
+   that includes:
+   - Path to (or full text of) the Technical Research Report
+   - The approved recommendation summary (one paragraph)
+   - The standard project handoff context block
+   - Explicit instruction: "Validate with `npm run lint` and `npm run test:simple`"
+3. Capture the implementation agent's "Files Changed" table from its report
+4. Dispatch `qa-code-reviewer` on those files only
+5. Dispatch `devops-cicd-specialist` with: "Run `npm run test:simple` and report pass/fail
+   only. Do not modify files."
+6. **If devops reports failures:**
+   - Dispatch `playwright-test-healer` once with the failure details and the implementation
+     report context
+   - Re-run `qa-code-reviewer` on any files the healer modified
+   - Re-run `devops-cicd-specialist` for a final verification
+   - **Cap loop-back at one iteration.** If still failing, surface to the user and stop.
+7. Report consolidated outcome: research summary + approved recommendation +
+   implementation report + reviewer verdict + final devops pass/fail
+
+**Notes:**
+- WORKFLOW-10 is the **only** path where `technical-implementation-agent` is allowed to run.
+- The research → user approval → implement gate is non-skippable. See Hard Constraints.
+- For dependency upgrades, the implementation agent will modify `package.json`. Review
+  the diff carefully and confirm `package-lock.json` is updated atomically.
+- This workflow is for framework/infra/integration changes — NOT for writing tests for new
+  app features (use WORKFLOW-1 for that).
+
+---
+
 ## Handoff Context Template
 
 Every Task dispatch must include this structured block — populate every field:
@@ -310,8 +381,14 @@ Use this order when classifying an incoming request:
 7. "Write and run" / "write then fix" / "implement and validate" / "full delivery" / user
    explicitly mentions healing or a final run after writing → **WORKFLOW-7**
 8. Requirement / user story / manual test case / "write tests for X" (no run requested) → **WORKFLOW-1**
-9. Ambiguous → ask one question: "Do you have existing requirements, or should I explore the
-   live app first?" (existing requirements → WORKFLOW-1; explore first → WORKFLOW-2)
+9. "Research" / "investigate" / "evaluate" / "feasibility" / "compare" / "upgrade impact"
+   without "implement" → **WORKFLOW-9**
+10. "Research and implement" / "add integration" / "upgrade and apply" / "migrate to" /
+    "integrate vendor" / "add Allure" / "add observability" → **WORKFLOW-10**
+11. User responds "yes implement" / "approved, proceed" / "go ahead" after a WORKFLOW-9
+    report → continue into **WORKFLOW-10 starting at step 2** (skip the re-research)
+12. Ambiguous → ask one question: "Do you have existing requirements, or should I explore the
+    live app first?" (existing requirements → WORKFLOW-1; explore first → WORKFLOW-2)
 
 ---
 
@@ -336,3 +413,10 @@ Use this order when classifying an incoming request:
 - **Never auto-fix security findings** — WORKFLOW-8 is audit-only. Do not dispatch a fix
   agent after `security-reviewer` without explicit user approval. Security remediation
   must be a conscious, user-confirmed decision.
+- **Never dispatch `technical-implementation-agent` without a Technical Research Report
+  AND explicit user approval.** WORKFLOW-10 step 1 is non-skippable even if the user says
+  "just do it" or "skip the research" — produce the report first, surface the
+  recommendation, and ask before implementing. This is a hard gate, not a suggestion.
+- **Never let `technical-implementation-agent` touch `.env.testing`, `.env.staging`,
+  `.env.production`, or anything matching `*.pem` / `*.key` / `secrets.*` /
+  `credentials.*`.** Required env-var changes go to `.env.example` / `CLAUDE.md` only.
