@@ -25,8 +25,9 @@ process.stdin.on('end', () => {
     /https?:\/\/[\w.-]+\.atlassian\.net\/browse\/([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d+)/i;
 
   // Bare ticket: 2-segment only (PROJECT-123).
-  // Multi-segment IDs like E2E-SRCH-001 or E2E-NAV-009 are document section refs, not Jira tickets.
-  const JIRA_BARE_RE = /\b([A-Z][A-Z0-9]+-\d+)\b/;
+  // (?<!-) rejects sub-matches inside 3-part IDs: in E2E-SRCH-001, \b fires before SRCH
+  // but the lookbehind sees the preceding '-' and rejects SRCH-001.
+  const JIRA_BARE_RE = /(?<!-)\b([A-Z][A-Z0-9]+-\d+)\b/;
 
   const hasCodingIntent = codingIntentRe.test(prompt);
   const hasExistingSpec = existingSpecRe.test(prompt);
