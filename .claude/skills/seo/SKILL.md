@@ -1,4 +1,4 @@
----
+﻿---
 name: seo
 description: Optimize for search engine visibility and ranking. Use when asked to "improve SEO", "optimize for search", "fix meta tags", "add structured data", "sitemap optimization", or "search engine optimization".
 license: MIT
@@ -8,4 +8,5 @@ metadata:
 ---
 # SEO
 
-Read and follow [`.agents/skills/seo/SKILL.md`](.agents/skills/seo/SKILL.md).
+Read and follow [$targetDisplayPath](../../../.agents/skills/seo/SKILL.md).
+
