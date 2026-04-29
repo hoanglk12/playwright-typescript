@@ -10,7 +10,7 @@ description: >
   "Check dependencies for CVEs", "Review GitHub Actions for security issues",
   "Are there any hardcoded tokens?", "Security review before merge".
 tools: Glob, Grep, Read, LS, Bash
-model: sonnet
+model: opus
 color: magenta
 ---
 
