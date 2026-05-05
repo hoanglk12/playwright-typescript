@@ -80,11 +80,12 @@ import { BasePage } from '../base-page';
 export class MyFeaturePage extends BasePage {
   private readonly submitBtn = this.page.getByRole('button', { name: 'Submit' });
   private readonly emailInput = this.page.getByLabel('Email');
+  private readonly submitSelector = '[data-testid="submit"]';
 
   constructor(page: Page) { super(page); }
 
   async clickSubmit(): Promise<void> {
-    await this.elements.clickElement('[data-testid="submit"]');
+    await this.elements.clickElement(this.submitSelector);
   }
 
   async fillEmail(email: string): Promise<void> {
@@ -97,10 +98,26 @@ export class MyFeaturePage extends BasePage {
 }
 ```
 
-**Locator rules:**
-- Declare as `private readonly` class fields
+**Locator rules — MANDATORY:**
+
+> Locators MUST be declared as `private readonly` class fields at the top of the class — **never** inline inside method bodies, `page.evaluate()` argument literals, or helper-call argument literals. This applies to both `Locator` instances and raw selector strings. Methods reference the field. Only dynamic, parameter-driven locators may live in private helper methods, and those helpers must themselves consume field-level selector constants — not inline string literals.
+
+```ts
+// WRONG — selector inlined inside helper call
+async search(term: string): Promise<void> {
+  await this.elements.enterText('input[type="text"]', term);
+}
+
+// CORRECT — selector hoisted to a class field
+private readonly searchInput = 'input[type="text"]';
+
+async search(term: string): Promise<void> {
+  await this.elements.enterText(this.searchInput, term);
+}
+```
+
 - Prefer `getByRole()`, `getByLabel()`, `getByText()`, `getByPlaceholder()` over CSS selectors
-- Use CSS selectors ONLY when needed for `this.style.*` computed-style queries
+- Use CSS selectors ONLY when needed for `this.style.*` computed-style queries or browser-side `page.evaluate()` calls (where Locators cannot cross the serialization boundary)
 
 **Placement:** `src/pages/{area}/` matching the app area (frontsite, admin, ecommerce)
 

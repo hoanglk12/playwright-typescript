@@ -1,10 +1,27 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { TIMEOUTS } from '../../constants/timeouts';
 
 export class EcommerceHomePage extends BasePage {
+  private readonly mainElement: Locator;
+  private readonly mainRegion: Locator;
+  private readonly heroImage: Locator;
+  private readonly topHeaderSelector = '.top-header-desktop';
+  private readonly promoBannerSelectors: readonly string[] = [
+    '[class*="top-header"]',
+    '[class*="announcement"]',
+    '[class*="promo"]',
+    '[class*="notice"]',
+    '[class*="message"]',
+    '[class*="cmsBlock-root"]',
+    '[class*="cmsBlock-content"]',
+  ];
+
   constructor(page: Page) {
     super(page);
+    this.mainElement = page.locator('main');
+    this.mainRegion = page.getByRole('main');
+    this.heroImage = this.mainRegion.getByRole('img').first();
   }
 
   async navigate(url: string): Promise<void> {
@@ -16,7 +33,7 @@ export class EcommerceHomePage extends BasePage {
     // and GraphQL XHRs on these SPAs keep pendingRequests non-empty forever.
     await this.page.goto(url, { waitUntil: 'commit' });
     // Wait for React to hydrate and render the main content area
-    await this.page.locator('main').waitFor({ state: 'visible' });
+    await this.mainElement.waitFor({ state: 'visible' });
   }
 
   async assertTitleMatches(regex: RegExp): Promise<void> {
@@ -24,11 +41,11 @@ export class EcommerceHomePage extends BasePage {
   }
 
   async assertMainContentVisible(): Promise<void> {
-    await expect(this.page.getByRole('main')).toBeVisible();
+    await expect(this.mainRegion).toBeVisible();
   }
 
   async assertHeroVisible(): Promise<void> {
-    await expect(this.page.getByRole('main').getByRole('img').first()).toBeVisible();
+    await expect(this.heroImage).toBeVisible();
   }
 
   /**
@@ -44,12 +61,12 @@ export class EcommerceHomePage extends BasePage {
       .poll(
         async () => {
           try {
-            return await this.page.evaluate(() => {
-              const topBar = document.querySelector('.top-header-desktop');
+            return await this.page.evaluate((selector) => {
+              const topBar = document.querySelector(selector);
               if (!topBar) return null; // bar not in DOM yet — keep polling
               const text = (topBar instanceof HTMLElement ? topBar.innerText : topBar.textContent ?? '').toLowerCase();
               return text.includes('qantas');
-            });
+            }, this.topHeaderSelector);
           } catch {
             return null;
           }
@@ -76,8 +93,8 @@ export class EcommerceHomePage extends BasePage {
       .poll(
         async () => {
           try {
-            return await this.page.evaluate(() => {
-              const topBar = document.querySelector('.top-header-desktop');
+            return await this.page.evaluate((selector) => {
+              const topBar = document.querySelector(selector);
               if (!topBar) return null; // bar not in DOM yet — keep polling
               const text = (topBar instanceof HTMLElement ? topBar.innerText : topBar.textContent ?? '').toLowerCase();
               // Guard: only conclude once the bar's own content has hydrated.
@@ -85,7 +102,7 @@ export class EcommerceHomePage extends BasePage {
               // Vans says "delivery". Accept either to avoid a permanent null on Vans NZ.
               if (!text.includes('shipping') && !text.includes('delivery')) return null;
               return !text.includes('qantas');
-            });
+            }, this.topHeaderSelector);
           } catch {
             return null;
           }
@@ -104,17 +121,7 @@ export class EcommerceHomePage extends BasePage {
       .poll(
         async () => {
           try {
-            return await this.page.evaluate(() => {
-              const selectors = [
-                '[class*="top-header"]',
-                '[class*="announcement"]',
-                '[class*="promo"]',
-                '[class*="notice"]',
-                '[class*="message"]',
-                '[class*="cmsBlock-root"]',
-                '[class*="cmsBlock-content"]',
-              ];
-
+            return await this.page.evaluate((selectors) => {
               const isVisiblePromo = (element: Element | null): boolean => {
                 if (!(element instanceof HTMLElement)) return false;
 
@@ -159,7 +166,7 @@ export class EcommerceHomePage extends BasePage {
                   text.length >= 12
                 );
               });
-            });
+            }, [...this.promoBannerSelectors]);
           } catch {
             return false;
           }

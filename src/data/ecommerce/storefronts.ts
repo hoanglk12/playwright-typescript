@@ -16,6 +16,8 @@ export interface Storefront {
   saleNavLabel?: string;
   /** Stable search term confirmed to return product results (E2E-SRCH-001) */
   searchTerm: string;
+  /** Category filter label on the PLP filter sidebar that reduces product count when clicked (E2E-PLP-004) */
+  categoryFilterLabel: string;
   /**
    * Regex matching the URL after submitting a search (E2E-SRCH-006).
    * Defaults to /search/i. Platypus is variable: submitting "Nike" sometimes
@@ -38,6 +40,7 @@ export const storefronts: readonly Storefront[] = [
     saleNavLabel: 'SALE',
     searchTerm: 'Nike',
     searchResultUrlPattern: /(search|\/shop\/)/i,
+    categoryFilterLabel: 'Footwear',
   },
   {
     name: 'Platypus NZ',
@@ -51,6 +54,7 @@ export const storefronts: readonly Storefront[] = [
     saleNavLabel: 'SALE',
     searchTerm: 'Nike',
     searchResultUrlPattern: /(search|\/shop\/)/i,
+    categoryFilterLabel: 'Footwear',
   },
   {
     name: 'Skechers AU',
@@ -63,6 +67,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Go Walk',
+    categoryFilterLabel: 'Footwear',
   },
   {
     name: 'Skechers NZ',
@@ -75,6 +80,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Go Walk',
+    categoryFilterLabel: 'Footwear',
   },
   {
     name: 'Vans AU',
@@ -88,6 +94,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'OUTLET',  // OUTLET navigates to /shop/sale
     searchTerm: 'Old Skool',
+    categoryFilterLabel: 'Low Top',
   },
   {
     name: 'Vans NZ',
@@ -100,6 +107,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Old Skool',
+    categoryFilterLabel: 'Old Skool',
   },
   {
     name: 'Dr. Martens AU',
@@ -112,6 +120,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: '1460',
+    categoryFilterLabel: 'Boots',
   },
   {
     name: 'Dr. Martens NZ',
@@ -125,5 +134,6 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'BLACK FRIDAY',  // staging seasonal label — navigates to /shop/sale
     searchTerm: '1460',
+    categoryFilterLabel: 'Boots',
   },
 ];

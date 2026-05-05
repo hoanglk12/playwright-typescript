@@ -35,6 +35,24 @@ async clickSubmit(): Promise<void> {
 }
 ```
 
+### Locators — class fields only, never inline
+
+When fixing a broken locator, **hoist it to a `private readonly` class field at the top of the class**. Never patch a test by inlining a new selector inside a method body, `page.evaluate()` argument, or helper-call argument. Both `Locator` instances and raw selector strings must live as fields. See [CLAUDE.md](../../CLAUDE.md) "Adding a New Page Object" for the canonical rule.
+
+```ts
+// WRONG — fix introduces an inline selector
+async search(term: string): Promise<void> {
+  await this.elements.enterText('input.new-search', term); // forbidden
+}
+
+// CORRECT — selector hoisted, method references the field
+private readonly searchInput = 'input.new-search';
+
+async search(term: string): Promise<void> {
+  await this.elements.enterText(this.searchInput, term);
+}
+```
+
 The 8 helpers and when to use each:
 | Property | Use for |
 |---|---|

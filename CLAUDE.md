@@ -56,22 +56,29 @@ Both configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`
 ## Adding a New Page Object
 
 1. Extend `BasePage`, constructor takes only `page: Page`
-2. Declare locators as `private readonly` class fields — prefer `page.getByRole()` / `page.getByText()` over CSS selectors
-3. Keep CSS selectors only when needed for `this.style.*` computed-style queries
-4. Place under `src/pages/{area}/` matching the app area (frontsite, admin, ecommerce)
-5. Register as a fixture in `src/config/base-test.ts`
+2. **Locators MUST be declared as `private readonly` class fields at the top of the class — never inline inside method bodies, `page.evaluate()` argument literals, or helper-call argument literals.** This applies to both `Locator` instances and raw selector strings. Methods reference the field; only dynamic, parameter-driven locators may live in private helper methods (which themselves consume field-level selector constants).
+3. Prefer `page.getByRole()` / `page.getByLabel()` / `page.getByText()` over CSS selectors
+4. Keep CSS selectors only when needed for `this.style.*` computed-style queries or browser-side `evaluate()` calls
+5. Place under `src/pages/{area}/` matching the app area (frontsite, admin, ecommerce)
+6. Register as a fixture in `src/config/base-test.ts`
 
 ```ts
 import { Page } from '@playwright/test';
 import { BasePage } from '../base-page';
 
 export class MyPage extends BasePage {
+  // CORRECT — locators hoisted to class fields
   private readonly submitBtn = this.page.getByRole('button', { name: 'Submit' });
+  private readonly submitSelector = '[data-testid="submit"]';
 
   constructor(page: Page) { super(page); }
 
   async clickSubmit(): Promise<void> {
-    await this.elements.clickElement('[data-testid="submit"]');
+    // CORRECT — references the field
+    await this.elements.clickElement(this.submitSelector);
+
+    // WRONG — selector inlined inside helper call
+    // await this.elements.clickElement('[data-testid="submit"]');
   }
 }
 ```

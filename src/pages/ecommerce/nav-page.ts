@@ -3,6 +3,11 @@ import { BasePage } from '../base-page';
 import { TIMEOUTS } from '../../constants/timeouts';
 
 export class EcommerceNavPage extends BasePage {
+  private readonly mainContainerSelector = 'main';
+  private readonly logoLinkSelector = 'main a[href="/"]';
+  // Hydration probe: nav links live inside <main> on these SPA storefronts (no <header>/<nav>).
+  private readonly navLinksHydrationSelector = 'main ul li a[href]';
+
   constructor(page: Page) {
     super(page);
   }
@@ -10,17 +15,19 @@ export class EcommerceNavPage extends BasePage {
   async navigate(url: string): Promise<void> {
     // SPA analytics scripts delay 'load'/'domcontentloaded' — same commit strategy as EcommerceHomePage
     await this.gotoWithOptions(url, { waitUntil: 'commit' });
-    await this.waits.waitForElement('main', TIMEOUTS.ELEMENT_VISIBLE);
+    await this.waits.waitForElement(this.mainContainerSelector, TIMEOUTS.ELEMENT_VISIBLE);
   }
 
   // Polls until React SPA hydration populates nav links in <main> (no <header>/<nav> exists).
   async waitForNavHydration(): Promise<void> {
+    const selector = this.navLinksHydrationSelector;
     await this.waits.waitForCustomCondition(
       async () => {
         try {
-          return await this.executeScript(() => {
-            return document.querySelectorAll('main ul li a[href]').length > 0;
-          });
+          return await this.page.evaluate(
+            (sel) => document.querySelectorAll(sel).length > 0,
+            selector,
+          );
         } catch {
           return false;
         }
@@ -58,13 +65,13 @@ export class EcommerceNavPage extends BasePage {
   private navLink(label: string): Locator {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return this.elements
-      .locator('main')
+      .locator(this.mainContainerSelector)
       .getByRole('link', { name: new RegExp(`^${escaped}$`, 'i') })
       .first();
   }
 
   // Logo is an <a href="/"> inside <main> across all 8 SPA storefronts (no <header>/<nav> element).
   private logoLink(): Locator {
-    return this.elements.locator('main a[href="/"]').first();
+    return this.elements.locator(this.logoLinkSelector).first();
   }
 }
