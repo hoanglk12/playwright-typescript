@@ -19,6 +19,8 @@ Page Object Model encapsulates page structure and interactions, providing:
 
 ## Basic Structure
 
+> **Project-specific override (this repo):** Page objects in this framework extend `BasePage` and route every interaction through helper composition (`this.elements.*`, `this.waits.*`, `this.style.*`, …) rather than calling `Locator.click()`/`fill()` directly. **Locators MUST be declared as `private readonly` class fields at the top of the class — never inline inside method bodies, `page.evaluate()` argument literals, or helper-call argument literals.** Both `Locator` instances and raw selector strings must be hoisted. See [CLAUDE.md](../../../../CLAUDE.md) "Adding a New Page Object" for the canonical rule and template.
+
 ### Page Class
 
 ```typescript
@@ -26,11 +28,11 @@ Page Object Model encapsulates page structure and interactions, providing:
 import { Page, Locator, expect } from "@playwright/test";
 
 export class LoginPage {
-  readonly page: Page;
-  readonly emailInput: Locator;
-  readonly passwordInput: Locator;
-  readonly submitButton: Locator;
-  readonly errorMessage: Locator;
+  private readonly page: Page;
+  private readonly emailInput: Locator;
+  private readonly passwordInput: Locator;
+  private readonly submitButton: Locator;
+  private readonly errorMessage: Locator;
 
   constructor(page: Page) {
     this.page = page;

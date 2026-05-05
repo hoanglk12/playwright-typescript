@@ -55,9 +55,9 @@ import { test, expect } from '@config/base-test';
   - Cookies/storage → `this.storage`
   - Network mocking → `this.network`
   - Table interactions → `this.tables`
-- [ ] Locators declared as `private readonly` class fields
+- [ ] **[CRITICAL]** Locators declared as `private readonly` class fields at the top of the class — never inline inside method bodies, `page.evaluate()` argument literals, or helper-call argument literals. Both `Locator` instances and raw selector strings must be hoisted. Dynamic, parameter-driven locators may live in private helper methods, but those helpers must consume field-level selector constants — not inline string literals.
 - [ ] Semantic locators preferred: `getByRole()`, `getByLabel()`, `getByText()`, `getByPlaceholder()`
-- [ ] CSS selectors only appear when needed for `this.style.*` computed-style queries
+- [ ] CSS selectors only appear when needed for `this.style.*` computed-style queries or browser-side `page.evaluate()` calls
 - [ ] Page object placed in `src/pages/{area}/` matching app area (frontsite, admin, ecommerce)
 - [ ] Method names describe user actions, not implementation (`clickSubmit` not `clickButtonId42`)
 
@@ -70,6 +70,20 @@ async clickLogin(): Promise<void> {
 // Correct
 async clickLogin(): Promise<void> {
   await this.elements.clickElement(this.loginBtn);
+}
+```
+
+```ts
+// CRITICAL — selector inlined inside helper call
+async search(term: string): Promise<void> {
+  await this.elements.enterText('input[type="text"]', term); // WRONG
+}
+
+// Correct — selector hoisted to a class field
+private readonly searchInput = 'input[type="text"]';
+
+async search(term: string): Promise<void> {
+  await this.elements.enterText(this.searchInput, term);
 }
 ```
 

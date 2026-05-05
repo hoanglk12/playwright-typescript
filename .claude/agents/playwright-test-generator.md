@@ -64,6 +64,9 @@ await page.waitForSelector(sel, { timeout: TIMEOUTS.ELEMENT_VISIBLE });
 Generated spec files go in `tests/{area}/` where area is one of:
 `frontsite` | `admin` | `ecommerce` | `api`
 
+### Page-object locators (when generation requires creating or extending a page object)
+**Locators MUST be declared as `private readonly` class fields at the top of the class — never inline inside method bodies, `page.evaluate()` argument literals, or helper-call argument literals.** Both `Locator` instances and raw selector strings must be hoisted. See [CLAUDE.md](../../CLAUDE.md) "Adding a New Page Object" for the canonical rule and example.
+
 ---
 
 ## Workflow
