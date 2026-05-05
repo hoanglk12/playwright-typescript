@@ -8,7 +8,7 @@ description: >
   test case to automation", "Create a page object for the checkout page", "Generate a
   test for this user story". For multi-step workflows (plan → build → review), prefer
   invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, Edit, Write, mcp__playwright-test__browser_navigate, mcp__playwright-test__browser_snapshot, mcp__playwright-test__browser_click, mcp__playwright-test__browser_type, mcp__playwright-test__browser_hover, mcp__playwright-test__browser_wait_for, mcp__playwright-test__browser_evaluate, mcp__playwright-test__browser_take_screenshot, mcp__playwright-test__browser_network_requests, mcp__playwright-test__browser_select_option, mcp__playwright-test__browser_press_key, mcp__playwright-test__browser_handle_dialog, mcp__playwright-test__browser_file_upload, mcp__playwright-test__browser_drag, mcp__playwright-test__browser_console_messages, mcp__playwright-test__generator_setup_page, mcp__playwright-test__generator_read_log, mcp__playwright-test__generator_write_test, mcp__playwright-test__test_run, mcp__playwright-test__test_list
+tools: Glob, Grep, Read, LS, Edit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value
 model: sonnet
 color: purple
 ---
@@ -188,7 +188,7 @@ Constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`,
    - Register the fixture in `src/config/base-test.ts`
 5. **Create or update test data** in `src/data/`
 6. **Write the spec file** under `tests/{area}/`
-7. **Verify the output** — use `test_run` to execute and confirm it passes
+7. **Verify the output** — use `Bash` to run `PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --project=chromium` and confirm it passes. If you need to inspect the live app first, open a browser session with `playwright-cli open <url>`, explore via `playwright-cli snapshot` / `playwright-cli click` / etc., then `playwright-cli close`.
 
 ---
 

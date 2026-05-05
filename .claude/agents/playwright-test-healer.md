@@ -4,7 +4,7 @@ description: >
   SUB-AGENT — dispatched by qa-orchestrator. Also invoke directly when you need to
   debug and fix failing Playwright tests. For CI batch-failure investigation
   (DevOps analysis → healer → reviewer), prefer invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, Edit, MultiEdit, Write, mcp__playwright-test__browser_console_messages, mcp__playwright-test__browser_evaluate, mcp__playwright-test__browser_generate_locator, mcp__playwright-test__browser_network_requests, mcp__playwright-test__browser_snapshot, mcp__playwright-test__test_debug, mcp__playwright-test__test_list, mcp__playwright-test__test_run
+tools: Glob, Grep, Read, LS, Edit, MultiEdit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for
 model: sonnet
 color: red
 ---
@@ -90,12 +90,31 @@ Prefer semantic locators over CSS/XPath:
 
 ## Diagnostic Workflow
 
-1. **Initial Execution**: Run the failing test using `test_run` to confirm and capture the error
-2. **Debug**: Run `test_debug` on the failing test — this pauses on the failure
-3. **Error Investigation**: Use available Playwright MCP tools to:
-   - Examine the error details
-   - Capture page snapshot to understand the current DOM state
-   - Analyze selectors, timing issues, or assertion failures
+1. **Initial Execution**: Run the failing test via Bash to confirm and capture the error:
+   ```bash
+   PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --project=chromium
+   ```
+2. **Debug**: Run the test in CLI debug mode (background Bash — wait for output):
+   ```bash
+   PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --debug=cli
+   ```
+   Wait for "Debugging Instructions" and the session name `tw-XXXX`, then attach:
+   ```bash
+   playwright-cli attach tw-XXXX
+   ```
+   This pauses the test at the failure point.
+3. **Error Investigation**: Use `playwright-cli` commands to:
+   - `playwright-cli snapshot` — capture current DOM state and element refs
+   - `playwright-cli console` — check for JS errors on the page
+   - `playwright-cli requests` — inspect network calls and responses
+   - `playwright-cli eval "<func>" e5` — read element data / attributes
+   - `playwright-cli generate-locator e5` — get a stable Playwright locator for an element
+
+   For quick inline checks without parsing snapshot output:
+   - `mcp__playwright-test__browser_verify_element_visible` — confirm element is present after a fix
+   - `mcp__playwright-test__browser_verify_text_visible` — confirm expected text appears
+   - `mcp__playwright-test__browser_verify_value` — confirm input value matches expected
+   - `mcp__playwright-test__browser_wait_for` — wait for a condition before the next step
 4. **Root Cause Analysis**: Determine the underlying cause by examining:
    - Element selectors that may have changed in the app
    - Timing and synchronization issues
@@ -106,7 +125,10 @@ Prefer semantic locators over CSS/XPath:
    - Fix assertions and expected values
    - Replace timing issues with proper event-driven waits using `this.waits.*`
    - For dynamic data, use regular expressions for resilient locators
-6. **Verification**: Re-run the test after each fix to validate
+6. **Verification**: Stop the background debug process, then re-run the test after each fix:
+   ```bash
+   PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --project=chromium
+   ```
 7. **Iteration**: Repeat until the test passes cleanly
 
 ---

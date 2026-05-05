@@ -97,7 +97,7 @@ the planner when the user already knows what to test.
 1. Confirm the target URL (ask user if not provided)
 2. Read `src/pages/{area}/` to note existing page objects (avoid re-building what exists)
 3. Dispatch `playwright-test-planner` with the URL and any scope constraints
-4. When planner saves its plan, locate the plan file (planner uses `planner_save_plan`)
+4. When planner saves its plan, locate the plan file (planner saves to `specs/{feature}.plan.md` via the Write tool)
 5. Read the plan file to extract test scenario titles
 6. Dispatch `automation-test-architect` with the plan file path + existing-page-object inventory
 7. Dispatch `qa-code-reviewer` with the architect's output files

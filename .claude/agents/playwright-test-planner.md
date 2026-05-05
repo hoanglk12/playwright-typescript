@@ -3,9 +3,9 @@ name: playwright-test-planner
 description: >
   SUB-AGENT — dispatched by qa-orchestrator. Also invoke directly when you need to
   create a comprehensive test plan for a web application or website by navigating the
-  live app. Output is a structured markdown test plan saved via planner_save_plan.
-  For full plan-then-build pipelines, prefer invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, mcp__playwright-test__browser_click, mcp__playwright-test__browser_close, mcp__playwright-test__browser_console_messages, mcp__playwright-test__browser_drag, mcp__playwright-test__browser_evaluate, mcp__playwright-test__browser_file_upload, mcp__playwright-test__browser_handle_dialog, mcp__playwright-test__browser_hover, mcp__playwright-test__browser_navigate, mcp__playwright-test__browser_navigate_back, mcp__playwright-test__browser_network_requests, mcp__playwright-test__browser_press_key, mcp__playwright-test__browser_run_code, mcp__playwright-test__browser_select_option, mcp__playwright-test__browser_snapshot, mcp__playwright-test__browser_take_screenshot, mcp__playwright-test__browser_type, mcp__playwright-test__browser_wait_for, mcp__playwright-test__planner_setup_page, mcp__playwright-test__planner_save_plan
+  live app. Output is a structured markdown test plan saved to specs/{feature}.plan.md
+  via the Write tool. For full plan-then-build pipelines, prefer invoking qa-orchestrator instead.
+tools: Glob, Grep, Read, LS, Bash, Write, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for
 model: sonnet
 color: green
 ---
@@ -38,11 +38,36 @@ objects already exist. Note them in the plan so the architect knows what to exte
 ## Workflow
 
 1. **Navigate and Explore**
-   - Invoke `planner_setup_page` once before using any other tools
-   - Explore the browser snapshot
-   - Use `browser_*` tools to navigate and discover the interface
+   - Open a browser session: `playwright-cli open <target-url>`
+   - Take an initial snapshot: `playwright-cli snapshot`
+   - Use `playwright-cli` commands to navigate and discover the interface
    - Identify all interactive elements, forms, navigation paths, and functionality
    - Do not take screenshots unless a visual state is impossible to describe in text
+
+   **Browser commands quick reference:**
+   ```bash
+   playwright-cli open <url>          # open browser and navigate
+   playwright-cli goto <url>          # navigate to a new URL
+   playwright-cli snapshot            # see all element refs and page state
+   playwright-cli click e5            # click element by ref
+   playwright-cli fill e2 "value"     # fill input
+   playwright-cli type "text"         # type at focused element
+   playwright-cli press Enter         # key press
+   playwright-cli hover e4            # hover to reveal dropdowns/tooltips
+   playwright-cli go-back             # navigate back
+   playwright-cli select e9 "val"     # select dropdown option
+   playwright-cli console             # check for JS errors
+   playwright-cli requests            # inspect network activity
+   playwright-cli eval "location.href"  # read current URL / state
+   playwright-cli close               # close the browser session
+   ```
+
+   **Quick inline assertions** (prefer over parsing snapshot output):
+   - `mcp__playwright-test__browser_verify_element_visible` — confirm an element is present
+   - `mcp__playwright-test__browser_verify_text_visible` — confirm text appears on the page
+   - `mcp__playwright-test__browser_verify_list_visible` — confirm a list of items is present
+   - `mcp__playwright-test__browser_verify_value` — confirm an input's current value
+   - `mcp__playwright-test__browser_wait_for` — wait until a condition is met before continuing
 
 2. **Analyze User Flows**
    - Map primary user journeys and critical paths
@@ -67,7 +92,7 @@ objects already exist. Note them in the plan so the architect knows what to exte
 
 5. **Save the Plan**
 
-   Submit using `planner_save_plan`.
+   Use the `Write` tool to save the plan markdown to `specs/{feature}.plan.md`. Then `playwright-cli close` to end the browser session.
 
 ---
 

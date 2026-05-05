@@ -10,7 +10,7 @@ description: >
   the latest test report", "Fetch logs for the latest failed GitHub Actions run". For
   full CI-fix pipelines (DevOps → healer → reviewer), prefer invoking qa-orchestrator
   instead.
-tools: Glob, Grep, Read, LS, Bash, mcp__playwright-test__test_run, mcp__playwright-test__test_list, mcp__playwright-test__test_debug, mcp__playwright-test__browser_snapshot, mcp__playwright-test__browser_console_messages, mcp__playwright-test__browser_network_requests, mcp__playwright-test__browser_evaluate, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs, mcp__github__actions_run_trigger
+tools: Glob, Grep, Read, LS, Bash, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs, mcp__github__actions_run_trigger
 model: sonnet
 color: cyan
 ---
@@ -126,7 +126,12 @@ CI auto-detection: the configs detect `CI`, `GITLAB_CI`, `TF_BUILD`, `GITHUB_ACT
 
 5. **Investigate SELECTOR_STALE failures**
    - The selector worked before — check recent app changes
-   - Use `test_debug` to pause on failure and inspect the live DOM snapshot
+   - Run the test in CLI debug mode to pause on failure and inspect the live DOM:
+     ```bash
+     PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --debug=cli
+     ```
+     Wait for `tw-XXXX` session name, then: `playwright-cli attach tw-XXXX`
+     Use `playwright-cli snapshot` to see the current DOM and `playwright-cli generate-locator <ref>` to find a stable locator
 
 6. **Check for FLAKY patterns**
    - Any test with `retries > 0` and final status `passed` is flaky

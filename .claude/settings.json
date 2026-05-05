@@ -18,7 +18,14 @@
       "Bash(gh api *)",
       "Bash(xargs grep *)",
       "Bash(npx prettier --write *)",
-      "Bash(npx playwright test *)"
+      "Bash(npx playwright test *)",
+      "Bash(playwright-cli *)",
+      "Bash(npx playwright-cli *)",
+      "mcp__playwright-test__browser_verify_element_visible",
+      "mcp__playwright-test__browser_verify_text_visible",
+      "mcp__playwright-test__browser_verify_list_visible",
+      "mcp__playwright-test__browser_verify_value",
+      "mcp__playwright-test__browser_wait_for"
     ],
     "defaultMode": "bypassPermissions"
   },

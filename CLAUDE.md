@@ -317,3 +317,5 @@ Invoke with `/skill-name` in conversation:
 | `/nodejs-backend-patterns` | Node.js backend patterns |
 | `/frontend-design` | Frontend design patterns |
 | `/pull-latest` | Sync local branch with remote |
+| `/playwright-cli` | Interactive browser automation via playwright-cli shell tool |
+| `/llm-council` | Multi-model council review for complex decisions |
