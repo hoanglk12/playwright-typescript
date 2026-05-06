@@ -1,5 +1,50 @@
 
 
+export interface Credentials {
+  username: string;
+  password: string;
+}
+
+export interface NavigationMenu {
+  highlightedColor: string;
+}
+
+export interface HeaderDataShape {
+  VALID_ADMIN: Credentials;
+  INVALID_ADMIN: Credentials;
+  EMPTY_CREDENTIALS: Credentials;
+  NAVIGATION_MENU: NavigationMenu;
+}
+
+export interface FooterDataShape {
+  VALID_ADMIN: Credentials;
+  INVALID_ADMIN: Credentials;
+  EMPTY_CREDENTIALS: Credentials;
+}
+
+export interface CustomerData {
+  customerName: string;
+  gender: 'male' | 'female';
+  dateOfBirth: string;
+  address: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  mobileNumber: string;
+  email: string;
+}
+
+export interface AccountData {
+  accountType: 'Savings' | 'Current';
+  initialDeposit: string;
+}
+
+export interface TransactionData {
+  depositAmount: string;
+  withdrawalAmount: string;
+  transferAmount: string;
+}
+
 /**
  * Generate random test data
  */
@@ -17,7 +62,7 @@ export class HomeTestDataGenerator {
   /**
    * Generate random customer data
    */
-  static generateCustomerData() {
+  static generateCustomerData(): CustomerData {
     const timestamp = Date.now();
     return {
       customerName: `Test Customer ${timestamp}`,
@@ -35,7 +80,7 @@ export class HomeTestDataGenerator {
   /**
    * Generate random account data
    */
-  static generateAccountData() {
+  static generateAccountData(): AccountData {
     return {
       accountType: Math.random() > 0.5 ? 'Savings' : 'Current',
       initialDeposit: (Math.floor(Math.random() * 10000) + 1000).toString(),
@@ -45,7 +90,7 @@ export class HomeTestDataGenerator {
   /**
    * Generate random transaction amounts
    */
-  static generateTransactionData() {
+  static generateTransactionData(): TransactionData {
     return {
       depositAmount: (Math.floor(Math.random() * 1000) + 100).toString(),
       withdrawalAmount: (Math.floor(Math.random() * 500) + 50).toString(),
@@ -57,7 +102,7 @@ export class HomeTestDataGenerator {
 /**
  * Admin data for BankGuru application
  */
-export const HeaderData = {
+export const HeaderData: HeaderDataShape = {
   VALID_ADMIN: {
     username: 'mngr586899',
     password: 'YzEhaqY'
@@ -77,7 +122,7 @@ export const HeaderData = {
   }
 };
 
-export const FooterData = {
+export const FooterData: FooterDataShape = {
   VALID_ADMIN: {
     username: 'mngr586899',
     password: 'YzEhaqY'

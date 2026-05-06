@@ -162,19 +162,55 @@ test.describe('Feature Name @tag1 @tag2', () => {
 
 ## Test Data Rules
 
-**NEVER hardcode data in spec files.** Always create a typed data module in `src/data/`:
+**NEVER hardcode data in spec files.** Always create a typed data module in `src/data/`.
+
+**Every data module MUST declare named interfaces** — both `const` objects and generator return types must be annotated with a named interface. Never rely on inferred types for exported data.
 
 ```ts
 // src/data/my-feature-data.ts
-export const MyFeatureData = {
-  validEmail: 'test@example.com',
-  validPassword: 'SecurePass123',
+
+// 1. Declare interfaces first
+export interface MyFeatureCredentials {
+  email: string;
+  password: string;
+}
+
+export interface MyFeatureDataShape {
+  validUser: MyFeatureCredentials;
+  invalidUser: MyFeatureCredentials;
+  expectedTitle: string;
+}
+
+export interface MyFeatureFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+// 2. Annotate const objects with their interface
+export const MyFeatureData: MyFeatureDataShape = {
+  validUser: { email: 'test@example.com', password: 'SecurePass123' },
+  invalidUser: { email: 'bad@example.com', password: 'wrong' },
   expectedTitle: 'Welcome back',
-} as const;
+};
+
+// 3. Declare explicit return types on generator methods
+export class MyFeatureDataGenerator {
+  static generateFormData(): MyFeatureFormData {
+    const ts = Date.now();
+    return { firstName: `Test`, lastName: `User${ts}`, email: `test${ts}@example.com` };
+  }
+}
 ```
 
-- **Static expected values** → plain `const` objects
-- **Generated/dynamic data** → generator functions or classes
+```ts
+// WRONG — untyped const, inferred generator return
+export const MyFeatureData = { validEmail: 'test@example.com' } as const;
+static generateFormData() { return { firstName: 'Test' }; }
+```
+
+- **Static expected values** → `const` objects annotated with a named interface type
+- **Generated/dynamic data** → generator classes/functions with explicit return types
 - Reference `src/data/admin-data.ts` as the canonical pattern
 
 ---
