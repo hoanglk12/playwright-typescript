@@ -156,4 +156,47 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
       ).toBeLessThan(initialCount);
     });
   }
+
+  for (const [index, site] of storefronts.entries()) {
+    const quickAddTcId = `E2E-PLP-011-${String(index + 1).padStart(3, '0')}`;
+    const quickAddNavLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel;
+
+    test(`${quickAddTcId} - ${site.name} Quick Add button opens size selector or adds item`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+    }) => {
+      const logger = createTestLogger(`${quickAddTcId} - ${site.name} Quick Add`);
+
+      if (!quickAddNavLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PLP navigation`);
+        return;
+      }
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for SPA nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step(`Step 3 - Click "${quickAddNavLabel}" nav link to enter PLP`);
+      await ecommerceNavPage.clickNavLink(quickAddNavLabel);
+
+      logger.step('Step 4 - Wait for PLP URL to resolve');
+      await ecommercePLPPage.waitForPlpUrl();
+
+      logger.step('Step 5 - Wait for product grid to render');
+      await ecommercePLPPage.waitForProductGrid();
+
+      logger.step('Step 6 - Hover over first product card and click Quick Add button');
+      await ecommercePLPPage.quickAdd(0);
+
+      logger.step('Step 7 - Assert size selector overlay is visible');
+      const sizeSelectorVisible = await ecommercePLPPage.isSizeSelectorVisible();
+      logger.verify('Size selector is visible after Quick Add click', 'true', String(sizeSelectorVisible));
+      expect(
+        sizeSelectorVisible,
+        `Quick Add on ${site.name} should open a size selector overlay`,
+      ).toBe(true);
+    });
+  }
 });
