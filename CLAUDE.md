@@ -124,9 +124,46 @@ Tags go in `test.describe()` name string (e.g. `@homepage`, `@frontsite`, `@admi
 
 Never hardcode test data in spec files. Create typed data modules in `src/data/`:
 
-- **Constants** (static expected values) → plain `const` objects
-- **Generated data** (random/dynamic) → generator functions or classes
-- See `src/data/admin-data.ts` as a reference pattern
+- **Constants** (static expected values) → `const` objects annotated with a named interface type
+- **Generated data** (random/dynamic) → generator classes/functions with explicit return types matching a named interface
+- **Always declare interfaces** for every data shape — both `const` objects and generator return types must carry a named interface annotation. Never rely on inferred types for exported data.
+- See `src/data/admin-data.ts` as the reference pattern
+
+```ts
+// CORRECT — interface declared, const annotated, generator return typed
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface AdminDataShape {
+  VALID_ADMIN: LoginCredentials;
+  INVALID_ADMIN: LoginCredentials;
+  EMPTY_CREDENTIALS: LoginCredentials;
+}
+
+export const AdminData: AdminDataShape = {
+  VALID_ADMIN: { username: 'admin', password: 'pass123' },
+  INVALID_ADMIN: { username: 'wrong', password: 'wrong' },
+  EMPTY_CREDENTIALS: { username: '', password: '' },
+};
+
+export interface CustomerData {
+  customerName: string;
+  email: string;
+}
+
+export class AdminTestDataGenerator {
+  static generateCustomerData(): CustomerData {
+    const ts = Date.now();
+    return { customerName: `Test User ${ts}`, email: `test${ts}@example.com` };
+  }
+}
+
+// WRONG — untyped const, inferred return type
+export const AdminData = { VALID_ADMIN: { username: 'admin', password: 'pass' } };
+static generateCustomerData() { return { customerName: 'Test' }; }
+```
 
 ## API Tests
 

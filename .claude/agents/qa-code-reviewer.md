@@ -122,7 +122,9 @@ test('TC_01 - Should login with valid credentials', async ({ loginPage }) => {
 ### 4. Test Data
 
 - [ ] **No hardcoded strings or numbers in spec files** — all data from `src/data/` modules
-- [ ] Data modules are typed (`const` objects, not loose strings)
+- [ ] **[CRITICAL]** Every exported `const` data object is annotated with a named interface type — never rely on inferred types for exported data
+- [ ] **[CRITICAL]** Every generator method (static or instance) declares an explicit return type matching a named interface
+- [ ] Named interfaces are declared and exported from the data module (not inlined as anonymous object types)
 - [ ] No hardcoded URLs in page objects or tests — use environment config
 - [ ] No credentials, tokens, or secrets committed in data files
 
@@ -132,6 +134,20 @@ await loginPage.login('admin@example.com', 'Admin123!');
 
 // Correct
 await loginPage.login(LoginData.adminUser.email, LoginData.adminUser.password);
+```
+
+```ts
+// CRITICAL — untyped const, no interface, inferred generator return
+export const LoginData = { adminUser: { email: 'a@b.com', password: 'pass' } };
+static generateUser() { return { name: 'Test' }; }
+
+// Correct — interface declared, const annotated, generator return typed
+export interface AdminCredentials { email: string; password: string; }
+export interface LoginDataShape { adminUser: AdminCredentials; }
+export const LoginData: LoginDataShape = { adminUser: { email: 'a@b.com', password: 'pass' } };
+
+export interface GeneratedUser { name: string; email: string; }
+static generateUser(): GeneratedUser { return { name: 'Test', email: 'test@example.com' }; }
 ```
 
 ---
@@ -160,6 +176,7 @@ await page.waitForSelector('.modal', { timeout: TIMEOUTS.DIALOG_APPEAR });
 - [ ] No `@ts-ignore` or `@ts-expect-error` without explanatory comment
 - [ ] No unused variables or parameters
 - [ ] Interfaces/types defined for complex data structures
+- [ ] **[CRITICAL]** Data modules in `src/data/` export named interfaces for every data shape; exported `const` objects carry an explicit interface annotation (e.g. `const Foo: FooShape = {...}`); generator methods declare explicit return types matching a named interface — not inferred
 - [ ] No unsafe property access on potentially null/undefined values — use optional chaining or explicit null checks
 - [ ] No unguarded array index access (`arr[0]`, `arr[arr.length - 1]`) without a prior length check in page/helper methods
 - [ ] No truthy checks (`if (value)`) where `0`, `""`, or `false` are valid values

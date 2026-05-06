@@ -1,7 +1,76 @@
+export interface ValidCredentials {
+  userId: string;
+  password: string;
+}
+
+export interface InvalidCredentials {
+  invalidUserId: string;
+  invalidPassword: string;
+  emptyUserId: string;
+  emptyPassword: string;
+}
+
+export interface AdminMessages {
+  loginSuccess: string;
+  invalidLogin: string;
+  registrationSuccess: string;
+  customerAddedSuccess: string;
+  accountCreatedSuccess: string;
+  errorLogin: string;
+}
+
+export interface AdminUrls {
+  homePage: string;
+  loginPage: string;
+  registerPage: string;
+  managerPage: string;
+}
+
+export interface AdminTestDataShape {
+  validCredentials: ValidCredentials;
+  invalidCredentials: InvalidCredentials;
+  expectedMessages: AdminMessages;
+  urls: AdminUrls;
+}
+
+export interface CustomerData {
+  customerName: string;
+  gender: 'male' | 'female';
+  dateOfBirth: string;
+  address: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  mobileNumber: string;
+  email: string;
+}
+
+export interface AccountData {
+  accountType: 'Savings' | 'Current';
+  initialDeposit: string;
+}
+
+export interface TransactionData {
+  depositAmount: string;
+  withdrawalAmount: string;
+  transferAmount: string;
+}
+
+export interface Credentials {
+  username: string;
+  password: string;
+}
+
+export interface AdminDataShape {
+  VALID_ADMIN: Credentials;
+  INVALID_ADMIN: Credentials;
+  EMPTY_CREDENTIALS: Credentials;
+}
+
 /**
  * Test data for CMS admin application
  */
-export const AdminTestData = {
+export const AdminTestData: AdminTestDataShape = {
   // Valid test credentials (these would be generated during registration)
   validCredentials: {
     userId: '', // Will be populated during test execution
@@ -55,7 +124,7 @@ export class AdminTestDataGenerator {
   /**
    * Generate random customer data
    */
-  static generateCustomerData() {
+  static generateCustomerData(): CustomerData {
     const timestamp = Date.now();
     return {
       customerName: `Test Customer ${timestamp}`,
@@ -73,7 +142,7 @@ export class AdminTestDataGenerator {
   /**
    * Generate random account data
    */
-  static generateAccountData() {
+  static generateAccountData(): AccountData {
     return {
       accountType: Math.random() > 0.5 ? 'Savings' : 'Current',
       initialDeposit: (Math.floor(Math.random() * 10000) + 1000).toString(),
@@ -83,7 +152,7 @@ export class AdminTestDataGenerator {
   /**
    * Generate random transaction amounts
    */
-  static generateTransactionData() {
+  static generateTransactionData(): TransactionData {
     return {
       depositAmount: (Math.floor(Math.random() * 1000) + 100).toString(),
       withdrawalAmount: (Math.floor(Math.random() * 500) + 50).toString(),
@@ -95,7 +164,7 @@ export class AdminTestDataGenerator {
 /**
  * Admin data for BankGuru application
  */
-export const AdminData = {
+export const AdminData: AdminDataShape = {
   VALID_ADMIN: {
     username: 'mngr586899',
     password: 'YzEhaqY'

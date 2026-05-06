@@ -1,5 +1,16 @@
 
 
+export interface SortBySurname {
+  SURNAME: string;
+  SURNAME_ASC: string;
+  SURNAME_DESC: string;
+}
+
+export interface SortDataShape {
+  SORT_BY_DEFAULT: string;
+  SORT_BY_SURNAME: SortBySurname;
+}
+
 /**
  * Generate random test data
  */
@@ -11,7 +22,7 @@ export class ProfileListingTestDataGenerator {
 /**
  * Admin data for BankGuru application
  */
-export const SortData = {
+export const SortData: SortDataShape = {
   
   SORT_BY_DEFAULT: 'Seniority',
   SORT_BY_SURNAME: {
