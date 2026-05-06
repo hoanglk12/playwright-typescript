@@ -76,4 +76,28 @@ export class EcommercePLPPage extends BasePage {
       },
     );
   }
+
+  async applySizeFilter(sizeLabel: string): Promise<void> {
+    const checkbox = this.page
+      .getByRole('checkbox', { name: sizeLabel, exact: true })
+      .first();
+    await checkbox.evaluate((el: HTMLInputElement) => el.click());
+  }
+
+  async waitForSizeFilterApplied(
+    sizeLabel: string,
+    initialCount: number,
+  ): Promise<void> {
+    await this.waits.waitForCustomCondition(
+      async () => {
+        try {
+          const currentCount = await this.getTotalProductCount();
+          return currentCount > 0 && currentCount < initialCount;
+        } catch {
+          return false;
+        }
+      },
+      { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+    );
+  }
 }
