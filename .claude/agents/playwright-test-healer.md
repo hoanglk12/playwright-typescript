@@ -96,6 +96,20 @@ import { test, expect } from '@playwright/test';
 import { test, expect } from '@config/base-test';
 ```
 
+### Soft assertions — preserve and add correctly when healing
+
+When a failing test already uses `softAssert` or `softExpect`, do not convert soft assertions back to hard. When you add a new assertion while fixing a test, choose soft vs. hard deliberately:
+
+| Situation | Use |
+|---|---|
+| New check is independent of other checks in the test | `softAssert` (inject fixture if not already present) |
+| New check is a precondition that guards subsequent steps | `expect` (hard) |
+| Playwright locator assertion (`toHaveCSS`, `toBeInViewport`, `toContainText`) | `expect(locator).*` (hard — no `SoftAssertHelper` equivalent) |
+| `expect.poll()` | `expect.poll()` (hard) |
+| Test has only one assertion total | `expect` (hard — soft adds no value) |
+
+Do not call `logger.verify(...)` before a `softAssert.*` call — `SoftAssertHelper` calls it internally with `isSoft: true`.
+
 ### Locator preference when updating selectors
 
 Prefer semantic locators over CSS/XPath:

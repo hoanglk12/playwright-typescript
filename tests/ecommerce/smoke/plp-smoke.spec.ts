@@ -48,6 +48,7 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
     test(`${filterTcId} - ${site.name} filter by category reduces product count`, async ({
       ecommerceNavPage,
       ecommercePLPPage,
+      softAssert,
     }) => {
       const logger = createTestLogger(`${filterTcId} - ${site.name} PLP Category Filter`);
 
@@ -86,15 +87,11 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
       const filteredCount = await ecommercePLPPage.getTotalProductCount();
 
       logger.step('Step 10 - Assert filtered total count is strictly less than initial count');
-      logger.verify(
-        `Filtered total < Initial total`,
-        `${filteredCount} < ${initialCount}`,
-        String(filteredCount < initialCount),
-      );
-      expect(
+      softAssert.toBeLessThan(
         filteredCount,
-        `Category filter "${site.categoryFilterLabel}" on ${site.name} should reduce total product count`,
-      ).toBeLessThan(initialCount);
+        initialCount,
+        `Category filter "${site.categoryFilterLabel}" on ${site.name} reduces product count`,
+      );
     });
   }
 
@@ -105,6 +102,7 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
     test(`${sizeTcId} - ${site.name} filter by size reduces product count`, async ({
       ecommerceNavPage,
       ecommercePLPPage,
+      softAssert,
     }) => {
       const logger = createTestLogger(`${sizeTcId} - ${site.name} PLP Size Filter`);
 
@@ -149,11 +147,11 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
       const filteredCount = await ecommercePLPPage.getTotalProductCount();
 
       logger.step('Step 10 - Assert filtered total count < initial count');
-      logger.verify('Filtered total < Initial total', `< ${initialCount}`, String(filteredCount));
-      expect(
+      softAssert.toBeLessThan(
         filteredCount,
-        `Size filter "${sizeLabel}" on ${site.name} should reduce total product count`,
-      ).toBeLessThan(initialCount);
+        initialCount,
+        `Size filter "${sizeLabel}" on ${site.name} reduces product count`,
+      );
     });
   }
 

@@ -10,6 +10,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 test.describe('Home Page Verification @homepage @frontsite', () => {
   test('TC_01 - Verify Header Logo and Highlighted Text Color', async ({
     homePage,
+    softAssert,
   }) => {
     // Declare logger for test steps
     const logger = createTestLogger('Verify Header Logo and Highlighted Text Color');
@@ -20,8 +21,7 @@ test.describe('Home Page Verification @homepage @frontsite', () => {
     await homePage.waitForAjaxRequestsComplete();
 
     logger.step('Step 2 - Verify FF logo is displayed');
-    logger.action('Verify', 'FF logo is displayed');
-    expect(await homePage.isLogoDisplayed()).toBeTruthy();
+    softAssert.toBeTruthy(await homePage.isLogoDisplayed(), 'FF logo is displayed');
 
     logger.step('Step 3 - Click hamburger icon');
     logger.action('Click', 'hamburger icon');

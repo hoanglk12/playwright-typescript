@@ -156,6 +156,23 @@ test('TC_02 - Multi-check', async ({ myPage, softAssert }) => {
 
 `SoftAssertHelper` methods: `toBe`, `toEqual`, `toContain`, `toMatch`, `toBeTruthy`, `toBeFalsy`, `toBeNull`, `toBeDefined`, `toBeGreaterThan`, `toBeLessThan`, `toHaveLength`, `toBeVisible` (async), `toHaveText` (async).
 
+### When to use soft assertions
+
+Use soft when a test makes **multiple independent observable checks** — seeing all failures at once is more useful than stopping at the first.
+
+**Use soft for:**
+- Multiple property checks on the same page state (title, count, label, visibility) where each check is independent
+- Per-item assertions inside a loop (e.g. every nav link has a visible label AND valid href — both facts matter for each item)
+- Final outcome assertions that are independent of each other (e.g. URL changed AND result count > 0)
+
+**Keep hard (never soft) for:**
+- **Preconditions** that guard subsequent steps — if `initialCount > 0` fails, the filter comparison is meaningless; stop the test
+- **Playwright locator assertions** (`expect(locator).toHaveCSS(...)`, `expect(locator).toBeInViewport(...)`, `expect(locator).toContainText(...)`) — `SoftAssertHelper` has no equivalent; use `expect(locator).*` as-is
+- **`expect.poll()`** — has its own retry/timeout logic; wrapping it soft adds no value
+- **Single-assertion tests** — soft provides no benefit when there is only one check
+
+**Eliminate double-logging:** `SoftAssertHelper` calls `logger.verify(...)` internally with `isSoft: true`. Do not also call `logger.verify(...)` manually before a `softAssert.*` call — it duplicates the log entry.
+
 ## Test Data
 
 Never hardcode test data in spec files. Create typed data modules in `src/data/`:

@@ -204,9 +204,13 @@ async getFirstResult(): Promise<string | undefined> {
 - [ ] No bare `expect()` without a matcher
 - [ ] Assertions test behaviour, not implementation details
 - [ ] Both happy path and negative/error scenarios covered
-- [ ] When multiple independent checks exist in one test, soft assertions (`softAssert` fixture or `softExpect`) are used so all failures are visible, not just the first
+- [ ] When multiple **independent** checks exist in one test, soft assertions (`softAssert` fixture or `softExpect`) are used so all failures are visible, not just the first
 - [ ] `softAssert` is destructured from the test fixture — never constructed manually with `new SoftAssertHelper()`
 - [ ] `softExpect` is imported from `@config/base-test`, never from `@playwright/test`
+- [ ] Preconditions that guard subsequent steps remain hard (`expect`) — if the precondition fails the remaining steps are meaningless
+- [ ] Playwright locator assertions (`expect(locator).toHaveCSS(...)`, `expect(locator).toBeInViewport(...)`, `expect(locator).toContainText(...)`) remain hard — `SoftAssertHelper` has no locator-based methods
+- [ ] `expect.poll()` remains hard — it has its own retry/timeout logic; soft wrapping adds no value
+- [ ] `softAssert.*` is not called alongside a manual `logger.verify(...)` for the same check — `softAssert` already calls `logger.verify` internally with `isSoft: true`
 
 ```ts
 // WARNING — hard assertions on independent checks; first failure hides the rest
@@ -218,6 +222,15 @@ expect(isVisible).toBeTruthy();
 softAssert.toBe(titleText, 'Expected Title', 'Title check');
 softAssert.toBe(count, 12, 'Count check');
 softAssert.toBeTruthy(isVisible, 'Visibility check');
+
+// Correct — precondition stays hard; filter comparison would be meaningless if count == 0
+expect(initialCount, 'Expected at least 1 product before filtering').toBeGreaterThan(0);
+// ...filter step...
+softAssert.toBeLessThan(filteredCount, initialCount, 'Filter reduces count');
+
+// Correct — Playwright locator assertions always stay hard
+await expect(page.locator('.nav-link')).toHaveCSS('background-color', 'rgb(0, 63, 100)');
+await expect(section).toBeInViewport({ timeout: 10000 });
 ```
 
 ---

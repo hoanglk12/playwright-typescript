@@ -161,7 +161,7 @@ test.describe('Feature Name @tag1 @tag2', () => {
 - Use `logger.action()` for user interactions
 - Use `logger.error(error, 'context')` in catch blocks
 
-**Soft assertions** — when multiple independent checks should all run regardless of individual failures:
+**Soft assertions** — use when a test makes **multiple independent observable checks**. Soft allows all checks to run and report together rather than stopping at the first failure.
 
 ```ts
 // Pattern A: softExpect — bare, no logger
@@ -183,6 +183,20 @@ test('TC_03 - Multi-check with logger', async ({ myPage, softAssert }) => {
 ```
 
 Prefer `softAssert` fixture when the test already uses a logger (it logs each check with `🔵 [SOFT]`). Use `softExpect` for quick checks where logging isn't needed.
+
+**Decision rules — apply every time you write an assertion:**
+
+| Situation | Use |
+|---|---|
+| Multiple independent property checks in one test (title, count, label, visibility) | `softAssert` |
+| Loop where each iteration checks two independent facts (e.g. link visible AND href valid) | `softAssert` |
+| Final outcome where multiple results are checked independently | `softAssert` |
+| Precondition that guards the next step (if this fails, the next step is meaningless) | `expect` (hard) |
+| Playwright locator assertion: `toHaveCSS`, `toBeInViewport`, `toContainText` | `expect(locator).*` (hard — no `SoftAssertHelper` equivalent) |
+| `expect.poll()` | `expect.poll()` (hard — has its own retry logic) |
+| Single assertion in the test | `expect` (hard — soft adds no value) |
+
+**Eliminate double-logging:** `softAssert.*` calls `logger.verify(...)` internally. Do NOT also call `logger.verify(...)` manually before a `softAssert.*` call.
 
 ---
 
