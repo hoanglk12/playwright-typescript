@@ -17,10 +17,15 @@ Prioritize behavioral risk over style. The most important findings are bugs, fla
 4. **Brittle locators:** Flag XPath, long CSS chains, unscoped `nth()` usage, or selectors tightly coupled to unstable markup. Prefer semantic locators and Playwright locator composition.
 5. **Unsafe waits:** Flag new `page.waitForTimeout()` calls, strict global `networkidle` dependencies, and broad spinner waits. This repo has prior CI flake from those patterns.
 6. **Hardcoded environment data:** Flag hardcoded URLs, credentials, tokens, report directories, or environment-specific assumptions. Expect usage of `getEnvironment()`, API env helpers, or `.env.*` driven config.
-7. **Weak assertions:** Flag tests that only click through flows, log output, or check status codes without verifying meaningful state.
+7. **Weak assertions:** Flag tests that only click through flows, log output, or check status codes without verifying meaningful state. Also flag tests with multiple hard `expect()` calls on independent conditions — the first failure hides the rest. Suggest the `softAssert` fixture or `softExpect` (both from `@config/base-test`) so all failures are visible.
 8. **Poor API usage:** Flag API tests that bypass existing services and wrappers without justification, skip response validation, or share mutable state without serial configuration.
 9. **Logging inconsistency:** For UI workflow tests, check whether `createTestLogger(...)` is used consistently with existing suites when appropriate.
 10. **Duplication:** Flag repeated navigation, auth, or response-handling logic that belongs in a page object, client, service, or helper.
+
+## Soft Assertion Review Rules
+- `softAssert` fixture must be destructured from the test, never constructed manually with `new SoftAssertHelper()`.
+- `softExpect` must be imported from `@config/base-test`, never from `@playwright/test`.
+- Hard `expect()` calls in the same test are fine — they still terminate immediately on failure.
 
 ## Flake Heuristics For This Repo
 - Prefer load milestones and assertion waits over unconditional sleeps.

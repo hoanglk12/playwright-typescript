@@ -1,4 +1,6 @@
-import { test as base } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
+import { SoftAssertHelper } from '../utils/soft-assert-helper';
+import { TestLogger } from '../utils/test-logger';
 import { HomePage } from '../pages/frontsite/home-page';
 import { LoginPage } from '../pages/admin/login-page';
 import { FormDragAndDropPage } from '@pages/frontsite/form-drag-and-drop';
@@ -23,6 +25,7 @@ type CustomFixtures = {
   ecommerceSearchPage: EcommerceSearchPage;
   ecommercePLPPage: EcommercePLPPage;
   percyHelper: PercyHelper;
+  softAssert: SoftAssertHelper;
 };
 
 export const test = base.extend<CustomFixtures>({
@@ -81,6 +84,10 @@ export const test = base.extend<CustomFixtures>({
     }
   },
 
+  softAssert: async ({}, use) => {
+    await use(new SoftAssertHelper(new TestLogger(base.info().title)));
+  },
+
   ecommercePLPPage: async ({ page }, use) => {
     await use(new EcommercePLPPage(page));
     // Firefox teardown workaround — same pattern as other ecommerce fixtures.
@@ -92,4 +99,5 @@ export const test = base.extend<CustomFixtures>({
   },
 });
 
-export { expect } from '@playwright/test';
+export { expect };
+export const softExpect: typeof expect.soft = expect.soft.bind(expect);

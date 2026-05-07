@@ -117,13 +117,14 @@ export class TestLogger {
   /**
    * Log an assertion/verification
    */
-  verify(verification: string, expected?: any, actual?: any): void {
+  verify(verification: string, expected?: any, actual?: any, isSoft?: boolean): void {
     const timestamp = new Date().toISOString();
-    const logMessage = `✅ [${timestamp}] Verify: ${verification}`;
-    
+    const prefix = isSoft ? '🔵 [SOFT]' : '✅';
+    const logMessage = `${prefix} [${timestamp}] Verify: ${verification}`;
+
     console.log(logMessage);
     this.writeToFile(logMessage);
-    
+
     if (expected !== undefined && actual !== undefined) {
       const expectedLog = `   Expected: ${JSON.stringify(expected)}`;
       const actualLog = `   Actual: ${JSON.stringify(actual)}`;
@@ -133,9 +134,10 @@ export class TestLogger {
       this.writeToFile(actualLog);
     }
 
+    const annotationDesc = `${verification}${expected !== undefined ? ` | Expected: ${JSON.stringify(expected)}` : ''}${isSoft ? ' [SOFT ASSERTION]' : ''}`;
     test.info().annotations.push({
       type: 'verification',
-      description: `${verification}${expected !== undefined ? ` | Expected: ${JSON.stringify(expected)}` : ''}`
+      description: annotationDesc
     });
   }
 
