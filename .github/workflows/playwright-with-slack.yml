@@ -101,6 +101,19 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      - name: Restore monocart trend data
+        uses: actions/cache@v4
+        id: monocart-trend
+        with:
+          path: monocart-trend/index.json
+          key: monocart-trend-ui-${{ runner.os }}-${{ github.ref_name }}
+          restore-keys: monocart-trend-ui-${{ runner.os }}-
+
+      - name: Set monocart trend env
+        if: steps.monocart-trend.outputs.cache-hit == 'true'
+        shell: bash
+        run: echo "MONOCART_TREND_FILE=${{ github.workspace }}/monocart-trend/index.json" >> $GITHUB_ENV
+
       - name: Make UI test scripts executable (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -127,6 +140,21 @@ jobs:
         shell: cmd
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
+
+      - name: Save monocart trend data
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p monocart-trend
+          cp monocart-report/index.json monocart-trend/index.json 2>/dev/null || true
+
+      - name: Upload monocart shard report
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: monocart-shard-${{ runner.os }}-${{ github.run_id }}
+          path: monocart-report/
+          retention-days: 1
 
       - name: Upload UI Test Results
         uses: actions/upload-artifact@v5
@@ -211,6 +239,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ui-test, api-test]
     if: always() && (needs.ui-test.result != 'skipped' || needs.api-test.result != 'skipped')
+    outputs:
+      tests:    ${{ steps.monocart.outputs.tests }}
+      passed:   ${{ steps.monocart.outputs.passed }}
+      failed:   ${{ steps.monocart.outputs.failed }}
+      skipped:  ${{ steps.monocart.outputs.skipped }}
+      flaky:    ${{ steps.monocart.outputs.flaky }}
+      duration: ${{ steps.monocart.outputs.duration }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -244,18 +279,74 @@ jobs:
           echo "<li>Browser: ${{ env.TEST_BROWSER }}</li>" >> ./combined-report/index.html
           echo "<li>Timestamp: $(date)</li>" >> ./combined-report/index.html
           echo "</ul>" >> ./combined-report/index.html
-          
+
           if [ -d "./combined-results/ui" ]; then
             echo "<h2>UI Test Results</h2>" >> ./combined-report/index.html
             echo "<p>UI tests completed. Check artifacts for detailed reports.</p>" >> ./combined-report/index.html
           fi
-          
+
           if [ -d "./combined-results/api" ]; then
             echo "<h2>API Test Results</h2>" >> ./combined-report/index.html
             echo "<p>API tests completed. Check artifacts for detailed reports.</p>" >> ./combined-report/index.html
           fi
-          
+
           echo "</body></html>" >> ./combined-report/index.html
+
+      - name: Setup Node.js for monocart merge
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies for merge
+        run: npm ci
+
+      - name: Download monocart shard reports
+        uses: actions/download-artifact@v5
+        if: needs.ui-test.result != 'skipped'
+        with:
+          pattern: monocart-shard-*-${{ github.run_id }}
+          path: ./monocart-shards/
+
+      - name: Merge monocart shard reports
+        if: needs.ui-test.result != 'skipped'
+        run: |
+          npx monocart merge 'monocart-shards/*/index.json' \
+            --name "Playwright UI Tests — ${{ env.TEST_ENV }}" \
+            --output-file monocart-merged/index.html
+        continue-on-error: true
+
+      - name: Extract merged monocart summary
+        if: always()
+        id: monocart
+        run: |
+          if [ -f monocart-merged/index.json ]; then
+            node -e "
+              const d = require('./monocart-merged/index.json');
+              const s = d.summary || {};
+              console.log('tests=' + (s.tests || 0));
+              console.log('passed=' + (s.passed || 0));
+              console.log('failed=' + (s.failed || 0));
+              console.log('skipped=' + (s.skipped || 0));
+              console.log('flaky=' + (s.flaky || 0));
+              console.log('duration=' + (d.durationH || 'N/A'));
+            " >> $GITHUB_OUTPUT
+          else
+            echo "tests=N/A" >> $GITHUB_OUTPUT
+            echo "passed=N/A" >> $GITHUB_OUTPUT
+            echo "failed=N/A" >> $GITHUB_OUTPUT
+            echo "skipped=N/A" >> $GITHUB_OUTPUT
+            echo "flaky=N/A" >> $GITHUB_OUTPUT
+            echo "duration=N/A" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload merged monocart report
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: monocart-merged-report-${{ github.run_id }}
+          path: monocart-merged/
+          retention-days: 30
 
       - name: Upload combined report
         uses: actions/upload-artifact@v5
@@ -365,6 +456,35 @@ jobs:
                 },
                 {
                   "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Total Tests:*\n${{ needs.test-report.outputs.tests }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*✅ Passed:*\n${{ needs.test-report.outputs.passed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*❌ Failed:*\n${{ needs.test-report.outputs.failed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*⏭ Skipped:*\n${{ needs.test-report.outputs.skipped }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*🔁 Flaky:*\n${{ needs.test-report.outputs.flaky }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Duration:*\n${{ needs.test-report.outputs.duration }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
                   "text": {
                     "type": "mrkdwn",
                     "text": "*Commit:* ${{ steps.commit.outputs.message }}"
@@ -378,6 +498,14 @@ jobs:
                       "text": {
                         "type": "plain_text",
                         "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Download Report"
                       },
                       "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                     },

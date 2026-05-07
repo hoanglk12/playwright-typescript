@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "fs";
 import { getEnvironment } from "./src/config/environment";
 
 // Get environment configuration
@@ -37,6 +38,49 @@ export default defineConfig({
     ["json", { outputFile: `${env.reportDir || "test-results"}/results.json` }],
     ["junit", { outputFile: `${env.reportDir || "test-results"}/results.xml` }],
     ["list"],
+    [
+      "monocart-reporter",
+      {
+        name: `Playwright UI Tests — ${process.env.NODE_ENV ?? "testing"}`,
+        outputFile: "monocart-report/index.html",
+        metadata: {
+          project: "Playwright TypeScript Framework",
+          environment: process.env.NODE_ENV ?? "testing",
+          branch: process.env.GITHUB_REF_NAME ?? "local",
+          os: process.platform,
+        },
+        trend: process.env.MONOCART_TREND_FILE
+          ? (() => {
+              try {
+                return JSON.parse(fs.readFileSync(process.env.MONOCART_TREND_FILE!, "utf-8"));
+              } catch {
+                return undefined;
+              }
+            })()
+          : undefined,
+        onEnd: async (reportData: any): Promise<void> => {
+          try {
+            const s = reportData.summary;
+            if (process.env.GITHUB_STEP_SUMMARY) {
+              const lines = [
+                "## Playwright UI Test Report",
+                "| Metric | Count |",
+                "|--------|-------|",
+                `| Total | ${s.tests?.value ?? s.tests} |`,
+                `| ✅ Passed | ${s.passed?.value ?? s.passed} |`,
+                `| ❌ Failed | ${s.failed?.value ?? s.failed} |`,
+                `| ⏭ Skipped | ${s.skipped?.value ?? s.skipped} |`,
+                `| 🔁 Flaky | ${s.flaky?.value ?? s.flaky ?? 0} |`,
+                `| Duration | ${reportData.durationH} |`,
+              ];
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+            }
+          } catch (e) {
+            console.warn("[monocart] onEnd error:", e);
+          }
+        },
+      },
+    ],
   ],
 
   /* Global timeout for each test */

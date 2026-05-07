@@ -46,6 +46,18 @@ You are a DevOps Engineer specializing in CI/CD pipelines for Playwright automat
 - Grep for `Error:`, `TimeoutError`, `locator.`, `expect(` to find assertion failures
 - Look for `FAILED` lines and capture the test title and file path
 
+### monocart Report (primary structured source)
+- UI: `monocart-report/index.html` + `monocart-report/index.json`
+- API: `monocart-api-report/index.html` + `monocart-api-report/index.json`
+- In CI, merged UI report is uploaded as artifact `monocart-merged-report-{run_id}` (from `test-report` job)
+- API report is uploaded as artifact `monocart-api-report-{run_id}` (from `api-tests` job)
+- `index.json` fields: `summary.tests`, `summary.passed`, `summary.failed`, `summary.skipped`, `summary.flaky`, `durationH`
+- Parse the JSON for exact counts without needing to open the HTML:
+  ```bash
+  node -e "const d=require('./monocart-report/index.json'); console.log(JSON.stringify(d.summary,null,2))"
+  ```
+- Trend history is stored in branch-scoped GitHub Actions cache (`monocart-trend-ui-{OS}-{branch}`)
+
 ### Trace Viewer
 - Traces stored in `test-results/{test-name}/trace.zip`
 - Contains timeline of actions, network requests, console logs, and snapshots
@@ -237,6 +249,8 @@ npx playwright test --grep "TC_01"
 
 # Reports
 npm run report                  # open HTML report
+npm run report:monocart         # open monocart UI report
+npm run report:monocart:api     # open monocart API report
 
 # Docker
 npm run docker:test             # full suite in Docker

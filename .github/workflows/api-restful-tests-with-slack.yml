@@ -28,7 +28,12 @@ on:
 jobs:
   api-tests:
     runs-on: ubuntu-latest
-    
+    outputs:
+      tests:   ${{ steps.monocart.outputs.tests }}
+      passed:  ${{ steps.monocart.outputs.passed }}
+      failed:  ${{ steps.monocart.outputs.failed }}
+      skipped: ${{ steps.monocart.outputs.skipped }}
+
     steps:
     - uses: actions/checkout@v5
     
@@ -43,7 +48,19 @@ jobs:
     
     - name: Make scripts executable
       run: chmod +x run-api-tests-nonparallel.sh
-    
+
+    - name: Restore monocart API trend data
+      uses: actions/cache@v4
+      id: monocart-api-trend
+      with:
+        path: monocart-api-trend/index.json
+        key: monocart-trend-api-${{ github.ref_name }}
+        restore-keys: monocart-trend-api-
+
+    - name: Set monocart API trend env
+      if: steps.monocart-api-trend.outputs.cache-hit == 'true'
+      run: echo "MONOCART_API_TREND_FILE=${{ github.workspace }}/monocart-api-trend/index.json" >> $GITHUB_ENV
+
     - name: Run RESTful API tests
       id: tests
       continue-on-error: true
@@ -71,6 +88,40 @@ jobs:
         else
           echo "TEST_STATUS=failure" >> $GITHUB_ENV
         fi
+
+    - name: Save monocart API trend data
+      if: always()
+      run: |
+        mkdir -p monocart-api-trend
+        cp monocart-api-report/index.json monocart-api-trend/index.json 2>/dev/null || true
+
+    - name: Extract monocart API summary
+      if: always()
+      id: monocart
+      run: |
+        if [ -f monocart-api-report/index.json ]; then
+          node -e "
+            const d = require('./monocart-api-report/index.json');
+            const s = d.summary || {};
+            console.log('tests=' + (s.tests || 0));
+            console.log('passed=' + (s.passed || 0));
+            console.log('failed=' + (s.failed || 0));
+            console.log('skipped=' + (s.skipped || 0));
+          " >> $GITHUB_OUTPUT
+        else
+          echo "tests=N/A" >> $GITHUB_OUTPUT
+          echo "passed=N/A" >> $GITHUB_OUTPUT
+          echo "failed=N/A" >> $GITHUB_OUTPUT
+          echo "skipped=N/A" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Upload monocart API report
+      uses: actions/upload-artifact@v5
+      if: always()
+      with:
+        name: monocart-api-report-${{ github.run_id }}
+        path: monocart-api-report/
+        retention-days: 30
 
   notify-slack:
     name: Send Slack Notification
@@ -154,6 +205,27 @@ jobs:
                 },
                 {
                   "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Total Tests:*\n${{ needs.api-tests.outputs.tests }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*✅ Passed:*\n${{ needs.api-tests.outputs.passed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*❌ Failed:*\n${{ needs.api-tests.outputs.failed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*⏭ Skipped:*\n${{ needs.api-tests.outputs.skipped }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
                   "text": {
                     "type": "mrkdwn",
                     "text": "*Commit:* ${{ steps.commit.outputs.message }}"
@@ -167,6 +239,14 @@ jobs:
                       "text": {
                         "type": "plain_text",
                         "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Download Report"
                       },
                       "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                     },

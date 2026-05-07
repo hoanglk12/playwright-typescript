@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import fs from 'fs';
 
 /**
  * Read environment variables from file.
@@ -38,7 +39,47 @@ export default defineConfig({
     ['html', { outputFolder: 'api-report' }],
     ['json', { outputFile: 'api-results/results.json' }],
     ['junit', { outputFile: 'api-results/results.xml' }],
-    ['line']
+    ['line'],
+    [
+      'monocart-reporter',
+      {
+        name: `Playwright API Tests — ${process.env.NODE_ENV ?? 'testing'}`,
+        outputFile: 'monocart-api-report/index.html',
+        metadata: {
+          project: 'Playwright TypeScript Framework — API',
+          environment: process.env.NODE_ENV ?? 'testing',
+        },
+        trend: process.env.MONOCART_API_TREND_FILE
+          ? (() => {
+              try {
+                return JSON.parse(fs.readFileSync(process.env.MONOCART_API_TREND_FILE!, 'utf-8'));
+              } catch {
+                return undefined;
+              }
+            })()
+          : undefined,
+        onEnd: async (reportData: any): Promise<void> => {
+          try {
+            const s = reportData.summary;
+            if (process.env.GITHUB_STEP_SUMMARY) {
+              const lines = [
+                '## Playwright API Test Report',
+                '| Metric | Count |',
+                '|--------|-------|',
+                `| Total | ${s.tests?.value ?? s.tests} |`,
+                `| ✅ Passed | ${s.passed?.value ?? s.passed} |`,
+                `| ❌ Failed | ${s.failed?.value ?? s.failed} |`,
+                `| ⏭ Skipped | ${s.skipped?.value ?? s.skipped} |`,
+                `| Duration | ${reportData.durationH} |`,
+              ];
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+            }
+          } catch (e) {
+            console.warn('[monocart-api] onEnd error:', e);
+          }
+        },
+      },
+    ],
   ],
   
   /* Global test timeout */
