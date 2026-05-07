@@ -4,9 +4,9 @@ import { createTestLogger } from '../../src/utils/test-logger';
 
 
 test.describe('Profile Listing Page Verification', () => {
-  test('TC_01 - Verify Profile Listing Page with Default Sorting', async ({ 
+  test('TC_01 - Verify Profile Listing Page with Default Sorting', async ({
     profileListingPage,
-    
+    softAssert,
   }) => {
     //Declare logger for test steps
     const logger = createTestLogger('Profile Listing Page Verification');
@@ -16,16 +16,14 @@ test.describe('Profile Listing Page Verification', () => {
     logger.action('Navigate', 'profile listing page');
     await profileListingPage.navigateToProfileListingPage();
     await profileListingPage.waitForAjaxRequestsComplete();
-        
+
     logger.step('Step 2 - Verify profiles are displayed');
-    logger.action('Verify', 'profiles are displayed');
     const profileCount = await profileListingPage.getProfileCount();
-    expect(profileCount).toBeGreaterThan(0);
+    softAssert.toBeGreaterThan(profileCount, 0, 'Profile count > 0');
 
     logger.step('Step 3 - Verify Sort By dropdown default option is Default');
-    logger.action('Verify', 'sort by dropdown shows Default');
     const selectedLabel = await profileListingPage.getSelectedSortByLabel();
-    expect(selectedLabel).toEqual(ProfileListingData.SortData.SORT_BY_DEFAULT);
+    softAssert.toEqual(selectedLabel, ProfileListingData.SortData.SORT_BY_DEFAULT, 'Sort by default label');
 
     logger.step('Step 4 - Select Surname and verify profiles sorted ascending');
     logger.action('Select and Verify', 'select Surname and verify ascending sort');

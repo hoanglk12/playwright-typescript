@@ -15,7 +15,7 @@ test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation',
   for (const [index, site] of navStorefronts.entries()) {
     const tcId = `E2E-NAV-${String(index + 1).padStart(3, '0')}`;
 
-    test(`${tcId} - ${site.name} all top-nav links render and are clickable`, async ({ ecommerceNavPage }) => {
+    test(`${tcId} - ${site.name} all top-nav links render and are clickable`, async ({ ecommerceNavPage, softAssert }) => {
       const logger = createTestLogger(`${tcId} - ${site.name} top-nav links`);
 
       logger.step('Step 1 - Navigate to homepage');
@@ -27,12 +27,10 @@ test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation',
       logger.step('Step 3 - Assert all top-nav links are visible and have valid hrefs');
       for (const label of site.navLinks) {
         const isVisible = await ecommerceNavPage.isNavLinkVisible(label);
-        logger.verify(`Nav link "${label}" is visible on ${site.name}`, true, isVisible);
-        expect(isVisible, `Nav link "${label}" should be visible on ${site.name}`).toBe(true);
+        softAssert.toBeTruthy(isVisible, `Nav link "${label}" visible on ${site.name}`);
 
         const href = await ecommerceNavPage.getNavLinkHref(label);
-        logger.verify(`Nav link "${label}" has a valid href on ${site.name}`, true, !!href);
-        expect(href, `Nav link "${label}" on ${site.name} should have a valid href`).toMatch(/^(\/|https?:\/\/)/);
+        softAssert.toMatch(href ?? '', /^(\/|https?:\/\/)/, `Nav link "${label}" has valid href on ${site.name}`);
       }
     });
   }

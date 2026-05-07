@@ -74,6 +74,14 @@ CODING STANDARDS:
 - Use TIMEOUTS constants from src/constants/timeouts.ts — never magic numbers
 - No comments unless the WHY is non-obvious
 
+SOFT ASSERTION RULES (apply every time you write an assertion):
+- Multiple independent checks in one test → use softAssert fixture (inject via { myPage, softAssert })
+- Preconditions that guard the next step → keep hard (expect)
+- Playwright locator assertions (toHaveCSS, toBeInViewport, toContainText) → keep hard (no SoftAssertHelper equivalent)
+- expect.poll() → keep hard (has own retry logic)
+- Single-assertion test → keep hard (soft adds no value)
+- Do NOT call logger.verify() before softAssert.* — softAssert logs internally with 🔵 [SOFT]
+
 PLAYWRIGHT RULES:
 - Locator priority: getByRole > getByLabel > getByText > CSS
 - Retries only for network-dependent steps, not UI assertions

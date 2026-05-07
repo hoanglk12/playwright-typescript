@@ -10,6 +10,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 test.describe('Services A-Z List Tests @services @frontsite', () => {
   test('Navigate to Services A-Z via hamburger menu and click a random enabled letter', async ({
     servicesAZPage,
+    softAssert,
   }) => {
     // Logger is scoped to this test to avoid shared mutable state between tests
     const logger = createTestLogger('Services A-Z List Scenarios');
@@ -31,15 +32,14 @@ test.describe('Services A-Z List Tests @services @frontsite', () => {
 
     // ── Step 4: Verify the page heading ─────────────────────────────
     logger.step('Step 4 - Verify page heading is "Services A-Z List"');
-    logger.action('Verify', 'page heading');
     const heading = await servicesAZPage.getPageHeading();
-    expect(heading).toBe(ServicesAZData.pageHeading);
+    softAssert.toBe(heading, ServicesAZData.pageHeading, 'Page heading correct');
 
     // ── Step 5: Collect enabled letters & click a random one ────────
     logger.step('Step 5 - Click a random enabled letter in the A-Z filter');
     const enabledLetters = await servicesAZPage.getEnabledLetters();
     logger.action('Found enabled letters', enabledLetters.map((l) => l.letter).join(', '));
-    expect(enabledLetters.length).toBeGreaterThan(0);
+    softAssert.toBeGreaterThan(enabledLetters.length, 0, 'At least one enabled letter');
 
     const clickedLetter = await servicesAZPage.clickRandomEnabledLetter();
     logger.action('Clicked letter', clickedLetter);
@@ -55,6 +55,6 @@ test.describe('Services A-Z List Tests @services @frontsite', () => {
     logger.action('Verify', 'service links present');
     const services = await servicesAZPage.getServiceNamesForLetter(clickedLetter);
     logger.action('Services found', services.join(', '));
-    expect(services.length).toBeGreaterThan(0);
+    softAssert.toBeGreaterThan(services.length, 0, `Section "${clickedLetter}" has services`);
   });
 });
