@@ -56,6 +56,25 @@ You are the Playwright specialist for this TypeScript QA framework. Help the use
 - Use serial mode only for lifecycle tests that share mutable state.
 - Prefer the repository service/client layer over direct raw requests unless the work is specifically about building that client layer.
 
+## Soft Assertions
+
+Use soft assertions when a test should verify multiple independent conditions without stopping at the first failure.
+
+- **`softExpect`** — exported from `@config/base-test`, drop-in for `expect`. No logging integration.
+  ```ts
+  import { test, expect, softExpect } from '@config/base-test';
+  softExpect(title).toContain('Expected');  // continues on fail
+  ```
+- **`softAssert` fixture** — preferred when the test uses `TestLogger`. Logs each check with `🔵 [SOFT]`.
+  ```ts
+  test('TC_01', async ({ myPage, softAssert }) => {
+    softAssert.toBe(count, 12, 'Count check');
+    await softAssert.toBeVisible(myPage.header, 'Header visible');
+  });
+  ```
+- `SoftAssertHelper` lives in `src/utils/soft-assert-helper.ts`. Do not instantiate it manually — always use the `softAssert` fixture.
+- Hard `expect()` calls can coexist in the same test; they still terminate immediately on failure.
+
 ## Mocking Rules
 - For UI-side API mocking, prefer `ApiMockHelper` from `src/utils/api-mock-helper.ts` rather than repeating low-level `page.route()` code.
 - Mock only the endpoints required by the scenario.

@@ -204,6 +204,21 @@ async getFirstResult(): Promise<string | undefined> {
 - [ ] No bare `expect()` without a matcher
 - [ ] Assertions test behaviour, not implementation details
 - [ ] Both happy path and negative/error scenarios covered
+- [ ] When multiple independent checks exist in one test, soft assertions (`softAssert` fixture or `softExpect`) are used so all failures are visible, not just the first
+- [ ] `softAssert` is destructured from the test fixture — never constructed manually with `new SoftAssertHelper()`
+- [ ] `softExpect` is imported from `@config/base-test`, never from `@playwright/test`
+
+```ts
+// WARNING — hard assertions on independent checks; first failure hides the rest
+expect(titleText).toBe('Expected Title');
+expect(count).toBe(12);
+expect(isVisible).toBeTruthy();
+
+// Correct — soft assertions let all three run and report together
+softAssert.toBe(titleText, 'Expected Title', 'Title check');
+softAssert.toBe(count, 12, 'Count check');
+softAssert.toBeTruthy(isVisible, 'Visibility check');
+```
 
 ---
 

@@ -14,6 +14,7 @@ A comprehensive Playwright TypeScript testing framework converted from a Maven h
 - **API Testing**: Complete API testing framework with authentication, status and data validation
 - **TypeScript**: Full type safety and IntelliSense support
 - **Environment Variables**: Complete configuration through .env files
+- **Soft Assertions**: Continue test execution after failures — collect all assertion results and report at test end via `softAssert` fixture or `softExpect`
 
 ## 📁 Project Structure
 
@@ -192,6 +193,42 @@ npm run test:all-browsers
 # Custom parallel configuration
 PARALLEL_WORKERS=8 HEADLESS=true npm run test:testing
 ```
+
+## 🧪 Soft Assertions
+
+Soft assertions allow a test to **continue past a failure** and report all failures together at completion. No extra package is needed — this is built on Playwright's native `expect.soft()`.
+
+### Pattern A — `softExpect` (bare, no logger)
+
+```ts
+import { test, expect, softExpect } from '@config/base-test';
+
+test('TC_01 - Check multiple values', async ({ myPage }) => {
+  softExpect(title).toContain('Expected');  // fails → test continues
+  softExpect(count).toBe(12);               // still runs
+  expect(url).toContain('/dashboard');      // hard — terminates on fail
+  // all soft failures reported together at test end
+});
+```
+
+### Pattern B — `softAssert` fixture (recommended — logger-integrated)
+
+```ts
+import { test, expect } from '@config/base-test';
+import { createTestLogger } from '../../src/utils/test-logger';
+
+test('TC_02 - Verify page state', async ({ myPage, softAssert }) => {
+  const logger = createTestLogger('TC_02 Verify page state');
+
+  logger.step('Step 1 - Check multiple conditions');
+  softAssert.toBe(count, 12, 'Item count should be 12');
+  await softAssert.toBeVisible(myPage.header, 'Header should be visible');
+  softAssert.toBeTruthy(isEnabled, 'Button should be enabled');
+  // test continues past all of the above; failures reported at end
+});
+```
+
+Available `softAssert` methods: `toBe`, `toEqual`, `toContain`, `toMatch`, `toBeTruthy`, `toBeFalsy`, `toBeNull`, `toBeDefined`, `toBeGreaterThan`, `toBeLessThan`, `toHaveLength`, `toBeVisible` (async), `toHaveText` (async).
 
 ## 🔧 Environment Configuration
 

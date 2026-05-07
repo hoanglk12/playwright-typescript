@@ -65,6 +65,9 @@ There is NO `@constants` alias. Import timeouts via relative path: `../../src/co
 // CORRECT
 import { test, expect } from '@config/base-test';
 
+// With soft assertions:
+import { test, expect, softExpect } from '@config/base-test';
+
 // WRONG — loses all custom page fixtures
 import { test, expect } from '@playwright/test';
 ```
@@ -157,6 +160,29 @@ test.describe('Feature Name @tag1 @tag2', () => {
 - Use `logger.verify()` before assertions
 - Use `logger.action()` for user interactions
 - Use `logger.error(error, 'context')` in catch blocks
+
+**Soft assertions** — when multiple independent checks should all run regardless of individual failures:
+
+```ts
+// Pattern A: softExpect — bare, no logger
+test('TC_02 - Multi-check', async ({ myPage }) => {
+  const logger = createTestLogger('TC_02 Multi-check');
+  logger.step('Step 1 - Verify page values');
+  softExpect(title).toContain('Expected');   // continues on fail
+  expect(url).toContain('/dashboard');       // hard — terminates on fail
+});
+
+// Pattern B: softAssert fixture — recommended (logger-integrated)
+test('TC_03 - Multi-check with logger', async ({ myPage, softAssert }) => {
+  const logger = createTestLogger('TC_03 Multi-check with logger');
+  logger.step('Step 1 - Verify page state');
+  softAssert.toBe(count, 12, 'Count should be 12');
+  await softAssert.toBeVisible(myPage.header, 'Header visible');
+  // all failures reported at test end
+});
+```
+
+Prefer `softAssert` fixture when the test already uses a logger (it logs each check with `🔵 [SOFT]`). Use `softExpect` for quick checks where logging isn't needed.
 
 ---
 

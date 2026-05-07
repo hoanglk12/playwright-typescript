@@ -40,6 +40,8 @@ There is no `@constants` alias — import timeouts via `@config/../constants/tim
 
 ```ts
 import { test, expect } from '@config/base-test';
+// Soft assertions (test continues after failure):
+import { test, expect, softExpect } from '@config/base-test';
 ```
 
 `base-test.ts` extends Playwright's `test` with all custom page object fixtures. Importing from `@playwright/test` directly loses those fixtures.
@@ -97,6 +99,7 @@ export class MyPage extends BasePage {
 | `ecommerceNavPage` | `EcommerceNavPage` | ecommerce |
 | `ecommerceSearchPage` | `EcommerceSearchPage` | ecommerce |
 | `percyHelper` | `PercyHelper` | visual regression |
+| `softAssert` | `SoftAssertHelper` | soft assertions with logger integration |
 
 ## Test Structure
 
@@ -119,6 +122,39 @@ test.describe('Feature Name @tag1 @tag2', () => {
 ```
 
 Tags go in `test.describe()` name string (e.g. `@homepage`, `@frontsite`, `@admin`).
+
+## Soft Assertions
+
+Soft assertions let a test **continue past a failure** and report all failures together at the end. Two patterns are available:
+
+**Pattern A — `softExpect` (bare, no logger):** drop-in replacement for `expect`, useful for quick multi-checks.
+
+```ts
+import { test, expect, softExpect } from '@config/base-test';
+
+test('TC_01 - Multi-check', async ({ myPage }) => {
+  softExpect(title).toContain('Expected');  // fails → test continues
+  expect(url).toContain('/dashboard');      // hard — still terminates on fail
+});
+```
+
+**Pattern B — `softAssert` fixture (recommended):** integrates with `TestLogger`; each call is logged with `🔵 [SOFT]`.
+
+```ts
+import { test, expect } from '@config/base-test';
+import { createTestLogger } from '../../src/utils/test-logger';
+
+test('TC_02 - Multi-check', async ({ myPage, softAssert }) => {
+  const logger = createTestLogger('TC_02 Multi-check');
+
+  logger.step('Step 1 - Verify page state');
+  softAssert.toBe(count, 12, 'Item count');
+  await softAssert.toBeVisible(myPage.header, 'Header visible');
+  // test continues; all failures reported together at completion
+});
+```
+
+`SoftAssertHelper` methods: `toBe`, `toEqual`, `toContain`, `toMatch`, `toBeTruthy`, `toBeFalsy`, `toBeNull`, `toBeDefined`, `toBeGreaterThan`, `toBeLessThan`, `toHaveLength`, `toBeVisible` (async), `toHaveText` (async).
 
 ## Test Data
 
