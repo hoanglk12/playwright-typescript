@@ -56,7 +56,13 @@ async function generateFinalReports(): Promise<void> {
     if (fs.existsSync(htmlReportPath)) {
       console.log(`   ✅ HTML report available at: ${htmlReportPath}/index.html`);
     }
-    
+
+    // Check if monocart report exists
+    const monocartHtml = path.resolve(process.cwd(), 'monocart-report', 'index.html');
+    if (fs.existsSync(monocartHtml)) {
+      console.log(`   ✅ Monocart report available at: ${monocartHtml}`);
+    }
+
     // Check if JSON results exist
     const jsonResultsPath = path.resolve(process.cwd(), 'test-results');
     if (fs.existsSync(jsonResultsPath)) {
@@ -96,12 +102,14 @@ Retries: ${environment.retries}
 
 Reports Location:
 - HTML Report: playwright-report/index.html
+- Monocart Report: monocart-report/index.html
 - JSON Results: test-results/
 - Screenshots: test-results/ (on failures)
 - Videos: test-results/ (on failures)
 
 Commands to view reports:
 - Playwright HTML: npx playwright show-report
+- Monocart: npx monocart show-report monocart-report/index.html
 `;
     
     fs.writeFileSync(summaryPath, summary.trim());
@@ -209,13 +217,17 @@ async function showTestSummary(): Promise<void> {
     console.log(`   ⏱️ Timeout: ${environment.timeout}ms`);
     console.log(`   🔄 Retries: ${environment.retries}`);    // Check for report files
     const htmlReportExists = fs.existsSync(path.resolve(process.cwd(), 'playwright-report', 'index.html'));
-    
+    const monocartReportExists = fs.existsSync(path.resolve(process.cwd(), 'monocart-report', 'index.html'));
+
     console.log(`   📊 HTML Report: ${htmlReportExists ? 'Generated' : 'Not available'}`);
-    
-    if (htmlReportExists) {
+    console.log(`   📈 Monocart Report: ${monocartReportExists ? 'Generated' : 'Not available'}`);
+
+    if (htmlReportExists || monocartReportExists) {
       console.log('');
-      console.log('🎯 To view the detailed HTML report, run:');
-      console.log('   npx playwright show-report');    }
+      console.log('🎯 To view the detailed reports, run:');
+      if (htmlReportExists) console.log('   npx playwright show-report');
+      if (monocartReportExists) console.log('   npx monocart show-report monocart-report/index.html');
+    }
   } catch (error) {
     console.warn(`   ⚠️ Could not generate summary: ${error}`);
   }

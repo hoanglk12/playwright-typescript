@@ -55,6 +55,16 @@ import { test, expect, softExpect } from '@config/base-test';
 
 Both configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`.
 
+**Reporters** — both configs run these reporters in parallel (additive, no conflicts):
+
+| Reporter | Output | Purpose |
+|---|---|---|
+| `html` | `playwright-report/` / `api-report/` | Playwright built-in interactive report |
+| `json` | `test-results/results.json` / `api-results/results.json` | CI tooling and artifact parsing |
+| `junit` | `test-results/results.xml` / `api-results/results.xml` | JUnit-compatible test management |
+| `list` / `line` | stdout | Console progress during local runs |
+| `monocart-reporter` | `monocart-report/` / `monocart-api-report/` | Rich interactive grid report, trend/history, GitHub Actions step summary, Slack-ready summary |
+
 ## Adding a New Page Object
 
 1. Extend `BasePage`, constructor takes only `page: Page`
@@ -314,6 +324,8 @@ npm run docker:rebuild            # rebuild image without cache
 npm run report                    # open HTML report
 npm run report:open               # open report on port 9323
 npm run report:api                # open API report on port 9324
+npm run report:monocart           # open monocart UI report (interactive grid)
+npm run report:monocart:api       # open monocart API report
 npm run lint                      # tsc type-check (no emit)
 npm run clean                     # remove test results, reports, auth, Lighthouse
 npm run clean:api                 # remove API test results only
@@ -341,10 +353,26 @@ Both `playwright.config.ts` and `api.config.ts` auto-detect CI environments (`CI
 
 The `ecommerceHomePage` fixture in `base-test.ts` navigates to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround.
 
+## monocart Reporter
+
+monocart-reporter supplements the built-in reporters (keep all existing reporters — they feed CI tooling). It is configured in both `playwright.config.ts` and `api.config.ts`.
+
+**Output locations:**
+- UI: `monocart-report/index.html` + `monocart-report/index.json`
+- API: `monocart-api-report/index.html` + `monocart-api-report/index.json`
+
+**Trend / history:** In CI, a branch-scoped `actions/cache` stores the previous run's `index.json`. Set `MONOCART_TREND_FILE` (UI) or `MONOCART_API_TREND_FILE` (API) to the path of that JSON before running tests — the reporter reads it to render a trend chart.
+
+**GitHub Actions Step Summary:** The `onEnd` hook in each config automatically appends a markdown table of test counts to `$GITHUB_STEP_SUMMARY` when running in CI.
+
+**Slack notification:** `playwright-with-slack.yml` merges per-OS shard reports in the `test-report` job and exposes summary counts (`tests`, `passed`, `failed`, `skipped`, `flaky`, `duration`) as job outputs. The `notify-slack` job reads `needs.test-report.outputs.*` to populate the Slack Block Kit payload. `api-restful-tests-with-slack.yml` does the same from `needs.api-tests.outputs.*`.
+
+**Local view:** `npm run report:monocart` or `npm run report:monocart:api`
+
 ## Global Lifecycle
 
 - **Setup** (`src/config/global-setup.ts`): clears logs, loads env, cleans/creates output dirs, validates browser installations, tests connectivity to target apps
-- **Teardown** (`src/config/global-teardown.ts`): generates reports, creates `test-summary.txt`, archives artifacts in CI only, cleans temp files
+- **Teardown** (`src/config/global-teardown.ts`): generates reports (including monocart check), creates `test-summary.txt`, archives artifacts in CI only, cleans temp files
 
 ## Logging
 

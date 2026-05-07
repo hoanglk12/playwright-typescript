@@ -6,6 +6,8 @@ lighthouse-reports/
 node_modules/
 /test-results/
 /playwright-report/
+/monocart-report/
+/monocart-api-report/
 /blob-report/
 /playwright/.cache/
 /trace/
