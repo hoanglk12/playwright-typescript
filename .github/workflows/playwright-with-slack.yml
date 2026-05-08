@@ -241,12 +241,13 @@ jobs:
     needs: [ui-test, api-test]
     if: always() && (needs.ui-test.result != 'skipped' || needs.api-test.result != 'skipped')
     outputs:
-      tests:    ${{ steps.monocart.outputs.tests }}
-      passed:   ${{ steps.monocart.outputs.passed }}
-      failed:   ${{ steps.monocart.outputs.failed }}
-      skipped:  ${{ steps.monocart.outputs.skipped }}
-      flaky:    ${{ steps.monocart.outputs.flaky }}
-      duration: ${{ steps.monocart.outputs.duration }}
+      tests:        ${{ steps.monocart.outputs.tests }}
+      passed:       ${{ steps.monocart.outputs.passed }}
+      failed:       ${{ steps.monocart.outputs.failed }}
+      skipped:      ${{ steps.monocart.outputs.skipped }}
+      flaky:        ${{ steps.monocart.outputs.flaky }}
+      duration:     ${{ steps.monocart.outputs.duration }}
+      artifact_url: ${{ steps.artifact_url.outputs.url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -310,10 +311,12 @@ jobs:
           path: ./monocart-shards/
 
       - name: Merge monocart shard reports
-        if: needs.ui-test.result != 'skipped'
+        if: needs.ui-test.result != 'skipped' || needs.api-test.result != 'skipped'
         run: |
-          npx monocart merge 'monocart-shards/*/index.json' \
-            --name "Playwright UI Tests — ${{ env.TEST_ENV }}" \
+          npx monocart merge \
+            'monocart-shards/*/index.json' \
+            'combined-results/api/monocart-api-report/index.json' \
+            --name "Playwright Tests — ${{ env.TEST_ENV }}" \
             --output-file monocart-merged/index.html
         continue-on-error: true
 
@@ -349,6 +352,22 @@ jobs:
           name: monocart-merged-report-${{ github.run_id }}
           path: monocart-merged/
           retention-days: 30
+
+      - name: Get monocart artifact URL
+        id: artifact_url
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARTIFACT_ID=$(gh api \
+            /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts \
+            --jq '.artifacts[] | select(.name == "monocart-merged-report-${{ github.run_id }}") | .id' \
+            2>/dev/null || echo "")
+          if [ -n "$ARTIFACT_ID" ]; then
+            echo "url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACT_ID}" >> $GITHUB_OUTPUT
+          else
+            echo "url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload monocart API report
         uses: actions/upload-artifact@v5
@@ -518,7 +537,7 @@ jobs:
                         "type": "plain_text",
                         "text": "Download Report"
                       },
-                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                      "url": "${{ needs.test-report.outputs.artifact_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}"
                     },
                     {
                       "type": "button",
