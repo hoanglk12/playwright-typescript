@@ -136,6 +136,7 @@ jobs:
           path: |
             test-results/
             playwright-report/
+            monocart-report/
             screenshots/
             videos/
           retention-days: 30
@@ -192,6 +193,7 @@ jobs:
             test-results/api/
             api-results/
             api-report/
+            monocart-api-report/
             playwright-report/
           retention-days: 30
 

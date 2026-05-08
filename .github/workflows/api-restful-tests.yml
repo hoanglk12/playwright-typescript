@@ -62,4 +62,7 @@ jobs:
         path: |
           playwright-report/
           test-results/
+          api-results/
+          api-report/
+          monocart-api-report/
         retention-days: 30
