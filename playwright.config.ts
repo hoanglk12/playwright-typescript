@@ -48,6 +48,12 @@ export default defineConfig({
           environment: process.env.NODE_ENV ?? "testing",
           branch: process.env.GITHUB_REF_NAME ?? "local",
           os: process.platform,
+          ci: process.env.GITHUB_ACTIONS
+            ? `GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ""}`
+            : "local",
+          gitCommit: process.env.GITHUB_SHA
+            ? process.env.GITHUB_SHA.slice(0, 7)
+            : "local",
         },
         trend: process.env.MONOCART_TREND_FILE
           ? (() => {
