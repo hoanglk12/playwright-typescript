@@ -325,11 +325,12 @@ jobs:
             node -e "
               const d = require('./monocart-merged/index.json');
               const s = d.summary || {};
-              console.log('tests=' + (s.tests || 0));
-              console.log('passed=' + (s.passed || 0));
-              console.log('failed=' + (s.failed || 0));
-              console.log('skipped=' + (s.skipped || 0));
-              console.log('flaky=' + (s.flaky || 0));
+              const v = (x) => (x && typeof x === 'object' ? x.value : x) ?? 0;
+              console.log('tests=' + v(s.tests));
+              console.log('passed=' + v(s.passed));
+              console.log('failed=' + v(s.failed));
+              console.log('skipped=' + v(s.skipped));
+              console.log('flaky=' + v(s.flaky));
               console.log('duration=' + (d.durationH || 'N/A'));
             " >> $GITHUB_OUTPUT
           else
@@ -363,7 +364,8 @@ jobs:
           name: combined-test-report-${{ env.TEST_ENV }}
           path: |
             ./combined-report/
-            ./combined-results/
+            ./combined-results/ui/
+            monocart-merged/
           retention-days: 30
 
   notify-slack:

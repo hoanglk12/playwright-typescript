@@ -1,4 +1,5 @@
-import { apiTest as test, expect } from "../../src/api/ApiTest";
+import { apiTest as test, expect, softExpect } from "../../src/api/ApiTest";
+import { createTestLogger } from '../../src/utils/test-logger';
 import { RestfulApiDataGenerator } from "../../src/data/api/restful-api-data";
 import {
   DeviceData,
@@ -144,10 +145,10 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
       // First create an object
       const deviceData = RestfulApiDataGenerator.generateMobileDevice();
       const createdObject = await restfulApiClient.createObject(deviceData);
-      
+
       // Then delete it
       await restfulApiClient.deleteObject(createdObject.id!);
-      
+
       // Verify it's deleted by trying to get it
       try {
         await restfulApiClient.getObjectById(createdObject.id!);
@@ -157,4 +158,31 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
         expect(error).toBeDefined();
       }
     });
+});
+
+test.describe('Soft Assertion Examples @api', () => {
+  test('TC_SA_01 - Pattern A softExpect: multi-property response check', async ({ restfulApiClient }) => {
+    const objects = await restfulApiClient.getAllObjects();
+
+    softExpect(Array.isArray(objects)).toBeTruthy();
+    softExpect(objects.length).toBeGreaterThan(0);
+    softExpect(objects[0]).toBeDefined();
+  });
+
+  test('TC_SA_02 - Pattern B softAssert fixture: structured logging', async ({ restfulApiClient, softAssert }) => {
+    const logger = createTestLogger('TC_SA_02 Pattern B softAssert');
+
+    logger.step('Step 1 - Fetch objects list via response wrapper');
+    const wrapper = await restfulApiClient.getAllObjectsWithWrapper();
+
+    logger.step('Step 2 - Verify response status and shape');
+    softAssert.toBe(wrapper.statusCode(), 200, 'Response status is 200');
+    softAssert.toBeTruthy(wrapper.isSuccess(), 'Response is in 2xx range');
+
+    logger.step('Step 3 - Verify response data array');
+    const objects = await wrapper.json();
+    softAssert.toBeTruthy(Array.isArray(objects), 'Response data is an array');
+    softAssert.toBeGreaterThan(objects.length, 0, 'Response data contains at least one object');
+    softAssert.toBeDefined(objects[0], 'First object is defined');
+  });
 });

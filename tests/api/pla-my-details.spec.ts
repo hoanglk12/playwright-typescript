@@ -1,4 +1,4 @@
-import { apiTest as test, expect } from "../../src/api/ApiTest";
+import { apiTest as test, expect, softExpect } from "../../src/api/ApiTest";
 import {
   plaTestData,
   getTestEmail,
@@ -155,8 +155,8 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
 
     // Validate customer data
     expect(data.createCustomerAddress).toBeDefined();
-    expect(data.createCustomerAddress.id.toString()).toMatch(intRegex);
-    expect(data.createCustomerAddress.__typename).toBe('CustomerAddress');
+    softExpect(data.createCustomerAddress.id.toString()).toMatch(intRegex);
+    softExpect(data.createCustomerAddress.__typename).toBe('CustomerAddress');
 });
 
 test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token", async ({
@@ -187,29 +187,29 @@ test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresse
     // setAddressId(addressId);
 
     // Validate customer and address data
-    expect(data.customer.id).toBe(customerId);
-    expect(data.customer.addresses![0].id).toBe(addressId);
-    expect(data.customer.addresses![0].__typename).toBe('CustomerAddress');
-    expect(data.customer.addresses![0].city).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.city);
-    expect(data.customer.addresses![0].company).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.company);
-    expect(data.customer.addresses![0].country_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.country_code);
-    expect(data.customer.addresses![0].default_billing).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_billing);
-    expect(data.customer.addresses![0].default_shipping).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_shipping);
-    expect(data.customer.addresses![0].firstname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.firstname);
-    expect(data.customer.addresses![0].lastname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.lastname);
-    expect(data.customer.addresses![0].middlename).toBeNull();
-    expect(data.customer.addresses![0].postcode).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.postcode);
-    expect(data.customer.addresses![0].region.region).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.region.region);
-    expect(data.customer.addresses![0].region.__typename).toBe('CustomerAddressRegion');
-    expect(data.customer.addresses![0].custom_attributes![0].attribute_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.attribute_code);
-    expect(data.customer.addresses![0].custom_attributes![0].value).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.value);
-    expect(data.customer.addresses![0].custom_attributes![0].__typename).toBe('CustomerAddressAttribute');
-    expect(data.customer.addresses![0].street[0]).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.street);
-    expect(data.customer.addresses![0].telephone).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.telephone);
-    expect(data.customer.__typename).toBe('Customer');
-    expect(data.countries![0].id).toBe('AU');
-    expect(data.countries![0].full_name_locale).toBe('Australia');
-    expect(data.countries![0].__typename).toBe('Country');
+    softExpect(data.customer.id).toBe(customerId);
+    softExpect(data.customer.addresses![0].id).toBe(addressId);
+    softExpect(data.customer.addresses![0].__typename).toBe('CustomerAddress');
+    softExpect(data.customer.addresses![0].city).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.city);
+    softExpect(data.customer.addresses![0].company).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.company);
+    softExpect(data.customer.addresses![0].country_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.country_code);
+    softExpect(data.customer.addresses![0].default_billing).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_billing);
+    softExpect(data.customer.addresses![0].default_shipping).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_shipping);
+    softExpect(data.customer.addresses![0].firstname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.firstname);
+    softExpect(data.customer.addresses![0].lastname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.lastname);
+    softExpect(data.customer.addresses![0].middlename).toBeNull();
+    softExpect(data.customer.addresses![0].postcode).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.postcode);
+    softExpect(data.customer.addresses![0].region.region).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.region.region);
+    softExpect(data.customer.addresses![0].region.__typename).toBe('CustomerAddressRegion');
+    softExpect(data.customer.addresses![0].custom_attributes![0].attribute_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.attribute_code);
+    softExpect(data.customer.addresses![0].custom_attributes![0].value).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.value);
+    softExpect(data.customer.addresses![0].custom_attributes![0].__typename).toBe('CustomerAddressAttribute');
+    softExpect(data.customer.addresses![0].street[0]).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.street);
+    softExpect(data.customer.addresses![0].telephone).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.telephone);
+    softExpect(data.customer.__typename).toBe('Customer');
+    softExpect(data.countries![0].id).toBe('AU');
+    softExpect(data.countries![0].full_name_locale).toBe('Australia');
+    softExpect(data.countries![0].__typename).toBe('Country');
 
 });
 
@@ -254,10 +254,9 @@ test("PLA_UpdateCustomerAddressInAddressBook - should update customer address wi
 
     // Validate the response
     expect(data.updateCustomerAddress).toBeDefined();
-    expect(data.updateCustomerAddress.id).toBe(parseInt(addressId)); // Compare as numbers
-    expect(data.updateCustomerAddress).toBeDefined();
-    expect(data.updateCustomerAddress.default_billing).toBeFalsy();
-    expect(data.updateCustomerAddress.default_shipping).toBeFalsy();
+    softExpect(data.updateCustomerAddress.id).toBe(parseInt(addressId));
+    softExpect(data.updateCustomerAddress.default_billing).toBeFalsy();
+    softExpect(data.updateCustomerAddress.default_shipping).toBeFalsy();
 
     console.log("✅ Address updated successfully");
 });
@@ -300,7 +299,7 @@ test("PLA_DeleteCustomerAddressFromAddressBook - should delete customer address 
 
     // Validate the response
     expect(data.deleteCustomerAddress).toBeDefined();
-    expect(data.deleteCustomerAddress).toBe(true);
+    softExpect(data.deleteCustomerAddress).toBe(true);
 
     console.log("✅ Address deleted successfully");
 });
@@ -343,8 +342,8 @@ test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with vali
     // Validate the response
     expect(data.updateCustomerV2).toBeDefined();
     expect(data.updateCustomerV2.customer).toBeDefined();
-    expect(data.updateCustomerV2.customer.id).toBe(customerId);
-    expect(data.updateCustomerV2.customer.is_subscribed).toBe(true);
+    softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
+    softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(true);
 
     console.log("✅ User is subscribed to newsletter successfully");
 });
@@ -387,8 +386,8 @@ test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with va
     // Validate the response
     expect(data.updateCustomerV2).toBeDefined();
     expect(data.updateCustomerV2.customer).toBeDefined();
-    expect(data.updateCustomerV2.customer.id).toBe(customerId);
-    expect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
+    softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
+    softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
 
     console.log("✅ User is subscribed to newsletter successfully");
 });
@@ -435,9 +434,9 @@ test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newslett
     // Validate the response
     expect(data.updateCustomerV2).toBeDefined();
     expect(data.updateCustomerV2.customer).toBeDefined();
-    expect(data.updateCustomerV2.customer.id).toBe(customerId);
-    expect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
-    expect(data.updateCustomerV2.customer.loyalty_program_status).toBe(false);
+    softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
+    softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
+    softExpect(data.updateCustomerV2.customer.loyalty_program_status).toBe(false);
 
     console.log("✅ User is unsubscribed to newsletter and not a loyalty member successfully");
 });
@@ -464,8 +463,8 @@ test("PLA_loyalty - retrieve loyalty newsletter subscription message with valid 
     console.log("Updated response data:", data);
 
     // Validate the response
-    expect(data.multiplerewards_loyalty_newsletter_subscription_messages).toBeDefined();
-    expect(data.multiplerewards_loyalty_newsletter_subscription_banner_messages).toBeDefined();
+    softExpect(data.multiplerewards_loyalty_newsletter_subscription_messages).toBeDefined();
+    softExpect(data.multiplerewards_loyalty_newsletter_subscription_banner_messages).toBeDefined();
 
 
 });

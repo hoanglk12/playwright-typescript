@@ -1,4 +1,4 @@
-import { apiTest as test, expect } from '../../src/api/ApiTest';
+import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
 
 // Disable parallel execution for all tests
 test.describe.configure({ mode: 'serial' });
@@ -27,9 +27,9 @@ test.describe('Restful Booker API - Booking Endpoints', () => {
         const response = await bookingService.getBooking(bookingId);
         await response.assertStatus(200);
         const booking = await response.json();
-        expect(booking).toHaveProperty('firstname');
-        expect(booking).toHaveProperty('lastname');
-        expect(booking.bookingdates).toHaveProperty('checkin');
+        softExpect(booking).toHaveProperty('firstname');
+        softExpect(booking).toHaveProperty('lastname');
+        softExpect(booking.bookingdates).toHaveProperty('checkin');
     });
 
     test('should create a new booking', async ({ bookingService }) => {
@@ -44,8 +44,8 @@ test.describe('Restful Booker API - Booking Endpoints', () => {
         const response = await bookingService.createBooking(newBooking);
         await response.assertStatus(200);
         const booking = await response.json();
-        expect(booking).toHaveProperty('bookingid');
-        expect(booking.booking).toMatchObject(newBooking);
+        softExpect(booking).toHaveProperty('bookingid');
+        softExpect(booking.booking).toMatchObject(newBooking);
     });
 
     test('should check API health', async ({ bookingService }) => {
@@ -62,8 +62,8 @@ test.describe('Restful Booker API - Authentication', () => {
         const response = await bookingService.authenticate('admin', 'password123');
         await response.assertStatus(200);
         const auth = await response.json();
-        expect(auth).toHaveProperty('token');
-        expect(typeof auth.token).toBe('string');
+        softExpect(auth).toHaveProperty('token');
+        softExpect(typeof auth.token).toBe('string');
     });
 });
 

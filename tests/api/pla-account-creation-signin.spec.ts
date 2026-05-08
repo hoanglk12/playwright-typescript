@@ -5,7 +5,7 @@
  * API Endpoint: Configured via environment (graphqlApiBaseUrl)
  */
 
-import { apiTest as test, expect } from '../../src/api/ApiTest';
+import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
 import { plaTestData, getTestEmail, plaErrorMessages, expectedCustomerData } from '../../src/data/api/pla-test-data';
 import { setCustomerToken, setCustomerId } from './shared-state';
 
@@ -74,11 +74,11 @@ test.describe('PLA GraphQL API - Account Management', () => {
     
     // Verify the error message (using non-null assertion since we checked above)
     // API returns full email in error: "\"invalidemail@mail.com--\" is not a valid email address."
-    expect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidEmail);
-    expect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-input');
-    
+    softExpect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidEmail);
+    softExpect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-input');
+
     // Verify that data.createCustomer is null when there's an error
-    expect(graphqlResponse.data.createCustomer).toBeNull();
+    softExpect(graphqlResponse.data.createCustomer).toBeNull();
     
     console.log('✅ Error validation passed: Invalid email format detected');
   });
@@ -143,10 +143,10 @@ test.describe('PLA GraphQL API - Account Management', () => {
     setCustomerId(customerId); // Update shared state
     
     // Validate customer data matches input
-    expect(data.createCustomer.customer.id).toBeTruthy();
-    expect(data.createCustomer.customer.firstname).toBe(expectedCustomerData.firstname);
-    expect(data.createCustomer.customer.lastname).toBe(expectedCustomerData.lastname);
-    expect(data.createCustomer.customer.email).toBe(testEmail);
+    softExpect(data.createCustomer.customer.id).toBeTruthy();
+    softExpect(data.createCustomer.customer.firstname).toBe(expectedCustomerData.firstname);
+    softExpect(data.createCustomer.customer.lastname).toBe(expectedCustomerData.lastname);
+    softExpect(data.createCustomer.customer.email).toBe(testEmail);
     
     console.log('✅ Created customer ID:', customerId);
     console.log('Customer email:', testEmail);
@@ -179,11 +179,11 @@ test('PLA_SignIn - should login fail when provide wrong email or password', asyn
     expect(graphqlResponse.errors).toHaveLength(1);
     
     // Verify the error message (using non-null assertion since we checked above)
-    expect(graphqlResponse.errors![0].message).toBe(plaErrorMessages.invalidCredentials);
-    expect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-authentication');
-    
+    softExpect(graphqlResponse.errors![0].message).toBe(plaErrorMessages.invalidCredentials);
+    softExpect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-authentication');
+
     // Verify that data.createCustomer is null when there's an error
-    expect(graphqlResponse.data.generateCustomerToken).toBeNull();
+    softExpect(graphqlResponse.data.generateCustomerToken).toBeNull();
   });
 
   test('PLA_SignIn - should generate customer token for valid credentials', async ({ createGraphQLClient }) => {
@@ -220,8 +220,8 @@ test('PLA_SignIn - should login fail when provide wrong email or password', asyn
     
     // Verify token does NOT contain special characters (Postman assertion)
     const specialCharRegex = /[^a-zA-Z0-9._-]/;
-    expect(customerToken).not.toMatch(specialCharRegex);
-    expect(customerToken).toBeTruthy();
+    softExpect(customerToken).not.toMatch(specialCharRegex);
+    softExpect(customerToken).toBeTruthy();
     
     console.log('Customer token generated (first 20 chars):', customerToken.substring(0, 20) + '...');
   });
@@ -325,13 +325,13 @@ test('PLA_SignIn - should login fail when provide wrong email or password', asyn
     setCustomerId(customerId); // Update shared state
     
     // Validate customer information
-    expect(customer.id).toBeTruthy();
-    expect(customer.firstname).toBe(expectedCustomerData.firstname);
-    expect(customer.lastname).toBe(expectedCustomerData.lastname);
-    expect(customer.email).toBe(testEmail);
-    expect(customer.is_subscribed).toBe(expectedCustomerData.isSubscribed);
-    expect(customer.gender).toBe(expectedCustomerData.gender);
-    expect(customer.__typename).toBe('Customer');
+    softExpect(customer.id).toBeTruthy();
+    softExpect(customer.firstname).toBe(expectedCustomerData.firstname);
+    softExpect(customer.lastname).toBe(expectedCustomerData.lastname);
+    softExpect(customer.email).toBe(testEmail);
+    softExpect(customer.is_subscribed).toBe(expectedCustomerData.isSubscribed);
+    softExpect(customer.gender).toBe(expectedCustomerData.gender);
+    softExpect(customer.__typename).toBe('Customer');
     
     console.log('Customer details retrieved:');
     console.log('  ID:', customer.id);
