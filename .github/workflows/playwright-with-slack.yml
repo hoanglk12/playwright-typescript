@@ -385,6 +385,7 @@ jobs:
           path: |
             ./combined-report/
             ./combined-results/ui/
+            ./combined-results/api/
             monocart-merged/
           retention-days: 30
 
