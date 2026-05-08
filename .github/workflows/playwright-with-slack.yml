@@ -223,6 +223,7 @@ jobs:
             test-results/api/
             api-results/
             api-report/
+            monocart-api-report/
             playwright-report/
           retention-days: 30
 
@@ -346,6 +347,14 @@ jobs:
         with:
           name: monocart-merged-report-${{ github.run_id }}
           path: monocart-merged/
+          retention-days: 30
+
+      - name: Upload monocart API report
+        uses: actions/upload-artifact@v5
+        if: always() && needs.api-test.result != 'skipped'
+        with:
+          name: monocart-api-report-${{ github.run_id }}
+          path: combined-results/api/monocart-api-report/
           retention-days: 30
 
       - name: Upload combined report
