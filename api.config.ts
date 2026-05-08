@@ -48,10 +48,10 @@ export default defineConfig({
         metadata: {
           project: 'Playwright TypeScript Framework — API',
           environment: process.env.NODE_ENV ?? 'testing',
-          ci: process.env.GITHUB_ACTIONS
+          "CI Run": process.env.GITHUB_ACTIONS
             ? `GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ''}`
             : 'local',
-          gitCommit: process.env.GITHUB_SHA
+          "Git Commit": process.env.GITHUB_SHA
             ? process.env.GITHUB_SHA.slice(0, 7)
             : 'local',
         },
