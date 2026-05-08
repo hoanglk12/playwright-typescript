@@ -46,13 +46,13 @@ export default defineConfig({
         name: `Playwright API Tests — ${process.env.NODE_ENV ?? 'testing'}`,
         outputFile: 'monocart-api-report/index.html',
         metadata: {
-          project: 'Playwright TypeScript Framework — API',
-          environment: process.env.NODE_ENV ?? 'testing',
+          project: String('Playwright TypeScript Framework — API'),
+          environment: String(process.env.NODE_ENV ?? 'testing'),
           "CI Run": process.env.GITHUB_ACTIONS
-            ? `GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ''}`
+            ? String(`GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ''}`)
             : 'local',
           "Git Commit": process.env.GITHUB_SHA
-            ? process.env.GITHUB_SHA.slice(0, 7)
+            ? String(process.env.GITHUB_SHA.slice(0, 7))
             : 'local',
         },
         trend: process.env.MONOCART_API_TREND_FILE

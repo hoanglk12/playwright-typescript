@@ -164,6 +164,7 @@ jobs:
           path: |
             test-results/
             playwright-report/
+            monocart-report/
             screenshots/
             videos/
           retention-days: 30
