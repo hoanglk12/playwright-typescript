@@ -318,7 +318,7 @@ jobs:
             'monocart-shards/*/index.json' \
             'combined-results/api/monocart-api-report/index.json' \
             --name "Playwright Tests — ${{ env.TEST_ENV }}" \
-            --output-file monocart-merged/index.html
+            --outputFile monocart-merged/index.html
         continue-on-error: true
 
       - name: Extract merged monocart summary
