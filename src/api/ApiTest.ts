@@ -1,10 +1,12 @@
-import { test as base } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
 import { ApiClient, ApiClientOptions, AuthType } from './ApiClient';
 import { ApiClientExt } from './ApiClientExt';
 import { RestfulApiClient } from './services/restful-device/RestfulApiClient';
 import { GraphQLClient, GraphQLClientOptions } from './GraphQLClient';
 import { RestfulBookerService } from './services/restful-booker';
 import { getApiEnvironment } from './config/environment';
+import { SoftAssertHelper } from '../utils/soft-assert-helper';
+import { TestLogger } from '../utils/test-logger';
 
 /**
  * API Test fixture interface
@@ -22,6 +24,7 @@ export interface ApiTestFixtures {
   createClientExt: (options: Partial<ApiClientOptions>) => Promise<ApiClientExt>;
   createRestfulApiClient: (options?: Partial<ApiClientOptions>) => Promise<RestfulApiClient>;
   createGraphQLClient: (options?: Partial<GraphQLClientOptions>) => Promise<GraphQLClient>;
+  softAssert: SoftAssertHelper;
 }
 
 /**
@@ -144,6 +147,10 @@ export const apiTest = base.extend<ApiTestFixtures>({
         }
     },
 
+    softAssert: async ({}, use) => {
+        await use(new SoftAssertHelper(new TestLogger(base.info().title)));
+    },
+
     // Helper to create GraphQL clients with custom options
     createGraphQLClient: async ({ graphqlURL }, use) => {
         const clients: GraphQLClient[] = [];
@@ -167,3 +174,4 @@ export const apiTest = base.extend<ApiTestFixtures>({
 
 // Export the API test and expect functions
 export { expect } from '@playwright/test';
+export const softExpect: typeof expect.soft = expect.soft.bind(expect);

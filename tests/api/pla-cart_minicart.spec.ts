@@ -10,7 +10,7 @@
  * API Endpoint: Configured via environment (graphqlApiBaseUrl)
  */
 
-import { apiTest as test, expect } from "../../src/api/ApiTest";
+import { apiTest as test, expect, softExpect } from "../../src/api/ApiTest";
 import {
   plaTestData,
   plaErrorMessages,
@@ -159,7 +159,7 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
     expect(response.assertStatus(200));
 
     // Verify cartId does NOT contain special characters
-    expect(cartId).not.toMatch(specialCharRegex);
+    softExpect(cartId).not.toMatch(specialCharRegex);
     console.log("Cart Id data: ", cartId);
   });
 
@@ -181,10 +181,10 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
     // Verify that errors exist
     expect(graphqlResponse.errors).toBeDefined();
     expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
-    expect(graphqlResponse.errors![0].message).toContain(
+    softExpect(graphqlResponse.errors![0].message).toContain(
       plaErrorMessages.invalidCartId
     );
-    expect(graphqlResponse.data?.cart).toBeNull();
+    softExpect(graphqlResponse.data?.cart).toBeNull();
 
     console.log("Cart Error details retrieved:");
     console.log("  Length:", graphqlResponse.errors?.length);
@@ -223,10 +223,10 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
     expect(data.cart).toBeDefined();
 
     // Verify cart data
-    expect(data.cart.id).toBe(cartId);
-    expect(data.cart.total_quantity).toBeDefined();
-    expect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
-    expect(data.cart.__typename).toBe("Cart");
+    softExpect(data.cart.id).toBe(cartId);
+    softExpect(data.cart.total_quantity).toBeDefined();
+    softExpect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
+    softExpect(data.cart.__typename).toBe("Cart");
 
     console.log("GetItemCount details retrieved:");
     console.log("  Id:", data.cart.id);
@@ -257,10 +257,10 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
     // Verify that errors exist
     expect(graphqlResponse.errors).toBeDefined();
     expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
-    expect(graphqlResponse.errors![0].message).toContain(
+    softExpect(graphqlResponse.errors![0].message).toContain(
       plaErrorMessages.invalidCartId
     );
-    expect(graphqlResponse.data?.cart).toBeNull();
+    softExpect(graphqlResponse.data?.cart).toBeNull();
   });
 
   test("PLA_MiniCartQuery - return data about cartId, quantity, prices, rewards msg, and qff", async ({
@@ -294,24 +294,24 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
     expect(data.cart).toBeDefined();
 
     // Verify cart data
-    expect(data.cart.id).toBe(cartId);
-    expect(data.cart.total_quantity).toBeDefined();
-    expect(data.cart.prices.subtotal_including_tax).toBeDefined();
-    expect(data.cart.prices.grand_total).toBeDefined();
-    expect(data.cart.prices.special_price_discount).toBeDefined();
-    expect(data.cart.prices.discounts).toBeNull();
-    expect(data.cart.prices.__typename).toBe("CartPrices");
-    expect(data.cart.multiple_rewards_message).toBe(
+    softExpect(data.cart.id).toBe(cartId);
+    softExpect(data.cart.total_quantity).toBeDefined();
+    softExpect(data.cart.prices.subtotal_including_tax).toBeDefined();
+    softExpect(data.cart.prices.grand_total).toBeDefined();
+    softExpect(data.cart.prices.special_price_discount).toBeDefined();
+    softExpect(data.cart.prices.discounts).toBeNull();
+    softExpect(data.cart.prices.__typename).toBe("CartPrices");
+    softExpect(data.cart.multiple_rewards_message).toBe(
       "Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout."
     );
-    expect(data.cart.qff_reward.is_qff_member).toBe(false);
-    expect(data.cart.qff_reward.qff_points).toBe(0);
-    expect(data.cart.qff_reward.qff_reward_message).toBe(
+    softExpect(data.cart.qff_reward.is_qff_member).toBe(false);
+    softExpect(data.cart.qff_reward.qff_points).toBe(0);
+    softExpect(data.cart.qff_reward.qff_reward_message).toBe(
       "Earn 0 Qantas Points with this purchase"
     );
-    expect(data.cart.qff_reward.__typename).toBe("QffReward");
-    expect(data.cart.__typename).toBe("Cart");
-    expect(data.cart.applied_qantas_points).toBeNull();
+    softExpect(data.cart.qff_reward.__typename).toBe("QffReward");
+    softExpect(data.cart.__typename).toBe("Cart");
+    softExpect(data.cart.applied_qantas_points).toBeNull();
   });
 
   test("PLA_GetCartDetailsAfterSignIn - return data about cartId, quantity, prices, rewards msg, and qff", async ({
@@ -346,14 +346,14 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
 
 
     // Verify cart data
-    expect(data.cart.id).toBe(cartId);
-    expect(Array.isArray(data.cart.items)).toBe(true);
-    expect(Array.isArray(data.cart.available_payment_methods)).toBe(true);
-    expect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
-    expect(Array.isArray(data.cart.applied_gift_cards)).toBe(true);
-    expect(data.cart.applied_qantas_points).toBeNull();
-    expect(data.cart.applied_multiple_rewards).toBeNull();
-    expect(data.cart.applied_coupons).toBeNull();
+    softExpect(data.cart.id).toBe(cartId);
+    softExpect(Array.isArray(data.cart.items)).toBe(true);
+    softExpect(Array.isArray(data.cart.available_payment_methods)).toBe(true);
+    softExpect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
+    softExpect(Array.isArray(data.cart.applied_gift_cards)).toBe(true);
+    softExpect(data.cart.applied_qantas_points).toBeNull();
+    softExpect(data.cart.applied_multiple_rewards).toBeNull();
+    softExpect(data.cart.applied_coupons).toBeNull();
 
     
     // Check if payment methods contain expected codes
@@ -361,14 +361,14 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
     const expectedCodes = ["checkmo", "braintree_applepay", "free", "braintree", "braintree_paypal"];
     console.log("Available payment method codes: ", paymentMethodCodes);
     console.log("Expected payment method codes: ", expectedCodes);
-    expect(paymentMethodCodes).toEqual(expect.arrayContaining(expectedCodes));
+    softExpect(paymentMethodCodes).toEqual(expect.arrayContaining(expectedCodes));
 
    // Check if payment methods contain expected codes
     const paymentMethodTitles = data.cart.available_payment_methods.map((method: any) => method.title);
     const expectedTitles = ["Check / Money order", "Apple Pay", "No Payment Information Required", "Credit or Debit Card", "PayPal"];
     console.log("Available payment method titles: ", paymentMethodTitles);
     console.log("Expected payment method titles: ", expectedTitles);
-    expect(paymentMethodTitles).toEqual(expect.arrayContaining(expectedTitles));
+    softExpect(paymentMethodTitles).toEqual(expect.arrayContaining(expectedTitles));
   });
 
   test("PLA_checkUserIsAuthed - return data about cartId, quantity, prices, rewards msg, and qff", async ({
@@ -403,8 +403,8 @@ test.describe.serial("PLA GraphQL API - Cart & MiniCart apis", () => {
 
 
     // Verify cart data
-    expect(data.cart.id).toBe(cartId);
-    expect(data.cart.__typename).toBe('Cart');
+    softExpect(data.cart.id).toBe(cartId);
+    softExpect(data.cart.__typename).toBe('Cart');
 
   });
 

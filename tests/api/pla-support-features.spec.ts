@@ -1,4 +1,4 @@
-import { apiTest as test, expect } from "../../src/api/ApiTest";
+import { apiTest as test, expect, softExpect } from "../../src/api/ApiTest";
 import {
   plaTestData,
   getTestEmail,
@@ -170,9 +170,9 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
 
     // Validate customer data
     expect(data.currency).toBeDefined();
-    expect(data.currency.default_display_currency_code).toMatch(/^[A-Z]{3}$/);
-    expect(data.currency.available_currency_codes).toContain('AUD');
-    expect(data.currency.__typename).toBe('Currency');
+    softExpect(data.currency.default_display_currency_code).toMatch(/^[A-Z]{3}$/);
+    softExpect(data.currency.available_currency_codes).toContain('AUD');
+    softExpect(data.currency.__typename).toBe('Currency');
 });
 
 test("PLA_getDynamicData - should get correct dynamic data with valid cartId", async ({
@@ -199,9 +199,9 @@ test("PLA_getDynamicData - should get correct dynamic data with valid cartId", a
 
 
     // Validate customer data
-    expect(data.cart.dynamic_promo_blocks.discount).toBeNull();
-    expect(data.cart.dynamic_promo_blocks.gift).toBeNull();
-    expect(data.cart.dynamic_promo_blocks.message).toBeDefined();
+    softExpect(data.cart.dynamic_promo_blocks.discount).toBeNull();
+    softExpect(data.cart.dynamic_promo_blocks.gift).toBeNull();
+    softExpect(data.cart.dynamic_promo_blocks.message).toBeDefined();
 });
 
 
