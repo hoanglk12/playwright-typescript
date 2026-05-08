@@ -11,6 +11,19 @@ const env = getEnvironment();
 export default defineConfig({
   testDir: "./tests",
 
+  metadata: {
+    project: "Playwright TypeScript Framework",
+    environment: String(process.env.NODE_ENV ?? "testing"),
+    branch: String(process.env.GITHUB_REF_NAME ?? "local"),
+    os: String(process.platform),
+    "CI Run": process.env.GITHUB_ACTIONS
+      ? String(`GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ""}`)
+      : "local",
+    "Git Commit": process.env.GITHUB_SHA
+      ? String(process.env.GITHUB_SHA.slice(0, 7))
+      : "local",
+  },
+
   /* Run tests in files in parallel */
   fullyParallel: true,
 
@@ -43,18 +56,6 @@ export default defineConfig({
       {
         name: `Playwright UI Tests — ${process.env.NODE_ENV ?? "testing"}`,
         outputFile: "monocart-report/index.html",
-        metadata: {
-          project: "Playwright TypeScript Framework",
-          environment: String(process.env.NODE_ENV ?? "testing"),
-          branch: String(process.env.GITHUB_REF_NAME ?? "local"),
-          os: String(process.platform),
-          "CI Run": process.env.GITHUB_ACTIONS
-            ? String(`GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ""}`)
-            : "local",
-          "Git Commit": process.env.GITHUB_SHA
-            ? String(process.env.GITHUB_SHA.slice(0, 7))
-            : "local",
-        },
         trend: process.env.MONOCART_TREND_FILE
           ? (() => {
               try {

@@ -26,6 +26,17 @@ function getApiBaseURL(apiService: string): string {
  */
 export default defineConfig({
   testDir: './tests/api',
+
+  metadata: {
+    project: String('Playwright TypeScript Framework — API'),
+    environment: String(process.env.NODE_ENV ?? 'testing'),
+    'CI Run': process.env.GITHUB_ACTIONS
+      ? String(`GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ''}`)
+      : 'local',
+    'Git Commit': process.env.GITHUB_SHA
+      ? String(process.env.GITHUB_SHA.slice(0, 7))
+      : 'local',
+  },
   /* Run tests in files in parallel */
   fullyParallel: false, // Disabled for API tests to avoid rate limiting
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -45,16 +56,6 @@ export default defineConfig({
       {
         name: `Playwright API Tests — ${process.env.NODE_ENV ?? 'testing'}`,
         outputFile: 'monocart-api-report/index.html',
-        metadata: {
-          project: String('Playwright TypeScript Framework — API'),
-          environment: String(process.env.NODE_ENV ?? 'testing'),
-          "CI Run": process.env.GITHUB_ACTIONS
-            ? String(`GitHub Actions #${process.env.GITHUB_RUN_NUMBER ?? ''}`)
-            : 'local',
-          "Git Commit": process.env.GITHUB_SHA
-            ? String(process.env.GITHUB_SHA.slice(0, 7))
-            : 'local',
-        },
         trend: process.env.MONOCART_API_TREND_FILE
           ? (() => {
               try {
