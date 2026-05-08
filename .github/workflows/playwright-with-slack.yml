@@ -311,12 +311,17 @@ jobs:
           pattern: monocart-shard-*-${{ github.run_id }}
           path: ./monocart-shards/
 
+      - name: Consolidate monocart inputs for merge
+        if: needs.api-test.result != 'skipped'
+        run: |
+          mkdir -p monocart-shards/api
+          cp combined-results/api/monocart-api-report/index.json monocart-shards/api/index.json
+
       - name: Merge monocart shard reports
         if: needs.ui-test.result != 'skipped' || needs.api-test.result != 'skipped'
         run: |
           npx monocart merge \
             'monocart-shards/*/index.json' \
-            'combined-results/api/monocart-api-report/index.json' \
             --name "Playwright Tests — ${{ env.TEST_ENV }}" \
             --outputFile monocart-merged/index.html
         continue-on-error: true
