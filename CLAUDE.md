@@ -230,15 +230,232 @@ static generateCustomerData() { return { customerName: 'Test' }; }
 
 ## API Tests
 
-- Entry point: `src/api/ApiTest.ts` (extends base test with `restfulApiClient`, `restfulDeviceClient`, `bookingService`, `graphqlClient` fixtures)
-- Services: `src/api/services/{service-name}/`
-- Models live alongside services; response assertions use `ApiResponse` chaining (`.assertStatus()`, `.assertJsonPath()`, etc.)
-- **GraphQL**: `GraphQLClient` is a dedicated client for queries/mutations — use `graphqlClient` fixture in API tests
-- **Cross-test token sharing**: `ApiClient.storeToken(key, token)` / `ApiClient.getToken(key)` / `ApiClient.withStoredToken(options, tokenKey)` — use this for auth tokens that must persist across tests within a single worker
-- **Shared state**: `tests/api/shared-state.ts` for state that must persist across test files in a single worker
-- **API-specific lifecycle**: `tests/api/global-setup.ts` and `tests/api/global-teardown.ts` run before/after the API suite
-- **Mocking**: `ApiMockService` in `src/api/ApiMockService.ts` for centralised route mocking scenarios
-- Run: `npm run test:api` — executes with 1 worker to avoid rate-limiting
+### Import — Critical Difference from UI Tests
+
+API tests use a separate base test — **never import from `@config/base-test` in API test files**:
+
+```ts
+import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { AuthType } from '../../src/api/ApiClient';
+import { createTestLogger } from '../../src/utils/test-logger';
+```
+
+### Serial Mode — Mandatory
+
+Every API spec file must declare this at the top, outside all `test.describe` blocks:
+
+```ts
+test.describe.configure({ mode: 'serial' });
+```
+
+### Fixtures (defined in `src/api/ApiTest.ts`)
+
+| Fixture | Type | Purpose |
+|---|---|---|
+| `apiBaseUrl` | `string` | Resolved base URL from env |
+| `restfulApiBaseURL` | `string` | Restful-device API base URL |
+| `graphqlURL` | `string` | `graphqlBaseUrl + graphqlEndpoint` |
+| `apiClient` | `ApiClient` | Raw REST client (low-level HTTP) |
+| `apiClientExt` | `ApiClientExt` | REST client with `*WithWrapper` methods (preferred) |
+| `restfulApiClient` | `RestfulApiClient` | Device API (restful-device service) |
+| `bookingService` | `RestfulBookerService` | Restful-booker service abstraction |
+| `graphqlClient` | `GraphQLClient` | GraphQL queries and mutations |
+| `createClient` | factory | Custom `ApiClient` with any `ApiClientOptions` |
+| `createClientExt` | factory | Custom `ApiClientExt` with any `ApiClientOptions` |
+| `createRestfulApiClient` | factory | Custom `RestfulApiClient` with any options |
+| `createGraphQLClient` | factory | Custom `GraphQLClient` (e.g. different auth) |
+| `softAssert` | `SoftAssertHelper` | Soft assertions integrated with logger |
+
+### Auth Types (`AuthType` enum)
+
+```ts
+AuthType.NONE        // No auth headers
+AuthType.BASIC       // Basic auth (username + password → base64)
+AuthType.BEARER      // Bearer token in Authorization header
+AuthType.API_KEY     // Custom header name + value
+AuthType.CUSTOM      // Arbitrary headers via customHeaders map
+```
+
+### `ApiClientExt` — Preferred REST Client
+
+`ApiClientExt` adds `*WithWrapper` methods that return `ApiResponseWrapper` for assertion chaining:
+
+```ts
+const response = await apiClientExt.getWithWrapper('/resource/1');
+await response.assertStatus(200);
+await response.assertJsonPath('id', 1);
+await response.assertJsonPathContains('tags', 'active');
+await response.assertHasHeader('content-type');
+const value = await response.extract('data.name');
+```
+
+Available methods: `getWithWrapper`, `postWithWrapper`, `putWithWrapper`, `patchWithWrapper`, `deleteWithWrapper`.
+
+### `ApiResponseWrapper` Assertion Chain
+
+| Method | Description |
+|---|---|
+| `assertStatus(code)` | Assert HTTP status code |
+| `assertJson(expected)` | `toMatchObject` on full JSON body |
+| `assertJsonPath(path, value)` | Dot-notation path equality (`'user.name'`) |
+| `assertJsonPathContains(path, value)` | Contains check (string, array, or partial object) |
+| `assertHeader(name, value)` | Header value equality |
+| `assertHasHeader(name)` | Header exists |
+| `statusCode()` | Returns HTTP status code (sync) |
+| `isSuccess()` | `status >= 200 && <= 299` |
+| `isClientError()` | `status >= 400 && <= 499` |
+| `isServerError()` | `status >= 500 && <= 599` |
+| `json<T>()` | Parse body as JSON (throws if not JSON content-type) |
+| `text()` | Body as string |
+| `extract<T>(path)` | Dot-notation extraction from JSON |
+| `header(name)` | Single header value |
+| `headers()` | All headers as `Record<string, string>` |
+
+### GraphQL — `GraphQLClient`
+
+`GraphQLClient` extends `ApiClient`. Always use `*Wrapped` methods to get `GraphQLResponseWrapper`.
+
+```ts
+// Query with variables
+const response = await graphqlClient.queryWrapped(
+  `query GetUser($id: ID!) { user(id: $id) { id name } }`,
+  { id: '1' }
+);
+await response.assertNoErrors();           // REQUIRED on every happy-path test
+await response.assertDataField('user.id', '1');
+
+// Mutation
+const response = await graphqlClient.mutateWrapped(
+  `mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) { id name }
+  }`,
+  { input: { name: 'Alice', email: 'alice@example.com' } }
+);
+await response.assertNoErrors();
+await response.assertHasData();
+```
+
+**Key `GraphQLClient` methods:** `query`, `mutate`, `queryWrapped`, `mutateWrapped`, `introspect`, `addToBatch`, `executeBatch`, `parseGraphQLResponse`, `hasErrors`, `getErrorMessages`
+
+**`GraphQLResponseWrapper` assertion chain:**
+
+| Method | Description |
+|---|---|
+| `assertNoErrors()` | Fails if `errors` field present — call first on happy-path |
+| `assertHasErrors()` | Fails if no `errors` field |
+| `assertErrorMessage(msg)` | Partial match on any error message |
+| `assertErrorCode(code)` | Matches `extensions.code` on any error |
+| `assertErrorPath(path[])` | Matches error `path` array |
+| `assertData(expected)` | `toMatchObject` on `data` field |
+| `assertDataField(path, value)` | Dot-notation equality in `data` |
+| `assertDataFieldContains(path, value)` | Contains check in `data` |
+| `assertHasData()` | `data` is defined and not null |
+| `assertDataHasFields(fields[])` | Each field name present in `data` |
+| `getListSize(path)` | Array length at dot-notation path |
+| `assertListSize(path, size)` | Assert array length |
+| `getData<T>()` | Returns typed `data` object |
+| `getErrors()` | Raw GraphQL errors array |
+| `getErrorMessages()` | String array of error messages |
+
+**Never string-interpolate variables into query strings:**
+
+```ts
+// WRONG — injection risk, breaks caching
+await graphqlClient.queryWrapped(`query { user(id: "${id}") { name } }`);
+
+// CORRECT — always use the variables argument
+await graphqlClient.queryWrapped(
+  `query GetUser($id: ID!) { user(id: $id) { name } }`,
+  { id }
+);
+```
+
+### REST API Test Template
+
+```ts
+import { apiTest as test, expect } from '../../src/api/ApiTest';
+import { MyApiData } from '../../src/data/my-api-data';
+import { createTestLogger } from '../../src/utils/test-logger';
+
+test.describe.configure({ mode: 'serial' });
+
+test.describe('Resource API @api @regression', () => {
+  test('TC_01 - Should fetch resource by ID', async ({ apiClientExt }) => {
+    const logger = createTestLogger('TC_01 Should fetch resource by ID');
+
+    logger.step('Step 1 - GET /resource/1');
+    const response = await apiClientExt.getWithWrapper('/resource/1');
+
+    logger.step('Step 2 - Assert response');
+    await response.assertStatus(200);
+    await response.assertJsonPath('id', 1);
+    logger.verify('Resource returned with correct ID', 1, await response.extract('id'));
+  });
+
+  test('TC_02 - Should return 404 for unknown resource', async ({ apiClientExt }) => {
+    const logger = createTestLogger('TC_02 Should return 404 for unknown resource');
+
+    logger.step('Step 1 - GET /resource/99999');
+    const response = await apiClientExt.getWithWrapper('/resource/99999');
+
+    logger.step('Step 2 - Assert not found');
+    await response.assertStatus(404);
+  });
+});
+```
+
+### GraphQL Test Template
+
+```ts
+import { apiTest as test, expect } from '../../src/api/ApiTest';
+import { createTestLogger } from '../../src/utils/test-logger';
+
+test.describe.configure({ mode: 'serial' });
+
+test.describe('User GraphQL API @api @graphql', () => {
+  test('TC_01 - Should query user', async ({ graphqlClient }) => {
+    const logger = createTestLogger('TC_01 Should query user');
+
+    logger.step('Step 1 - Execute GetUser query');
+    const response = await graphqlClient.queryWrapped(
+      `query GetUser($id: ID!) { user(id: $id) { id name email } }`,
+      { id: '1' }
+    );
+
+    logger.step('Step 2 - Assert response');
+    await response.assertNoErrors();
+    await response.assertDataField('user.id', '1');
+    logger.verify('User found', '1', (await response.getData()).user?.id);
+  });
+});
+```
+
+### Cross-Test Token Sharing
+
+`ApiClient.tokenStore` is static — tokens persist across tests within a single worker:
+
+```ts
+// Store after login
+ApiClient.storeToken('admin', tokenString);
+
+// Retrieve in any later test
+const token = ApiClient.getToken('admin');
+
+// Create a pre-authed client
+const client = await ApiClient.withStoredToken(
+  { baseURL: process.env.API_BASE_URL! },
+  'admin'
+);
+```
+
+### Other API Infrastructure
+
+- **Shared state**: `tests/api/shared-state.ts` — state that must survive across test files in one worker
+- **Lifecycle**: `tests/api/global-setup.ts` and `tests/api/global-teardown.ts` — before/after the full API suite
+- **Mocking** (UI tests only): `ApiMockService` in `src/api/ApiMockService.ts` — centralised scenarios (`mockSuccessfulLogin`, `mockProductList`, `mockGraphQLQuery`, `mockGraphQLError`, etc.)
+- **Services**: `src/api/services/{service-name}/` — models live alongside their service
+- **Config**: `api.config.ts` — 1 worker, serial execution; reads from `.env.{NODE_ENV}` via `src/api/config/environment.ts`
+- **Run**: `npm run test:api` — 1 worker to avoid rate-limiting
 
 ## Visual Testing (Percy)
 

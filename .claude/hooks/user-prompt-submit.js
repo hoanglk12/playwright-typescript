@@ -69,7 +69,7 @@ QA RULES:
 - Use page.getByRole() / page.getByText() over raw CSS selectors (CSS only for StyleHelper)
 
 CODING STANDARDS:
-- Import from @config/base-test, never from @playwright/test directly
+- Import from @config/base-test, never from @playwright/test directly (UI tests only)
 - Extend BasePage — never call page.locator() or page.click() directly in page classes
 - Use TIMEOUTS constants from src/constants/timeouts.ts — never magic numbers
 - No comments unless the WHY is non-obvious
@@ -85,7 +85,16 @@ SOFT ASSERTION RULES (apply every time you write an assertion):
 PLAYWRIGHT RULES:
 - Locator priority: getByRole > getByLabel > getByText > CSS
 - Retries only for network-dependent steps, not UI assertions
-- Register every new page object as a fixture in src/config/base-test.ts`);
+- Register every new page object as a fixture in src/config/base-test.ts
+
+API TESTING RULES (when writing tests/api/ files):
+- Import: import { apiTest as test, expect } from '../../src/api/ApiTest' — NEVER from @config/base-test
+- Serial mode: test.describe.configure({ mode: 'serial' }) at top of every API spec (outside all describe blocks)
+- Use ApiResponseWrapper chain: await response.assertStatus(200); await response.assertJsonPath('field', value)
+- GraphQL happy path: always call await response.assertNoErrors() before any data assertions
+- No page objects in API tests — use service/client fixtures (bookingService, graphqlClient, apiClientExt)
+- GraphQL variables: pass as second arg to queryWrapped/mutateWrapped — NEVER string-interpolate into query body
+- Prefer apiClientExt.getWithWrapper/postWithWrapper over raw apiClient for automatic assertion chaining`);
   }
 
   // Step 3 — Intelligent routing (no blocking)
@@ -163,13 +172,13 @@ const ROUTING_RULES = [
     type: 'skill',
     name: '/api-mocking',
     reason: 'API mocking or request interception detected',
-    keywords: ['\\bmock\\b', 'intercept', 'route request', 'stub api', 'api mock', 'network mock'],
+    keywords: ['\\bmock\\b', 'intercept', 'route request', 'stub api', 'api mock', 'network mock', 'ApiMockService', 'mockSuccess', 'mockError'],
   },
   {
     type: 'skill',
     name: '/graphql-testing',
-    reason: 'GraphQL query or mutation testing detected',
-    keywords: ['graphql', '\\bgql\\b'],
+    reason: 'GraphQL query, mutation, or schema testing detected',
+    keywords: ['graphql', '\\bgql\\b', 'graphql schema', 'introspect', 'queryWrapped', 'mutateWrapped', 'assertNoErrors'],
   },
   {
     type: 'skill',
