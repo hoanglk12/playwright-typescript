@@ -245,6 +245,64 @@ Run a security audit — invokes `security-reviewer` for a Critical/High/Medium/
 
 ---
 
+### `/research`
+
+Research a technical topic, integration, or upgrade — invokes `technical-research-agent` and produces a structured Technical Research Report.  
+The agent reads `CLAUDE.md`, `playwright.config.ts`, `api.config.ts`, `package.json`, and `.github/workflows/` before starting. Output is a full report covering options, trade-offs, risk assessment, and an ordered implementation step list. **Never auto-flows into implementation — user approval is required first.**
+
+**Examples:**
+
+```
+/research upgrade Playwright from v1.44 to v1.50
+```
+→ Reads current `package.json`, checks Playwright changelog for breaking changes, compares migration effort, produces a report with recommended steps
+
+```
+/research integrate Allure reporter alongside monocart
+```
+→ Surveys existing reporter config in `playwright.config.ts` and `api.config.ts`, evaluates Allure vs monocart overlap, recommends an additive approach
+
+```
+/research add k6 load tests to the CI pipeline
+```
+→ Investigates `.github/workflows/`, estimates job placement, produces step list for the implementation agent
+
+```
+/research replace Percy with Playwright visual comparisons
+```
+→ Maps Percy usage in `src/pages/helpers/percy-helper.ts` and existing test fixtures, evaluates built-in `toHaveScreenshot` as a replacement
+
+---
+
+### `/implement`
+
+Implement an approved Technical Research Report — invokes `technical-implementation-agent`, then runs `qa-code-reviewer` and `devops-cicd-specialist` in parallel to verify the result.  
+**Requires explicit user approval of a research report first — the approval gate cannot be skipped.**
+
+**Examples:**
+
+```
+/implement the Playwright upgrade report we approved
+```
+→ Reads the approved report, dispatches the implementation agent, then reviews all modified `.ts` files and changed CI workflows
+
+```
+/implement upgrade from research above
+```
+→ Same — references the report already in the conversation
+
+```
+/implement add Allure reporter — report approved
+```
+→ Installs deps, edits `playwright.config.ts` and `api.config.ts`, updates CI; reviewer + devops specialist validate
+
+```
+/implement k6 integration per the research report
+```
+→ Adds k6 scripts, edits the pipeline, runs devops-cicd-specialist to verify workflow syntax and job ordering
+
+---
+
 ## Quick Runner Commands
 
 Smart dispatchers that select the right `npm run` script based on what you pass.
@@ -359,6 +417,8 @@ Run UI tests — maps arguments to the right Playwright command.
 | `/review` | Files or "branch" or empty | `/review` |
 | `/check-ci` | URL, run ID, or empty | `/check-ci` |
 | `/security-audit` | "branch", scope, or empty | `/security-audit branch` |
+| `/research` | Topic or integration name | `/research upgrade Playwright to v1.50` |
+| `/implement` | Report reference or topic | `/implement the Playwright upgrade report` |
 | `/run-api` | Area, file, grep, or empty | `/run-api booker` |
 | `/run-ui` | Area, file, grep, or empty | `/run-ui frontsite` |
 

@@ -2,7 +2,7 @@
 name: technical-research-agent
 description: Use this agent to research third-party integrations, SDKs, API documentation, scalability concerns, technical updates, architecture options, migration impact, security risks, and best practices for this Playwright TypeScript framework. This agent performs research and analysis only. It does not modify code. For implementation, hand off to `qa-orchestrator` (WORKFLOW-10).
 tools: Read, Grep, Glob, LS, WebSearch, WebFetch, Bash, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
-model: sonnet
+model: opus
 color: teal
 ---
 
