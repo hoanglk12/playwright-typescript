@@ -302,6 +302,81 @@ async clickOldButton(): Promise<void> { // no caller
 
 ---
 
+### 12. API Tests
+
+Apply this section **only** to files under `tests/api/` or `src/api/`.
+
+- [ ] **[CRITICAL]** API test files import `apiTest as test` from `../../src/api/ApiTest`, **never** from `@config/base-test` or `@playwright/test`
+
+```ts
+// CRITICAL violation
+import { test, expect } from '@config/base-test';   // WRONG in API tests
+import { test, expect } from '@playwright/test';     // WRONG in API tests
+
+// Correct
+import { apiTest as test, expect } from '../../src/api/ApiTest';
+```
+
+- [ ] **[CRITICAL]** `test.describe.configure({ mode: 'serial' })` is declared at the top of every API spec file (outside all `test.describe` blocks)
+
+```ts
+// CRITICAL — missing serial declaration causes parallel execution and rate-limit failures
+test.describe.configure({ mode: 'serial' });  // required
+test.describe('My API Tests', () => { ... });
+```
+
+- [ ] **[WARNING]** `ApiResponseWrapper` chain methods are used for REST assertions — not raw `expect(response.status()).toBe(...)`
+
+```ts
+// WARNING — raw Playwright assertion, bypasses wrapper chain
+const resp = await apiClient.get('/users/1');
+expect(resp.status()).toBe(200);
+
+// Correct — use apiClientExt for wrapping
+const resp = await apiClientExt.getWithWrapper('/users/1');
+await resp.assertStatus(200);
+await resp.assertJsonPath('id', 1);
+```
+
+- [ ] **[CRITICAL]** `GraphQLResponseWrapper.assertNoErrors()` is called **before** any data assertions in happy-path GraphQL tests
+
+```ts
+// CRITICAL — missing assertNoErrors() on happy path
+const response = await graphqlClient.queryWrapped(`query { user { id } }`);
+await response.assertDataField('user.id', '1'); // WRONG — errors not checked first
+
+// Correct
+await response.assertNoErrors();
+await response.assertDataField('user.id', '1');
+```
+
+- [ ] **[CRITICAL]** GraphQL query variables passed as second argument — never string-interpolated into the query body
+
+```ts
+// CRITICAL — injection risk and cache-busting
+const response = await graphqlClient.queryWrapped(
+  `query { user(id: "${userId}") { name } }` // WRONG
+);
+
+// Correct
+const response = await graphqlClient.queryWrapped(
+  `query GetUser($id: ID!) { user(id: $id) { name } }`,
+  { id: userId }
+);
+```
+
+- [ ] **[WARNING]** No hardcoded auth tokens or credentials — use `ApiClient.storeToken`/`getToken` or `process.env.*`
+
+- [ ] **[WARNING]** `createGraphQLClient({ authType, token })` used for per-test auth variations — not inline `new GraphQLClient(...)` construction in test bodies
+
+- [ ] **[WARNING]** API test data modules follow the same typed-interface rules as UI test data — exported consts carry named interface annotations, generator methods have explicit return types
+
+- [ ] **[WARNING]** Services placed in `src/api/services/{service-name}/` — not in `src/pages/`
+
+- [ ] **[WARNING]** No page objects or `BasePage` helper calls in API tests — `tests/api/` files use only service/client fixtures
+
+---
+
 ## Output Format
 
 Structure your review as:

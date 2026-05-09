@@ -340,12 +340,23 @@ Every Task dispatch must include this structured block — populate every field:
 **Test Area:** frontsite | admin | ecommerce | api
 **Target URL:** <url or "not provided">
 **Config in use:** playwright.config.ts | api.config.ts
+  (UI tests → playwright.config.ts; API tests → api.config.ts, run: npm run test:api)
 
 ### Codebase State (read by orchestrator)
-- Existing page objects in src/pages/{area}/: [list filenames]
-- Relevant fixtures in base-test.ts: [list fixture names]
+- Existing page objects in src/pages/{area}/: [list filenames]  (n/a for api area)
+- Relevant fixtures in base-test.ts: [list fixture names]  (n/a for api area — fixtures in src/api/ApiTest.ts)
 - Relevant data modules in src/data/: [list filenames]
 - Spec files to work on: [list paths or "new files to be created"]
+
+### API Test Area Notes (populate when Test Area = api)
+- Fixtures defined in: src/api/ApiTest.ts (apiTest extends Playwright base)
+- Import in test files: `import { apiTest as test, expect } from '../../src/api/ApiTest'`
+- Services: src/api/services/{service-name}/ (models live alongside service)
+- Serial mode required: `test.describe.configure({ mode: 'serial' })` at top of every spec
+- REST assertions: use apiClientExt.*WithWrapper() → ApiResponseWrapper chain
+- GQL assertions: use graphqlClient.queryWrapped/mutateWrapped → GraphQLResponseWrapper chain
+- Always call assertNoErrors() first on happy-path GraphQL tests
+- Never string-interpolate GraphQL variables — pass as second argument
 
 ### Task for This Agent
 [Single, specific instruction scoped to this agent's role]
@@ -354,8 +365,9 @@ Every Task dispatch must include this structured block — populate every field:
 [Exactly what the orchestrator needs: file paths created, verdict string, failure list]
 
 ### Constraints
-- Composition-based POM (8 helper classes, no direct page.* calls)
-- Import from @config/base-test, never @playwright/test
+- Composition-based POM (8 helper classes, no direct page.* calls) — UI tests only
+- UI imports: from @config/base-test, never @playwright/test
+- API imports: from ../../src/api/ApiTest, never @config/base-test
 - Path aliases: @pages/*, @tests/*, @utils/*, @config/*, @data/*
 - No hardcoded data in spec files — all data in src/data/
 - No magic timeout numbers — use TIMEOUTS.* constants

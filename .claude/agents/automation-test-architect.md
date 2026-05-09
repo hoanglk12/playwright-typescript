@@ -271,6 +271,176 @@ Constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`,
 
 ---
 
+## API Test Authoring
+
+API tests are fundamentally different from UI tests. Do NOT apply POM or helper-class patterns to them.
+
+### Critical Import Difference
+
+```ts
+// API tests — ALWAYS
+import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { AuthType } from '../../src/api/ApiClient';
+import { createTestLogger } from '../../src/utils/test-logger';
+
+// UI tests only — NEVER in tests/api/
+import { test, expect } from '@config/base-test';
+```
+
+### Serial Mode — Mandatory in Every API Spec
+
+```ts
+// At top of file, outside all test.describe blocks
+test.describe.configure({ mode: 'serial' });
+```
+
+### No Page Objects in API Tests
+
+API tests use service/client fixtures directly — never instantiate page objects or call `BasePage` helpers in `tests/api/`.
+
+### Fixture Selection Guide
+
+| Need | Use |
+|---|---|
+| Raw HTTP with assertion chaining | `apiClientExt` → `getWithWrapper`, `postWithWrapper`, etc. |
+| Service abstraction (restful-booker) | `bookingService` |
+| Device API | `restfulApiClient` |
+| GraphQL queries/mutations | `graphqlClient` → `queryWrapped`, `mutateWrapped` |
+| Custom auth per test | `createClient({ authType: AuthType.BEARER, token })` |
+| Custom GraphQL client | `createGraphQLClient({ authType, token, endpoint })` |
+
+### REST API Test Template
+
+```ts
+import { apiTest as test, expect } from '../../src/api/ApiTest';
+import { MyApiData } from '../../src/data/my-api-data';
+import { createTestLogger } from '../../src/utils/test-logger';
+
+test.describe.configure({ mode: 'serial' });
+
+test.describe('Resource API @api @regression', () => {
+  test('TC_01 - Should fetch resource by ID', async ({ apiClientExt }) => {
+    const logger = createTestLogger('TC_01 Should fetch resource by ID');
+
+    logger.step('Step 1 - GET /resource/1');
+    const response = await apiClientExt.getWithWrapper('/resource/1');
+
+    logger.step('Step 2 - Assert response');
+    await response.assertStatus(200);
+    await response.assertJsonPath('id', MyApiData.existingId);
+    logger.verify('Resource ID correct', MyApiData.existingId, await response.extract('id'));
+  });
+
+  test('TC_02 - Should return 404 for unknown resource', async ({ apiClientExt }) => {
+    const logger = createTestLogger('TC_02 Should return 404 for unknown resource');
+    logger.step('Step 1 - GET /resource/99999');
+    const response = await apiClientExt.getWithWrapper('/resource/99999');
+    await response.assertStatus(404);
+  });
+
+  test('TC_03 - Should create resource', async ({ apiClientExt }) => {
+    const logger = createTestLogger('TC_03 Should create resource');
+    logger.step('Step 1 - POST /resource');
+    const response = await apiClientExt.postWithWrapper('/resource', MyApiData.newResource);
+    await response.assertStatus(201);
+    await response.assertJsonPath('name', MyApiData.newResource.name);
+  });
+});
+```
+
+### GraphQL Test Template
+
+```ts
+import { apiTest as test, expect } from '../../src/api/ApiTest';
+import { createTestLogger } from '../../src/utils/test-logger';
+import { MyGqlData } from '../../src/data/my-gql-data';
+
+test.describe.configure({ mode: 'serial' });
+
+test.describe('User GraphQL API @api @graphql', () => {
+  test('TC_01 - Should query user by ID', async ({ graphqlClient }) => {
+    const logger = createTestLogger('TC_01 Should query user by ID');
+
+    logger.step('Step 1 - Execute GetUser query');
+    const response = await graphqlClient.queryWrapped(
+      `query GetUser($id: ID!) {
+        user(id: $id) { id name email }
+      }`,
+      { id: MyGqlData.existingUserId }
+    );
+
+    logger.step('Step 2 - Assert response');
+    await response.assertNoErrors();           // REQUIRED on every happy-path test
+    await response.assertDataField('user.id', MyGqlData.existingUserId);
+    logger.verify('User ID matches', MyGqlData.existingUserId, (await response.getData()).user?.id);
+  });
+
+  test('TC_02 - Should create user via mutation', async ({ graphqlClient }) => {
+    const logger = createTestLogger('TC_02 Should create user via mutation');
+
+    logger.step('Step 1 - Execute CreateUser mutation');
+    const response = await graphqlClient.mutateWrapped(
+      `mutation CreateUser($input: CreateUserInput!) {
+        createUser(input: $input) { id name email }
+      }`,
+      { input: MyGqlData.newUser }
+    );
+
+    logger.step('Step 2 - Assert created user');
+    await response.assertNoErrors();
+    await response.assertDataField('createUser.email', MyGqlData.newUser.email);
+  });
+});
+```
+
+### `ApiResponseWrapper` Chain (REST)
+
+```ts
+await response.assertStatus(200);
+await response.assertJson({ active: true });              // partial match
+await response.assertJsonPath('user.name', 'Alice');      // dot-notation
+await response.assertJsonPathContains('tags', 'admin');   // contains check
+await response.assertHasHeader('content-type');
+const name = await response.extract('user.name');
+```
+
+### `GraphQLResponseWrapper` Chain (GQL)
+
+```ts
+await response.assertNoErrors();                          // always first on happy path
+await response.assertHasData();
+await response.assertDataHasFields(['user', 'posts']);
+await response.assertDataField('user.id', '1');
+await response.assertDataFieldContains('user.email', '@');
+await response.assertListSize('posts', 5);
+const data = await response.getData<{ user: { id: string } }>();
+```
+
+### API Data Modules
+
+Same typed-interface rules as UI data — no inline data in spec files:
+
+```ts
+// src/data/my-api-data.ts
+export interface NewResource { name: string; type: string; }
+export interface MyApiDataShape { existingId: number; newResource: NewResource; }
+export const MyApiData: MyApiDataShape = {
+  existingId: 1,
+  newResource: { name: 'Test Resource', type: 'widget' },
+};
+```
+
+### What Not to Do in API Tests
+
+- Do NOT string-interpolate GraphQL variables: use the `variables` argument
+- Do NOT use `expect(response.status()).toBe(200)` — use `await response.assertStatus(200)`
+- Do NOT construct `ApiClient` directly in test bodies — use provided fixtures
+- Do NOT import from `@config/base-test` — import from `../../src/api/ApiTest`
+- Do NOT place API tests in `tests/frontsite/` — they belong in `tests/api/`
+- Do NOT omit `test.describe.configure({ mode: 'serial' })`
+
+---
+
 ## Your Workflow
 
 1. **Understand the requirement** — read the manual test case, user story, or feature description
