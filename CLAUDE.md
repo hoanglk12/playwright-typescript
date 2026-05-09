@@ -614,6 +614,16 @@ await page.waitForSelector(sel, { timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
 Key constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`, `DRAG_DROP`, `API_RESPONSE`, `API_RESPONSE_SLOW`.
 
+## Memory (New Machine Setup)
+
+Claude Code memory files are stored outside the repo at `~/.claude/projects/{encoded-path}/memory/`. On a new machine, seed them from the committed copies:
+
+```powershell
+.\.claude\memory-seed\init-memory.ps1
+```
+
+To keep seeds in sync after updating memory: copy the updated files from `~/.claude/projects/.../memory/` back into `.claude/memory-seed/` and commit.
+
 ## Agents
 
 Specialised sub-agents live in `.claude/agents/` and are invoked automatically by Claude Code for multi-step QA workflows:
