@@ -66,6 +66,12 @@
           },
           {
             "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';const isYml=f.endsWith('.yml')||f.endsWith('.yaml');if(!isYml)process.exit(1);const {spawnSync}=require('child_process');const r=spawnSync('npx',['js-yaml',f],{encoding:'utf8'});if(r.status!==0){process.stdout.write(JSON.stringify({systemMessage:'YAML syntax error in '+f+':\\n'+(r.stderr||r.stdout)}));process.exit(2);}process.exit(0);})\" 2>/dev/null || true",
+            "timeout": 15,
+            "statusMessage": "YAML syntax check..."
+          },
+          {
+            "type": "command",
             "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';const isTs=f.endsWith('.ts')||f.endsWith('.tsx');process.exit(isTs?0:1);})\" && npx tsc --noEmit 2>&1 || true",
             "timeout": 60,
             "statusMessage": "TypeScript type-checking..."
@@ -104,6 +110,16 @@
             "timeout": 60,
             "statusMessage": "Final TypeScript check...",
             "asyncRewake": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const name=j.agent_name||'Sub-agent';const usage=j.usage||{};const tokens=usage.total_tokens?` (${usage.total_tokens.toLocaleString()} tokens)`:'';process.stdout.write(JSON.stringify({systemMessage:`${name} finished${tokens}.`}));process.exit(0);})\""
           }
         ]
       }
