@@ -108,6 +108,7 @@ export class MyPage extends BasePage {
 | `ecommerceHomePage` | `EcommerceHomePage` | ecommerce |
 | `ecommerceNavPage` | `EcommerceNavPage` | ecommerce |
 | `ecommerceSearchPage` | `EcommerceSearchPage` | ecommerce |
+| `ecommercePLPPage` | `EcommercePLPPage` | ecommerce |
 | `percyHelper` | `PercyHelper` | visual regression |
 | `softAssert` | `SoftAssertHelper` | soft assertions with logger integration |
 
