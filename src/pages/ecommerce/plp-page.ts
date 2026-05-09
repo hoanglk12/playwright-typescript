@@ -18,6 +18,12 @@ export class EcommercePLPPage extends BasePage {
   // Bloomreach acquisition popup — blocks pointer events on Vans AU / other storefronts
   private readonly overlaySelector = '.overlay.visible';
 
+  // Product card anchor wrapping the image — used for PDP navigation (E2E-PLP-012)
+  private readonly productCardLinkSelector = '[data-product-id] a';
+
+  // Broad PDP URL pattern covering all 8 storefronts (Magento uses .html extension for PDPs; other sites use /product/, /p/, /pdp/)
+  private readonly PDP_URL_PATTERN = /(\/product\/|\/p\/|\/pdp\/|\.html)/i;
+
   constructor(page: Page) {
     super(page);
   }
@@ -61,6 +67,35 @@ export class EcommercePLPPage extends BasePage {
       },
       { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST }
     );
+  }
+
+  async clickProductCard(index: number): Promise<void> {
+    await this.dismissOverlays();
+
+    // Scan up to 6 candidates from `index` — sticky header can cover the first card's midpoint
+    const cards = this.page.locator(this.productCardLinkSelector);
+    const count = await cards.count();
+
+    for (let i = index; i < Math.min(count, index + 6); i++) {
+      const card = cards.nth(i);
+      await card.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+      const isTopmost = await card.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return hit === el || el.contains(hit);
+      });
+      if (isTopmost) {
+        await card.click();
+        return;
+      }
+    }
+    // All candidates obstructed (e.g. sticky nav dropdown left open after nav-link click) — JS
+    // synthetic click fires navigation on the anchor regardless of covering elements
+    await cards.nth(index).evaluate((el: HTMLElement) => el.click());
+  }
+
+  async waitForPdpUrl(): Promise<void> {
+    await this.waits.waitForUrlMatches(this.PDP_URL_PATTERN, TIMEOUTS.PAGE_LOAD_SLOW);
   }
 
   async getProductCount(): Promise<number> {

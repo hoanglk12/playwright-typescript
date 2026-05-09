@@ -197,4 +197,50 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
       ).toBe(true);
     });
   }
+
+  for (const [index, site] of storefronts.entries()) {
+    const pdpTcId = `E2E-PLP-012-${String(index + 1).padStart(3, '0')}`;
+    const pdpNavLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel;
+
+    test(`${pdpTcId} - ${site.name} clicking product card image navigates to PDP`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      page,
+    }) => {
+      const logger = createTestLogger(`${pdpTcId} - ${site.name} Product Card → PDP`);
+
+      if (!pdpNavLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PLP navigation`);
+        return;
+      }
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for SPA nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step(`Step 3 - Click "${pdpNavLabel}" nav link to enter PLP`);
+      await ecommerceNavPage.clickNavLink(pdpNavLabel);
+
+      logger.step('Step 4 - Wait for PLP URL to resolve');
+      await ecommercePLPPage.waitForPlpUrl();
+
+      logger.step('Step 5 - Wait for product grid to render');
+      await ecommercePLPPage.waitForProductGrid();
+
+      logger.step('Step 6 - Click first product card image/link');
+      await ecommercePLPPage.clickProductCard(0);
+
+      logger.step('Step 7 - Wait for PDP URL to resolve');
+      await ecommercePLPPage.waitForPdpUrl();
+
+      logger.step('Step 8 - Assert URL matches PDP pattern');
+      const currentUrl = page.url();
+      logger.verify(`${site.name} PDP URL matches pattern`, 'PDP URL pattern', currentUrl);
+      expect(currentUrl, `Expected PDP URL on ${site.name} but got: ${currentUrl}`).toMatch(
+        /(\/product\/|\/p\/|\/pdp\/|\.html)/i,
+      );
+    });
+  }
 });
