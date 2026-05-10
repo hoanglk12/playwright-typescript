@@ -11,6 +11,7 @@ import { EcommerceHomePage } from '@pages/ecommerce/home-page';
 import { EcommerceNavPage } from '@pages/ecommerce/nav-page';
 import { EcommerceSearchPage } from '@pages/ecommerce/search-page';
 import { EcommercePLPPage } from '@pages/ecommerce/plp-page';
+import { EcommercePDPPage } from '@pages/ecommerce/pdp-page';
 import { PercyHelper } from '../pages/helpers';
 
 type CustomFixtures = {
@@ -24,6 +25,7 @@ type CustomFixtures = {
   ecommerceNavPage: EcommerceNavPage;
   ecommerceSearchPage: EcommerceSearchPage;
   ecommercePLPPage: EcommercePLPPage;
+  ecommercePDPPage: EcommercePDPPage;
   percyHelper: PercyHelper;
   softAssert: SoftAssertHelper;
 };
@@ -93,6 +95,14 @@ export const test = base.extend<CustomFixtures>({
     // Firefox teardown workaround — same pattern as other ecommerce fixtures.
     // Prevents Juggler protocol hangs caused by SPA service workers and
     // persistent WebSocket/analytics connections on staging storefronts.
+    if (page.context().browser()?.browserType().name() === 'firefox') {
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
+    }
+  },
+
+  ecommercePDPPage: async ({ page }, use) => {
+    await use(new EcommercePDPPage(page));
+    // Firefox teardown workaround — prevents Juggler protocol hangs on SPA service workers
     if (page.context().browser()?.browserType().name() === 'firefox') {
       await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
     }
