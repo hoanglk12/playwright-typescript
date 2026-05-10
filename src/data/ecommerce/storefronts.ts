@@ -27,6 +27,8 @@ export interface Storefront {
    * (production brand page) — its pattern accepts both.
    */
   searchResultUrlPattern?: RegExp;
+  /** Direct URL path to a stable PDP for future direct-navigation tests. Not used by E2E-PDP-001 (which navigates via the UI). Replace TODO values with real staging slugs once confirmed. */
+  pdpPath?: string;
 }
 
 export const storefronts: readonly Storefront[] = [
@@ -44,6 +46,7 @@ export const storefronts: readonly Storefront[] = [
     searchResultUrlPattern: /(search|\/shop\/)/i,
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
+    pdpPath: '/products/some-product.html', // TODO: replace with real Magento product slug
   },
   {
     name: 'Platypus NZ',
@@ -59,6 +62,7 @@ export const storefronts: readonly Storefront[] = [
     searchResultUrlPattern: /(search|\/shop\/)/i,
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
+    pdpPath: '/products/some-product.html', // TODO: replace with real Magento product slug
   },
   {
     name: 'Skechers AU',
@@ -73,6 +77,7 @@ export const storefronts: readonly Storefront[] = [
     searchTerm: 'Go Walk',
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
+    pdpPath: '/some-product.html', // TODO: replace with real slug
   },
   {
     name: 'Skechers NZ',
@@ -87,6 +92,7 @@ export const storefronts: readonly Storefront[] = [
     searchTerm: 'Go Walk',
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
+    pdpPath: '/some-product.html', // TODO: replace with real slug
   },
   {
     name: 'Vans AU',
@@ -102,6 +108,7 @@ export const storefronts: readonly Storefront[] = [
     searchTerm: 'Old Skool',
     categoryFilterLabel: 'Low Top',
     sizeFilterLabel: '7',
+    pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
   },
   {
     name: 'Vans NZ',
@@ -116,6 +123,7 @@ export const storefronts: readonly Storefront[] = [
     searchTerm: 'Old Skool',
     categoryFilterLabel: 'Old Skool',
     sizeFilterLabel: '7',
+    pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
   },
   {
     name: 'Dr. Martens AU',
@@ -130,6 +138,7 @@ export const storefronts: readonly Storefront[] = [
     searchTerm: '1460',
     categoryFilterLabel: 'Boots',
     sizeFilterLabel: '4',
+    pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
   },
   {
     name: 'Dr. Martens NZ',
@@ -145,5 +154,6 @@ export const storefronts: readonly Storefront[] = [
     searchTerm: '1460',
     categoryFilterLabel: 'Boots',
     sizeFilterLabel: '4',
+    pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
   },
 ];
