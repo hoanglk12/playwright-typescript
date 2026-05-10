@@ -255,6 +255,8 @@ jobs:
       api_duration:    ${{ steps.monocart-api.outputs.duration }}
       ui_artifact_url: ${{ steps.ui-artifact-url.outputs.url }}
       api_artifact_url: ${{ steps.api-artifact-url.outputs.url }}
+      ui_deploy_url:   ${{ steps.cf-ui.outputs.url }}
+      api_deploy_url:  ${{ steps.cf-api.outputs.url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -392,6 +394,34 @@ jobs:
           name: monocart-api-report-${{ github.run_id }}
           path: combined-results/api/monocart-api-report/
           retention-days: 30
+
+      - name: Deploy UI monocart report to Cloudflare Pages
+        if: always() && needs.ui-test.result != 'skipped' && hashFiles('monocart-merged-ui/index.html') != ''
+        id: cf-ui
+        continue-on-error: true
+        run: |
+          npx wrangler@3 pages deploy monocart-merged-ui \
+            --project-name playwright-ui-reports \
+            --branch main \
+            --commit-message "UI run ${{ github.run_id }} attempt ${{ github.run_attempt }}"
+          echo "url=https://playwright-ui-reports.pages.dev" >> $GITHUB_OUTPUT
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy API monocart report to Cloudflare Pages
+        if: always() && needs.api-test.result != 'skipped' && hashFiles('combined-results/api/monocart-api-report/index.html') != ''
+        id: cf-api
+        continue-on-error: true
+        run: |
+          npx wrangler@3 pages deploy combined-results/api/monocart-api-report \
+            --project-name playwright-api-reports \
+            --branch main \
+            --commit-message "API run ${{ github.run_id }} attempt ${{ github.run_attempt }}"
+          echo "url=https://playwright-api-reports.pages.dev" >> $GITHUB_OUTPUT
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Get UI monocart artifact URL
         id: ui-artifact-url
@@ -625,7 +655,7 @@ jobs:
                         "type": "plain_text",
                         "text": "UI Report"
                       },
-                      "url": "${{ needs.test-report.outputs.ui_artifact_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}"
+                      "url": "${{ needs.test-report.outputs.ui_deploy_url || needs.test-report.outputs.ui_artifact_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}"
                     },
                     {
                       "type": "button",
@@ -633,7 +663,7 @@ jobs:
                         "type": "plain_text",
                         "text": "API Report"
                       },
-                      "url": "${{ needs.test-report.outputs.api_artifact_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}"
+                      "url": "${{ needs.test-report.outputs.api_deploy_url || needs.test-report.outputs.api_artifact_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}"
                     },
                     {
                       "type": "button",
