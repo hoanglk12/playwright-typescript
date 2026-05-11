@@ -1,4 +1,4 @@
-import { test, expect } from '@config/base-test';
+import { test } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
 
@@ -40,21 +40,18 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       logger.step('Step 6 - Click first product card');
       await ecommercePLPPage.clickProductCard(0);
 
-      logger.step('Step 7 - Wait for PDP URL to resolve');
-      await ecommercePLPPage.waitForPdpUrl();
-
-      logger.step('Step 8 - Wait for PDP to fully load');
+      logger.step('Step 7 - Wait for PDP to fully load');
       await ecommercePDPPage.waitForPdpLoad();
 
-      logger.step('Step 9 - Assert product name is non-empty');
+      logger.step('Step 8 - Assert product name is non-empty');
       const productName = await ecommercePDPPage.getProductName();
       softAssert.toBeGreaterThan(productName.length, 0, `${site.name}: Product name should be non-empty`);
 
-      logger.step('Step 10 - Assert price is non-empty');
+      logger.step('Step 9 - Assert price is non-empty');
       const price = await ecommercePDPPage.getPrice();
       softAssert.toBeGreaterThan(price.length, 0, `${site.name}: Price should be non-empty`);
 
-      logger.step('Step 11 - Assert image gallery is visible');
+      logger.step('Step 10 - Assert image gallery is visible');
       const galleryVisible = await ecommercePDPPage.isImageGalleryVisible();
       softAssert.toBe(galleryVisible, true, `${site.name}: Image gallery should be visible`);
     });

@@ -13,11 +13,7 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 
 **Reporters:** html + json + junit + list + monocart-reporter (all additive). monocart outputs at `monocart-report/` (UI) and `monocart-api-report/` (API). Trend via `actions/cache` + `MONOCART_TREND_FILE`.
 
-**Active initiative (as of 2026-05-09):** Researching Netlify hosting for monocart reports. Research report saved at `specs/monocart-netlify-hosting.research.md`. Recommended approach: two Netlify sites + Netlify CLI + per-run aliases. **Awaiting user approval before implementation.**
-
-**Why: Netlify hosting** replaces GitHub artifact download URLs in Slack with one-click browser-viewable report links for non-developer stakeholders.
-
-**Key open questions for Netlify:** account type (legacy vs credit-based), data sensitivity of screenshots, deploy frequency throttling.
+**Completed (2026-05-07):** monocart reports hosted on Cloudflare Pages. Cloudflare was chosen over Netlify after research (see `specs/monocart-cloudflare-hosting.research.md`). Report links in Slack now point to Cloudflare-hosted HTML reports.
 
 **Test environments:** testing (default), staging, production. Env loaded from `.env.{NODE_ENV}`.
 
