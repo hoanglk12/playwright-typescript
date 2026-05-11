@@ -27,7 +27,7 @@ export interface Storefront {
    * (production brand page) — its pattern accepts both.
    */
   searchResultUrlPattern?: RegExp;
-  /** Direct URL path to a stable PDP for future direct-navigation tests. Not used by E2E-PDP-001 (which navigates via the UI). Replace TODO values with real staging slugs once confirmed. */
+  /** Direct URL path to a stable PDP for direct-navigation tests. */
   pdpPath?: string;
 }
 

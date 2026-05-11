@@ -25,7 +25,8 @@
 | `home-page.ts` | `ecommerceHomePage` | `tests/ecommerce/smoke/homepage-smoke.spec.ts` |
 | `nav-page.ts` | `ecommerceNavPage` | `tests/ecommerce/smoke/navigation-smoke.spec.ts` |
 | `search-page.ts` | `ecommerceSearchPage` | `tests/ecommerce/smoke/search-smoke.spec.ts` |
-| `plp-page.ts` | — | `tests/ecommerce/smoke/plp-smoke.spec.ts` |
+| `plp-page.ts` | `ecommercePLPPage` | `tests/ecommerce/smoke/plp-smoke.spec.ts` |
+| `pdp-page.ts` | `ecommercePDPPage` | `tests/ecommerce/smoke/pdp-smoke.spec.ts` |
 
 ### API (`tests/api/`)
 
@@ -40,8 +41,8 @@
 | `pla-my-details.spec.ts` | `apiClientExt` | PLA profile details |
 | `pla-support-features.spec.ts` | `apiClientExt` | PLA support features |
 
-## Coverage gaps (as of 2026-05-10)
+## Coverage gaps (as of 2026-05-11)
 
 - No UI tests for ecommerce checkout flow
 - No UI tests for admin content management
-- `plp-smoke.spec.ts` — all tests currently skipped (`test.skip(true, ...)`) — PLP nav links not configured
+- `plp-smoke.spec.ts` — tests skip conditionally per storefront when `womensNavLabel`/`mensNavLabel`/`saleNavLabel` is not configured; not blanket-skipped

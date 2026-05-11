@@ -10,7 +10,6 @@ export class EcommercePDPPage extends BasePage {
   private readonly galleryImageSelector =
     '[class*="gallery"] img, .product-gallery img, .swiper-slide img, img[class*="product"]';
   private readonly PDP_URL_PATTERN = /(\/product\/|\/p\/|\/pdp\/|\.html)/i;
-  private readonly h1Selector = 'h1';
 
   constructor(page: Page) {
     super(page);
@@ -18,7 +17,7 @@ export class EcommercePDPPage extends BasePage {
 
   async waitForPdpLoad(): Promise<void> {
     await this.waits.waitForUrlMatches(this.PDP_URL_PATTERN, TIMEOUTS.PAGE_LOAD_SLOW);
-    await this.waits.waitForElement(this.h1Selector, TIMEOUTS.ELEMENT_VISIBLE);
+    await this.productNameHeading.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
   }
 
   async getProductName(): Promise<string> {
