@@ -162,6 +162,7 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
 test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token", async ({
     createGraphQLClient,
   }) => {
+    expect(customerId).toBeDefined();
     console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
 
     const authClient = await createGraphQLClient({
@@ -180,11 +181,11 @@ test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresse
     const data = await response.getData();
     console.log("Get Response data:", data);
 
-    // addressId = data.createCustomerAddress.id;
-    // console.log("New Address ID:", addressId);
+    addressId = data.customer.addresses![0].id;
+    console.log("New Address ID:", addressId);
 
      // Save to shared state for potential reuse
-    // setAddressId(addressId);
+    setAddressId(addressId);
 
     // Validate customer and address data
     softExpect(data.customer.id).toBe(customerId);
