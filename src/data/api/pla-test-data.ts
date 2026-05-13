@@ -4,7 +4,6 @@
  */
 
 import { cartId } from "@tests/api/shared-state";
-import { subscribe } from "diagnostics_channel";
 
 /**
  * Generate random string for unique test data
@@ -81,10 +80,116 @@ const phoneNumber = generatePhoneNumber();
 const streetAddress = generateStreetAddress();
 const location = generateCityPostcode();
 
+export interface CustomerInput {
+  email: string;
+  firstname: string;
+  lastname: string;
+  password: string;
+  phone_number: string;
+  is_subscribed: boolean;
+  loyalty_program_status: boolean;
+  order_number: string | null;
+  gender: number;
+  date_of_birth: string | null;
+}
+
+export interface InvalidPassword {
+  email: string;
+  password: string;
+  remember: boolean;
+}
+
+export interface ValidCredentials {
+  email: string;
+  password: string;
+  remember: boolean;
+  firstName: string;
+  lastName: string;
+}
+
+export interface CustomerAddressAttribute {
+  value: {
+    value: string;
+    attribute_code: string;
+  };
+}
+
+export interface NewCustomerAddress {
+  firstname: string;
+  lastname: string;
+  street: string;
+  city: string;
+  postcode: string;
+  telephone: string;
+  company: string | null;
+  default_shipping: boolean;
+  default_billing: boolean;
+  custom_attributes: CustomerAddressAttribute;
+  region: { region: string };
+  country_code: string;
+}
+
+export interface AddNewCustomerAddressInput {
+  address: NewCustomerAddress;
+}
+
+export interface UpdateCustomerAddress {
+  firstname: string;
+  lastname: string;
+  street: string[];
+  city: string;
+  postcode: string;
+  region: { region: string };
+  telephone: string;
+  default_shipping: boolean;
+  default_billing: boolean;
+  custom_attributes: CustomerAddressAttribute;
+  country_code: string;
+}
+
+export interface UpdateCustomerInformation {
+  email: string;
+  firstname: string;
+  lastname: string;
+  date_of_birth: string;
+  phone_number: string;
+  password: string;
+  is_subscribed: boolean;
+  loyalty_program_status: boolean;
+}
+
+export interface PlaTestData {
+  validCustomer: CustomerInput;
+  invalidEmail: CustomerInput;
+  invalidPassword: InvalidPassword;
+  validCredentials: ValidCredentials;
+  invalidCartId: string;
+  addNewCustomerAddressForAddressBook: AddNewCustomerAddressInput;
+  updateCustomerAddressTemplate: UpdateCustomerAddress;
+  updateCustomerInformationData: UpdateCustomerInformation;
+  cartId: string;
+  subscribeNewsletterData: { isSubscribed: boolean[] };
+  loyaltyProgramData: { status: boolean[] };
+  expectedPaymentMethods: { codes: string[]; titles: string[] };
+}
+
+export interface PlaErrorMessages {
+  invalidEmail: string;
+  invalidCredentials: string;
+  invalidCartId: string;
+}
+
+export interface ExpectedCustomerData {
+  firstname: string;
+  lastname: string;
+  isSubscribed: boolean;
+  gender: number;
+}
+
 /**
  * Test data for PLA GraphQL API tests
  */
-export const plaTestData = {
+export const plaTestData: PlaTestData = {
   /**
    * Valid customer data for successful account creation
    */
@@ -223,7 +328,7 @@ export const getTestEmail = () => testEmail;
 /**
  * Expected validation messages
  */
-export const plaErrorMessages = {
+export const plaErrorMessages: PlaErrorMessages = {
   invalidEmail: 'is not a valid email address.',
   invalidCredentials: 'The account sign-in was incorrect or your account is disabled temporarily. Please wait and try again later.',
   invalidCartId: 'Could not find a cart with ID "wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss"'
@@ -232,7 +337,7 @@ export const plaErrorMessages = {
 /**
  * Expected customer data for assertions (dynamic based on random generation)
  */
-export const expectedCustomerData = {
+export const expectedCustomerData: ExpectedCustomerData = {
   firstname: firstName,
   lastname: lastName,
   isSubscribed: false,

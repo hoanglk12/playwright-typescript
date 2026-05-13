@@ -1,4 +1,5 @@
 import { apiTest as test, expect, softExpect } from "../../src/api/ApiTest";
+import { AuthType } from "../../src/api/ApiClient";
 import {
   plaTestData,
   getTestEmail,
@@ -6,6 +7,7 @@ import {
   // expectedCustomerData,
 } from "../../src/data/api/pla-test-data";
 import { getCustomerToken, setCustomerToken, setAddressId, setCustomerId, getCustomerId, getAddressId } from './shared-state';
+import { createTestLogger } from '../../src/utils/test-logger';
 
 let customerToken: string;
 export let customerId: string;
@@ -13,23 +15,23 @@ export let addressId: string;
 // Reuse the SAME test email generator as pla-account-creation-signin.spec.ts
 const testEmail = getTestEmail();
 
-//Regex to check integer number format
 const intRegex = /^\d+$/;
-test.describe.serial("PLA GraphQL API - My Details apis", () => {
-  
+
+test.describe.configure({ mode: 'serial' });
+
+test.describe("PLA GraphQL API - My Details apis", () => {
+
   test.beforeAll(async ({ createGraphQLClient }) => {
-    // Try to get token from shared state first (if running after account creation tests)
+    const logger = createTestLogger('PLA My Details - Setup');
     customerToken = getCustomerToken();
-    customerId = getCustomerId(); // Also try to get customerId from shared state
-    addressId = getAddressId(); // Also try to get addressId from shared state
-    
-    // If no token exists (running standalone), create account and sign in
+    customerId = getCustomerId();
+    addressId = getAddressId();
+
     if (!customerToken) {
-      console.log('No shared token found. Creating account and signing in...');
-      
+      logger.step('No shared token found — creating account and signing in');
+
       const client = await createGraphQLClient();
-      
-      // Step 1: Try to create account (might fail if account already exists)
+
       const createAccountMutation = `
         mutation CreateAccount(
           $email: String!,
@@ -62,31 +64,29 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
             }
           }
         }`;
-      
-      // Use the SAME test data structure as pla-account-creation-signin.spec.ts
+
       const createAccountVariables = plaTestData.validCustomer;
-      
+
       const createResponse = await client.mutateWrapped(createAccountMutation, createAccountVariables);
       const createGraphqlResponse = await createResponse.getGraphQLResponse();
 
       customerId = createGraphqlResponse.data?.createCustomer?.customer?.id;
-      console.log("Customer ID:", customerId);
+      logger.action('Customer ID retrieved', customerId);
 
       setCustomerId(customerId);
-      
+
       if (createGraphqlResponse.errors) {
         const errorMessage = createGraphqlResponse.errors[0]?.message || '';
         if (errorMessage.includes('already') || errorMessage.includes('exists')) {
-          console.log('⚠️  Account already exists, skipping to sign in...');
+          logger.action('Account already exists — skipping to sign in', '');
         } else {
-          console.error('❌ Account creation failed:', errorMessage);
+          logger.error('Account creation failed', errorMessage);
           throw new Error(`Account creation failed: ${errorMessage}`);
         }
       } else {
-        console.log('✅ Account created with email:', testEmail);
+        logger.action('Account created', testEmail);
       }
-      
-      // Step 2: Sign in with the credentials (only works if account was just created with this password)
+
       const signInMutation = `
         mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
           generateCustomerToken(email: $email, password: $password, remember: $remember) {
@@ -94,39 +94,39 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
             __typename
           }
         }`;
-      
-      // Use the SAME credentials structure as pla-account-creation-signin.spec.ts
+
       const signInVariables = plaTestData.validCredentials;
-      
+
       const signInResponse = await client.mutateWrapped(signInMutation, signInVariables);
       const signInGraphqlResponse = await signInResponse.getGraphQLResponse();
-      
+
       if (signInGraphqlResponse.errors) {
         const signInError = signInGraphqlResponse.errors[0]?.message || '';
-        console.error('❌ Sign-in failed:', signInError);
-        console.error('This usually means the account exists but has a different password.');
-        console.error('Please delete the existing test account or use a fresh test environment.');
+        logger.error(
+          'Sign-in failed — account may exist with a different password. Delete test account or use a fresh environment.',
+          signInError
+        );
         throw new Error(`Sign-in failed: ${signInError}`);
       }
-      
+
       customerToken = signInGraphqlResponse.data.generateCustomerToken.token;
-      
-      // Save to shared state for potential reuse
+
       setCustomerToken(customerToken);
 
-      console.log('✅ Token acquired for my-details tests');
+      logger.action('Token acquired for my-details tests', '');
     } else {
-      console.log('✅ Using existing shared token from test suite');
+      logger.action('Using shared token from test suite', '');
     }
   });
 
   test("PLA_AddNewCustomerAddressToAddressBook - should add new customer address with valid token", async ({
     createGraphQLClient,
   }) => {
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+    const logger = createTestLogger('PLA_AddNewCustomerAddressToAddressBook');
+    logger.step('Step 1 - Send AddNewCustomerAddress mutation with bearer token');
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
@@ -136,58 +136,53 @@ test.describe.serial("PLA GraphQL API - My Details apis", () => {
     __typename
   }
 }`;
-   const variables = plaTestData.addNewCustomerAddressForAddressBook;
-   console.log("Address to add:", variables);
+    const variables = plaTestData.addNewCustomerAddressForAddressBook;
+    logger.action('Mutation variables', JSON.stringify(variables));
 
-   const response = await authClient.mutateWrapped(mutation, variables);
+    const response = await authClient.mutateWrapped(mutation, variables);
 
     await response.assertNoErrors();
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Response data:", data);
+    logger.step('Step 2 - Assert response');
 
     addressId = data.createCustomerAddress.id;
-    console.log("New Address ID:", addressId);
+    logger.action('New address ID', addressId);
 
-     // Save to shared state for potential reuse
     setAddressId(addressId);
 
-    // Validate customer data
     expect(data.createCustomerAddress).toBeDefined();
     softExpect(data.createCustomerAddress.id.toString()).toMatch(intRegex);
     softExpect(data.createCustomerAddress.__typename).toBe('CustomerAddress');
-});
+  });
 
-test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token", async ({
+  test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token", async ({
     createGraphQLClient,
   }) => {
+    const logger = createTestLogger('PLA_GetCustomerAddressesForAddressBook');
     expect(customerId).toBeDefined();
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+    logger.step('Step 1 - Send GetCustomerAddressesForAddressBook query with bearer token');
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
     const query = `query GetCustomerAddressesForAddressBook{customer{id addresses{id ...CustomerAddressFragment __typename}__typename}countries{id full_name_locale __typename}}fragment CustomerAddressFragment on CustomerAddress{__typename id city company country_code default_billing default_shipping firstname lastname middlename postcode region{region __typename}custom_attributes{attribute_code value __typename}street telephone}`;
-  
 
-   const response = await authClient.queryWrapped(query);
+    const response = await authClient.queryWrapped(query);
 
     await response.assertNoErrors();
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Get Response data:", data);
+    logger.step('Step 2 - Assert response');
 
     addressId = data.customer.addresses![0].id;
-    console.log("New Address ID:", addressId);
-
-     // Save to shared state for potential reuse
+    logger.action('Address ID from response', addressId);
     setAddressId(addressId);
 
-    // Validate customer and address data
     softExpect(data.customer.id).toBe(customerId);
     softExpect(data.customer.addresses![0].id).toBe(addressId);
     softExpect(data.customer.addresses![0].__typename).toBe('CustomerAddress');
@@ -211,25 +206,23 @@ test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresse
     softExpect(data.countries![0].id).toBe('AU');
     softExpect(data.countries![0].full_name_locale).toBe('Australia');
     softExpect(data.countries![0].__typename).toBe('Country');
+  });
 
-});
-
-test("PLA_UpdateCustomerAddressInAddressBook - should update customer address with valid token", async ({
+  test("PLA_UpdateCustomerAddressInAddressBook - should update customer address with valid token", async ({
     createGraphQLClient,
   }) => {
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
-    console.log("Address ID to update:", addressId);
+    const logger = createTestLogger('PLA_UpdateCustomerAddressInAddressBook');
+    logger.step('Step 1 - Verify prerequisites');
+    logger.action('Address ID to update', addressId);
 
-    // Ensure we have an addressId from the first test
     expect(addressId).toBeDefined();
     expect(addressId).toBeTruthy();
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
-    // GraphQL mutation to update customer address
     const mutation = `mutation UpdateCustomerAddressInAddressBook($addressId: Int!, $updated_address: CustomerAddressInput!) {
   updateCustomerAddress(id: $addressId, input: $updated_address) {
     id
@@ -237,13 +230,13 @@ test("PLA_UpdateCustomerAddressInAddressBook - should update customer address wi
   }
 }`;
 
-    // Build variables with dynamic addressId and static update data from test data
     const variables = {
-      addressId: addressId, // Keep as string for GraphQL Int type
+      addressId: addressId,
       updated_address: plaTestData.updateCustomerAddressTemplate
     };
 
-    console.log("Update variables:", JSON.stringify(variables, null, 2));
+    logger.step('Step 2 - Send UpdateCustomerAddress mutation');
+    logger.action('Update variables', JSON.stringify(variables));
 
     const response = await authClient.mutateWrapped(mutation, variables);
 
@@ -251,44 +244,40 @@ test("PLA_UpdateCustomerAddressInAddressBook - should update customer address wi
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Updated response data:", data);
+    logger.step('Step 3 - Assert response');
 
-    // Validate the response
     expect(data.updateCustomerAddress).toBeDefined();
     softExpect(data.updateCustomerAddress.id).toBe(parseInt(addressId));
     softExpect(data.updateCustomerAddress.default_billing).toBeFalsy();
     softExpect(data.updateCustomerAddress.default_shipping).toBeFalsy();
 
-    console.log("✅ Address updated successfully");
-});
+    logger.action('Address updated successfully', addressId);
+  });
 
-test("PLA_DeleteCustomerAddressFromAddressBook - should delete customer address with valid token", async ({
+  test("PLA_DeleteCustomerAddressFromAddressBook - should delete customer address with valid token", async ({
     createGraphQLClient,
   }) => {
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
-    console.log("Address ID to update:", addressId);
+    const logger = createTestLogger('PLA_DeleteCustomerAddressFromAddressBook');
+    logger.step('Step 1 - Verify prerequisites');
+    logger.action('Address ID to delete', addressId);
 
-    // Ensure we have an addressId from the first test
     expect(addressId).toBeDefined();
     expect(addressId).toBeTruthy();
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
-    // GraphQL mutation to update customer address
     const mutation = `mutation DeleteCustomerAddressFromAddressBook($addressId: Int!) {
   deleteCustomerAddress(id: $addressId)
 }`;
 
-    // Build variables with dynamic addressId and static update data from test data
     const variables = {
-      addressId: addressId, // Keep as string for GraphQL Int type
-      
+      addressId: addressId,
     };
 
-
+    logger.step('Step 2 - Send DeleteCustomerAddress mutation');
 
     const response = await authClient.mutateWrapped(mutation, variables);
 
@@ -296,26 +285,25 @@ test("PLA_DeleteCustomerAddressFromAddressBook - should delete customer address 
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Updated response data:", data);
+    logger.step('Step 3 - Assert response');
 
-    // Validate the response
     expect(data.deleteCustomerAddress).toBeDefined();
     softExpect(data.deleteCustomerAddress).toBe(true);
 
-    console.log("✅ Address deleted successfully");
-});
+    logger.action('Address deleted successfully', addressId);
+  });
 
-test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with valid token", async ({
+  test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with valid token", async ({
     createGraphQLClient,
   }) => {
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+    const logger = createTestLogger('PLA_SetNewsletterSubscription - subscribe');
+    logger.step('Step 1 - Send SetNewsletterSubscription mutation (subscribe)');
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
-    // GraphQL mutation to subscribe to newsletter
     const mutation = `mutation SetNewsletterSubscription($is_subscribed: Boolean!) {
   updateCustomerV2(input: {is_subscribed: $is_subscribed}) {
     customer {
@@ -326,7 +314,6 @@ test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with vali
     __typename
   }
 }`;
-
 
     const variables = {
       is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[0]
@@ -338,28 +325,27 @@ test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with vali
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Updated response data:", data);
+    logger.step('Step 2 - Assert response');
 
-    // Validate the response
     expect(data.updateCustomerV2).toBeDefined();
     expect(data.updateCustomerV2.customer).toBeDefined();
     softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
     softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(true);
 
-    console.log("✅ User is subscribed to newsletter successfully");
-});
+    logger.action('Newsletter subscription set', 'true');
+  });
 
-test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with valid token", async ({
+  test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with valid token", async ({
     createGraphQLClient,
   }) => {
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+    const logger = createTestLogger('PLA_SetNewsletterSubscription - unsubscribe');
+    logger.step('Step 1 - Send SetNewsletterSubscription mutation (unsubscribe)');
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
-    // GraphQL mutation to unsubscribe from newsletter
     const mutation = `mutation SetNewsletterSubscription($is_subscribed: Boolean!) {
   updateCustomerV2(input: {is_subscribed: $is_subscribed}) {
     customer {
@@ -371,7 +357,6 @@ test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with va
   }
 }`;
 
-
     const variables = {
       is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[1]
     };
@@ -382,28 +367,27 @@ test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with va
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Updated response data:", data);
+    logger.step('Step 2 - Assert response');
 
-    // Validate the response
     expect(data.updateCustomerV2).toBeDefined();
     expect(data.updateCustomerV2.customer).toBeDefined();
     softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
     softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
 
-    console.log("✅ User is subscribed to newsletter successfully");
-});
+    logger.action('Newsletter subscription set', 'false');
+  });
 
-test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
+  test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
     createGraphQLClient,
   }) => {
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+    const logger = createTestLogger('PLA_SetLoyaltyAndNewsletterSubscription');
+    logger.step('Step 1 - Send SetLoyaltyAndNewsletterSubscription mutation');
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
-    // GraphQL mutation to update loyalty and newsletter settings
     const mutation = `mutation SetLoyaltyAndNewsletterSubscription($is_subscribed: Boolean!, $loyalty_program_status: Boolean) {
   updateCustomerV2(input: {is_subscribed: $is_subscribed, loyalty_program_status: $loyalty_program_status}) {
     customer {
@@ -416,13 +400,12 @@ test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newslett
   }
 }`;
 
-
     const variables = {
       is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[1],
       loyalty_program_status: plaTestData.loyaltyProgramData.status[1]
     };
 
-    console.log("Updated request data:", variables);
+    logger.action('Mutation variables', JSON.stringify(variables));
 
     const response = await authClient.mutateWrapped(mutation, variables);
 
@@ -430,29 +413,28 @@ test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newslett
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Updated response data:", data);
+    logger.step('Step 2 - Assert response');
 
-    // Validate the response
     expect(data.updateCustomerV2).toBeDefined();
     expect(data.updateCustomerV2.customer).toBeDefined();
     softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
     softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
     softExpect(data.updateCustomerV2.customer.loyalty_program_status).toBe(false);
 
-    console.log("✅ User is unsubscribed to newsletter and not a loyalty member successfully");
-});
+    logger.action('Loyalty and newsletter preferences updated', 'unsubscribed, not a loyalty member');
+  });
 
-test("PLA_loyalty - retrieve loyalty newsletter subscription message with valid token", async ({
+  test("PLA_loyalty - retrieve loyalty newsletter subscription message with valid token", async ({
     createGraphQLClient,
   }) => {
-    console.log("Customer Token (first 20 chars):", customerToken.substring(0, 20) + '...');
+    const logger = createTestLogger('PLA_loyalty');
+    logger.step('Step 1 - Send loyalty query with bearer token');
 
     const authClient = await createGraphQLClient({
-      authType: "bearer" as any,
+      authType: AuthType.BEARER,
       token: customerToken,
     });
 
-    // GraphQL mutation to update loyalty and newsletter settings
     const query = `query loyalty{multiplerewards_loyalty_newsletter_subscription_messages multiplerewards_loyalty_newsletter_subscription_banner_messages}`;
 
     const response = await authClient.queryWrapped(query);
@@ -461,15 +443,9 @@ test("PLA_loyalty - retrieve loyalty newsletter subscription message with valid 
     await response.assertHasData();
 
     const data = await response.getData();
-    console.log("Updated response data:", data);
+    logger.step('Step 2 - Assert response');
 
-    // Validate the response
     softExpect(data.multiplerewards_loyalty_newsletter_subscription_messages).toBeDefined();
     softExpect(data.multiplerewards_loyalty_newsletter_subscription_banner_messages).toBeDefined();
-
-
-});
-
-
-
+  });
 });
