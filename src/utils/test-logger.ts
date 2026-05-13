@@ -8,6 +8,12 @@ export class TestLogger {
   private static logDir: string = './test-logs';
   private static logFile: string = path.join(TestLogger.logDir, 'test-execution.log');
 
+  private static formatTimestamp(date: Date = new Date()): string {
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ` +
+           `${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
+  }
+
   constructor(testTitle: string) {
     this.testTitle = testTitle;
   }
@@ -53,7 +59,7 @@ export class TestLogger {
    * Initialize logging session - called at start of test run
    */
   static initializeLogging(): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TestLogger.formatTimestamp();
     const sessionHeader = `
 =================================================================
 🚀 TEST EXECUTION STARTED
@@ -78,7 +84,7 @@ export class TestLogger {
    */
   step(message: string, data?: any): void {
     this.stepCounter++;
-    const timestamp = new Date().toISOString();
+    const timestamp = TestLogger.formatTimestamp();
     const logMessage = `[${timestamp}] Step ${this.stepCounter}: ${message}`;
     
     console.log(`🔍 ${logMessage}`);
@@ -101,7 +107,7 @@ export class TestLogger {
    * Log an action being performed
    */
   action(action: string, target?: string): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TestLogger.formatTimestamp();
     const message = target ? `${action} on ${target}` : action;
     const logMessage = `⚡ [${timestamp}] Action: ${message}`;
     
@@ -118,7 +124,7 @@ export class TestLogger {
    * Log an assertion/verification
    */
   verify(verification: string, expected?: any, actual?: any, isSoft?: boolean): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TestLogger.formatTimestamp();
     const prefix = isSoft ? '🔵 [SOFT]' : '✅';
     const logMessage = `${prefix} [${timestamp}] Verify: ${verification}`;
 
@@ -145,7 +151,7 @@ export class TestLogger {
    * Log an error or issue
    */
   error(error: string, details?: any): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TestLogger.formatTimestamp();
     const logMessage = `❌ [${timestamp}] Error: ${error}`;
     
     console.error(logMessage);
@@ -167,7 +173,7 @@ export class TestLogger {
    * Log test information
    */
   info(message: string, data?: any): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TestLogger.formatTimestamp();
     const logMessage = `ℹ️  [${timestamp}] Info: ${message}`;
     
     console.log(logMessage);
@@ -189,7 +195,7 @@ export class TestLogger {
    * Log test completion
    */
   complete(status: 'passed' | 'failed', duration?: number): void {
-    const timestamp = new Date().toISOString();
+    const timestamp = TestLogger.formatTimestamp();
     const emoji = status === 'passed' ? '✅' : '❌';
     const durationText = duration ? ` (${duration}ms)` : '';
     
