@@ -208,6 +208,9 @@ export class TestLogger {
    */
   private writeToFile(message: string): void {
     try {
+      if (!fs.existsSync(TestLogger.logDir)) {
+        fs.mkdirSync(TestLogger.logDir, { recursive: true });
+      }
       fs.appendFileSync(TestLogger.logFile, message + '\n');
     } catch (error) {
       console.error('Failed to write to log file:', error);
