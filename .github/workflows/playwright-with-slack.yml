@@ -207,6 +207,28 @@ jobs:
           echo "API Base URL: ${API_BASE_URL:-'https://restful-booker.herokuapp.com'}"
           echo "Execution: Serial (1 worker)"
 
+      - name: Verify GraphQL endpoint connectivity
+        run: |
+          GRAPHQL_URL="${GRAPHQL_BASE_URL:-https://stag-platypus-au.accentgra.com}/graphql"
+          echo "Runner public IP: $(curl -sf --max-time 5 https://api.ipify.org || echo 'unavailable')"
+          echo "Checking connectivity to: $GRAPHQL_URL"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            -X POST "$GRAPHQL_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"{ __typename }"}' || echo "000")
+          echo "GraphQL probe HTTP status: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "000" ]; then
+            echo "::warning::GraphQL endpoint unreachable from this runner — API tests will likely timeout"
+          elif [ "$HTTP_CODE" -ge 500 ]; then
+            echo "::warning::GraphQL endpoint returned $HTTP_CODE — backend may be unhealthy"
+          else
+            echo "GraphQL endpoint is reachable (HTTP $HTTP_CODE)"
+          fi
+        env:
+          GRAPHQL_BASE_URL: ${{ secrets.GRAPHQL_BASE_URL }}
+        continue-on-error: true
+
       - name: Run API tests
         run: ./run-api-tests-nonparallel.sh
         env:
@@ -214,6 +236,7 @@ jobs:
           NODE_ENV: ${{ env.TEST_ENV }}
           GRAPHQL_BASE_URL: ${{ secrets.GRAPHQL_BASE_URL }}
           GRAPHQL_ENDPOINT: ${{ secrets.GRAPHQL_ENDPOINT }}
+          API_TIMEOUT: '60000'
 
       - name: Upload API Test Results
         uses: actions/upload-artifact@v5
