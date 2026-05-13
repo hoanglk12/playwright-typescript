@@ -93,7 +93,7 @@ export const plaTestData = {
     firstname: firstName,
     lastname: lastName,
     password: 'Johncena5',
-    phone_number: '',
+    phone_number: phoneNumber,
     is_subscribed: false,
     loyalty_program_status: false,
     order_number: null,
