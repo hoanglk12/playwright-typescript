@@ -18,3 +18,10 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 **Test environments:** testing (default), staging, production. Env loaded from `.env.{NODE_ENV}`.
 
 **Key scripts:** `npm test` (UI, chromium+firefox), `npm run test:api` (API), `npm run test:simple` (chromium only, 1 worker).
+
+**PLA (Platypus Shoes) GraphQL API tests (added 2026-05-15):**
+- Target: `https://stag-platypus-au.accentgra.com/graphql` (Magento 2 / Adobe Commerce)
+- 5 spec files in `tests/api/`: `pla-account-creation-signin`, `pla-cart_minicart`, `pla-my-details`, `pla-support-features`, `pla-authentication`
+- Shared test state across PLA files via `tests/api/shared-state.ts` (token, customerId, cartId, addressId)
+- Test data at `src/data/api/pla-test-data.ts` — generates unique email per test run; all PLA specs reuse `getTestEmail()` to stay in sync
+- `api-scenarios-report.html` at project root: 38 GraphQL operations documented, 14 covered, 24 gaps — see [[pla-api-testing]] for patterns and API quirks

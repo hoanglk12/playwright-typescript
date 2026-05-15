@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLA GraphQL API Scenarios Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: white; padding: 32px 40px; }
+  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .header .meta { margin-top: 12px; font-size: 14px; opacity: 0.75; display: flex; gap: 32px; flex-wrap: wrap; }
+  .header .meta span { display: flex; align-items: center; gap: 6px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .stat-card .value { font-size: 36px; font-weight: 700; line-height: 1; }
+  .stat-card .label { font-size: 12px; color: #666; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card.total .value { color: #1a1a2e; }
+  .stat-card.covered .value { color: #10b981; }
+  .stat-card.new .value { color: #f59e0b; }
+  .stat-card.mutations .value { color: #6366f1; }
+  .stat-card.queries .value { color: #3b82f6; }
+  .section { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 32px; overflow: hidden; }
+  .section-header { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+  .section-header h2 { font-size: 18px; font-weight: 600; }
+  .section-header .count { background: #f0f2f5; border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 600; color: #666; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f8f9fa; padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #666; border-bottom: 2px solid #eee; }
+  td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; vertical-align: top; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .badge-query { background: #dbeafe; color: #1d4ed8; }
+  .badge-mutation { background: #ede9fe; color: #6d28d9; }
+  .badge-covered { background: #d1fae5; color: #065f46; }
+  .badge-new { background: #fef3c7; color: #92400e; }
+  .badge-p1 { background: #fee2e2; color: #991b1b; }
+  .badge-p2 { background: #fef3c7; color: #92400e; }
+  .badge-p3 { background: #e0f2fe; color: #0c4a6e; }
+  .op-name { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 600; color: #1a1a2e; }
+  .variables { font-family: 'Courier New', monospace; font-size: 11px; color: #555; background: #f8f8f8; padding: 6px 8px; border-radius: 4px; line-height: 1.5; }
+  .scenarios ul { list-style: none; padding: 0; }
+  .scenarios li { font-size: 13px; line-height: 1.6; padding: 2px 0; }
+  .scenarios li::before { content: "•"; color: #6366f1; margin-right: 6px; font-weight: bold; }
+  .scenarios li.error::before { content: "✗"; color: #ef4444; }
+  .spec-file { font-size: 11px; color: #888; font-style: italic; }
+  .footer { background: white; border-top: 2px solid #f0f0f0; padding: 20px 40px; text-align: center; color: #888; font-size: 13px; margin-top: 16px; }
+  .area-tag { font-size: 11px; background: #f0f0f0; color: #555; padding: 2px 8px; border-radius: 4px; margin-left: 8px; }
+  .toc { background: white; border-radius: 12px; padding: 20px 24px; margin-bottom: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .toc h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .toc a { display: inline-block; margin: 4px 8px 4px 0; padding: 4px 12px; background: #f0f2f5; border-radius: 20px; font-size: 12px; color: #1a1a2e; text-decoration: none; }
+  .toc a:hover { background: #e5e7eb; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>PLA GraphQL API — Scenarios Discovery Report</h1>
+  <div class="meta">
+    <span>Target: https://stag-platypus-au.accentgra.com/graphql</span>
+    <span>Date Generated: 2026-05-15</span>
+    <span>Environment: Staging</span>
+    <span>Framework: Playwright TypeScript — GraphQLClient</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="stats-row">
+    <div class="stat-card total"><div class="value">38</div><div class="label">Total Operations</div></div>
+    <div class="stat-card covered"><div class="value">14</div><div class="label">Covered</div></div>
+    <div class="stat-card new"><div class="value">24</div><div class="label">New / Gap</div></div>
+    <div class="stat-card mutations"><div class="value">16</div><div class="label">Mutations</div></div>
+    <div class="stat-card queries"><div class="value">22</div><div class="label">Queries</div></div>
+  </div>
+
+  <div class="toc">
+    <h3>Jump to section</h3>
+    <a href="#account">Account Management</a>
+    <a href="#auth">Authentication</a>
+    <a href="#cart">Cart &amp; MiniCart</a>
+    <a href="#checkout">Checkout</a>
+    <a href="#catalog">Catalog &amp; Products</a>
+    <a href="#search">Search</a>
+    <a href="#customer">Customer Profile</a>
+    <a href="#address">Address Book</a>
+    <a href="#loyalty">Loyalty &amp; Rewards</a>
+    <a href="#store">Store Config</a>
+    <a href="#wishlist">Wishlist</a>
+    <a href="#orders">Order History</a>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="badge badge-covered">Covered</span> Already has automated tests</div>
+    <div class="legend-item"><span class="badge badge-new">New</span> Not yet automated — gap to fill</div>
+    <div class="legend-item"><span class="badge badge-p1">P1</span> Critical path — automate first</div>
+    <div class="legend-item"><span class="badge badge-p2">P2</span> High value — automate next sprint</div>
+    <div class="legend-item"><span class="badge badge-p3">P3</span> Nice to have</div>
+  </div>
+
+  <!-- ========== ACCOUNT MANAGEMENT ========== -->
+  <div class="section" id="account">
+    <div class="section-header">
+      <h2>Account Management <span class="area-tag">Mutations</span></h2>
+      <span class="count">2 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">createCustomer</span><br><span class="spec-file">pla-account-creation-signin.spec.ts</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">email: String!<br>firstname: String!<br>lastname: String!<br>password: String!<br>phone_number: String!<br>is_subscribed: Boolean!<br>loyalty_program_status: Boolean<br>order_number: String<br>gender: Int<br>date_of_birth: String</div></td>
+          <td>Creates a new customer account. Returns customer id, firstname, lastname, email, __typename.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid full input → customer created with correct fields</li>
+            <li class="error">Error: invalid email format → graphql-input error</li>
+            <li class="error">Error: duplicate email → already exists error</li>
+            <li class="error">Error: weak password → validation error</li>
+            <li class="error">Error: empty required fields → graphql-input error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">updateCustomerV2</span><br><span class="spec-file">pla-my-details.spec.ts</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: CustomerUpdateInput<br>  is_subscribed: Boolean<br>  loyalty_program_status: Boolean<br>  firstname: String<br>  lastname: String<br>  email: String<br>  date_of_birth: String<br>  phone_number: String</div></td>
+          <td>Updates customer profile fields. Used for newsletter subscription toggle, loyalty opt-in/out, and personal info updates.</td>
+          <td class="scenarios"><ul>
+            <li>Subscribe to newsletter (is_subscribed: true)</li>
+            <li>Unsubscribe from newsletter (is_subscribed: false)</li>
+            <li>Toggle loyalty program status</li>
+            <li class="error">Error: unauthenticated request → UNAUTHORIZED error</li>
+            <li>Update personal info (firstname, lastname, date_of_birth, phone_number)</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== AUTHENTICATION ========== -->
+  <div class="section" id="auth">
+    <div class="section-header">
+      <h2>Authentication <span class="area-tag">Mutations / Queries</span></h2>
+      <span class="count">4 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">generateCustomerToken</span><br><span class="spec-file">pla-account-creation-signin.spec.ts</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">email: String!<br>password: String!<br>remember: Boolean</div></td>
+          <td>Authenticates customer and returns a bearer token. Token is alphanumeric (no special chars). Used as Authorization header for all authenticated calls.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid credentials → token returned, alphanumeric format validated</li>
+            <li class="error">Error: wrong password → graphql-authentication error</li>
+            <li class="error">Error: non-existent email → authentication error</li>
+            <li class="error">Error: empty email/password → input validation error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">revokeCustomerToken</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">(no variables — uses Authorization header)</div></td>
+          <td>Invalidates the current customer bearer token. Returns result: Boolean. Called on sign-out.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid token → revoked successfully, result: true</li>
+            <li>Verify revoked token cannot access protected resources</li>
+            <li class="error">Error: unauthenticated → error returned</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">resetPassword</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">email: String!<br>resetPasswordToken: String!<br>newPassword: String!</div></td>
+          <td>Resets customer password using a reset token. Called from the password reset flow.</td>
+          <td class="scenarios"><ul>
+            <li class="error">Error: invalid reset token → error returned</li>
+            <li class="error">Error: invalid email → error returned</li>
+            <li class="error">Error: weak new password → validation error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">requestPasswordResetEmail</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">email: String!</div></td>
+          <td>Triggers a password reset email to the given address. Returns Boolean.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid registered email → returns true</li>
+            <li>Non-existent email → may return true (security: no disclosure)</li>
+            <li class="error">Error: invalid email format → validation error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== CART & MINICART ========== -->
+  <div class="section" id="cart">
+    <div class="section-header">
+      <h2>Cart &amp; MiniCart <span class="area-tag">Mutations / Queries</span></h2>
+      <span class="count">9 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">createEmptyCart</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">(requires Bearer token)</div></td>
+          <td>Creates an empty cart for the authenticated customer. Returns cartId string.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: authenticated → cartId returned, alphanumeric format</li>
+            <li class="error">Error: unauthenticated → error returned</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">getItemCount / cart (CartTriggerFragment)</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">cartId: String!</div></td>
+          <td>Returns cart id, total_quantity, shipping_addresses with selected_shipping_method.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid cartId + auth → cart data returned</li>
+            <li class="error">Error: invalid cartId → Could not find a cart error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">MiniCartQuery (MiniCartFragment)</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">cartId: String!</div></td>
+          <td>Full mini-cart data: quantities, prices, subtotal, grand_total, discounts, products (configurable options, thumbnails), multiple_rewards_message, QFF reward, applied Qantas points.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid cartId + auth → full cart structure returned</li>
+            <li>Verify rewards message and QFF reward defaults for new cart</li>
+            <li class="error">Error: invalid cartId → error returned</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">GetCartDetailsAfterSignIn</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">cartId: String!</div></td>
+          <td>Full cart page data: items, prices, payment methods, shipping addresses, coupons, gift cards, Qantas points, PlatyPoints, promo blocks.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: validate all payment method codes and titles</li>
+            <li>Verify empty cart arrays (items, applied_coupons, applied_qantas_points)</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">checkUserIsAuthed</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">cartId: String!</div></td>
+          <td>Lightweight auth check via cart id and __typename.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: authenticated → cart.id matches, __typename = Cart</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">addProductsToCart</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">cartId: String!<br>cartItems: [CartItemInput!]!<br>  quantity: Float!<br>  sku: String!<br>  selected_options: [String]<br>  entered_options: [EnteredOptionInput]</div></td>
+          <td>Adds one or more products to the cart. Supports simple and configurable products with selected options (size/colour). Returns updated cart with items.</td>
+          <td class="scenarios"><ul>
+            <li>Add simple product → item appears in cart</li>
+            <li>Add configurable product with size + colour options → correct variant in cart</li>
+            <li>Add same product twice → quantity increments</li>
+            <li class="error">Error: invalid SKU → product not found error</li>
+            <li class="error">Error: out-of-stock SKU → insufficient stock error</li>
+            <li class="error">Error: invalid cartId → cart not found error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">removeItemFromCart</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: RemoveItemFromCartInput<br>  cart_id: String!<br>  cart_item_id: Int!</div></td>
+          <td>Removes a specific item from the cart by cart_item_id. Returns updated cart.</td>
+          <td class="scenarios"><ul>
+            <li>Add item then remove → cart is empty</li>
+            <li class="error">Error: invalid cart_item_id → item not found error</li>
+            <li class="error">Error: unauthenticated → authorization error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">updateCartItems</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: UpdateCartItemsInput<br>  cart_id: String!<br>  cart_items: [CartItemQuantityInput!]!<br>    cart_item_id: Int!<br>    quantity: Float!</div></td>
+          <td>Updates quantities of items in the cart. Setting quantity to 0 removes the item.</td>
+          <td class="scenarios"><ul>
+            <li>Increase item quantity → total_quantity updates</li>
+            <li>Decrease item quantity → total_quantity decreases</li>
+            <li>Set quantity to 0 → item removed from cart</li>
+            <li class="error">Error: quantity exceeds stock → insufficient stock error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">applyCouponToCart</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: ApplyCouponToCartInput<br>  cart_id: String!<br>  coupon_code: String!</div></td>
+          <td>Applies a coupon/voucher code to the cart. Returns cart with discounts applied.</td>
+          <td class="scenarios"><ul>
+            <li class="error">Error: invalid coupon code → coupon not found error</li>
+            <li class="error">Error: expired coupon → coupon expired error</li>
+            <li class="error">Error: unauthenticated → authorization error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== CHECKOUT ========== -->
+  <div class="section" id="checkout">
+    <div class="section-header">
+      <h2>Checkout <span class="area-tag">Mutations</span></h2>
+      <span class="count">5 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">setShippingAddressesOnCart</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: SetShippingAddressesOnCartInput<br>  cart_id: String!<br>  shipping_addresses: [ShippingAddressInput!]!<br>    address: CartAddressInput<br>    customer_address_id: Int</div></td>
+          <td>Sets the shipping address on the cart. Can use a new address or an existing customer address by ID.</td>
+          <td class="scenarios"><ul>
+            <li>Set new address inline → shipping_addresses populated</li>
+            <li>Set from saved address book (customer_address_id) → address applied</li>
+            <li class="error">Error: invalid customer_address_id → error returned</li>
+            <li class="error">Error: missing required address fields → validation error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">setShippingMethodsOnCart</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: SetShippingMethodsOnCartInput<br>  cart_id: String!<br>  shipping_methods: [ShippingMethodInput!]!<br>    carrier_code: String!<br>    method_code: String!</div></td>
+          <td>Sets the shipping method on the cart. Available methods depend on address and items.</td>
+          <td class="scenarios"><ul>
+            <li>Set standard shipping method → selected_shipping_method updated</li>
+            <li>Set express/alternate method → method applied</li>
+            <li class="error">Error: unavailable method for address → error returned</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">setBillingAddressOnCart</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: SetBillingAddressOnCartInput<br>  cart_id: String!<br>  billing_address: BillingAddressInput<br>    address: CartAddressInput<br>    customer_address_id: Int<br>    same_as_shipping: Boolean</div></td>
+          <td>Sets billing address on the cart. Can mirror the shipping address or set a different one.</td>
+          <td class="scenarios"><ul>
+            <li>Set billing same as shipping (same_as_shipping: true)</li>
+            <li>Set separate billing address</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">setPaymentMethodOnCart</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: SetPaymentMethodOnCartInput<br>  cart_id: String!<br>  payment_method: PaymentMethodInput<br>    code: String! (e.g. braintree, checkmo)</div></td>
+          <td>Sets the payment method code on the cart. Available codes: checkmo, braintree_applepay, free, braintree, braintree_paypal.</td>
+          <td class="scenarios"><ul>
+            <li>Set checkmo payment method → selected_payment_method updated</li>
+            <li>Set braintree → payment method applied</li>
+            <li class="error">Error: invalid payment code → error returned</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">placeOrder</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: PlaceOrderInput<br>  cart_id: String!</div></td>
+          <td>Places the order for a cart with all required checkout steps completed. Returns order.order_number.</td>
+          <td class="scenarios"><ul>
+            <li>Full checkout flow: address → shipping → billing → payment → placeOrder → order number returned</li>
+            <li class="error">Error: missing shipping address → cannot place order</li>
+            <li class="error">Error: missing payment method → cannot place order</li>
+            <li class="error">Error: out-of-stock item in cart → cannot place order</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== CATALOG & PRODUCTS ========== -->
+  <div class="section" id="catalog">
+    <div class="section-header">
+      <h2>Catalog &amp; Products <span class="area-tag">Queries</span></h2>
+      <span class="count">5 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">products (PLP query)</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">search: String<br>filter: ProductAttributeFilterInput<br>pageSize: Int<br>currentPage: Int<br>sort: ProductAttributeSortInput</div></td>
+          <td>Returns product list with filters, sorting, and pagination. Used on PLP pages. Items include name, sku, price_range, thumbnail, url_key, stock_status, color_name, rating_summary.</td>
+          <td class="scenarios"><ul>
+            <li>Query products by category filter → paginated list returned</li>
+            <li>Query with brand filter (apparel21_brand_id) → filtered list returned</li>
+            <li>Sort by price ascending → items in correct order</li>
+            <li>Sort by price descending → items in correct order</li>
+            <li>Pagination: page 2 returns different results than page 1</li>
+            <li class="error">Error: invalid filter field → GraphQL error or empty result</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">products (PDP / single product)</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">filter: { url_key: { eq: String } }</div></td>
+          <td>Returns full product detail by url_key. Includes configurable options (size, colour variants), price, images, description, attributes, stock status.</td>
+          <td class="scenarios"><ul>
+            <li>Fetch product by url_key → product details returned with configurable_options</li>
+            <li>Verify price_range.minimum_price.final_price structure</li>
+            <li>Verify all size variants and their stock_status</li>
+            <li class="error">Error: non-existent url_key → empty items array</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">categories</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">filters: CategoryFilterInput<br>  ids: FilterEqualTypeInput<br>  url_key: FilterEqualTypeInput</div></td>
+          <td>Returns category tree with children. Used for navigation menus and breadcrumbs.</td>
+          <td class="scenarios"><ul>
+            <li>Fetch root category tree → children with names and url_keys</li>
+            <li>Fetch specific category by url_key → category details returned</li>
+            <li class="error">Error: non-existent category id → empty result</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">storeConfig</span><br><span class="spec-file">pla-support-features.spec.ts (partial)</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(no variables)</div></td>
+          <td>Returns store configuration including id, store_code, promo block enable flags, currency settings. Partially covered in GetDynamicData test.</td>
+          <td class="scenarios"><ul>
+            <li>Fetch store_code and id → valid values returned</li>
+            <li>Verify ewave_dynamicpromoblocks_* enable flags are Boolean</li>
+            <li>Fetch locale and base_currency_code</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">urlResolver</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">url: String!</div></td>
+          <td>Resolves a URL path to its entity type (PRODUCT, CATEGORY, CMS_PAGE) and id. Used for client-side routing.</td>
+          <td class="scenarios"><ul>
+            <li>Resolve product URL → type: PRODUCT, id returned</li>
+            <li>Resolve category URL → type: CATEGORY, id returned</li>
+            <li>Resolve CMS page URL → type: CMS_PAGE, id returned</li>
+            <li class="error">Error: non-existent URL → null returned</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== SEARCH ========== -->
+  <div class="section" id="search">
+    <div class="section-header">
+      <h2>Search <span class="area-tag">Queries</span></h2>
+      <span class="count">2 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">products (search)</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">search: String!<br>pageSize: Int<br>currentPage: Int<br>sort: ProductAttributeSortInput</div></td>
+          <td>Full-text product search. Returns matching products with aggregations for filter facets.</td>
+          <td class="scenarios"><ul>
+            <li>Search "nike" → results with items and aggregations returned</li>
+            <li>Search specific SKU → exact product in results</li>
+            <li>Search with no results → empty items array, total_count: 0</li>
+            <li>Search with special chars → handled gracefully, no server error</li>
+            <li>Search empty string → all products or error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">productSearch (suggestion / autocomplete)</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">phrase: String!<br>page_size: Int</div></td>
+          <td>Returns search suggestions / autocomplete results as user types. Returns items with name and url.</td>
+          <td class="scenarios"><ul>
+            <li>Type 2+ chars → suggestions returned</li>
+            <li>No matching phrase → empty suggestions</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== CUSTOMER PROFILE ========== -->
+  <div class="section" id="customer">
+    <div class="section-header">
+      <h2>Customer Profile <span class="area-tag">Queries / Mutations</span></h2>
+      <span class="count">3 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">getCustomerDetails (customer query)</span><br><span class="spec-file">pla-account-creation-signin.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(requires Bearer token)</div></td>
+          <td>Returns full customer profile using CustomerInformationFragment + CustomerLoyaltyFragment. Includes loyalty.level, loyalty.rewards, loyalty.program, qff_member_number, apparel21_id.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid token → all profile fields returned</li>
+            <li>Verify loyalty structure: level.name, points_balance, rewards array</li>
+            <li class="error">Error: no auth token → UNAUTHORIZED error</li>
+            <li class="error">Error: expired/revoked token → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">changeCustomerPassword</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">currentPassword: String!<br>newPassword: String!</div></td>
+          <td>Changes the authenticated customer's password. Requires current password for verification.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: correct current password + valid new password → success</li>
+            <li class="error">Error: wrong current password → authentication error</li>
+            <li class="error">Error: weak new password → validation error</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">updateCustomerV2 (personal info update)</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: CustomerUpdateInput<br>  firstname: String<br>  lastname: String<br>  email: String<br>  date_of_birth: String<br>  phone_number: String<br>  password: String (required if changing email)</div></td>
+          <td>Updates customer personal information (name, email, DOB, phone). Email change requires password verification. Partially covered (newsletter/loyalty variants covered).</td>
+          <td class="scenarios"><ul>
+            <li>Update firstname + lastname → fields updated in customer query</li>
+            <li>Update date_of_birth → field updated</li>
+            <li>Update phone_number → field updated</li>
+            <li class="error">Error: email change without password → error</li>
+            <li class="error">Error: duplicate email → already exists error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== ADDRESS BOOK ========== -->
+  <div class="section" id="address">
+    <div class="section-header">
+      <h2>Address Book <span class="area-tag">Mutations / Queries</span></h2>
+      <span class="count">5 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">createCustomerAddress</span><br><span class="spec-file">pla-my-details.spec.ts</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">input: CustomerAddressInput<br>  firstname, lastname, street<br>  city, postcode, region.region<br>  country_code, telephone<br>  default_shipping, default_billing<br>  custom_attributes (address_name)</div></td>
+          <td>Creates a new address in the customer's address book. Returns id and __typename.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: full valid address → id returned as integer</li>
+            <li>Set as default shipping + billing</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+            <li class="error">Error: invalid country_code → validation error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">GetCustomerAddressesForAddressBook</span><br><span class="spec-file">pla-my-details.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(requires Bearer token)</div></td>
+          <td>Returns customer addresses with CustomerAddressFragment + countries list (AU). Includes address_name custom attribute.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid token → addresses + countries returned</li>
+            <li>Verify all address fields match what was created</li>
+            <li>Verify countries array contains AU with full_name_locale</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">updateCustomerAddress</span><br><span class="spec-file">pla-my-details.spec.ts</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">id: Int!<br>input: CustomerAddressInput</div></td>
+          <td>Updates an existing address by id. Returns updated address id and __typename.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid addressId → address updated</li>
+            <li>Update default_billing/default_shipping flags</li>
+            <li class="error">Error: non-existent addressId → error returned</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">deleteCustomerAddress</span><br><span class="spec-file">pla-my-details.spec.ts</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">id: Int!</div></td>
+          <td>Deletes an address from the customer's address book by id. Returns Boolean.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid addressId → returns true</li>
+            <li class="error">Error: non-existent addressId → error returned</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">countries</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(no variables)</div></td>
+          <td>Returns all available countries with id and full_name_locale. Used for address form dropdowns. Partially covered as part of GetCustomerAddressesForAddressBook.</td>
+          <td class="scenarios"><ul>
+            <li>Fetch all countries → AU present in list</li>
+            <li>Verify id and full_name_locale structure</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p3">P3</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== LOYALTY & REWARDS ========== -->
+  <div class="section" id="loyalty">
+    <div class="section-header">
+      <h2>Loyalty &amp; Rewards <span class="area-tag">Queries / Mutations</span></h2>
+      <span class="count">4 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">loyalty (newsletter subscription messages)</span><br><span class="spec-file">pla-my-details.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(requires Bearer token)</div></td>
+          <td>Returns multiplerewards_loyalty_newsletter_subscription_messages and multiplerewards_loyalty_newsletter_subscription_banner_messages.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid token → both message fields defined</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">customer.loyalty (loyalty program details)</span><br><span class="spec-file">pla-account-creation-signin.spec.ts (via CustomerLoyaltyFragment)</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(requires Bearer token — part of getCustomerDetails)</div></td>
+          <td>Nested in customer query via CustomerLoyaltyFragment. Returns loyalty.level, points_balance, rewards array, program details, reward_account_id, rewards_balance.</td>
+          <td class="scenarios"><ul>
+            <li>Covered within getCustomerDetails test</li>
+            <li>Verify structure: level.name, points_balance, rewards[] shape</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">applyRewardPointsToCart (PlatyPoints)</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">cart_id: String!</div></td>
+          <td>Applies PlatyPoints (multiple_rewards) to the cart for discount. Cart response includes applied_multiple_rewards with applied_amount and applied_rewards.</td>
+          <td class="scenarios"><ul>
+            <li>Apply points to cart with items → applied_multiple_rewards populated</li>
+            <li class="error">Error: no available rewards → error or no-op</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">applyQantasPointsToCart (QFF)</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">cart_id: String!<br>points: Int!</div></td>
+          <td>Applies Qantas Frequent Flyer points to the cart. Cart response includes applied_qantas_points with points_burned, dollar_value, member_number.</td>
+          <td class="scenarios"><ul>
+            <li class="error">Error: not a QFF member → error or qff_reward.is_qff_member: false</li>
+            <li class="error">Error: insufficient Qantas points → error returned</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== STORE CONFIG & SUPPORT ========== -->
+  <div class="section" id="store">
+    <div class="section-header">
+      <h2>Store Config &amp; Support Features <span class="area-tag">Queries</span></h2>
+      <span class="count">2 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">getCurrencyData</span><br><span class="spec-file">pla-support-features.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(requires Bearer token)</div></td>
+          <td>Returns default_display_currency_code (3-char ISO format) and available_currency_codes array. AUD must be present.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid token → AUD in available_currency_codes</li>
+            <li>Verify default_display_currency_code matches ISO 4217 format</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">GetDynamicData</span><br><span class="spec-file">pla-support-features.spec.ts</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">cart_id: String!</div></td>
+          <td>Returns cart.dynamic_promo_blocks (discount, gift, message with progress_percent) + storeConfig ewave_dynamicpromoblocks_* feature flags.</td>
+          <td class="scenarios"><ul>
+            <li>Happy path: valid cartId + token → promo message defined, discount/gift null for empty cart</li>
+            <li>Verify storeConfig promo block enable flags are Boolean</li>
+          </ul></td>
+          <td><span class="badge badge-covered">Covered</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== WISHLIST ========== -->
+  <div class="section" id="wishlist">
+    <div class="section-header">
+      <h2>Wishlist <span class="area-tag">Mutations / Queries</span></h2>
+      <span class="count">3 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">addProductsToWishlist</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">wishlistId: ID!<br>wishlistItems: [WishlistItemInput!]!<br>  sku: String!<br>  quantity: Float<br>  selected_options: [String]</div></td>
+          <td>Adds one or more products to customer's wishlist. Returns wishlist with items count.</td>
+          <td class="scenarios"><ul>
+            <li>Add product → appears in wishlist items</li>
+            <li class="error">Error: invalid SKU → error returned</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">removeProductsFromWishlist</span></td>
+          <td><span class="badge badge-mutation">Mutation</span></td>
+          <td><div class="variables">wishlistId: ID!<br>wishlistItemsIds: [ID!]!</div></td>
+          <td>Removes items from wishlist by their wishlist item IDs.</td>
+          <td class="scenarios"><ul>
+            <li>Remove existing item → item no longer in wishlist</li>
+            <li class="error">Error: non-existent item id → error returned</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">customer.wishlists</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(requires Bearer token)</div></td>
+          <td>Returns customer's wishlist(s) with items including product details, quantities.</td>
+          <td class="scenarios"><ul>
+            <li>Fetch wishlists → items_count and items returned</li>
+            <li>Empty wishlist → items array is empty</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== ORDER HISTORY ========== -->
+  <div class="section" id="orders">
+    <div class="section-header">
+      <h2>Order History <span class="area-tag">Queries</span></h2>
+      <span class="count">2 operations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Operation Name</th><th>Type</th><th>Variables</th><th>Description</th><th>Test Scenarios</th><th>Status</th><th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="op-name">customer.orders</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">(requires Bearer token)<br>filter: CustomerOrdersFilterInput<br>pageSize: Int<br>currentPage: Int</div></td>
+          <td>Returns paginated order history for the authenticated customer. Includes order_number, status, grand_total, items, shipping_address.</td>
+          <td class="scenarios"><ul>
+            <li>Fetch orders after placing an order → order present in list</li>
+            <li>New account with no orders → empty items array, total_count: 0</li>
+            <li>Paginate orders → page 2 different from page 1</li>
+            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p1">P1</span></td>
+        </tr>
+        <tr>
+          <td><span class="op-name">guestOrder / orderByToken</span></td>
+          <td><span class="badge badge-query">Query</span></td>
+          <td><div class="variables">token: String!</div></td>
+          <td>Returns order details for a guest order using the order token. Used in order confirmation and guest order tracking.</td>
+          <td class="scenarios"><ul>
+            <li class="error">Error: invalid token → order not found error</li>
+            <li>Valid token → order details returned</li>
+          </ul></td>
+          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-p2">P2</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="footer">
+  Total GraphQL operations documented: <strong>38</strong> &nbsp;|&nbsp;
+  Covered: <strong>14</strong> &nbsp;|&nbsp;
+  New scenarios to automate: <strong>24</strong> &nbsp;|&nbsp;
+  Generated: 2026-05-15 &nbsp;|&nbsp;
+  Endpoint: https://stag-platypus-au.accentgra.com/graphql
+</div>
+
+</body>
+</html>
