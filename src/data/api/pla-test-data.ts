@@ -3,8 +3,6 @@
  * Centralized test data for Account Management tests
  */
 
-import { cartId } from "@tests/api/shared-state";
-
 /**
  * Generate random string for unique test data
  */
@@ -167,7 +165,6 @@ export interface PlaTestData {
   addNewCustomerAddressForAddressBook: AddNewCustomerAddressInput;
   updateCustomerAddressTemplate: UpdateCustomerAddress;
   updateCustomerInformationData: UpdateCustomerInformation;
-  cartId: string;
   subscribeNewsletterData: { isSubscribed: boolean[] };
   loyaltyProgramData: { status: boolean[] };
   expectedPaymentMethods: { codes: string[]; titles: string[] };
@@ -306,7 +303,6 @@ export const plaTestData: PlaTestData = {
     loyalty_program_status: false
   },
 
-  cartId: cartId,
   subscribeNewsletterData:{
     isSubscribed: [true, false]
   },
@@ -323,7 +319,7 @@ export const plaTestData: PlaTestData = {
 /**
  * Export test email for assertions
  */
-export const getTestEmail = () => testEmail;
+export const getTestEmail = (): string => testEmail;
 
 /**
  * Expected validation messages
