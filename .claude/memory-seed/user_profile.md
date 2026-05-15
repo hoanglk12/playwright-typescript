@@ -10,7 +10,7 @@ QA engineer / automation specialist building and maintaining a Playwright TypeSc
 **Technical level:** Senior — understands POM architecture, composition patterns, CI pipeline design, API testing, reporter tooling. No need to explain fundamentals.
 
 **Environment:**
-- OS: Windows 11 Home, PowerShell + Bash available
+- OS: Windows 11 Pro, PowerShell + Bash available
 - Editor: VS Code with Claude Code extension
 - Shell: PowerShell primary, Bash via tool
-- Project path: `E:\OLDDATA\DATA\TESTING\AutomationTesting\playwright-typescript`
+- Project path: `C:\Users\Lincoln.Pham\Documents\AccentGroupDocs\AutomationTest\playwright-typescript`
