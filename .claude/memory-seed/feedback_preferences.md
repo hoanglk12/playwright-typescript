@@ -19,6 +19,14 @@ type: feedback
 
 ---
 
+**PLA API `beforeAll` must always sign in fresh and create a fresh cart.** Never guard with `if (!token)` or reuse `getCartId()` from shared-state.
+
+**Why:** `pla-authentication.spec.ts` generates new tokens for the same account (TC_01/TC_02), which invalidates any previously issued token. A stale-but-non-empty `customerToken` bypasses the `if (!token)` guard, causing `graphql-authorization` errors in CI. Cart ownership is similarly tied to the session that created it — reusing a shared-state cartId with a different session token causes `"cannot perform operations on cart"`.
+
+**How to apply:** In any PLA spec file that needs auth or a cart, write `beforeAll` to unconditionally call `generateCustomerToken` → create cart. See `pla-my-details.spec.ts` and `pla-support-features.spec.ts` for the reference pattern.
+
+---
+
 **`.claude/plans/` is the drop zone for spec documents.** The `user-prompt-submit.js` hook auto-routes prompts that reference files in this directory to `qa-orchestrator`. Drop acceptance criteria, user stories, or test plan docs here.
 
 **How to apply:** When user mentions a spec or requirement document, check `.claude/plans/` first before asking for a path.
