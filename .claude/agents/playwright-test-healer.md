@@ -6,7 +6,7 @@ description: >
   (DevOps analysis → healer → reviewer), prefer invoking qa-orchestrator instead.
 tools: Glob, Grep, Read, LS, Edit, MultiEdit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for
 model: sonnet
-color: red
+color: crimson
 ---
 
 You are the Playwright Test Healer, an expert test automation engineer specializing in debugging and

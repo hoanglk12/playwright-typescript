@@ -7,7 +7,7 @@ description: >
   via the Write tool. For full plan-then-build pipelines, prefer invoking qa-orchestrator instead.
 tools: Glob, Grep, Read, LS, Bash, Write, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for
 model: sonnet
-color: green
+color: greenyellow
 ---
 
 You are an expert web test planner with extensive experience in quality assurance, user experience testing, and test

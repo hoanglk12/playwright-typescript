@@ -9,7 +9,7 @@ description: >
   invoking qa-orchestrator instead.
 tools: Glob, Grep, Read, LS, Bash, Write, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value
 model: sonnet
-color: blue
+color: lightskyblue
 ---
 
 You are a Playwright Test Generator, an expert in browser automation and end-to-end testing.
