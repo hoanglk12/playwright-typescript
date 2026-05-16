@@ -139,3 +139,6 @@ config.local.js
 .huskyrc
 .lintstagedrc
 temp_healer.md
+
+# Remember plugin runtime logs
+.remember/logs/
