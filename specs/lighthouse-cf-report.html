@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plan: Lighthouse CI Auto-Trigger + Cloudflare Pages Report Upload</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #f6821f;
+      --accent2: #4a9eff;
+      --text: #e2e4ed;
+      --muted: #8b8fa8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --code-bg: #12151f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 920px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12151f 100%);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+    }
+    .header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .header .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-ci { background: #1e3a5f; color: var(--accent2); }
+    .badge-cf { background: #3a1e0a; color: var(--accent); }
+    .badge-lhci { background: #1e3a1e; color: var(--green); }
+
+    /* Sections */
+    h2 {
+      font-size: 1.1rem; font-weight: 700; color: var(--accent);
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 0.95rem; font-weight: 700; color: var(--accent2); margin: 1.5rem 0 0.5rem; }
+
+    /* Context box */
+    .context-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      color: var(--text);
+    }
+    .context-box p { margin-bottom: 0.6rem; }
+    .context-box p:last-child { margin-bottom: 0; }
+
+    /* Decision list */
+    .decisions {
+      background: #0d1f0d;
+      border: 1px solid #1a3a1a;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin-top: 1rem;
+    }
+    .decisions ul { list-style: none; }
+    .decisions li { padding: 0.3rem 0; }
+    .decisions li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8rem 0;
+      font-size: 0.875rem;
+    }
+    thead { background: #12151f; }
+    th {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .file-cell { font-family: 'Cascadia Code', 'Fira Code', monospace; color: var(--accent2); font-size: 0.82rem; }
+    .new-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+    .step {
+      display: grid;
+      grid-template-columns: 2.2rem 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .step-num {
+      width: 2rem; height: 2rem;
+      background: var(--accent); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .step-body h4 { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+    .step-body p { color: var(--muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+
+    /* Code blocks */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #c9d1d9;
+      margin: 0.5rem 0;
+    }
+    code {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      background: var(--code-bg);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      color: var(--accent2);
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+
+    /* Risk table colour cells */
+    .risk-high { color: var(--red); font-weight: 600; }
+    .risk-medium { color: var(--yellow); font-weight: 600; }
+    .risk-low { color: var(--green); font-weight: 600; }
+
+    /* Validation checklist */
+    .checklist { list-style: none; margin: 0.5rem 0; }
+    .checklist li {
+      padding: 0.35rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+    .checklist li::before {
+      content: "□";
+      position: absolute; left: 0;
+      color: var(--accent); font-size: 1rem;
+    }
+    .checklist-group { margin-bottom: 1rem; }
+    .checklist-group h4 { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+
+    /* URL block */
+    .url-box {
+      background: #1a1d27;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.8rem 1.2rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--accent);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>Lighthouse CI Auto-Trigger + Cloudflare Pages Report Upload</h1>
+    <div class="subtitle">Implementation Plan &mdash; Playwright TypeScript Framework</div>
+    <div class="badges">
+      <span class="badge badge-ci">CI/CD Change</span>
+      <span class="badge badge-cf">Cloudflare Pages</span>
+      <span class="badge badge-lhci">@lhci/cli ^0.15.0</span>
+    </div>
+  </div>
+
+  <!-- Context -->
+  <h2>Context &amp; Motivation</h2>
+  <div class="context-box">
+    <p>
+      <strong>Problem 1 — Trigger gap:</strong> <code>lighthouse-ci.yml</code> only fires when specific paths change
+      (<code>src/data/ecommerce/**</code>, <code>lighthouserc.js</code>, the workflow file). Routine code pushes never
+      kick off a Lighthouse audit. The goal is to align it with <code>playwright-with-slack.yml</code>, which fires on
+      every push to <code>main / master / develop</code>.
+    </p>
+    <p>
+      <strong>Problem 2 — No public report URL:</strong> Lighthouse reports are only stored as GitHub artifacts (30-day
+      retention, no browsable URL). The goal is to deploy all 8 site reports to a single stable Cloudflare Pages URL
+      after every run — consistent with how UI/API reports are already hosted.
+    </p>
+    <p>
+      <strong>Discovered gap:</strong> <code>lighthouserc.js</code> only lists 7 URLs. Dr. Martens NZ
+      (<code>stag-drmartens-nz.accentgra.com</code>) is defined in <code>storefronts.ts</code> but missing from
+      the LHCI config. Adding it delivers the expected 8-site coverage.
+    </p>
+  </div>
+
+  <div class="decisions">
+    <strong style="color: var(--green);">Confirmed Decisions</strong>
+    <ul style="margin-top: 0.5rem;">
+      <li>Add Dr. Martens NZ as the 8th site in <code>lighthouserc.js</code></li>
+      <li>Push-only trigger — no <code>pull_request</code> event (avoids doubling 25-min runs per PR)</li>
+      <li>Cloudflare Pages project name: <code>playwright-lighthouse-reports</code></li>
+      <li>Landing page links to median/representative run only (8 links total)</li>
+    </ul>
+  </div>
+
+  <!-- Scope -->
+  <h2>Scope — Files Affected</h2>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Change</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="file-cell">lighthouserc.js</td>
+        <td>Append Dr. Martens NZ URL to <code>ci.collect.url</code> array (7 → 8 entries)</td>
+      </tr>
+      <tr>
+        <td class="file-cell">.github/workflows/lighthouse-ci.yml</td>
+        <td>Remove <code>push.paths</code> filter; add <code>concurrency</code> block; add landing-page step; add CF Pages deploy step; update job summary text to "8 storefronts"</td>
+      </tr>
+      <tr>
+        <td class="file-cell">scripts/generate-lhci-index.js<span class="new-badge">NEW</span></td>
+        <td>Plain Node.js script — reads <code>manifest.json</code>, picks representative run per site, writes <code>lighthouse-reports/index.html</code></td>
+      </tr>
+      <tr>
+        <td class="file-cell">package.json</td>
+        <td>Add <code>"lhci:index": "node scripts/generate-lhci-index.js"</code> convenience script</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color: var(--muted); font-size: 0.8rem; margin-top: 0.4rem;">
+    No changes to: <code>playwright.config.ts</code>, <code>api.config.ts</code>, <code>base-test.ts</code>, any test files, or any other workflow.
+  </p>
+
+  <!-- Implementation Steps -->
+  <h2>Implementation Steps</h2>
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>lighthouserc.js — Add Dr. Martens NZ (8th URL)</h4>
+        <p>Append to the <code>ci.collect.url</code> array. The array becomes 8 entries, matching <code>src/data/ecommerce/storefronts.ts</code>.</p>
+        <pre><code>// Append inside the url array:
+'https://stag-drmartens-nz.accentgra.com/'</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>lighthouse-ci.yml — Fix the push trigger</h4>
+        <p>Delete the <code>paths:</code> list from <code>on.push</code>. Keep <code>branches</code> and <code>workflow_dispatch</code> unchanged.</p>
+        <pre><code>on:
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+    inputs:
+      number_of_runs:
+        ...</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>lighthouse-ci.yml — Add concurrency group</h4>
+        <p>Insert immediately after the <code>on:</code> block to cancel superseded runs when commits pile up.</p>
+        <pre><code>concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>scripts/generate-lhci-index.js — New landing-page generator</h4>
+        <p>Plain Node.js (no new npm deps). Reads <code>lighthouse-reports/manifest.json</code>, picks the <code>isRepresentativeRun === true</code> entry per URL (falls back to first run if none flagged), derives a human-readable label from the hostname, and writes <code>lighthouse-reports/index.html</code> with 8 links plus commit metadata.</p>
+        <pre><code>// Pseudocode logic:
+const manifest = JSON.parse(fs.readFileSync('lighthouse-reports/manifest.json'));
+const byUrl = groupBy(manifest, 'url');
+const rows = Object.entries(byUrl).map(([url, runs]) => {
+  const rep = runs.find(r => r.isRepresentativeRun) ?? runs[0];
+  const label = labelFromUrl(url);   // e.g. 'Platypus AU', 'Dr. Martens NZ'
+  return { label, url, htmlPath: path.basename(rep.htmlPath), scores: rep.summary };
+});
+// Write index.html with &lt;ul&gt; of 8 &lt;a href="..."&gt; links + scores
+// Include: branch, sha, timestamp in &lt;h1&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>package.json — Add lhci:index script</h4>
+        <pre><code>"lhci:index": "node scripts/generate-lhci-index.js"</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h4>lighthouse-ci.yml — Add landing-page generation step</h4>
+        <p>Insert after the existing <code>lhci:upload</code> step. Passes commit metadata as env vars for the page heading.</p>
+        <pre><code>- name: Generate Lighthouse landing page
+  if: always()
+  run: node scripts/generate-lhci-index.js
+  env:
+    GITHUB_SHA: ${{ github.sha }}
+    GITHUB_REF_NAME: ${{ github.ref_name }}</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h4>lighthouse-ci.yml — Add Cloudflare Pages deploy step</h4>
+        <p>Reuses the exact wrangler pattern from <code>playwright-with-slack.yml</code>. No new secrets required — <code>CLOUDFLARE_API_TOKEN</code> and <code>CLOUDFLARE_ACCOUNT_ID</code> already exist at repo level. The project is auto-created by wrangler on first run.</p>
+        <pre><code>- name: Delete large files before Cloudflare deploy
+  if: always()
+  run: find lighthouse-reports -type f -size +25M -delete
+  continue-on-error: true
+
+- name: Deploy Lighthouse reports to Cloudflare Pages
+  if: always() && hashFiles('lighthouse-reports/index.html') != ''
+  id: cf-lighthouse
+  continue-on-error: true
+  run: |
+    npx wrangler@3 pages deploy lighthouse-reports \
+      --project-name playwright-lighthouse-reports \
+      --branch main \
+      --commit-message "Lighthouse ${{ github.ref_name }} run ${{ github.run_id }}"
+  env:
+    CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <h4>lighthouse-ci.yml — Update job summary</h4>
+        <p>In the "Generate job summary" step: change "7 storefronts" → "8 storefronts", add Dr. Martens NZ to the storefront list, append the Cloudflare Pages URL line.</p>
+        <pre><code># Add to job summary output:
+echo "📊 **Lighthouse Report:** https://playwright-lighthouse-reports.pages.dev" >> $GITHUB_STEP_SUMMARY</code></pre>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <!-- Final URL -->
+  <h2>Resulting Cloudflare Pages URL</h2>
+  <div class="url-box">
+    🌐 &nbsp;<a href="https://playwright-lighthouse-reports.pages.dev" style="color: var(--accent); text-decoration: none;">https://playwright-lighthouse-reports.pages.dev</a>
+  </div>
+  <p style="color: var(--muted); font-size: 0.82rem; margin-top: 0.5rem;">
+    Single stable URL. Each push to <code>main/master/develop</code> overwrites the deployment. Per-deployment URLs remain available in the Cloudflare dashboard.
+  </p>
+
+  <!-- Risk Table -->
+  <h2>Risk Assessment</h2>
+  <table>
+    <thead>
+      <tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Every push now runs a 25–30 min audit</td>
+        <td class="risk-medium">Medium</td>
+        <td><code>concurrency: cancel-in-progress: true</code> kills superseded runs</td>
+      </tr>
+      <tr>
+        <td>CF Pages auto-create requires <code>Pages: Edit</code> scope</td>
+        <td class="risk-low">Low</td>
+        <td><code>continue-on-error: true</code> — deploy failure never fails the audit job</td>
+      </tr>
+      <tr>
+        <td>No <code>isRepresentativeRun</code> entry on first LHCI run</td>
+        <td class="risk-low">Low</td>
+        <td>Generator script falls back to <code>runs[0]</code> if no representative entry found</td>
+      </tr>
+      <tr>
+        <td>Cloudflare 25 MiB per-file limit</td>
+        <td class="risk-low">Very Low</td>
+        <td><code>find -size +25M -delete</code> guard (parity with existing deploy workflows)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Validation -->
+  <h2>Validation</h2>
+  <div class="checklist-group">
+    <h4>Local</h4>
+    <ul class="checklist">
+      <li>Run <code>npm run lhci:collect</code> → confirm 8 sites' HTML files in <code>lighthouse-reports/</code> and a valid <code>manifest.json</code></li>
+      <li>Run <code>node scripts/generate-lhci-index.js</code> → confirm <code>lighthouse-reports/index.html</code> exists with 8 links</li>
+      <li>Open <code>lighthouse-reports/index.html</code> in browser → all 8 links resolve to valid HTML reports</li>
+      <li>Run <code>npx wrangler@3 pages deploy lighthouse-reports --project-name playwright-lighthouse-reports --branch main</code> with env vars set → deployment succeeds</li>
+    </ul>
+  </div>
+  <div class="checklist-group">
+    <h4>CI (after merge)</h4>
+    <ul class="checklist">
+      <li>Push a trivial commit (outside <code>src/data/ecommerce/**</code>) to <code>main</code> → <code>lighthouse-ci.yml</code> triggers (path filter is gone)</li>
+      <li>Inspect the Actions run: artifact contains 8-site <code>manifest.json</code> + <code>index.html</code></li>
+      <li>Job summary says "8 storefronts" and shows the Cloudflare Pages URL</li>
+      <li>CF Pages deploy step succeeds → <code>https://playwright-lighthouse-reports.pages.dev</code> serves the landing page with 8 working report links</li>
+      <li>Push two commits in quick succession → confirm <code>concurrency</code> cancels the first run</li>
+    </ul>
+  </div>
+
+  <footer>
+    Generated by Claude Code &mdash; Technical Research Report &mdash; Playwright TypeScript Framework
+  </footer>
+
+</div>
+</body>
+</html>
