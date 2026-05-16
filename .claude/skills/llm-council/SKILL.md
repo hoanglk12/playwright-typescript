@@ -192,5 +192,3 @@ The user sees the HTML report. The transcript is there if they want to dig deepe
 - **Don't council trivial questions.** If the user asks something with one right answer, just answer it. The council is for genuine uncertainty where multiple perspectives add value.
 - **The visual report matters.** Most users will scan the report, not read the full transcript. Make the HTML output clean and scannable.
 
-Read and follow [$targetDisplayPath](../../../.agents/skills/llm-council/SKILL.md).
-
