@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-Composition-based Page Object Model. `BasePage` owns 9 helper instances — **never call `page.locator()` or `page.click()` directly inside page classes**. Use the helpers instead:
+Composition-based Page Object Model. `BasePage` owns 8 helper instances — **never call `page.locator()` or `page.click()` directly inside page classes**. Use the helpers instead:
 
 | Property | Class | Purpose |
 |---|---|---|
@@ -18,7 +18,8 @@ Composition-based Page Object Model. `BasePage` owns 9 helper instances — **ne
 | `this.storage` | `StorageHelper` | Cookies, localStorage, sessionStorage, clipboard |
 | `this.network` | `NetworkHelper` | Route mocking, request interception, performance |
 | `this.tables` | `TableHelper` | HTML table interactions |
-| `this.percy` | `PercyHelper` | Visual snapshot testing with Percy (token-guarded) |
+
+`PercyHelper` is **not** a `BasePage` field — it is available only as the `percyHelper` fixture in tests.
 
 New browser interaction → add it to the appropriate helper class in [src/pages/helpers/](src/pages/helpers/), not to `BasePage`. The `BasePage` retains backward-compatible delegations (e.g. `page.clickElement()` still works) but new code should call helpers directly: `this.elements.clickElement()`.
 
@@ -505,6 +506,7 @@ npm run test:production           # against production environment
 npm run test:api                  # all API tests (serial, 1 worker)
 npm run test:api:testing          # API tests in testing environment
 npm run test:api:serial           # API tests explicit 1 worker
+npm run test:api:headed           # API tests with visible browser
 npm run test:api:debug            # API tests with Playwright inspector
 npm run test:api:ui               # API tests in UI mode
 npm run test:api:booker           # restful-booker tests only
@@ -570,7 +572,7 @@ Both `playwright.config.ts` and `api.config.ts` auto-detect CI environments (`CI
 
 ## Firefox Teardown — Do Not Remove
 
-The `ecommerceHomePage` fixture in `base-test.ts` navigates to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround.
+All five ecommerce fixtures in `base-test.ts` (`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`) navigate to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround from any of these fixtures.
 
 ## monocart Reporter
 
@@ -614,7 +616,7 @@ import { TIMEOUTS } from '@config/../constants/timeouts';
 await page.waitForSelector(sel, { timeout: TIMEOUTS.ELEMENT_VISIBLE });
 ```
 
-Key constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`, `DRAG_DROP`, `API_RESPONSE`, `API_RESPONSE_SLOW`.
+Key constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`, `DRAG_DROP_OPERATION`, `API_RESPONSE`, `API_RESPONSE_SLOW`.
 
 ## Memory (New Machine Setup)
 

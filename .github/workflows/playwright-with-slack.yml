@@ -418,6 +418,10 @@ jobs:
           path: combined-results/api/monocart-api-report/
           retention-days: 30
 
+      - name: Strip oversized attachments (Cloudflare Pages 25 MiB limit)
+        if: always() && needs.ui-test.result != 'skipped'
+        run: find monocart-merged-ui -type f -size +25M -delete 2>/dev/null || true
+
       - name: Deploy UI monocart report to Cloudflare Pages
         if: always() && needs.ui-test.result != 'skipped' && hashFiles('monocart-merged-ui/index.html') != ''
         id: cf-ui
@@ -431,6 +435,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Strip oversized attachments from API report (Cloudflare Pages 25 MiB limit)
+        if: always() && needs.api-test.result != 'skipped'
+        run: find combined-results/api/monocart-api-report -type f -size +25M -delete 2>/dev/null || true
 
       - name: Deploy API monocart report to Cloudflare Pages
         if: always() && needs.api-test.result != 'skipped' && hashFiles('combined-results/api/monocart-api-report/index.html') != ''
