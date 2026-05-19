@@ -148,6 +148,11 @@ jobs:
           mkdir -p monocart-trend
           cp monocart-report/index.json monocart-trend/index.json 2>/dev/null || true
 
+      - name: Copy test-results into monocart shard
+        if: always()
+        shell: bash
+        run: cp -r test-results monocart-report/ 2>/dev/null || true
+
       - name: Upload monocart shard report
         uses: actions/upload-artifact@v5
         if: always()
