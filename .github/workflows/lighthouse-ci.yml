@@ -15,18 +15,18 @@ on:
 
   push:
     branches: [main, master, develop]
-    paths:
-      - 'src/data/ecommerce/**'
-      - 'lighthouserc.js'
-      - '.github/workflows/lighthouse-ci.yml'
 
   # Uncomment to audit on every PR that touches e-commerce files.
-  # Note: 7 storefronts × 3 runs ≈ 20–30 min of execution time.
+  # Note: 8 storefronts × 3 runs ≈ 20–30 min of execution time.
   # pull_request:
   #   branches: [main, master, develop]
   #   paths:
   #     - 'src/data/ecommerce/**'
   #     - 'lighthouserc.js'
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: '22'
@@ -36,7 +36,7 @@ jobs:
   lighthouse-audit:
     name: Lighthouse Audit (E-commerce Storefronts)
     runs-on: ubuntu-latest
-    # 7 URLs × 3 runs × ~60 s/run ≈ 21 min; 45 min provides buffer
+    # 8 URLs × 3 runs × ~60 s/run ≈ 24 min; 45 min provides buffer
     timeout-minutes: 45
 
     steps:
@@ -104,13 +104,38 @@ jobs:
             .lighthouseci/
           retention-days: 30
 
+      - name: Generate Lighthouse landing page
+        if: always()
+        run: node scripts/generate-lhci-index.js
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Delete large files before Cloudflare deploy
+        if: always()
+        run: find lighthouse-reports -type f -size +25M -delete
+        continue-on-error: true
+
+      - name: Deploy Lighthouse reports to Cloudflare Pages
+        if: always() && hashFiles('lighthouse-reports/index.html') != ''
+        id: cf-lighthouse
+        continue-on-error: true
+        run: |
+          npx wrangler@3 pages deploy lighthouse-reports \
+            --project-name playwright-lighthouse-reports \
+            --branch main \
+            --commit-message "Lighthouse ${{ github.ref_name }} run ${{ github.run_id }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Generate job summary
         if: always()
         run: |
           echo "## Lighthouse CI - E-commerce Audit Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storefronts audited**: 7 (Platypus AU/NZ, Skechers AU/NZ, Vans AU/NZ, Dr. Martens AU)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storefronts audited**: 8 (Platypus AU/NZ, Skechers AU/NZ, Vans AU/NZ, Dr. Martens AU/NZ)" >> $GITHUB_STEP_SUMMARY
           echo "- **Runs per URL**: ${{ env.LHCI_RUNS }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Form factor**: Desktop (1350×940)" >> $GITHUB_STEP_SUMMARY
           echo "- **Throttling**: Simulated cable (40 ms RTT, 10 Mbps)" >> $GITHUB_STEP_SUMMARY
@@ -129,6 +154,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "- Full HTML and JSON reports uploaded as **lighthouse-reports** artifact (30-day retention)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📊 **Lighthouse Report:** https://playwright-lighthouse-reports.pages.dev" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Assert result notice

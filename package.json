@@ -68,7 +68,8 @@
     "lhci:run": "lhci collect --config=lighthouserc.js && lhci upload --config=lighthouserc.js && lhci assert --config=lighthouserc.js",
     "lhci:collect": "lhci collect --config=lighthouserc.js",
     "lhci:upload": "lhci upload --config=lighthouserc.js",
-    "lhci:assert": "lhci assert --config=lighthouserc.js"
+    "lhci:assert": "lhci assert --config=lighthouserc.js",
+    "lhci:index": "node scripts/generate-lhci-index.js"
   },
   "keywords": [
     "playwright",

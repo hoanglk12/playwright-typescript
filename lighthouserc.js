@@ -19,6 +19,7 @@ const ECOMMERCE_URLS = [
   'https://stag-vans-au.accentgra.com/',
   'https://stag-vans-nz.accentgra.com/',
   'https://stag-drmartens-au.accentgra.com/',
+  'https://stag-drmartens-nz.accentgra.com/',
 ];
 
 module.exports = {
