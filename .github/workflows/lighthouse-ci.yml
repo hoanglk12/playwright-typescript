@@ -36,8 +36,8 @@ jobs:
   lighthouse-audit:
     name: Lighthouse Audit (E-commerce Storefronts)
     runs-on: ubuntu-latest
-    # 8 URLs × 3 runs × ~60 s/run ≈ 24 min; 45 min provides buffer
-    timeout-minutes: 45
+    # 8 URLs × 3 runs × ~60 s/run × 2 form factors ≈ 48 min; 90 min provides buffer
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
@@ -60,17 +60,18 @@ jobs:
       - name: Override numberOfRuns if dispatched manually
         if: ${{ inputs.number_of_runs != '' }}
         run: |
-          # Patch lighthouserc.js at runtime so manual dispatches can tune run count
-          # without committing a config change. Uses node to keep it cross-platform.
           node -e "
             const fs = require('fs');
-            const content = fs.readFileSync('lighthouserc.js', 'utf8');
-            const patched = content.replace(
-              /numberOfRuns:\s*\d+/,
-              'numberOfRuns: ${{ env.LHCI_RUNS }}'
-            );
-            fs.writeFileSync('lighthouserc.js', patched);
-            console.log('numberOfRuns patched to ${{ env.LHCI_RUNS }}');
+            const patch = (file) => {
+              const patched = fs.readFileSync(file, 'utf8').replace(
+                /numberOfRuns:\s*\d+/,
+                'numberOfRuns: ${{ env.LHCI_RUNS }}'
+              );
+              fs.writeFileSync(file, patched);
+            };
+            patch('lighthouserc.js');
+            patch('lighthouserc.mobile.js');
+            console.log('numberOfRuns patched to ${{ env.LHCI_RUNS }} in both configs');
           "
 
       # lhci autorun is NOT used here because it requires a staticDistDir or
@@ -103,6 +104,37 @@ jobs:
             lighthouse-reports/
             .lighthouseci/
           retention-days: 30
+
+      - name: Collect Lighthouse reports (mobile)
+        if: always()
+        run: npx lhci collect --config=lighthouserc.mobile.js
+        env:
+          LHCI_NO_ANONYMOUS_USAGE_STATISTICS: 'true'
+
+      - name: Upload mobile reports to filesystem output dir
+        if: always()
+        run: npx lhci upload --config=lighthouserc.mobile.js
+        env:
+          LHCI_NO_ANONYMOUS_USAGE_STATISTICS: 'true'
+
+      - name: Assert Lighthouse thresholds (mobile)
+        if: always()
+        run: npx lhci assert --config=lighthouserc.mobile.js
+
+      - name: Upload Lighthouse reports (mobile)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports-mobile
+          path: lighthouse-reports-mobile/
+          retention-days: 30
+
+      - name: Merge mobile reports into desktop dir for CF Pages deploy
+        if: always()
+        run: |
+          mkdir -p lighthouse-reports/mobile
+          cp -r lighthouse-reports-mobile/. lighthouse-reports/mobile/
+        continue-on-error: true
 
       - name: Generate Lighthouse landing page
         if: always()
@@ -137,8 +169,7 @@ jobs:
           echo "### Configuration" >> $GITHUB_STEP_SUMMARY
           echo "- **Storefronts audited**: 8 (Platypus AU/NZ, Skechers AU/NZ, Vans AU/NZ, Dr. Martens AU/NZ)" >> $GITHUB_STEP_SUMMARY
           echo "- **Runs per URL**: ${{ env.LHCI_RUNS }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Form factor**: Desktop (1350×940)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Throttling**: Simulated cable (40 ms RTT, 10 Mbps)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Form factors**: Desktop (1350×940, cable) + Mobile (375×667, Slow 4G)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Assertion Thresholds" >> $GITHUB_STEP_SUMMARY
           echo "| Category | Level | Threshold |" >> $GITHUB_STEP_SUMMARY

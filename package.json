@@ -32,7 +32,7 @@
     "test:percy:smoke": "dotenv -e .env.testing -- percy exec -- playwright test tests/ecommerce/smoke --workers=1 --project=chromium",
     "test:percy:admin": "dotenv -e .env.testing -- percy exec -- playwright test tests/admin --workers=1 --project=chromium",
     "test:percy:login": "dotenv -e .env.testing -- percy exec -- playwright test tests/admin/login.spec.ts --workers=1 --project=chromium",
-    "clean": "rimraf test-results api-results playwright-report api-report blob-report .auth lighthouse-reports .lighthouseci monocart-report monocart-api-report",
+    "clean": "rimraf test-results api-results playwright-report api-report blob-report .auth lighthouse-reports lighthouse-reports-mobile .lighthouseci monocart-report monocart-api-report",
     "clean:api": "rimraf test-results/api api-results api-report",
     "report": "playwright show-report",
     "report:open": "npx playwright show-report --port 9323",
@@ -69,6 +69,10 @@
     "lhci:collect": "lhci collect --config=lighthouserc.js",
     "lhci:upload": "lhci upload --config=lighthouserc.js",
     "lhci:assert": "lhci assert --config=lighthouserc.js",
+    "lhci:run:mobile": "lhci collect --config=lighthouserc.mobile.js && lhci upload --config=lighthouserc.mobile.js && lhci assert --config=lighthouserc.mobile.js",
+    "lhci:collect:mobile": "lhci collect --config=lighthouserc.mobile.js",
+    "lhci:upload:mobile": "lhci upload --config=lighthouserc.mobile.js",
+    "lhci:assert:mobile": "lhci assert --config=lighthouserc.mobile.js",
     "lhci:index": "node scripts/generate-lhci-index.js"
   },
   "keywords": [
