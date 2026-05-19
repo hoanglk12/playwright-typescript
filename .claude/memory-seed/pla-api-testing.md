@@ -10,15 +10,17 @@ metadata:
 | File | Purpose |
 |---|---|
 | `tests/api/pla-account-creation-signin.spec.ts` | Create account, sign in, get customer details |
-| `tests/api/pla-cart_minicart.spec.ts` | Cart / minicart queries and mutations |
-| `tests/api/pla-my-details.spec.ts` | Address book, customer info updates |
+| `tests/api/pla-cart_minicart.spec.ts` | Cart / minicart queries and mutations (TC_01–TC_12 cover addProductsToCart, updateCartItems, removeItemFromCart, applyCouponToCart) |
+| `tests/api/pla-my-details.spec.ts` | Address book, newsletter / loyalty subscription updates |
 | `tests/api/pla-support-features.spec.ts` | Currency, dynamic promo blocks |
-| `tests/api/pla-authentication.spec.ts` | revokeCustomerToken, requestPasswordResetEmail, resetPassword |
-| `tests/api/pla-search.spec.ts` | Product search and autocomplete suggestions |
+| `tests/api/pla-authentication.spec.ts` | revokeCustomerToken (TC_01–03), requestPasswordResetEmail (TC_04–06), resetPassword (TC_07–09) |
+| `tests/api/pla-search.spec.ts` | Product search TC_01–05, autocomplete TC_06–07 (schema-gap aware) |
+| `tests/api/pla-customer-profile.spec.ts` | changeCustomerPassword TC_01–04, updateCustomerV2 personal info TC_05–09 |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across PLA spec files in one worker |
 | `src/data/api/pla-test-data.ts` | Dynamic email + all account/address/cart test data |
 | `src/data/api/pla-auth-data.ts` | Auth-specific test data (reset password inputs, error messages) |
 | `src/data/api/pla-search-data.ts` | Search terms and pagination config for search tests |
+| `src/data/api/pla-customer-profile-data.ts` | changeCustomerPassword inputs, updateCustomerV2 personal info inputs, error messages |
 
 ## Shared-State Pattern
 
@@ -39,12 +41,15 @@ All PLA specs use `test.describe.configure({ mode: 'serial' })` (NOT `test.descr
 
 When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh account. `plaTestData.validCustomer.email` equals `getTestEmail()` — the same dynamic email used across all PLA specs in a single test session.
 
-## Staging API Quirks (discovered 2026-05-15)
+## Staging API Quirks (discovered 2026-05-15, expanded 2026-05-19)
 
 - **`requestPasswordResetEmail` with non-existent email** returns a `graphql-input` error (NOT silent `true` as in standard Magento 2). The staging app discloses account non-existence through this error.
 - **Invalid email format error message** is `"Invalid email address entered"` (custom message), NOT the standard Magento `"is not a valid email address."`. Update `plaAuthErrorMessages.invalidEmailFormat` if Magento is upgraded.
 - **`revokeCustomerToken` error category** is `graphql-authorization` (confirmed on staging).
 - **`resetPassword` validates token before password** — weak-password tests will get a token-invalid error first, not a password-strength error.
+- **`changeCustomerPassword` wrong-password error** returns `"Invalid login or password."` — NOT the standard Magento `"The password doesn't match this account"`. Update `plaCustomerProfileErrorMessages.wrongCurrentPassword` if Magento is upgraded.
+- **`updateCustomerV2` personal info (firstname/lastname/dob/phone) always blocked on staging** — staging has "Require Password for Account Changes" Magento admin config enabled, but `CustomerUpdateInput` GraphQL type does NOT include a `password` field. This makes personal info updates structurally impossible via GraphQL on this staging. TC_05–07 in `pla-customer-profile.spec.ts` document and assert this staging-specific error behavior. `is_subscribed` / `loyalty_program_status` (covered in `pla-my-details.spec.ts`) are NOT subject to this restriction.
+- **Cross-spec token rate-limiting flakiness** — rapid successive `generateCustomerToken` calls for the same account (e.g. TC_01/TC_02 in `pla-authentication.spec.ts` followed by a `beforeAll` in the next spec) can trigger Platypus staging rate limiting. Specs pass 100% standalone but fail intermittently when run back-to-back in the same worker. Not a code bug — an environment constraint.
 
 ## TC_XX Naming Convention
 
@@ -74,4 +79,4 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 ## api-scenarios-report.html
 
-Self-contained HTML report at project root. Generated 2026-05-15. Documents 38 GraphQL operations across 12 categories (Account, Auth, Cart, Checkout, Catalog, Search, Customer, Address, Loyalty, Store, Wishlist, Orders). Marks each as Covered/New and assigns P1/P2/P3 priority. Regenerate by running `qa-orchestrator` explore workflow.
+Self-contained HTML report at project root. Generated 2026-05-15, updated 2026-05-19. Documents 38 GraphQL operations across 12 categories (Account, Auth, Cart, Checkout, Catalog, Search, Customer, Address, Loyalty, Store, Wishlist, Orders). Marks each as Covered/New and assigns P1/P2/P3 priority. Current state: 25 covered, 13 remaining. Regenerate by running `qa-orchestrator` explore workflow.
