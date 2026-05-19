@@ -1,14 +1,9 @@
 'use strict';
 
 /**
- * Lighthouse CI configuration for e-commerce storefronts.
- * URLs sourced from src/data/ecommerce/storefronts.ts (staging environments).
- *
- * Run locally:  npx lhci autorun
- * Collect only: npx lhci collect
- * Assert only:  npx lhci assert
- *
- * To target production, replace the staging URLs below with production equivalents.
+ * Lighthouse CI configuration — mobile form factor.
+ * Same 8 URLs as lighthouserc.js; uses Slow 4G throttling and mobile screen emulation.
+ * Run locally:  npx lhci collect --config=lighthouserc.mobile.js
  */
 
 const ECOMMERCE_URLS = [
@@ -26,35 +21,29 @@ module.exports = {
   ci: {
     collect: {
       url: ECOMMERCE_URLS,
-      // 3 runs per URL gives a stable median score
       numberOfRuns: 3,
       settings: {
-        // Required for Chrome running in containerised / CI environments
         chromeFlags: '--no-sandbox --disable-dev-shm-usage',
 
-        // Desktop form factor — matches the 1920×1080 viewport used by the
-        // Playwright test suite (playwright.config.ts)
-        formFactor: 'desktop',
+        formFactor: 'mobile',
         screenEmulation: {
-          mobile: false,
-          width: 1350,
-          height: 940,
-          deviceScaleFactor: 1,
+          mobile: true,
+          width: 375,
+          height: 667,
+          deviceScaleFactor: 2,
           disabled: false,
         },
 
-        // Simulated cable throttling (mirrors Lighthouse desktop preset)
+        // Simulated Slow 4G — Lighthouse mobile preset
         throttling: {
-          rttMs: 40,
-          throughputKbps: 10240,
-          cpuSlowdownMultiplier: 1,
+          rttMs: 150,
+          throughputKbps: 1638.4,
+          cpuSlowdownMultiplier: 4,
           requestLatencyMs: 0,
           downloadThroughputKbps: 0,
           uploadThroughputKbps: 0,
         },
 
-        // Audits to skip (add IDs here if a legitimate third-party script
-        // causes a persistent failure that cannot be fixed by the team)
         skipAudits: [],
       },
     },
@@ -76,8 +65,6 @@ module.exports = {
         'interactive':              ['warn', { maxNumericValue: 3800 }],  // Lighthouse Good ≤ 3.8 s
 
         // ── Accessibility hard errors ─────────────────────────────────────
-        // These must pass on every storefront — they directly impact users
-        // with assistive technology and carry legal compliance risk.
         'image-alt':      'error',
         'document-title': 'error',
         'html-has-lang':  'error',
@@ -92,11 +79,8 @@ module.exports = {
     },
 
     upload: {
-      // Reports are saved to ./lighthouse-reports/ and uploaded as CI
-      // artifacts. Switch to 'temporary-public-storage' for shareable URLs
-      // (7-day retention, no token required).
       target: 'filesystem',
-      outputDir: './lighthouse-reports',
+      outputDir: './lighthouse-reports-mobile',
       reportFilenamePattern: '%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%',
     },
   },

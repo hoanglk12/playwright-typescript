@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 
 const REPORTS_DIR = path.join(__dirname, '..', 'lighthouse-reports');
-const MANIFEST_PATH = path.join(REPORTS_DIR, 'manifest.json');
 const OUTPUT_PATH = path.join(REPORTS_DIR, 'index.html');
 
 const LABEL_MAP = {
@@ -66,72 +65,95 @@ function groupBy(arr, key) {
   }, {});
 }
 
-if (!fs.existsSync(MANIFEST_PATH)) {
-  console.error(`manifest.json not found at ${MANIFEST_PATH} — skipping index generation`);
-  process.exit(0);
-}
-
-let manifest;
-try {
-  manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
-} catch (err) {
-  console.error(`manifest.json could not be parsed: ${err.message} — skipping index generation`);
-  process.exit(0);
-}
-
-if (!Array.isArray(manifest)) {
-  console.error('manifest.json is not an array — skipping index generation');
-  process.exit(0);
-}
-
-const validEntries = manifest.filter(entry => {
-  if (!entry.url) {
-    console.warn('[WARN] Manifest entry missing url field — skipped');
-    return false;
-  }
-  return true;
-});
-
-const byUrl = groupBy(validEntries, 'url');
-
-const rows = Object.entries(byUrl).map(([url, runs]) => {
-  const representativeRun = runs.find(r => r.isRepresentativeRun);
-  if (!representativeRun) {
-    console.warn(`[WARN] No representative run for "${url}" — using first run as fallback`);
-  }
-  const rep = representativeRun ?? runs[0];
-  if (!rep.htmlPath) {
-    console.warn(`[WARN] URL "${url}" has no htmlPath in the representative run — skipping row`);
+function loadManifest(manifestPath) {
+  if (!fs.existsSync(manifestPath)) return null;
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (err) {
+    console.error(`[ERROR] ${manifestPath} could not be parsed: ${err.message}`);
     return null;
   }
-  const label = labelFromUrl(url);
-  const htmlFile = safeBasename(rep.htmlPath);
-  const scores = rep.summary ?? {};
-  return { label, url, htmlFile, scores };
-}).filter(Boolean);
+  if (!Array.isArray(manifest)) {
+    console.error(`[ERROR] ${manifestPath} is not an array`);
+    return null;
+  }
+  return manifest;
+}
 
-rows.sort((a, b) => a.label.localeCompare(b.label));
+function buildRows(manifest, hrefPrefix) {
+  const validEntries = manifest.filter(entry => {
+    if (!entry.url) {
+      console.warn('[WARN] Manifest entry missing url field — skipped');
+      return false;
+    }
+    return true;
+  });
 
-const sha = escapeHtml((process.env.GITHUB_SHA || '').slice(0, 7) || 'local');
-const branch = escapeHtml(process.env.GITHUB_REF_NAME || 'local');
+  const byUrl = groupBy(validEntries, 'url');
+
+  const rows = Object.entries(byUrl).map(([url, runs]) => {
+    const representativeRun = runs.find(r => r.isRepresentativeRun);
+    if (!representativeRun) {
+      console.warn(`[WARN] No representative run for "${url}" — using first run as fallback`);
+    }
+    const rep = representativeRun ?? runs[0];
+    if (!rep.htmlPath) {
+      console.warn(`[WARN] URL "${url}" has no htmlPath — skipping row`);
+      return null;
+    }
+    const label = labelFromUrl(url);
+    const htmlFile = hrefPrefix + safeBasename(rep.htmlPath);
+    const scores = rep.summary ?? {};
+    return { label, htmlFile, scores };
+  }).filter(Boolean);
+
+  rows.sort((a, b) => a.label.localeCompare(b.label));
+  return rows;
+}
+
+function renderTable(rows) {
+  if (rows.length === 0) return '<p style="color:var(--muted);padding:0.5rem 0">No reports found.</p>';
+  return `<table>
+    <thead>
+      <tr><th>Storefront</th><th>Perf</th><th>A11y</th><th>Best Practices</th><th>SEO</th></tr>
+    </thead>
+    <tbody>
+      ${rows.map(r => {
+        const perf = r.scores.performance;
+        const a11y = r.scores.accessibility;
+        const bp   = r.scores['best-practices'];
+        const seo  = r.scores.seo;
+        return `<tr>
+        <td><a href="${escapeHtml(r.htmlFile)}" class="site-link">${escapeHtml(r.label)}</a></td>
+        <td style="color:${scoreColor(perf)}">${scoreDisplay(perf)}</td>
+        <td style="color:${scoreColor(a11y)}">${scoreDisplay(a11y)}</td>
+        <td style="color:${scoreColor(bp)}">${scoreDisplay(bp)}</td>
+        <td style="color:${scoreColor(seo)}">${scoreDisplay(seo)}</td>
+      </tr>`;
+      }).join('\n      ')}
+    </tbody>
+  </table>`;
+}
+
+const desktopManifest = loadManifest(path.join(REPORTS_DIR, 'manifest.json'));
+const mobileManifest  = loadManifest(path.join(REPORTS_DIR, 'mobile', 'manifest.json'));
+
+if (!desktopManifest && !mobileManifest) {
+  console.error('No manifest.json found for desktop or mobile — skipping index generation');
+  process.exit(0);
+}
+
+const desktopRows = desktopManifest ? buildRows(desktopManifest, '') : [];
+const mobileRows  = mobileManifest  ? buildRows(mobileManifest, 'mobile/') : [];
+
+const sha       = escapeHtml((process.env.GITHUB_SHA || '').slice(0, 7) || 'local');
+const branch    = escapeHtml(process.env.GITHUB_REF_NAME || 'local');
 const timestamp = escapeHtml(new Date().toUTCString());
 
-const tableRows = rows.map(r => {
-  const perf = r.scores.performance;
-  const a11y = r.scores.accessibility;
-  const bp = r.scores['best-practices'];
-  const seo = r.scores.seo;
-  const safeHref = escapeHtml(r.htmlFile);
-  const safeLabel = escapeHtml(r.label);
-  return `
-    <tr>
-      <td><a href="${safeHref}" class="site-link">${safeLabel}</a></td>
-      <td style="color:${scoreColor(perf)}">${scoreDisplay(perf)}</td>
-      <td style="color:${scoreColor(a11y)}">${scoreDisplay(a11y)}</td>
-      <td style="color:${scoreColor(bp)}">${scoreDisplay(bp)}</td>
-      <td style="color:${scoreColor(seo)}">${scoreDisplay(seo)}</td>
-    </tr>`;
-}).join('\n');
+const mobileSection = mobileRows.length > 0 ? `
+  <h2>&#128241; Mobile <span class="badge">375&times;667 &mdash; Slow 4G</span></h2>
+  ${renderTable(mobileRows)}` : '';
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -148,8 +170,10 @@ const html = `<!DOCTYPE html>
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 2rem 1rem; }
     .container { max-width: 820px; margin: 0 auto; }
     h1 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+    h2 { font-size: 1rem; font-weight: 700; color: var(--accent); margin: 2rem 0 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); }
+    .badge { font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-left: 0.4rem; }
     .meta { color: var(--muted); font-size: 0.82rem; margin-bottom: 2rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-bottom: 0.5rem; }
     thead { background: #12151f; }
     th { text-align: left; padding: 0.6rem 1rem; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
     td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); font-weight: 600; }
@@ -164,18 +188,15 @@ const html = `<!DOCTYPE html>
 <div class="container">
   <h1>Lighthouse Reports</h1>
   <p class="meta">Branch: <strong>${branch}</strong> &mdash; Commit: <strong>${sha}</strong> &mdash; ${timestamp}</p>
-  <table>
-    <thead>
-      <tr><th>Storefront</th><th>Perf</th><th>A11y</th><th>Best Practices</th><th>SEO</th></tr>
-    </thead>
-    <tbody>
-      ${tableRows}
-    </tbody>
-  </table>
+
+  <h2>&#128196; Desktop <span class="badge">1350&times;940 &mdash; Simulated cable</span></h2>
+  ${desktopRows.length > 0 ? renderTable(desktopRows) : '<p style="color:var(--muted);padding:0.5rem 0">No desktop reports found.</p>'}
+${mobileSection}
+
   <footer>Generated by scripts/generate-lhci-index.js &mdash; Playwright TypeScript Framework</footer>
 </div>
 </body>
 </html>`;
 
 fs.writeFileSync(OUTPUT_PATH, html, 'utf8');
-console.log(`Lighthouse landing page written to ${OUTPUT_PATH} (${rows.length} sites)`);
+console.log(`Lighthouse landing page written to ${OUTPUT_PATH} (desktop: ${desktopRows.length}, mobile: ${mobileRows.length} sites)`);
