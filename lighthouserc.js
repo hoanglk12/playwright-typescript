@@ -61,21 +61,19 @@ module.exports = {
 
     assert: {
       assertions: {
-        // ── Category score gates ──────────────────────────────────────────
-        // Thresholds are intentionally lenient for staging environments.
-        // Tighten these values when targeting production.
-        'categories:performance':    ['warn',  { minScore: 0.4 }],
-        'categories:accessibility':  ['error', { minScore: 0.7 }],
-        'categories:best-practices': ['warn',  { minScore: 0.7 }],
-        'categories:seo':            ['warn',  { minScore: 0.7 }],
+        // ── Category score gates — Google scale: 90+ Good, 50–89 Needs Improvement, 0–49 Poor ──
+        'categories:performance':    ['warn',  { minScore: 0.5 }],
+        'categories:accessibility':  ['error', { minScore: 0.9 }],
+        'categories:best-practices': ['warn',  { minScore: 0.9 }],
+        'categories:seo':            ['warn',  { minScore: 0.9 }],
 
-        // ── Core Web Vitals ───────────────────────────────────────────────
-        'largest-contentful-paint': ['warn', { maxNumericValue: 4000 }],
-        'total-blocking-time':      ['warn', { maxNumericValue: 800  }],
-        'cumulative-layout-shift':  ['warn', { maxNumericValue: 0.25 }],
-        'first-contentful-paint':   ['warn', { maxNumericValue: 3000 }],
-        'speed-index':              ['warn', { maxNumericValue: 5000 }],
-        'interactive':              ['warn', { maxNumericValue: 6000 }],
+        // ── Core Web Vitals — Google "Good" thresholds (support.google.com/webmasters/answer/9205520) ──
+        'largest-contentful-paint': ['warn', { maxNumericValue: 2500 }],  // Good ≤ 2.5 s
+        'total-blocking-time':      ['warn', { maxNumericValue: 200  }],  // Good ≤ 200 ms (lab proxy for INP)
+        'cumulative-layout-shift':  ['warn', { maxNumericValue: 0.1  }],  // Good ≤ 0.1
+        'first-contentful-paint':   ['warn', { maxNumericValue: 1800 }],  // Good ≤ 1.8 s
+        'speed-index':              ['warn', { maxNumericValue: 3400 }],  // Lighthouse Good ≤ 3.4 s
+        'interactive':              ['warn', { maxNumericValue: 3800 }],  // Lighthouse Good ≤ 3.8 s
 
         // ── Accessibility hard errors ─────────────────────────────────────
         // These must pass on every storefront — they directly impact users
