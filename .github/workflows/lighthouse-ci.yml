@@ -143,13 +143,14 @@ jobs:
           echo "### Assertion Thresholds" >> $GITHUB_STEP_SUMMARY
           echo "| Category | Level | Threshold |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Performance | warn | ≥ 40 |" >> $GITHUB_STEP_SUMMARY
-          echo "| Accessibility | **error** | ≥ 70 |" >> $GITHUB_STEP_SUMMARY
-          echo "| Best Practices | warn | ≥ 70 |" >> $GITHUB_STEP_SUMMARY
-          echo "| SEO | warn | ≥ 70 |" >> $GITHUB_STEP_SUMMARY
-          echo "| LCP | warn | ≤ 4 000 ms |" >> $GITHUB_STEP_SUMMARY
-          echo "| TBT | warn | ≤ 800 ms |" >> $GITHUB_STEP_SUMMARY
-          echo "| CLS | warn | ≤ 0.25 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | warn | ≥ 50 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Accessibility | **error** | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Best Practices | warn | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| SEO | warn | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| LCP | warn | ≤ 2 500 ms (Google Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| TBT | warn | ≤ 200 ms (INP proxy Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| CLS | warn | ≤ 0.10 (Google Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| FCP | warn | ≤ 1 800 ms (Google Good) |" >> $GITHUB_STEP_SUMMARY
           echo "| image-alt / document-title / html-has-lang | **error** | must pass |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
