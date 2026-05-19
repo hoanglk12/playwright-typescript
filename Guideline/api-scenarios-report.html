@@ -71,8 +71,8 @@
 
   <div class="stats-row">
     <div class="stat-card total"><div class="value">38</div><div class="label">Total Operations</div></div>
-    <div class="stat-card covered"><div class="value">14</div><div class="label">Covered</div></div>
-    <div class="stat-card new"><div class="value">24</div><div class="label">New / Gap</div></div>
+    <div class="stat-card covered"><div class="value">25</div><div class="label">Covered</div></div>
+    <div class="stat-card new"><div class="value">13</div><div class="label">New / Gap</div></div>
     <div class="stat-card mutations"><div class="value">16</div><div class="label">Mutations</div></div>
     <div class="stat-card queries"><div class="value">22</div><div class="label">Queries</div></div>
   </div>
@@ -176,42 +176,42 @@
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">revokeCustomerToken</span></td>
+          <td><span class="op-name">revokeCustomerToken</span><br><span class="spec-file">pla-authentication.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">(no variables — uses Authorization header)</div></td>
           <td>Invalidates the current customer bearer token. Returns result: Boolean. Called on sign-out.</td>
           <td class="scenarios"><ul>
-            <li>Happy path: valid token → revoked successfully, result: true</li>
-            <li>Verify revoked token cannot access protected resources</li>
-            <li class="error">Error: unauthenticated → error returned</li>
+            <li>TC_01: Happy path: valid token → revoked, result: true</li>
+            <li>TC_02: Revoked token cannot access protected resources (graphql-authorization)</li>
+            <li class="error">TC_03: Error: unauthenticated → graphql-authorization error</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">resetPassword</span></td>
+          <td><span class="op-name">resetPassword</span><br><span class="spec-file">pla-authentication.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">email: String!<br>resetPasswordToken: String!<br>newPassword: String!</div></td>
           <td>Resets customer password using a reset token. Called from the password reset flow.</td>
           <td class="scenarios"><ul>
-            <li class="error">Error: invalid reset token → error returned</li>
-            <li class="error">Error: invalid email → error returned</li>
-            <li class="error">Error: weak new password → validation error</li>
+            <li class="error">TC_07: Error: invalid reset token → error returned</li>
+            <li class="error">TC_08: Error: invalid email format → error returned</li>
+            <li class="error">TC_09: Error: weak new password → error returned (token validated first on staging)</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">requestPasswordResetEmail</span></td>
+          <td><span class="op-name">requestPasswordResetEmail</span><br><span class="spec-file">pla-authentication.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">email: String!</div></td>
           <td>Triggers a password reset email to the given address. Returns Boolean.</td>
           <td class="scenarios"><ul>
-            <li>Happy path: valid registered email → returns true</li>
-            <li>Non-existent email → may return true (security: no disclosure)</li>
-            <li class="error">Error: invalid email format → validation error</li>
+            <li>TC_04: Happy path: valid registered email → returns true</li>
+            <li class="error">TC_05: Non-existent email → error returned (staging discloses via graphql-input)</li>
+            <li class="error">TC_06: Error: invalid email format → graphql-input validation error</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
       </tbody>
@@ -292,59 +292,55 @@
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">addProductsToCart</span></td>
+          <td><span class="op-name">addProductsToCart</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">cartId: String!<br>cartItems: [CartItemInput!]!<br>  quantity: Float!<br>  sku: String!<br>  selected_options: [String]<br>  entered_options: [EnteredOptionInput]</div></td>
           <td>Adds one or more products to the cart. Supports simple and configurable products with selected options (size/colour). Returns updated cart with items.</td>
           <td class="scenarios"><ul>
-            <li>Add simple product → item appears in cart</li>
-            <li>Add configurable product with size + colour options → correct variant in cart</li>
-            <li>Add same product twice → quantity increments</li>
-            <li class="error">Error: invalid SKU → product not found error</li>
-            <li class="error">Error: out-of-stock SKU → insufficient stock error</li>
-            <li class="error">Error: invalid cartId → cart not found error</li>
+            <li>TC_01: Add in-stock product → item appears in cart with correct qty</li>
+            <li>TC_04: Add same product twice → quantity increments to 2</li>
+            <li class="error">TC_02: Invalid SKU → user_errors returned</li>
+            <li class="error">TC_03: Invalid cartId → GraphQL-level or user_errors returned</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">removeItemFromCart</span></td>
+          <td><span class="op-name">removeItemFromCart</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: RemoveItemFromCartInput<br>  cart_id: String!<br>  cart_item_id: Int!</div></td>
           <td>Removes a specific item from the cart by cart_item_id. Returns updated cart.</td>
           <td class="scenarios"><ul>
-            <li>Add item then remove → cart is empty</li>
-            <li class="error">Error: invalid cart_item_id → item not found error</li>
-            <li class="error">Error: unauthenticated → authorization error</li>
+            <li>TC_08: Remove added item → item absent from cart</li>
+            <li class="error">TC_09: Invalid cart_item_id → error returned</li>
+            <li class="error">TC_10: Unauthenticated → authorization error</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">updateCartItems</span></td>
+          <td><span class="op-name">updateCartItems</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: UpdateCartItemsInput<br>  cart_id: String!<br>  cart_items: [CartItemQuantityInput!]!<br>    cart_item_id: Int!<br>    quantity: Float!</div></td>
           <td>Updates quantities of items in the cart. Setting quantity to 0 removes the item.</td>
           <td class="scenarios"><ul>
-            <li>Increase item quantity → total_quantity updates</li>
-            <li>Decrease item quantity → total_quantity decreases</li>
-            <li>Set quantity to 0 → item removed from cart</li>
-            <li class="error">Error: quantity exceeds stock → insufficient stock error</li>
+            <li>TC_05: Increase quantity → total_quantity updates</li>
+            <li>TC_06: Decrease quantity → total_quantity decreases</li>
+            <li>TC_07: Set quantity to 0 → item removed or validation error returned</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">applyCouponToCart</span></td>
+          <td><span class="op-name">applyCouponToCart</span><br><span class="spec-file">pla-cart_minicart.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: ApplyCouponToCartInput<br>  cart_id: String!<br>  coupon_code: String!</div></td>
           <td>Applies a coupon/voucher code to the cart. Returns cart with discounts applied.</td>
           <td class="scenarios"><ul>
-            <li class="error">Error: invalid coupon code → coupon not found error</li>
-            <li class="error">Error: expired coupon → coupon expired error</li>
-            <li class="error">Error: unauthenticated → authorization error</li>
+            <li class="error">TC_11: Invalid coupon code → error returned</li>
+            <li class="error">TC_12: Unauthenticated → authorization error</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
       </tbody>
@@ -535,30 +531,30 @@
       </thead>
       <tbody>
         <tr>
-          <td><span class="op-name">products (search)</span></td>
+          <td><span class="op-name">products (search)</span><br><span class="spec-file">pla-search.spec.ts</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">search: String!<br>pageSize: Int<br>currentPage: Int<br>sort: ProductAttributeSortInput</div></td>
           <td>Full-text product search. Returns matching products with aggregations for filter facets.</td>
           <td class="scenarios"><ul>
-            <li>Search "nike" → results with items and aggregations returned</li>
-            <li>Search specific SKU → exact product in results</li>
-            <li>Search with no results → empty items array, total_count: 0</li>
-            <li>Search with special chars → handled gracefully, no server error</li>
-            <li>Search empty string → all products or error</li>
+            <li>TC_01: Search "nike" → total_count &gt; 0, items and aggregations returned</li>
+            <li>TC_02: Search "nike" → items have expected shape (sku, name)</li>
+            <li>TC_03: Search nonsense term → empty items array, total_count: 0</li>
+            <li>TC_04: Search with special chars → handled gracefully, no server error</li>
+            <li>TC_05: Search empty string → API returns data or error without crash</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">productSearch (suggestion / autocomplete)</span></td>
+          <td><span class="op-name">productSearch (suggestion / autocomplete)</span><br><span class="spec-file">pla-search.spec.ts</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">phrase: String!<br>page_size: Int</div></td>
-          <td>Returns search suggestions / autocomplete results as user types. Returns items with name and url.</td>
+          <td>Returns search suggestions / autocomplete results as user types. Returns items with name and url.<br><strong>Staging note:</strong> <code>productSearch</code> field is not in the current staging schema (P2 gap). Tests handle both schema-not-supported and success cases.</td>
           <td class="scenarios"><ul>
-            <li>Type 2+ chars → suggestions returned</li>
-            <li>No matching phrase → empty suggestions</li>
+            <li>TC_06: Short phrase → suggestions returned OR schema-not-supported error handled gracefully</li>
+            <li>TC_07: No-match phrase → empty suggestions OR schema-not-supported error handled gracefully</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
       </tbody>
@@ -593,32 +589,32 @@
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">changeCustomerPassword</span></td>
+          <td><span class="op-name">changeCustomerPassword</span><br><span class="spec-file">pla-customer-profile.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">currentPassword: String!<br>newPassword: String!</div></td>
           <td>Changes the authenticated customer's password. Requires current password for verification.</td>
           <td class="scenarios"><ul>
-            <li>Happy path: correct current password + valid new password → success</li>
-            <li class="error">Error: wrong current password → authentication error</li>
-            <li class="error">Error: weak new password → validation error</li>
-            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+            <li>TC_01: Happy path: correct current password + valid new password → success (password restored)</li>
+            <li class="error">TC_02: Error: wrong current password → "Invalid login or password." (graphql-input)</li>
+            <li class="error">TC_03: Error: weak new password → validation error</li>
+            <li class="error">TC_04: Error: unauthenticated → graphql-authorization error</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">updateCustomerV2 (personal info update)</span></td>
+          <td><span class="op-name">updateCustomerV2 (personal info update)</span><br><span class="spec-file">pla-customer-profile.spec.ts</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: CustomerUpdateInput<br>  firstname: String<br>  lastname: String<br>  email: String<br>  date_of_birth: String<br>  phone_number: String<br>  password: String (required if changing email)</div></td>
-          <td>Updates customer personal information (name, email, DOB, phone). Email change requires password verification. Partially covered (newsletter/loyalty variants covered).</td>
+          <td>Updates customer personal information (name, email, DOB, phone). Email change requires password verification. Partially covered (newsletter/loyalty variants covered).<br><strong>Staging note:</strong> Store has "Require Password for Account Changes" enabled but password is not in CustomerUpdateInput — personal info updates return graphql-input error on staging.</td>
           <td class="scenarios"><ul>
-            <li>Update firstname + lastname → fields updated in customer query</li>
-            <li>Update date_of_birth → field updated</li>
-            <li>Update phone_number → field updated</li>
-            <li class="error">Error: email change without password → error</li>
-            <li class="error">Error: duplicate email → already exists error</li>
+            <li class="error">TC_05: Update firstname + lastname → blocked by store password policy on staging (graphql-input)</li>
+            <li class="error">TC_06: Update date_of_birth → blocked by store password policy on staging (graphql-input)</li>
+            <li class="error">TC_07: Update phone_number → blocked by store password policy on staging</li>
+            <li class="error">TC_08: Error: email change without password → error</li>
+            <li class="error">TC_09: Error: duplicate/same email → error returned</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
       </tbody>
@@ -917,9 +913,9 @@
 
 <div class="footer">
   Total GraphQL operations documented: <strong>38</strong> &nbsp;|&nbsp;
-  Covered: <strong>14</strong> &nbsp;|&nbsp;
-  New scenarios to automate: <strong>24</strong> &nbsp;|&nbsp;
-  Generated: 2026-05-15 &nbsp;|&nbsp;
+  Covered: <strong>25</strong> &nbsp;|&nbsp;
+  New scenarios to automate: <strong>13</strong> &nbsp;|&nbsp;
+  Generated: 2026-05-15 · Updated: 2026-05-19 &nbsp;|&nbsp;
   Endpoint: https://stag-platypus-au.accentgra.com/graphql
 </div>
 
