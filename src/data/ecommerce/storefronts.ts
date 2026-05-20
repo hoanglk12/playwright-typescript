@@ -29,6 +29,18 @@ export interface Storefront {
   searchResultUrlPattern?: RegExp;
   /** Direct URL path to a stable PDP for direct-navigation tests. */
   pdpPath?: string;
+  /**
+   * Expected gender toggle labels on the PDP size selector, in DOM order.
+   * Empty array = not present / single-gender. Best-effort: tests use soft assertions.
+   * TODO: verify actual DOM labels per storefront against a live staging run.
+   */
+  pdpSizeToggleLabels?: readonly string[];
+  /**
+   * A stable size label expected to appear in the size grid for at least one toggle state.
+   * Best-effort: tests use soft assertions.
+   * TODO: confirm with a real in-stock product slug per storefront.
+   */
+  pdpExpectedSize?: string;
 }
 
 export const storefronts: readonly Storefront[] = [
@@ -47,6 +59,8 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
     pdpPath: '/products/some-product.html', // TODO: replace with real Magento product slug
+    pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
+    pdpExpectedSize: '7',
   },
   {
     name: 'Platypus NZ',
@@ -63,6 +77,8 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
     pdpPath: '/products/some-product.html', // TODO: replace with real Magento product slug
+    pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
+    pdpExpectedSize: '7',
   },
   {
     name: 'Skechers AU',
@@ -78,6 +94,8 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
     pdpPath: '/some-product.html', // TODO: replace with real slug
+    pdpSizeToggleLabels: ['MENS', 'WOMENS'],
+    pdpExpectedSize: '7',
   },
   {
     name: 'Skechers NZ',
@@ -93,6 +111,8 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
     pdpPath: '/some-product.html', // TODO: replace with real slug
+    pdpSizeToggleLabels: ['MENS', 'WOMENS'],
+    pdpExpectedSize: '7',
   },
   {
     name: 'Vans AU',
@@ -109,6 +129,8 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Low Top',
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
+    pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
+    pdpExpectedSize: '7',
   },
   {
     name: 'Vans NZ',
@@ -124,6 +146,8 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Old Skool',
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
+    pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
+    pdpExpectedSize: '7',
   },
   {
     name: 'Dr. Martens AU',
@@ -139,6 +163,8 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Boots',
     sizeFilterLabel: '4',
     pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
+    pdpSizeToggleLabels: ['UK MENS', 'UK WOMENS'],
+    pdpExpectedSize: '4',
   },
   {
     name: 'Dr. Martens NZ',
@@ -155,5 +181,7 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Boots',
     sizeFilterLabel: '4',
     pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
+    pdpSizeToggleLabels: ['UK MENS', 'UK WOMENS'],
+    pdpExpectedSize: '4',
   },
 ];
