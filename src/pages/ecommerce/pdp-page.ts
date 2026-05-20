@@ -31,15 +31,23 @@ export class EcommercePDPPage extends BasePage {
 
   async getPrice(): Promise<string> {
     const pattern = this.priceTextPattern;
-    return this.page.evaluate((pat) => {
-      const re = new RegExp(pat);
-      const all = Array.from(document.querySelectorAll('*'));
-      for (const el of all) {
-        const text = el.textContent?.trim() ?? '';
-        if ((el as Element).children.length === 0 && re.test(text)) return text;
-      }
-      return '';
-    }, pattern);
+    let result = '';
+    await this.waits.waitForCustomCondition(
+      async () => {
+        result = await this.page.evaluate((pat) => {
+          const re = new RegExp(pat);
+          const all = Array.from(document.querySelectorAll('*'));
+          for (const el of all) {
+            const text = el.textContent?.trim() ?? '';
+            if ((el as Element).children.length === 0 && re.test(text)) return text;
+          }
+          return '';
+        }, pattern);
+        return result.length > 0;
+      },
+      { timeout: TIMEOUTS.ELEMENT_VISIBLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+    ).catch(() => {});
+    return result;
   }
 
   async isImageGalleryVisible(): Promise<boolean> {
@@ -65,12 +73,17 @@ export class EcommercePDPPage extends BasePage {
       const popup = this.page.locator(this.acquisitionPopupSelector);
       if ((await popup.count()) === 0) return;
       const closeBtn = popup.getByRole('button').first();
-      if (await closeBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+      if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
         await closeBtn.click({ force: true });
       } else {
         await this.page.keyboard.press('Escape');
       }
-      await this.waits.sleep(400);
+      await this.waits
+        .waitForCustomCondition(async () => (await popup.count()) === 0, {
+          timeout: TIMEOUTS.DIALOG_DISMISS,
+          interval: TIMEOUTS.POLL_INTERVAL_FAST,
+        })
+        .catch(() => {});
     } catch {
       // best-effort dismissal
     }
