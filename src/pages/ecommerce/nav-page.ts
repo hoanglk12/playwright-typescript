@@ -7,6 +7,7 @@ export class EcommerceNavPage extends BasePage {
   private readonly logoLinkSelector = 'main a[href="/"]';
   // Hydration probe: nav links live inside <main> on these SPA storefronts (no <header>/<nav>).
   private readonly navLinksHydrationSelector = 'main ul li a[href]';
+  private readonly acquisitionPopupSelector = '[class*="bloomreach-acquisition-popup"][class*="state-open"]';
 
   constructor(page: Page) {
     super(page);
@@ -45,7 +46,29 @@ export class EcommerceNavPage extends BasePage {
   }
 
   async clickNavLink(label: string): Promise<void> {
+    await this.dismissBloomreachPopup();
     await this.elements.clickLocator(this.navLink(label));
+  }
+
+  private async dismissBloomreachPopup(): Promise<void> {
+    try {
+      const popup = this.page.locator(this.acquisitionPopupSelector);
+      if ((await popup.count()) === 0) return;
+      const closeBtn = popup.getByRole('button').first();
+      if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
+        await closeBtn.click({ force: true });
+      } else {
+        await this.page.keyboard.press('Escape');
+      }
+      await this.waits
+        .waitForCustomCondition(async () => (await popup.count()) === 0, {
+          timeout: TIMEOUTS.DIALOG_DISMISS,
+          interval: TIMEOUTS.POLL_INTERVAL_FAST,
+        })
+        .catch(() => {});
+    } catch {
+      // best-effort dismissal
+    }
   }
 
   async waitForUrlContaining(pattern: RegExp): Promise<void> {

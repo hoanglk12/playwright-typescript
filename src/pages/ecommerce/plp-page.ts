@@ -17,6 +17,7 @@ export class EcommercePLPPage extends BasePage {
 
   // Bloomreach acquisition popup — blocks pointer events on Vans AU / other storefronts
   private readonly overlaySelector = '.overlay.visible';
+  private readonly acquisitionPopupSelector = '[class*="bloomreach-acquisition-popup"][class*="state-open"]';
 
   // Product card anchor wrapping the image — used for PDP navigation (E2E-PLP-012)
   private readonly productCardLinkSelector = '[data-product-id] a';
@@ -30,19 +31,48 @@ export class EcommercePLPPage extends BasePage {
 
   private async dismissOverlays(): Promise<void> {
     try {
+      // Bloomreach acquisition popup has a <div> container (not <dialog>) — target it directly
+      const bloomreachPopup = this.page.locator(this.acquisitionPopupSelector);
+      if ((await bloomreachPopup.count()) > 0) {
+        const closeBtn = bloomreachPopup.getByRole('button').first();
+        if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
+          await closeBtn.click({ force: true });
+        } else {
+          await this.page.keyboard.press('Escape');
+        }
+        await this.waits
+          .waitForCustomCondition(async () => (await bloomreachPopup.count()) === 0, {
+            timeout: TIMEOUTS.DIALOG_DISMISS,
+            interval: TIMEOUTS.POLL_INTERVAL_FAST,
+          })
+          .catch(() => {});
+        return;
+      }
+
+      // Generic overlay fallback (non-Bloomreach modals)
       const overlay = this.page.locator(this.overlaySelector).first();
-      if (!(await overlay.isVisible({ timeout: 800 }).catch(() => false))) return;
+      if (!(await overlay.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false))) return;
 
       const dialog = this.page.getByRole('dialog').first();
       const closeBtn = dialog.getByRole('button', { name: /close/i });
-      if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
         await closeBtn.click();
-        await this.waits.sleep(600);
+        await this.waits
+          .waitForCustomCondition(
+            async () => !(await overlay.isVisible().catch(() => true)),
+            { timeout: TIMEOUTS.DIALOG_DISMISS, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+          )
+          .catch(() => {});
         return;
       }
 
       await this.page.keyboard.press('Escape');
-      await this.waits.sleep(600);
+      await this.waits
+        .waitForCustomCondition(async () => !(await overlay.isVisible({ timeout: 200 }).catch(() => true)), {
+          timeout: TIMEOUTS.DIALOG_DISMISS,
+          interval: TIMEOUTS.POLL_INTERVAL_FAST,
+        })
+        .catch(() => {});
     } catch {
       // Overlay dismissal is best-effort — proceed with Quick Add regardless
     }
