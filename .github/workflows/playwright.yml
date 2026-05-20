@@ -115,6 +115,33 @@ jobs:
           echo "Browser: ${{ env.TEST_BROWSER }}"
           echo "OS: ${{ runner.os }}"
 
+      - name: Warm up staging storefronts
+        shell: bash
+        continue-on-error: true
+        run: |
+          echo "Pre-warming staging storefronts to prevent Azure cold-start timeouts..."
+          warm_url() {
+            local url="$1" name="$2" http_code
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 120 --retry 2 --retry-delay 10 --location "$url" 2>/dev/null || echo "000")
+            if [ "$http_code" = "000" ] || [ "$http_code" -ge 500 ] 2>/dev/null; then
+              echo "⚠️  Warmup failed for $name (HTTP $http_code) — proceeding anyway"
+            else
+              echo "✅ $name is warm (HTTP $http_code)"
+            fi
+          }
+          warm_url "https://stag-platypus-au.accentgra.com/"  "Platypus AU"   &
+          warm_url "https://stag-platypus-nz.accentgra.com/"  "Platypus NZ"   &
+          warm_url "https://stag-skechers-au.accentgra.com/"  "Skechers AU"   &
+          warm_url "https://stag-skechers-nz.accentgra.com/"  "Skechers NZ"   &
+          warm_url "https://stag-vans-au.accentgra.com/"      "Vans AU"       &
+          warm_url "https://stag-vans-nz.accentgra.com/"      "Vans NZ"       &
+          warm_url "https://stag-drmartens-au.accentgra.com/" "Dr. Martens AU" &
+          warm_url "https://stag-drmartens-nz.accentgra.com/" "Dr. Martens NZ" &
+          warm_url "https://ff-fieldfishercom-qa-web-ekfefjdmh6dbg3f7.uksouth-01.azurewebsites.net/en" "Fieldfisher" &
+          wait
+          echo "Warmup complete."
+
       - name: Run UI tests (Unix)
         if: runner.os != 'Windows'
         run: ./run-ui-tests.sh ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }}
