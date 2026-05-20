@@ -383,6 +383,49 @@ jobs:
             --outputFile monocart-merged-ui/index.html
         continue-on-error: true
 
+      - name: Generate macOS monocart report
+        if: needs.ui-test.result != 'skipped'
+        continue-on-error: true
+        run: |
+          mkdir -p cf-deploy/macos
+          if ls monocart-shards/monocart-shard-macOS-*/index.json 2>/dev/null | head -1 > /dev/null; then
+            npx monocart merge \
+              'monocart-shards/monocart-shard-macOS-*/index.json' \
+              --name "UI Tests — ${{ env.TEST_ENV }} (macOS)" \
+              --outputFile cf-deploy/macos/index.html
+          fi
+
+      - name: Generate Windows monocart report
+        if: needs.ui-test.result != 'skipped'
+        continue-on-error: true
+        run: |
+          mkdir -p cf-deploy/windows
+          if ls monocart-shards/monocart-shard-Windows-*/index.json 2>/dev/null | head -1 > /dev/null; then
+            npx monocart merge \
+              'monocart-shards/monocart-shard-Windows-*/index.json' \
+              --name "UI Tests — ${{ env.TEST_ENV }} (Windows)" \
+              --outputFile cf-deploy/windows/index.html
+          fi
+
+      - name: Build Cloudflare deploy landing page
+        if: needs.ui-test.result != 'skipped'
+        run: |
+          mkdir -p cf-deploy
+          {
+            echo '<!DOCTYPE html><html lang="en"><head>'
+            echo '<meta charset="UTF-8"><title>Playwright UI Test Reports</title>'
+            echo '<style>body{font-family:sans-serif;max-width:700px;margin:60px auto;padding:20px}'
+            echo 'h1{border-bottom:2px solid #eee;padding-bottom:10px}'
+            echo 'p{color:#666;margin-bottom:30px}'
+            echo 'a{display:inline-block;margin:10px 10px 0 0;padding:12px 24px;background:#0070f3;color:#fff;text-decoration:none;border-radius:6px;font-size:1em}'
+            echo 'a:hover{background:#005cc5}</style></head><body>'
+            echo '<h1>Playwright UI Test Reports</h1>'
+            echo "<p><strong>Run:</strong> ${{ github.run_id }} &nbsp;|&nbsp; <strong>Env:</strong> ${{ env.TEST_ENV }} &nbsp;|&nbsp; <strong>Branch:</strong> ${{ github.ref_name }}</p>"
+            echo '<a href="macos/">macOS Report</a>'
+            echo '<a href="windows/">Windows Report</a>'
+            echo '</body></html>'
+          } > cf-deploy/index.html
+
       - name: Extract UI monocart summary
         if: always()
         id: monocart-ui
@@ -452,14 +495,14 @@ jobs:
 
       - name: Strip oversized attachments (Cloudflare Pages 25 MiB limit)
         if: always() && needs.ui-test.result != 'skipped'
-        run: find monocart-merged-ui -type f -size +25M -delete 2>/dev/null || true
+        run: find cf-deploy -type f -size +25M -delete 2>/dev/null || true
 
       - name: Deploy UI monocart report to Cloudflare Pages
-        if: always() && needs.ui-test.result != 'skipped' && hashFiles('monocart-merged-ui/index.html') != ''
+        if: always() && needs.ui-test.result != 'skipped' && hashFiles('cf-deploy/index.html') != ''
         id: cf-ui
         continue-on-error: true
         run: |
-          npx wrangler@3 pages deploy monocart-merged-ui \
+          npx wrangler@3 pages deploy cf-deploy \
             --project-name playwright-ui-reports \
             --branch main \
             --commit-message "UI run ${{ github.run_id }} attempt ${{ github.run_attempt }}"
