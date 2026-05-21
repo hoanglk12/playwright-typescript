@@ -1,8 +1,10 @@
 ---
 name: pla-api-testing
-description: PLA (Platypus Shoes) GraphQL API test patterns, file structure, shared-state flow, and staging API quirks
-metadata:
+description: "PLA (Platypus Shoes) GraphQL API test patterns, file structure, shared-state flow, and staging API quirks"
+metadata: 
+  node_type: memory
   type: project
+  originSessionId: bcd19b4a-e845-42ae-8ca0-fc0da0a8189e
 ---
 
 ## File & Data Structure
@@ -16,11 +18,13 @@ metadata:
 | `tests/api/pla-authentication.spec.ts` | revokeCustomerToken (TC_01–03), requestPasswordResetEmail (TC_04–06), resetPassword (TC_07–09) |
 | `tests/api/pla-search.spec.ts` | Product search TC_01–05, autocomplete TC_06–07 (schema-gap aware) |
 | `tests/api/pla-customer-profile.spec.ts` | changeCustomerPassword TC_01–04, updateCustomerV2 personal info TC_05–09 |
+| `tests/api/pla-catalog.spec.ts` | Catalog & Products — products PLP TC_01–06, products PDP TC_07–10, categories TC_11–13, storeConfig TC_14–16, urlResolver TC_17–20 (all unauthenticated) |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across PLA spec files in one worker |
 | `src/data/api/pla-test-data.ts` | Dynamic email + all account/address/cart test data |
 | `src/data/api/pla-auth-data.ts` | Auth-specific test data (reset password inputs, error messages) |
 | `src/data/api/pla-search-data.ts` | Search terms and pagination config for search tests |
 | `src/data/api/pla-customer-profile-data.ts` | changeCustomerPassword inputs, updateCustomerV2 personal info inputs, error messages |
+| `src/data/api/pla-catalog-data.ts` | Catalog test data: discovery config (searchTerm, pageSize, brandRetryTerm), PLP/PDP sentinels, storeConfig patterns, urlResolver URLs |
 
 ## Shared-State Pattern
 
@@ -40,6 +44,16 @@ All PLA specs use `test.describe.configure({ mode: 'serial' })` (NOT `test.descr
 - Root cause: a `cartId` created in one customer session is not accessible with a different session's token. Magento 2 returns `"The current user cannot perform operations on cart"` when the session doesn't own the cart.
 
 When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh account. `plaTestData.validCustomer.email` equals `getTestEmail()` — the same dynamic email used across all PLA specs in a single test session.
+
+## Catalog-Specific Patterns (pla-catalog.spec.ts, 2026-05-21)
+
+- **All operations are unauthenticated** — `createGraphQLClient()` used without auth options; no `beforeAll` auth setup needed.
+- **Runtime discovery in `beforeAll`**: queries the live API to find valid `url_key`, category filter field/value, and `apparel21_brand_id` rather than hardcoding. Makes tests resilient to data changes.
+- **Category filter field ambiguity**: Magento 2 uses `category_uid` (base64) or `category_id` (int) depending on version. Discovery checks `category_uid` first, falls back to `category_id`. Stores both field name (`discoveredCategoryFilterField`) and value (`discoveredCategoryFilterValue`).
+- **Brand retry**: `apparel21_brand_id` aggregation is absent in "shoe" search results on this staging. `beforeAll` retries with `PlaCatalogData.discovery.brandRetryTerm` ('nike'). TC_02 still skips gracefully if brand_id stays empty.
+- **`assertNoCriticalErrors()` helper**: module-level function that tolerates `price_range` path errors (staging partial data) while failing on all other error types. Used in TC_01–06 instead of `assertNoErrors()`.
+- **Price sort not assertable**: PLA staging price sort uses base price internally; `final_price` ordering is not guaranteed. TC_03/TC_04 only verify price fields are numeric ≥ 0.
+- **PLA staging urlResolver never returns `null`**: returns `{ id: null, type: null, __typename: "EntityUrl" }` for unresolvable URLs. TC_20 accepts both standard Magento 2 (`null`) and PLA staging (`{ type: null, id: null }`) as "not found". TC_17/TC_18 try with and without `.html` suffix, skip gracefully if neither resolves.
 
 ## Staging API Quirks (discovered 2026-05-15, expanded 2026-05-19)
 
@@ -79,4 +93,6 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 ## api-scenarios-report.html
 
-Self-contained HTML report at project root. Generated 2026-05-15, updated 2026-05-19. Documents 38 GraphQL operations across 12 categories (Account, Auth, Cart, Checkout, Catalog, Search, Customer, Address, Loyalty, Store, Wishlist, Orders). Marks each as Covered/New and assigns P1/P2/P3 priority. Current state: 25 covered, 13 remaining. Regenerate by running `qa-orchestrator` explore workflow.
+Self-contained HTML report at `Guideline/api-scenarios-report.html`. Documents 38 GraphQL operations across 12 categories. Marks each as Covered/New and assigns P1/P2/P3 priority. Regenerate by running `qa-orchestrator` explore workflow.
+
+**Coverage as of 2026-05-21:** 30 Covered, 8 New/Gap. The Catalog & Products section (5 operations) was updated to Covered after `pla-catalog.spec.ts` was created and all 20 tests passed.

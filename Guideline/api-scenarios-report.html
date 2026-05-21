@@ -71,8 +71,8 @@
 
   <div class="stats-row">
     <div class="stat-card total"><div class="value">38</div><div class="label">Total Operations</div></div>
-    <div class="stat-card covered"><div class="value">25</div><div class="label">Covered</div></div>
-    <div class="stat-card new"><div class="value">13</div><div class="label">New / Gap</div></div>
+    <div class="stat-card covered"><div class="value">30</div><div class="label">Covered</div></div>
+    <div class="stat-card new"><div class="value">8</div><div class="label">New / Gap</div></div>
     <div class="stat-card mutations"><div class="value">16</div><div class="label">Mutations</div></div>
     <div class="stat-card queries"><div class="value">22</div><div class="label">Queries</div></div>
   </div>
@@ -444,7 +444,7 @@
       </thead>
       <tbody>
         <tr>
-          <td><span class="op-name">products (PLP query)</span></td>
+          <td><span class="op-name">products (PLP query)</span><br><span class="spec-file">pla-catalog.spec.ts (TC_01–06)</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">search: String<br>filter: ProductAttributeFilterInput<br>pageSize: Int<br>currentPage: Int<br>sort: ProductAttributeSortInput</div></td>
           <td>Returns product list with filters, sorting, and pagination. Used on PLP pages. Items include name, sku, price_range, thumbnail, url_key, stock_status, color_name, rating_summary.</td>
@@ -456,11 +456,11 @@
             <li>Pagination: page 2 returns different results than page 1</li>
             <li class="error">Error: invalid filter field → GraphQL error or empty result</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">products (PDP / single product)</span></td>
+          <td><span class="op-name">products (PDP / single product)</span><br><span class="spec-file">pla-catalog.spec.ts (TC_07–10)</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">filter: { url_key: { eq: String } }</div></td>
           <td>Returns full product detail by url_key. Includes configurable options (size, colour variants), price, images, description, attributes, stock status.</td>
@@ -470,11 +470,11 @@
             <li>Verify all size variants and their stock_status</li>
             <li class="error">Error: non-existent url_key → empty items array</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">categories</span></td>
+          <td><span class="op-name">categories</span><br><span class="spec-file">pla-catalog.spec.ts (TC_11–13)</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">filters: CategoryFilterInput<br>  ids: FilterEqualTypeInput<br>  url_key: FilterEqualTypeInput</div></td>
           <td>Returns category tree with children. Used for navigation menus and breadcrumbs.</td>
@@ -483,34 +483,34 @@
             <li>Fetch specific category by url_key → category details returned</li>
             <li class="error">Error: non-existent category id → empty result</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">storeConfig</span><br><span class="spec-file">pla-support-features.spec.ts (partial)</span></td>
+          <td><span class="op-name">storeConfig</span><br><span class="spec-file">pla-catalog.spec.ts (TC_14–16)</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">(no variables)</div></td>
-          <td>Returns store configuration including id, store_code, promo block enable flags, currency settings. Partially covered in GetDynamicData test.</td>
+          <td>Returns store configuration including id, store_code, promo block enable flags, currency settings. Fully covered; promo block flags also partially exercised in pla-support-features.spec.ts.</td>
           <td class="scenarios"><ul>
             <li>Fetch store_code and id → valid values returned</li>
             <li>Verify ewave_dynamicpromoblocks_* enable flags are Boolean</li>
             <li>Fetch locale and base_currency_code</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">urlResolver</span></td>
+          <td><span class="op-name">urlResolver</span><br><span class="spec-file">pla-catalog.spec.ts (TC_17–20)</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">url: String!</div></td>
-          <td>Resolves a URL path to its entity type (PRODUCT, CATEGORY, CMS_PAGE) and id. Used for client-side routing.</td>
+          <td>Resolves a URL path to its entity type (PRODUCT, CATEGORY, CMS_PAGE) and id. Used for client-side routing. Note: PLA staging returns { id: null, type: null } instead of null for unresolvable URLs.</td>
           <td class="scenarios"><ul>
             <li>Resolve product URL → type: PRODUCT, id returned</li>
             <li>Resolve category URL → type: CATEGORY, id returned</li>
             <li>Resolve CMS page URL → type: CMS_PAGE, id returned</li>
             <li class="error">Error: non-existent URL → null returned</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
       </tbody>
