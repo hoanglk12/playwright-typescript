@@ -21,6 +21,10 @@ test.describe.configure({ mode: 'serial' });
 // NOT: test.describe.serial(...)
 ```
 
+## API Test Data
+
+All API test data lives in `src/data/api/` — one file per feature domain (e.g., `pla-catalog-data.ts`, `pla-auth-data.ts`, `pla-search-data.ts`). Always annotate exported constants and generator return types with named interfaces (see root CLAUDE.md Test Data section).
+
 ## Code Quality Rules
 
 1. **Hoist all GraphQL strings to module-level `const`** — never inline mutations/queries inside `test()` bodies or `beforeAll`.
@@ -74,6 +78,21 @@ await graphqlClient.queryWrapped(
 // Wrong — injection risk, breaks caching
 await graphqlClient.queryWrapped(`query { user(id: "${id}") { name } }`);
 ```
+
+## PLA Catalog — Partial Error Tolerance
+
+PLA staging has broken `price_range` data on some products. Catalog queries must use `assertNoCriticalErrors()` instead of `response.assertNoErrors()`:
+
+```ts
+function assertNoCriticalErrors(gql: { errors?: any[] }): void {
+  const criticalErrors = (gql.errors ?? []).filter(
+    (e: any) => !(Array.isArray(e.path) && e.path.includes('price_range')),
+  );
+  expect(criticalErrors, 'unexpected GraphQL errors').toHaveLength(0);
+}
+```
+
+Define this as a module-level function in any spec that touches product pricing. Never use `response.assertNoErrors()` for catalog queries on PLA staging.
 
 ## `productSearch` Schema Gap
 

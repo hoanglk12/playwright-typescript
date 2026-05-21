@@ -194,6 +194,7 @@ Never hardcode test data in spec files. Create typed data modules in `src/data/`
 - **Generated data** (random/dynamic) → generator classes/functions with explicit return types matching a named interface
 - **Always declare interfaces** for every data shape — both `const` objects and generator return types must carry a named interface annotation. Never rely on inferred types for exported data.
 - See `src/data/admin-data.ts` as the reference pattern
+- **Data sub-directories:** API test data → `src/data/api/` (one file per feature domain); ecommerce storefront config → `src/data/ecommerce/storefronts.ts`
 
 ```ts
 // CORRECT — interface declared, const annotated, generator return typed
@@ -653,6 +654,8 @@ For framework/infra/integration changes (new SDK, Playwright upgrade, CI rework,
 
 Invoke with `/skill-name` in conversation:
 
+**QA & Framework**
+
 | Skill | Purpose |
 |---|---|
 | `/playwright-expert` | Playwright API guidance |
@@ -675,3 +678,34 @@ Invoke with `/skill-name` in conversation:
 | `/pull-latest` | Sync local branch with remote |
 | `/playwright-cli` | Interactive browser automation via playwright-cli shell tool |
 | `/llm-council` | Multi-model council review for complex decisions |
+
+**Workflow & Productivity**
+
+| Skill | Purpose |
+|---|---|
+| `/write-tests` | Write tests from a requirement or user story (full pipeline) |
+| `/new-ui-test` | Scaffold a new UI test spec with all framework boilerplate |
+| `/new-api-test` | Scaffold a new API test file with all framework boilerplate |
+| `/new-page-object` | Scaffold a new page object following the composition-based POM |
+| `/review` | Code review changed files on current branch |
+| `/fix-test` | Fix a failing or flaky test |
+| `/check-ci` | Investigate a CI pipeline failure |
+| `/run-ui` | Run UI tests locally — smart command selection |
+| `/run-api` | Run API tests locally — smart command selection |
+| `/verify` | Verify a change works by running the app and observing behavior |
+| `/research` | Research a technical topic — produces a Technical Research Report |
+| `/implement` | Implement an approved Technical Research Report |
+| `/security-audit` | Run a security audit (severity-rated report) |
+| `/security-review` | Security review of pending branch changes |
+| `/code-review` | Review changed code for reuse, quality, and efficiency |
+| `/run` | Launch and drive the project's app |
+| `/loop` | Run a prompt on a recurring interval |
+| `/schedule` | Create or manage scheduled remote agents |
+| `/remember` | Save session state for clean continuation next session |
+| `/update-config` | Configure settings.json (hooks, permissions, env vars) |
+| `/keybindings-help` | Customize keyboard shortcuts |
+| `/fewer-permission-prompts` | Add allowlist to reduce permission prompts |
+| `/init` | Initialize a new CLAUDE.md file |
+| `/claude-md-management:claude-md-improver` | Audit and improve CLAUDE.md files |
+| `/claude-md-management:revise-claude-md` | Update CLAUDE.md with learnings from this session |
+| `/claude-api` | Build, debug, and optimize Claude API / Anthropic SDK apps |
