@@ -2,6 +2,24 @@
 
 Supplements the root `CLAUDE.md`. Rules here apply to everything under `tests/ecommerce/`.
 
+## Storefront Configuration
+
+`src/data/ecommerce/storefronts.ts` is the single source of truth for all tested storefronts. Each `Storefront` entry defines:
+
+| Field | Purpose |
+|---|---|
+| `name`, `url`, `titleRegex` | Identity and page-load assertion |
+| `hasQantasPoints` | AU earns points; NZ does not (E2E-HOME-003) |
+| `navLinks`, `*NavLabel` | Expected nav link labels per area |
+| `searchTerm`, `categoryFilterLabel` | Inputs for search/filter tests |
+| `pdpPath` | Stable URL path for direct-navigation PDP tests |
+| `pdpSizeToggleLabels` | Expected gender-toggle labels on size selector (best-effort) |
+| `pdpExpectedSize` | A size label expected to appear in the size grid (best-effort) |
+
+**Adding coverage for a new storefront = adding an entry to `storefronts.ts`.**
+
+> **Note on `pdpSizeToggleLabels` / `pdpExpectedSize`:** These fields carry TODO markers in the source — actual labels have not been confirmed against a live staging product for all storefronts. Tests using them apply soft assertions; do not treat them as ground truth until verified.
+
 ## Page Object
 
 All ecommerce specs use fixtures from `base-test.ts`:
