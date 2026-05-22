@@ -10,7 +10,7 @@ description: >
   follows our conventions", "Find issues in my spec file". For multi-step workflows
   ending in review, prefer invoking qa-orchestrator instead.
 tools: Glob, Grep, Read, LS, Edit
-model: sonnet
+model: opus
 color: orange
 ---
 
