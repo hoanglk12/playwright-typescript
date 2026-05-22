@@ -61,7 +61,7 @@
   <h1>PLA GraphQL API — Scenarios Discovery Report</h1>
   <div class="meta">
     <span>Target: https://stag-platypus-au.accentgra.com/graphql</span>
-    <span>Date Generated: 2026-05-15</span>
+    <span>Date Generated: 2026-05-22</span>
     <span>Environment: Staging</span>
     <span>Framework: Playwright TypeScript — GraphQLClient</span>
   </div>
@@ -71,8 +71,8 @@
 
   <div class="stats-row">
     <div class="stat-card total"><div class="value">38</div><div class="label">Total Operations</div></div>
-    <div class="stat-card covered"><div class="value">30</div><div class="label">Covered</div></div>
-    <div class="stat-card new"><div class="value">8</div><div class="label">New / Gap</div></div>
+    <div class="stat-card covered"><div class="value">34</div><div class="label">Covered</div></div>
+    <div class="stat-card new"><div class="value">4</div><div class="label">New / Gap</div></div>
     <div class="stat-card mutations"><div class="value">16</div><div class="label">Mutations</div></div>
     <div class="stat-card queries"><div class="value">22</div><div class="label">Queries</div></div>
   </div>
@@ -690,15 +690,15 @@
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">countries</span></td>
+          <td><span class="op-name">countries</span><br><span class="spec-file">pla-address-book-countries.spec.ts</span></td>
           <td><span class="badge badge-query">Query</span></td>
           <td><div class="variables">(no variables)</div></td>
           <td>Returns all available countries with id and full_name_locale. Used for address form dropdowns. Partially covered as part of GetCustomerAddressesForAddressBook.</td>
           <td class="scenarios"><ul>
-            <li>Fetch all countries → AU present in list</li>
-            <li>Verify id and full_name_locale structure</li>
+            <li>TC_01: Fetch all countries → AU present in list</li>
+            <li>TC_02: Verify id and full_name_locale structure for every country</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p3">P3</span></td>
         </tr>
       </tbody>
@@ -830,11 +830,11 @@
           <td><div class="variables">wishlistId: ID!<br>wishlistItems: [WishlistItemInput!]!<br>  sku: String!<br>  quantity: Float<br>  selected_options: [String]</div></td>
           <td>Adds one or more products to customer's wishlist. Returns wishlist with items count.</td>
           <td class="scenarios"><ul>
-            <li>Add product → appears in wishlist items</li>
-            <li class="error">Error: invalid SKU → error returned</li>
-            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
-          </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+            <li>TC_02: Add product → appears in wishlist items</li>
+            <li class="error">TC_03: Error: invalid SKU → error returned</li>
+            <li class="error">TC_04: Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul><div class="spec-file">pla-wishlist.spec.ts</div></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
@@ -843,10 +843,10 @@
           <td><div class="variables">wishlistId: ID!<br>wishlistItemsIds: [ID!]!</div></td>
           <td>Removes items from wishlist by their wishlist item IDs.</td>
           <td class="scenarios"><ul>
-            <li>Remove existing item → item no longer in wishlist</li>
-            <li class="error">Error: non-existent item id → error returned</li>
-          </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+            <li>TC_06: Remove existing item → item no longer in wishlist</li>
+            <li class="error">TC_07: Error: non-existent item id → error returned</li>
+          </ul><div class="spec-file">pla-wishlist.spec.ts</div></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
@@ -855,11 +855,11 @@
           <td><div class="variables">(requires Bearer token)</div></td>
           <td>Returns customer's wishlist(s) with items including product details, quantities.</td>
           <td class="scenarios"><ul>
-            <li>Fetch wishlists → items_count and items returned</li>
-            <li>Empty wishlist → items array is empty</li>
-            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
-          </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+            <li>TC_01: Empty wishlist → items array is empty</li>
+            <li>TC_05: Fetch wishlists → items_count and items returned</li>
+            <li class="error">TC_08: Error: unauthenticated → UNAUTHORIZED error</li>
+          </ul><div class="spec-file">pla-wishlist.spec.ts</div></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
       </tbody>
