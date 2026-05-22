@@ -71,7 +71,8 @@ Both configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`
 1. Extend `BasePage`, constructor takes only `page: Page`
 2. **Locators MUST be declared as `private readonly` class fields at the top of the class — never inline inside method bodies, `page.evaluate()` argument literals, or helper-call argument literals.** This applies to both `Locator` instances and raw selector strings. Methods reference the field; only dynamic, parameter-driven locators may live in private helper methods (which themselves consume field-level selector constants).
 3. Prefer `page.getByRole()` / `page.getByLabel()` / `page.getByText()` over CSS selectors
-4. Keep CSS selectors only when needed for `this.style.*` computed-style queries or browser-side `evaluate()` calls
+4. **Banned:** hierarchical structural selectors (e.g. `div > span > ul > li:nth-child(2)`) — they break on any DOM restructure and carry no semantic meaning
+5. Keep CSS selectors only when needed for `this.style.*` computed-style queries or browser-side `evaluate()` calls
 5. Place under `src/pages/{area}/` matching the app area (frontsite, admin, ecommerce)
 6. Register as a fixture in `src/config/base-test.ts`
 

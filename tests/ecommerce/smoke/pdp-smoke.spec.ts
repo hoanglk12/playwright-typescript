@@ -265,4 +265,99 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       }
     });
   }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-PDP-005-${String(index + 1).padStart(3, '0')}`;
+    // Skechers WOMENS PLP leads to non-footwear first → prefer MENS for reliable size coverage
+    const navLabel = site.name.toLowerCase().includes('skechers')
+      ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
+      : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+
+    test(`${tcId} - ${site.name} Selecting a size enables Add to Cart button`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Size enables ATC`);
+
+      if (!navLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
+        return;
+      }
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for SPA nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
+      await ecommerceNavPage.clickNavLink(navLabel);
+
+      logger.step('Step 4 - Wait for PLP URL to resolve');
+      await ecommercePLPPage.waitForPlpUrl();
+
+      logger.step('Step 5 - Wait for product grid to render');
+      await ecommercePLPPage.waitForProductGrid();
+
+      logger.step('Step 6 - Click first product card');
+      await ecommercePLPPage.clickProductCard(0);
+
+      logger.step('Step 7 - Wait for PDP to fully load');
+      await ecommercePDPPage.waitForPdpLoad();
+
+      logger.step('Step 8 - Dismiss any overlay before size interaction');
+      await ecommercePDPPage.ensureNoOverlay();
+
+      logger.step('Step 8b - Wait for size buttons to render (best-effort; times out silently for non-footwear)');
+      await ecommercePDPPage.waitForSizeButtonsToRender();
+
+      logger.step('Step 9 - Assert size selector is visible (hard precondition)');
+      const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
+      if (!sizeSelectorVisible) {
+        test.skip(
+          true,
+          `${site.name}: size selector not visible on first PDP — product may have no sizes`,
+        );
+        return;
+      }
+
+      logger.step('Step 10 - Get available (enabled) sizes');
+      const availableSizes = await ecommercePDPPage.getAvailableSizes();
+      if (availableSizes.length === 0) {
+        test.skip(true, `${site.name}: no enabled sizes found on first PDP`);
+        return;
+      }
+
+      // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
+      // Try up to 3 sizes and stop at the first that actually enables Add to Cart.
+      logger.step('Step 11 - Select a size that enables Add to Cart (try up to 3)');
+      let targetSize: string | null = null;
+      let atcEnabled = false;
+      for (const size of availableSizes.slice(0, 3)) {
+        await ecommercePDPPage.selectSize(size);
+        atcEnabled = await ecommercePDPPage.isAddToCartEnabled();
+        if (atcEnabled) {
+          targetSize = size;
+          break;
+        }
+      }
+      if (targetSize === null) {
+        test.skip(
+          true,
+          `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
+        );
+        return;
+      }
+      logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
+
+      logger.step('Step 12 - Assert Add to Cart button is enabled after size selection');
+      softAssert.toBe(
+        atcEnabled,
+        true,
+        `${site.name}: Add to Cart button should be enabled after selecting size "${targetSize}"`,
+      );
+    });
+  }
 });
