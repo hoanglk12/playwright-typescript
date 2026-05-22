@@ -65,6 +65,36 @@ These are Platypus staging-specific behaviours — do not assume standard Magent
 | Invalid email format error message | `"Invalid email address entered"` (custom), NOT standard Magento `"is not a valid email address."` |
 | `revokeCustomerToken` error category | `graphql-authorization` |
 | `resetPassword` validation order | Validates token **before** password strength — weak-password tests get a token-invalid error first |
+| `addProductsToWishlist` item `__typename` | Returns `ConfigurableWishlistItem` even for simple-product adds — use `.toContain('WishlistItem')` not `.toBe('WishlistItem')` |
+| Product search `__typename` | `products(search: ...)` returns only `ConfigurableProduct` items inconsistently — always fall back to `allItems[0]`; never throw on "no SimpleProduct found" |
+
+## Error Presence Check — Critical
+
+Never use `if (!gql.errors)` — an empty array `[]` is truthy and bypasses the error branch silently.
+Use `if (!(gql.errors?.length))` consistently across all `beforeAll` auth flows.
+
+## Wishlist — Error Shape
+
+Wishlist mutations (`addProductsToWishlist`, `removeProductsFromWishlist`) return errors two ways:
+- Top-level `errors` — auth failures (`graphql-authorization`)
+- `user_errors` in mutation payload — business logic failures (invalid SKU, non-existent item ID)
+
+Use a `wasRejected(gql, opName)` helper that checks both:
+
+```ts
+interface GqlWithUserErrors { user_errors?: UserError[]; }
+
+function wasRejected(
+  gql: { errors?: { message?: string }[]; data?: Record<string, GqlWithUserErrors | undefined> },
+  opName: string,
+): boolean {
+  if ((gql.errors?.length ?? 0) > 0) return true;
+  const userErrors = gql.data?.[opName]?.user_errors;
+  return Array.isArray(userErrors) && userErrors.length > 0;
+}
+```
+
+Wishlist items use `items_v2(pageSize: N)` — the modern accessor; plain `items` is deprecated in Magento 2.4+.
 
 ## GraphQL Variables — Never Interpolate
 
