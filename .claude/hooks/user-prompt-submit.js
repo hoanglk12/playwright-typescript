@@ -84,6 +84,7 @@ SOFT ASSERTION RULES (apply every time you write an assertion):
 
 PLAYWRIGHT RULES:
 - Locator priority: getByRole > getByLabel > getByText > CSS
+- Banned: hierarchical structural selectors (e.g. div > span > ul > li:nth-child(2)) — use semantic locators instead
 - Retries only for network-dependent steps, not UI assertions
 - Register every new page object as a fixture in src/config/base-test.ts
 

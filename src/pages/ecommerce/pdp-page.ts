@@ -15,6 +15,9 @@ export class EcommercePDPPage extends BasePage {
   private readonly colorScrollerContainerSelector =
     '[class*="swiper-container"]:has([class*="colorScroller-next"])';
   private readonly acquisitionPopupSelector = '[class*="bloomreach-acquisition-popup"][class*="state-open"]';
+  // getByRole uses accessible name; storefronts render aria-label="Justify" on ATC buttons,
+  // which overrides the visible text and breaks getByRole matching. Match by text content instead.
+  private readonly addToCartBtnLocator = this.page.locator('button', { hasText: /add to (cart|bag)/i });
   private readonly sizePatternSource = '^(US\\s+|UK\\s+|EU\\s+)?\\d+(\\.\\d+)?$';
   private readonly genderPatternSource =
     '\\b(mens?|womens?|male|female|us\\s+mens?|us\\s+womens?|uk\\s+mens?|uk\\s+womens?)\\b';
@@ -323,6 +326,43 @@ export class EcommercePDPPage extends BasePage {
       }
       return results;
     }, this.sizePatternSource);
+  }
+
+  async selectSize(label: string): Promise<void> {
+    await this.dismissAcquisitionPopup();
+    // Escape special regex chars in the label so "3.5" matches exactly "3.5", not "305".
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Use Playwright's locator click (not page.evaluate) so React synthetic events fire properly.
+    // page.evaluate HTMLButtonElement.click() bypasses React's event delegation and does not
+    // update state reliably on storefronts where ATC is disabled until a size is selected.
+    const sizeBtn = this.page
+      .locator('button')
+      .filter({ hasText: new RegExp(`^${escaped}$`) })
+      .first();
+    // force: true bypasses sticky-header/overlay interception on second+ retry attempts.
+    // Safe for <button> elements (not React-router <a> links) — event still targets the button.
+    await sizeBtn.click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE, force: true });
+  }
+
+  async isAddToCartEnabled(): Promise<boolean> {
+    try {
+      const btn = this.addToCartBtnLocator.first();
+      return !(await btn.isDisabled({ timeout: TIMEOUTS.ELEMENT_VISIBLE }));
+    } catch {
+      return false;
+    }
+  }
+
+  // Polls until at least one numeric size button is visible and enabled, then returns.
+  // Best-effort: silently resolves after ELEMENT_CLICKABLE timeout so the caller's
+  // skip guard (availableSizes.length === 0) still fires for non-footwear products.
+  async waitForSizeButtonsToRender(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(
+        async () => (await this.getAvailableSizes()).length > 0,
+        { timeout: TIMEOUTS.ELEMENT_CLICKABLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
   }
 
   async getSizeToggleActiveLabel(): Promise<string> {

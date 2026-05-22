@@ -14,7 +14,7 @@ description: >
   "just review this file" → use qa-code-reviewer directly).
 tools: Glob, Grep, Read, LS, Task
 model: sonnet
-color: yellow
+color: khaki
 ---
 
 You are the QA Orchestrator for this Playwright TypeScript automation project. You are the
