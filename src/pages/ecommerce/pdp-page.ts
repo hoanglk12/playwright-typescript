@@ -21,6 +21,17 @@ export class EcommercePDPPage extends BasePage {
   private readonly sizePatternSource = '^(US\\s+|UK\\s+|EU\\s+)?\\d+(\\.\\d+)?$';
   private readonly genderPatternSource =
     '\\b(mens?|womens?|male|female|us\\s+mens?|us\\s+womens?|uk\\s+mens?|uk\\s+womens?)\\b';
+  // [role="alert"] and [aria-live] are the preferred signals. Storefronts that don't use ARIA
+  // (e.g. Platypus "Size was not chosen" in a plain div) are caught by sizeValidationTextPattern.
+  private readonly sizeValidationSelector =
+    '[role="alert"], [aria-live]:not([aria-live="off"])';
+  // Matches validation text that implies a size was not selected. Does NOT match "CHOOSE SIZE"
+  // (no error word follows) or numeric size labels. Uses two alternatives:
+  //   1. "size" then an error word within 50 chars
+  //   2. a request word then "size" within 30 chars (e.g. "Please select a size")
+  private readonly sizeValidationTextPattern =
+    '\\bsize\\b[^.!?]{0,50}\\b(not|error|required|invalid|missing|must)\\b' +
+    '|\\b(please|must|need|require)\\b[^.!?]{0,30}\\bsize\\b';
 
   constructor(page: Page) {
     super(page);
@@ -363,6 +374,91 @@ export class EcommercePDPPage extends BasePage {
         { timeout: TIMEOUTS.ELEMENT_CLICKABLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
       )
       .catch(() => {});
+  }
+
+  async addToCart(): Promise<void> {
+    // Click the first visible ATC button. force: true bypasses sticky-header/overlay interception
+    // while still firing React synthetic events — same pattern as selectSize().
+    // Safe for <button type="submit"> elements: React event delegation handles force-dispatched events.
+    const buttons = this.addToCartBtnLocator;
+    const count = await buttons.count();
+    if (count === 0) {
+      throw new Error('addToCart: no Add to Cart / Add to Bag button found in DOM');
+    }
+    for (let i = 0; i < count; i++) {
+      const btn = buttons.nth(i);
+      if (await btn.isVisible().catch(() => false)) {
+        await btn.click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE, force: true });
+        return;
+      }
+    }
+    // No visible button found — force-click the first anyway (triggers React validation even
+    // when the element is off-screen, as confirmed on Platypus AU: "Size was not chosen" appears).
+    await buttons.first().click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE, force: true });
+  }
+
+  async hasSizeValidationMessage(): Promise<boolean> {
+    const ariaSelector = this.sizeValidationSelector;
+    const textPattern = this.sizeValidationTextPattern;
+    let found = false;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          found = await this.page.evaluate(
+            ({ ariasel, textpat }: { ariasel: string; textpat: string }) => {
+              const isVisibleWithText = (el: Element): boolean => {
+                const text = el.textContent?.trim() ?? '';
+                if (!text) return false;
+                const r = el.getBoundingClientRect();
+                return r.width > 0 && r.height > 0;
+              };
+              // 1. ARIA-based signals (preferred — semantic and hash-safe)
+              if (Array.from(document.querySelectorAll(ariasel)).some(isVisibleWithText)) return true;
+              // 2. Plain-text validation messages (storefronts that omit ARIA on validation divs,
+              //    e.g. Platypus "Size was not chosen" in a generic element with no role/aria-live).
+              //    Pre-filter to leaf nodes containing "size" before applying the full regex
+              //    to avoid scanning thousands of DOM nodes on every poll iteration.
+              const re = new RegExp(textpat, 'i');
+              return Array.from(document.querySelectorAll('*')).some((el) => {
+                if ((el as Element).children.length > 0) return false;
+                const text = el.textContent?.trim() ?? '';
+                if (!text || !/size/i.test(text)) return false;
+                return isVisibleWithText(el) && re.test(text);
+              });
+            },
+            { ariasel: ariaSelector, textpat: textPattern },
+          );
+          return found;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return found;
+  }
+
+  // Reads the numeric badge adjacent to the cart icon. Anchors on semantic cart links
+  // (aria-label or href) to avoid class-hashed selectors, which are unreliable on these storefronts.
+  // CAVEAT: returns 0 when (a) the badge sits outside the cart link subtree, (b) the cart icon
+  // has no numeric text node (icon-only state), or (c) the count is non-numeric ("99+").
+  // For E2E-PDP-006 this is a secondary signal only — the primary check is hasSizeValidationMessage().
+  async getMiniCartCount(): Promise<number> {
+    const text = await this.page.evaluate(() => {
+      const cartLinks = Array.from(
+        document.querySelectorAll('a[href*="/cart"], [aria-label*="cart" i], [aria-label*="bag" i]'),
+      );
+      for (const link of cartLinks) {
+        const r = (link as Element).getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        const descendants = [link, ...Array.from(link.querySelectorAll('*'))];
+        for (const el of descendants) {
+          if ((el as Element).children.length > 0) continue;
+          const t = el.textContent?.trim() ?? '';
+          if (/^\d+$/.test(t)) return t;
+        }
+      }
+      return '0';
+    });
+    return parseInt(text, 10) || 0;
   }
 
   async getSizeToggleActiveLabel(): Promise<string> {
