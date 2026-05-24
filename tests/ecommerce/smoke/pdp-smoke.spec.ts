@@ -360,4 +360,101 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       );
     });
   }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-PDP-006-${String(index + 1).padStart(3, '0')}`;
+    // Skechers and Vans NZ: MENS PLP leads to footwear with consistent size selectors.
+    // Vans NZ WOMENS lands on a sub-category PLP (Classics) rather than a product PDP.
+    const preferMens =
+      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const navLabel = preferMens
+      ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
+      : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+
+    test(`${tcId} - ${site.name} Add to Cart without size shows validation`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} ATC without size validation`);
+
+      if (!navLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
+        return;
+      }
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for SPA nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
+      await ecommerceNavPage.clickNavLink(navLabel);
+
+      logger.step('Step 4 - Wait for PLP URL to resolve');
+      await ecommercePLPPage.waitForPlpUrl();
+
+      logger.step('Step 5 - Wait for product grid to render');
+      await ecommercePLPPage.waitForProductGrid();
+
+      logger.step('Step 6 - Click first product card');
+      await ecommercePLPPage.clickProductCard(0);
+
+      logger.step('Step 7 - Wait for PDP to fully load');
+      await ecommercePDPPage.waitForPdpLoad();
+
+      logger.step('Step 8 - Dismiss any overlay before interaction');
+      await ecommercePDPPage.ensureNoOverlay();
+
+      logger.step('Step 8b - Wait for size buttons to render (best-effort)');
+      await ecommercePDPPage.waitForSizeButtonsToRender();
+
+      logger.step('Step 9 - Assert size selector is visible (hard precondition)');
+      const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
+      if (!sizeSelectorVisible) {
+        test.skip(true, `${site.name}: size selector not visible — product may have no sizes`);
+        return;
+      }
+
+      logger.step('Step 10 - Check ATC state WITHOUT selecting a size');
+      const atcEnabledBeforeSize = await ecommercePDPPage.isAddToCartEnabled();
+
+      if (!atcEnabledBeforeSize) {
+        logger.step('Step 10a (BRANCH A) - ATC button is disabled without size — validation by button state');
+        softAssert.toBe(
+          atcEnabledBeforeSize,
+          false,
+          `${site.name}: Add to Cart button should be disabled when no size is selected`,
+        );
+        logger.verify('ATC disabled without size (BRANCH A)', 'false', String(atcEnabledBeforeSize));
+      } else {
+        logger.step('Step 10b (BRANCH B) - ATC button enabled — click without size and expect validation signal');
+        const initialCartCount = await ecommercePDPPage.getMiniCartCount();
+        logger.verify('Initial cart count before ATC click', 'number >= 0', String(initialCartCount));
+
+        await ecommercePDPPage.addToCart();
+
+        logger.step('Step 11b - Poll for validation signal (aria-live or role=alert)');
+        const hasValidation = await ecommercePDPPage.hasSizeValidationMessage();
+        // A site that silently rejects (no signal at all) is a real UX bug per E2E-PDP-006.
+        softAssert.toBe(
+          hasValidation,
+          true,
+          `${site.name}: A size validation signal (role=alert or aria-live) should appear after clicking ATC without size selection`,
+        );
+        logger.verify('Validation signal present after ATC without size (BRANCH B)', 'true', String(hasValidation));
+
+        logger.step('Step 12b - Assert cart count did not increment');
+        const cartCountAfterClick = await ecommercePDPPage.getMiniCartCount();
+        softAssert.toBe(
+          cartCountAfterClick,
+          initialCartCount,
+          `${site.name}: Cart count should not increment when ATC clicked without size selection`,
+        );
+        logger.verify('Cart count unchanged after failed ATC', String(initialCartCount), String(cartCountAfterClick));
+      }
+    });
+  }
 });
