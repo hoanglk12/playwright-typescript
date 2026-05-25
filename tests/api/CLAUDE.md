@@ -67,6 +67,8 @@ These are Platypus staging-specific behaviours — do not assume standard Magent
 | `resetPassword` validation order | Validates token **before** password strength — weak-password tests get a token-invalid error first |
 | `addProductsToWishlist` item `__typename` | Returns `ConfigurableWishlistItem` even for simple-product adds — use `.toContain('WishlistItem')` not `.toBe('WishlistItem')` |
 | Product search `__typename` | `products(search: ...)` returns only `ConfigurableProduct` items inconsistently — always fall back to `allItems[0]`; never throw on "no SimpleProduct found" |
+| `CartAddressInput.region` | Plain `String` (e.g. `'NSW'`), NOT a `CustomerAddressRegionInput` object — only `CustomerAddressInput` uses `{ region_code: String }` |
+| Available shipping methods on staging | `instore_pickup` and `flatrate_flatrate` are the two available methods for AU addresses |
 
 ## Error Presence Check — Critical
 
@@ -127,6 +129,13 @@ Define this as a module-level function in any spec that touches product pricing.
 ## `productSearch` Schema Gap
 
 `productSearch` autocomplete is not in the staging Magento 2 schema (P2 gap). Tests for this operation must call `getGraphQLResponse()` directly, check for `"Cannot query field"` + `"productSearch"` in errors, and return early rather than failing.
+
+## Checkout Shipping — Operation Order Dependency
+
+`setShippingMethodsOnCart` requires a shipping address to already be set on the cart.
+`available_shipping_methods` is only populated after `setShippingAddressesOnCart` runs.
+Always call these in order within the same test suite: address → methods.
+For TC_05/TC_06: re-query `cart.shipping_addresses[0].available_shipping_methods` fresh each test — do NOT store from a prior test's response; address changes between tests can alter the method list.
 
 ## Test Naming Convention
 
