@@ -61,7 +61,7 @@
   <h1>PLA GraphQL API — Scenarios Discovery Report</h1>
   <div class="meta">
     <span>Target: https://stag-platypus-au.accentgra.com/graphql</span>
-    <span>Date Generated: 2026-05-22</span>
+    <span>Date Generated: 2026-05-25</span>
     <span>Environment: Staging</span>
     <span>Framework: Playwright TypeScript — GraphQLClient</span>
   </div>
@@ -71,8 +71,8 @@
 
   <div class="stats-row">
     <div class="stat-card total"><div class="value">38</div><div class="label">Total Operations</div></div>
-    <div class="stat-card covered"><div class="value">34</div><div class="label">Covered</div></div>
-    <div class="stat-card new"><div class="value">4</div><div class="label">New / Gap</div></div>
+    <div class="stat-card covered"><div class="value">36</div><div class="label">Covered</div></div>
+    <div class="stat-card new"><div class="value">2</div><div class="label">New / Gap</div></div>
     <div class="stat-card mutations"><div class="value">16</div><div class="label">Mutations</div></div>
     <div class="stat-card queries"><div class="value">22</div><div class="label">Queries</div></div>
   </div>
@@ -361,7 +361,7 @@
       </thead>
       <tbody>
         <tr>
-          <td><span class="op-name">setShippingAddressesOnCart</span></td>
+          <td><span class="op-name">setShippingAddressesOnCart</span><br><span class="spec-file">pla-checkout-shipping.spec.ts (TC_01–04)</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: SetShippingAddressesOnCartInput<br>  cart_id: String!<br>  shipping_addresses: [ShippingAddressInput!]!<br>    address: CartAddressInput<br>    customer_address_id: Int</div></td>
           <td>Sets the shipping address on the cart. Can use a new address or an existing customer address by ID.</td>
@@ -371,11 +371,11 @@
             <li class="error">Error: invalid customer_address_id → error returned</li>
             <li class="error">Error: missing required address fields → validation error</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">setShippingMethodsOnCart</span></td>
+          <td><span class="op-name">setShippingMethodsOnCart</span><br><span class="spec-file">pla-checkout-shipping.spec.ts (TC_05–07)</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: SetShippingMethodsOnCartInput<br>  cart_id: String!<br>  shipping_methods: [ShippingMethodInput!]!<br>    carrier_code: String!<br>    method_code: String!</div></td>
           <td>Sets the shipping method on the cart. Available methods depend on address and items.</td>
@@ -384,7 +384,7 @@
             <li>Set express/alternate method → method applied</li>
             <li class="error">Error: unavailable method for address → error returned</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
