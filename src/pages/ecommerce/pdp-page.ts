@@ -498,4 +498,18 @@ export class EcommercePDPPage extends BasePage {
       return '';
     }, { sizePatSrc: this.sizePatternSource, genderPatSrc: this.genderPatternSource });
   }
+
+  async waitForMiniCartCountIncrement(previousCount: number): Promise<number> {
+    let currentCount = previousCount;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          currentCount = await this.getMiniCartCount();
+          return currentCount > previousCount;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return currentCount;
+  }
 }
