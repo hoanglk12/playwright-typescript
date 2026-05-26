@@ -393,23 +393,23 @@
           <td><div class="variables">input: SetBillingAddressOnCartInput<br>  cart_id: String!<br>  billing_address: BillingAddressInput<br>    address: CartAddressInput<br>    customer_address_id: Int<br>    same_as_shipping: Boolean</div></td>
           <td>Sets billing address on the cart. Can mirror the shipping address or set a different one.</td>
           <td class="scenarios"><ul>
-            <li>Set billing same as shipping (same_as_shipping: true)</li>
-            <li>Set separate billing address</li>
+            <li>TC_01: Set billing same as shipping (same_as_shipping: true) → billing mirrors shipping</li>
+            <li>TC_02: Set separate billing address → custom billing address set</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
           <td><span class="op-name">setPaymentMethodOnCart</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: SetPaymentMethodOnCartInput<br>  cart_id: String!<br>  payment_method: PaymentMethodInput<br>    code: String! (e.g. braintree, checkmo)</div></td>
-          <td>Sets the payment method code on the cart. Available codes: checkmo, braintree_applepay, free, braintree, braintree_paypal.</td>
+          <td>Sets the payment method code on the cart. Available codes: checkmo, braintree_applepay, afterpay, braintree, braintree_paypal. Note: braintree variants require SDK nonce — tested via afterpay on staging.</td>
           <td class="scenarios"><ul>
-            <li>Set checkmo payment method → selected_payment_method updated</li>
-            <li>Set braintree → payment method applied</li>
-            <li class="error">Error: invalid payment code → error returned</li>
+            <li>TC_03: Set checkmo payment method → selected_payment_method updated</li>
+            <li>TC_04: Set alternate payment method (afterpay) → payment method applied</li>
+            <li class="error">TC_05: Error: invalid payment code → error returned</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>

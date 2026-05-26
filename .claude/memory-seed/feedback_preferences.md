@@ -30,3 +30,11 @@ type: feedback
 **`.claude/plans/` is the drop zone for spec documents.** The `user-prompt-submit.js` hook auto-routes prompts that reference files in this directory to `qa-orchestrator`. Drop acceptance criteria, user stories, or test plan docs here.
 
 **How to apply:** When user mentions a spec or requirement document, check `.claude/plans/` first before asking for a path.
+
+---
+
+**`softExpect` (bare) does NOT log internally — `logger.verify()` adjacent to it is correct.** Only the `softAssert.*` fixture (SoftAssertHelper) logs internally with `🔵 [SOFT]`. The qa-code-reviewer has flagged `logger.verify()` before `softExpect()` as a "duplicate log" warning — this is a false positive for Pattern A (bare `softExpect`).
+
+**Why:** `softExpect` is imported as a drop-in for `expect` with no logger integration (Pattern A). `softAssert` is the fixture (Pattern B) that calls `logger.verify()` internally. The root CLAUDE.md correctly scopes the "no duplicate logging" rule to `softAssert.*` only.
+
+**How to apply:** In API test files using `softExpect`, always call `logger.verify()` before the assertion. Do NOT remove logger.verify calls because the qa-code-reviewer flags them — check whether the code uses `softExpect` (bare) or `softAssert.*` (fixture) first.
