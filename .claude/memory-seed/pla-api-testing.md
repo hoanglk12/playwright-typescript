@@ -19,12 +19,18 @@ metadata:
 | `tests/api/pla-search.spec.ts` | Product search TC_01–05, autocomplete TC_06–07 (schema-gap aware) |
 | `tests/api/pla-customer-profile.spec.ts` | changeCustomerPassword TC_01–04, updateCustomerV2 personal info TC_05–09 |
 | `tests/api/pla-catalog.spec.ts` | Catalog & Products — products PLP TC_01–06, products PDP TC_07–10, categories TC_11–13, storeConfig TC_14–16, urlResolver TC_17–20 (all unauthenticated) |
+| `tests/api/pla-address-book-countries.spec.ts` | Address book mutations + countries query |
+| `tests/api/pla-wishlist.spec.ts` | Wishlist mutations (addProductsToWishlist, removeProductsFromWishlist) |
+| `tests/api/pla-checkout-shipping.spec.ts` | setShippingAddressesOnCart TC_01–04, setShippingMethodsOnCart TC_05–07 |
+| `tests/api/pla-checkout-billing-payment.spec.ts` | setBillingAddressOnCart TC_01–02, setPaymentMethodOnCart TC_03–05 (added 2026-05-26) |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across PLA spec files in one worker |
 | `src/data/api/pla-test-data.ts` | Dynamic email + all account/address/cart test data |
 | `src/data/api/pla-auth-data.ts` | Auth-specific test data (reset password inputs, error messages) |
 | `src/data/api/pla-search-data.ts` | Search terms and pagination config for search tests |
 | `src/data/api/pla-customer-profile-data.ts` | changeCustomerPassword inputs, updateCustomerV2 personal info inputs, error messages |
 | `src/data/api/pla-catalog-data.ts` | Catalog test data: discovery config (searchTerm, pageSize, brandRetryTerm), PLP/PDP sentinels, storeConfig patterns, urlResolver URLs |
+| `src/data/api/pla-checkout-shipping-data.ts` | Shipping address fixtures, invalid codes, invalid cart ID |
+| `src/data/api/pla-checkout-billing-payment-data.ts` | `CartInlineAddress` interface; shipping + billing address fixtures; invalidPaymentCode |
 
 ## Shared-State Pattern
 
@@ -55,7 +61,16 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **Price sort not assertable**: PLA staging price sort uses base price internally; `final_price` ordering is not guaranteed. TC_03/TC_04 only verify price fields are numeric ≥ 0.
 - **PLA staging urlResolver never returns `null`**: returns `{ id: null, type: null, __typename: "EntityUrl" }` for unresolvable URLs. TC_20 accepts both standard Magento 2 (`null`) and PLA staging (`{ type: null, id: null }`) as "not found". TC_17/TC_18 try with and without `.html` suffix, skip gracefully if neither resolves.
 
-## Staging API Quirks (discovered 2026-05-15, expanded 2026-05-19)
+## Checkout Billing & Payment Patterns (added 2026-05-26)
+
+- **Operation order for payment to succeed**: addProductsToCart → setShippingAddressesOnCart → setShippingMethodsOnCart → setBillingAddressOnCart → setPaymentMethodOnCart → placeOrder. `setPaymentMethodOnCart` silently returns no errors but `available_payment_methods` is empty until shipping method is set.
+- **`setBillingAddressOnCart` with `same_as_shipping: true` DOES populate `billing_address`** in the response (non-null) on staging — billing_address contains the shipping address data.
+- **Braintree payment variants** (`braintree`, `braintree_applepay`, `braintree_paypal`) require an SDK-provided `payment_method_nonce` field. Attempting `setPaymentMethodOnCart` with just `{ code: "braintree" }` returns `"Required parameter 'braintree' for 'payment_method' is missing."` — cannot test these without real Braintree SDK integration.
+- **Available payment methods on staging AU cart** (confirmed 2026-05-26): `checkmo`, `braintree_applepay`, `afterpay`, `braintree`, `braintree_paypal`. Use `checkmo` (TC_03) and `afterpay` (TC_04) for payment method tests.
+- **`shippingMethodSet` flag pattern**: declare a module-level `let shippingMethodSet: boolean = false` in beforeAll; set to `true` only after shipping method mutation succeeds. Use this flag to skip payment tests gracefully rather than failing all tests when shipping setup fails.
+- **`validSku` scope**: when a SKU is only used inside `beforeAll` (to add product to cart), declare it as a local `let` inside `beforeAll` — not a module-level variable.
+
+## Staging API Quirks (discovered 2026-05-15, expanded 2026-05-19, 2026-05-26)
 
 - **`requestPasswordResetEmail` with non-existent email** returns a `graphql-input` error (NOT silent `true` as in standard Magento 2). The staging app discloses account non-existence through this error.
 - **Invalid email format error message** is `"Invalid email address entered"` (custom message), NOT the standard Magento `"is not a valid email address."`. Update `plaAuthErrorMessages.invalidEmailFormat` if Magento is upgraded.
@@ -77,7 +92,7 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 1. **All GraphQL strings must be hoisted to module-level `const`** — never inline inside `test()` bodies or `beforeAll`. This applies to every mutation and query used in the file.
 
-2. **No `logger.verify()` duplicating adjacent `softExpect()` checks.** `softExpect` already logs internally; calling `logger.verify()` on the same fact creates a duplicate log entry.
+2. **`logger.verify()` before `softExpect()` is correct — NOT a duplicate.** `softExpect` (bare Pattern A) does NOT log internally. Only the `softAssert.*` fixture (SoftAssertHelper) logs internally with `🔵 [SOFT]`. The qa-code-reviewer may flag this as "duplicate logging" but that is a false positive — see [[feedback_preferences]].
 
 3. **Module-level variables must have explicit initializers**: `let customerToken: string = ''` not `let customerToken: string`.
 
@@ -95,4 +110,6 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 Self-contained HTML report at `Guideline/api-scenarios-report.html`. Documents 38 GraphQL operations across 12 categories. Marks each as Covered/New and assigns P1/P2/P3 priority. Regenerate by running `qa-orchestrator` explore workflow.
 
-**Coverage as of 2026-05-21:** 30 Covered, 8 New/Gap. The Catalog & Products section (5 operations) was updated to Covered after `pla-catalog.spec.ts` was created and all 20 tests passed.
+**Coverage as of 2026-05-26:** 34 Covered, 4 New/Gap.
+- +2 added 2026-05-26: `setBillingAddressOnCart`, `setPaymentMethodOnCart` (covered by `pla-checkout-billing-payment.spec.ts`)
+- +2 added with `pla-checkout-shipping.spec.ts`: `setShippingAddressesOnCart`, `setShippingMethodsOnCart`

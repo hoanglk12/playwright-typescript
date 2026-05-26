@@ -31,7 +31,7 @@ All API test data lives in `src/data/api/` — one file per feature domain (e.g.
 2. **Module-level `let` variables need explicit initializers**: `let token: string = ''` not `let token: string`.
 3. **`AuthType.BEARER` enum** — never `"bearer" as any`.
 4. **Guard `errors[0]` access**: `gql.errors.length ? gql.errors[0]?.message ?? '' : ''`.
-5. **No `logger.verify()` adjacent to `softExpect()`** — `softExpect` logs internally; calling both creates a duplicate log entry.
+5. **No `logger.verify()` adjacent to `softAssert.*` fixture calls** — `SoftAssertHelper` (the `softAssert` fixture) logs internally with `🔵 [SOFT]`; calling `logger.verify()` before a `softAssert.*` call creates a duplicate log entry. **`softExpect` (bare Pattern A, no fixture) does NOT log internally** — pairing it with `logger.verify()` is correct and expected.
 
 ## PLA GraphQL Tests — Shared-State Pattern
 
@@ -69,6 +69,9 @@ These are Platypus staging-specific behaviours — do not assume standard Magent
 | Product search `__typename` | `products(search: ...)` returns only `ConfigurableProduct` items inconsistently — always fall back to `allItems[0]`; never throw on "no SimpleProduct found" |
 | `CartAddressInput.region` | Plain `String` (e.g. `'NSW'`), NOT a `CustomerAddressRegionInput` object — only `CustomerAddressInput` uses `{ region_code: String }` |
 | Available shipping methods on staging | `instore_pickup` and `flatrate_flatrate` are the two available methods for AU addresses |
+| Braintree payment variants | `braintree`, `braintree_applepay`, `braintree_paypal` require an SDK-provided `payment_method_nonce`. Setting just `{ code: "braintree" }` returns `"Required parameter 'braintree' for 'payment_method' is missing."` — untestable without Braintree SDK |
+| Available payment methods on staging | `checkmo`, `braintree_applepay`, `afterpay`, `braintree`, `braintree_paypal` (AU cart, confirmed 2026-05-26). Use `checkmo` and `afterpay` for payment method API tests |
+| `setBillingAddressOnCart` same_as_shipping | `billing_address` IS populated (non-null) in the response when `same_as_shipping: true` — it contains the shipping address data |
 
 ## Error Presence Check — Critical
 
@@ -136,6 +139,27 @@ Define this as a module-level function in any spec that touches product pricing.
 `available_shipping_methods` is only populated after `setShippingAddressesOnCart` runs.
 Always call these in order within the same test suite: address → methods.
 For TC_05/TC_06: re-query `cart.shipping_addresses[0].available_shipping_methods` fresh each test — do NOT store from a prior test's response; address changes between tests can alter the method list.
+
+## Checkout Billing & Payment — Operation Order Dependency
+
+Full checkout mutation order: `addProductsToCart` → `setShippingAddressesOnCart` → `setShippingMethodsOnCart` → `setBillingAddressOnCart` → `setPaymentMethodOnCart` → `placeOrder`.
+
+`cart.available_payment_methods` is empty until `setShippingMethodsOnCart` has run. Payment method tests that skip silently when `available_payment_methods` is empty provide no failure signal — guard them explicitly:
+
+```ts
+let shippingMethodSet: boolean = false;
+
+// In beforeAll — set to true only when shipping method mutation succeeds
+if (!(methodGql.errors?.length)) { shippingMethodSet = true; }
+
+// In TC_03/TC_04 — fail fast and clearly
+if (!shippingMethodSet || availablePaymentMethods.length === 0) {
+  test.skip(true, 'No shipping method set or no payment methods available');
+  return;
+}
+```
+
+Braintree payment variants (`braintree`, `braintree_applepay`, `braintree_paypal`) require an SDK-provided nonce and cannot be tested without Braintree integration. Use `checkmo` (primary) and `afterpay` (alternate) for payment method API tests on staging.
 
 ## Test Naming Convention
 
