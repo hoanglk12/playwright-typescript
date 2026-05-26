@@ -85,7 +85,7 @@ jobs:
           cache: 'npm'
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/ms-playwright
@@ -156,7 +156,7 @@ jobs:
           BROWSER: ${{ env.TEST_BROWSER }}
 
       - name: Upload UI Test Results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: ui-test-results-${{ runner.os }}-${{ env.TEST_ENV }}-${{ env.TEST_MODE }}
@@ -212,7 +212,7 @@ jobs:
           API_ENV: ${{ env.TEST_ENV }}
 
       - name: Upload API Test Results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: api-test-results-${{ env.TEST_ENV }}
@@ -242,7 +242,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Download UI test artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         if: needs.ui-test.result != 'skipped'
         with:
           pattern: ui-test-results-*
@@ -250,7 +250,7 @@ jobs:
           path: ./combined-results/ui/
 
       - name: Download API test artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         if: needs.api-test.result != 'skipped'
         with:
           pattern: api-test-results-*
@@ -284,7 +284,7 @@ jobs:
           echo "</body></html>" >> ./combined-report/index.html
 
       - name: Upload combined report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: combined-test-report-${{ env.TEST_ENV }}
           path: |
