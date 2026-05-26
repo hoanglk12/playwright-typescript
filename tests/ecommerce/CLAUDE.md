@@ -75,3 +75,24 @@ await this.page
   .waitForFunction(/* gallery check */, selector, { timeout: TIMEOUTS.ELEMENT_VISIBLE })
   .catch(() => { /* best-effort */ });
 ```
+
+## EcommercePDPPage — Cart Count Pattern
+
+`getMiniCartCount()` is synchronous — call `waitForMiniCartCountIncrement(initialCount)` after
+`addToCart()` to poll until the badge updates (best-effort, `.catch(() => {})` like other polling methods).
+
+**Serial assertion rule:** assert delta (`initialCartCount + 1`), not absolute count (`1`) — serial
+tests share browser state so the cart may already contain items from earlier loop iterations.
+
+## PDP Specs — Nav Label Selection for Footwear Coverage
+
+Skechers WOMENS PLP leads to non-footwear first. Vans NZ WOMENS lands on a sub-category PLP
+(Classics), not individual PDPs. Both need MENS nav to get footwear with size selectors:
+
+```ts
+const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+const navLabel = preferMens ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
+                            : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+```
+
+This pattern is established in E2E-PDP-005/006/007 — reuse it for any new PDP test needing size selectors.

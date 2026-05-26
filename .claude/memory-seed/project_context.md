@@ -25,3 +25,12 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - Shared test state across PLA files via `tests/api/shared-state.ts` (token, customerId, cartId, addressId)
 - Test data at `src/data/api/pla-test-data.ts` — generates unique email per test run; all PLA specs reuse `getTestEmail()` to stay in sync
 - `api-scenarios-report.html` at `Guideline/api-scenarios-report.html`: 38 GraphQL operations documented, **34 covered, 4 gaps** as of 2026-05-26 — see [[pla-api-testing]] for patterns and API quirks
+
+**Ecommerce UI smoke tests (5 spec files, ~176 tests as of 2026-05-26):**
+- `homepage-smoke.spec.ts`: E2E-HOME-001/002/003 (homepage load, promo bar, Qantas Points AU-only) — 3 × 8 = 24 tests
+- `navigation-smoke.spec.ts`: E2E-NAV-001/002/003/004/005/009 (all nav links, womens/mens/kids/sale PLP, logo home) — ~6 × 8 = 48 tests (some skip per storefront when nav label not configured)
+- `search-smoke.spec.ts`: E2E-SEARCH-001/002 (search results, search icon submit) — 2 × 8 = 16 tests
+- `plp-smoke.spec.ts`: E2E-PLP-001/004/006/011/012 (grid loads, category filter, size filter, Quick Add, product card nav) — 5 × 8 = 40 tests
+- `pdp-smoke.spec.ts`: E2E-PDP-001/002/004/005/006/007 (load, swatch, size toggle, ATC enable, ATC validation, ATC cart count) — 6 × 8 = 48 tests
+- All specs use `test.describe.serial`; tests skip conditionally (skip guards) rather than blanket-skip when a storefront feature is not configured
+- See [[ecommerce-pdp-page-gotchas]] for PDP-specific DOM patterns, cart count delta rule, and nav-label selection

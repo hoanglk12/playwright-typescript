@@ -1,6 +1,6 @@
 ---
 name: ecommerce-pdp-page-gotchas
-description: Known DOM/selector bugs in EcommercePDPPage discovered during E2E-PDP-002 implementation — avoids re-discovering the same root causes
+description: Known DOM/selector bugs and patterns in EcommercePDPPage — avoids re-discovering root causes for Bloomreach popup, gallery selectors, dual-h1, swatch navigation, cart count, and nav-label selection
 metadata: 
   node_type: memory
   type: feedback
@@ -85,3 +85,42 @@ await this.page
 ```
 
 **How to apply:** Keep the `waitForFunction` as a fast-path sync signal, but always `.catch()` it. Let the downstream soft assertion be the source of truth.
+
+---
+
+## 6. Cart count — use `waitForMiniCartCountIncrement()`, assert delta not absolute
+
+`getMiniCartCount()` reads the badge synchronously. After `addToCart()`, the badge updates asynchronously — always use `waitForMiniCartCountIncrement(initialCount)` to poll until the count exceeds `initialCount`.
+
+**Method added in `pdp-page.ts` (2026-05-26):**
+```ts
+async waitForMiniCartCountIncrement(previousCount: number): Promise<number>
+```
+Uses `this.waits.waitForCustomCondition(...).catch(() => {})` with `TIMEOUTS.DIALOG_APPEAR` + `TIMEOUTS.POLL_INTERVAL_FAST`. Returns the last observed count (best-effort).
+
+**Serial assertion rule:** assert delta (`initialCartCount + 1`), never absolute count (`1`). Serial tests in `pdp-smoke.spec.ts` share a browser context — the cart carries items from earlier loop iterations.
+
+**Why:** E2E-PDP-007 confirmed the badge does not update synchronously after ATC click on any of the 8 storefronts.
+
+**How to apply:** For any future ATC test, capture `initialCartCount` before clicking ATC, then call `waitForMiniCartCountIncrement(initialCartCount)` and soft-assert the delta.
+
+---
+
+## 7. PDP specs — prefer MENS nav for Skechers and Vans NZ
+
+When a PDP test needs footwear with a size selector, Skechers and Vans NZ must enter via MENS PLP:
+- **Skechers WOMENS PLP** — first products are non-footwear (no size selector)
+- **Vans NZ WOMENS** — lands on a sub-category PLP (Classics), not individual PDPs
+
+**Pattern established in E2E-PDP-005/006/007:**
+```ts
+const preferMens =
+  site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+const navLabel = preferMens
+  ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
+  : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+```
+
+**Why:** Without this, both storefronts' tests skip on the "no size selector visible" guard or fail to reach a PDP at all.
+
+**How to apply:** Copy this two-line pattern verbatim into any new PDP spec loop that requires footwear coverage across all 8 storefronts.
