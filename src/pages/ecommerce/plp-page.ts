@@ -83,7 +83,6 @@ export class EcommercePLPPage extends BasePage {
   }
 
   async waitForProductGrid(): Promise<void> {
-    await this.page.waitForLoadState('networkidle', { timeout: TIMEOUTS.NETWORK_IDLE }).catch(() => {});
     const selector = this.productCardSelector;
     await this.waits.waitForCustomCondition(
       async () => {
@@ -141,7 +140,6 @@ export class EcommercePLPPage extends BasePage {
       .getByRole('checkbox', { name: new RegExp(filterLabel, 'i') })
       .first();
     await checkbox.evaluate((el: HTMLInputElement) => el.click());
-    await this.page.waitForLoadState('networkidle', { timeout: TIMEOUTS.NETWORK_IDLE }).catch(() => {});
   }
 
   async getTotalProductCount(): Promise<number> {
