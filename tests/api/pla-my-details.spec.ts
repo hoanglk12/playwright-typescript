@@ -214,12 +214,18 @@ test.describe("PLA GraphQL API - My Details apis", () => {
       token: customerToken,
     });
 
-    const response = await authClient.queryWrapped(GET_ADDRESSES_QUERY);
+    // Magento 2 staging eventual consistency: createCustomerAddress write may not be
+    // immediately visible. Retry up to 3x with 1s delay before asserting on address count.
+    let data: Record<string, any> = {};
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await authClient.queryWrapped(GET_ADDRESSES_QUERY);
+      await response.assertNoErrors();
+      await response.assertHasData();
+      data = await response.getData() ?? {};
+      if ((data.customer?.addresses?.length ?? 0) > 0) break;
+      if (attempt < 2) await new Promise<void>((r) => setTimeout(r, 1000));
+    }
 
-    await response.assertNoErrors();
-    await response.assertHasData();
-
-    const data = await response.getData();
     logger.step('Step 2 - Assert response');
 
     const addresses = data.customer.addresses;

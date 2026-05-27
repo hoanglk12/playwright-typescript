@@ -47,7 +47,9 @@ export class EcommerceNavPage extends BasePage {
 
   async clickNavLink(label: string): Promise<void> {
     await this.dismissBloomreachPopup();
-    await this.elements.clickLocator(this.navLink(label));
+    const link = this.navLink(label);
+    await link.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
+    await this.elements.clickLocator(link);
   }
 
   private async dismissBloomreachPopup(): Promise<void> {
