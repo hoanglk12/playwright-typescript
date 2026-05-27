@@ -507,7 +507,7 @@ export class EcommercePDPPage extends BasePage {
           currentCount = await this.getMiniCartCount();
           return currentCount > previousCount;
         },
-        { timeout: TIMEOUTS.ELEMENT_VISIBLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
       )
       .catch(() => {});
     return currentCount;

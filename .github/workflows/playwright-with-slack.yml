@@ -163,7 +163,7 @@ jobs:
 
       - name: Run UI tests (Windows)
         if: runner.os == 'Windows'
-        run: ./run-ui-tests.bat ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ github.event.inputs && github.event.inputs.workers || '3' }}
+        run: ./run-ui-tests.bat ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }}
         shell: cmd
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
