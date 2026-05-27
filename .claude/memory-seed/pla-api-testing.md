@@ -23,7 +23,7 @@ metadata:
 | `tests/api/pla-wishlist.spec.ts` | Wishlist mutations (addProductsToWishlist, removeProductsFromWishlist) |
 | `tests/api/pla-checkout-shipping.spec.ts` | setShippingAddressesOnCart TC_01–04, setShippingMethodsOnCart TC_05–07 |
 | `tests/api/pla-checkout-billing-payment.spec.ts` | setBillingAddressOnCart TC_01–02, setPaymentMethodOnCart TC_03–05 (added 2026-05-26) |
-| `tests/api/pla-place-order.spec.ts` | placeOrder TC_01–04: happy path, missing shipping, missing payment, OOS item (added 2026-05-27) |
+| `tests/api/pla-place-order.spec.ts` | placeOrder TC_01–03: happy path, missing shipping, missing payment (added 2026-05-27; OOS scenario not implemented — staging blocks at addProductsToCart level) |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across PLA spec files in one worker |
 | `src/data/api/pla-test-data.ts` | Dynamic email + all account/address/cart test data |
 | `src/data/api/pla-auth-data.ts` | Auth-specific test data (reset password inputs, error messages) |
@@ -75,7 +75,7 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 
 - **`instore_pickup` + `placeOrder`**: Selecting `instore_pickup` as the shipping method then calling `placeOrder` fails with `"Unable to place order: Quote does not have Pickup Location assigned."` — always prefer `flatrate_flatrate` (or other non-instore carrier) when the test needs to call `placeOrder`.
 - **PLA order number format**: NOT purely numeric. Do NOT assert `/^\d+$/`. Use `/^\S+$/` or just `toBeTruthy()`.
-- **OOS items blocked at cart level**: Staging blocks OOS items at `addProductsToCart` level via `user_errors` (`"Product that you are trying to add is not available."`). It is NOT possible to have an OOS item in the cart to trigger a `placeOrder` OOS error. TC_04 correctly skips when this happens.
+- **OOS items blocked at cart level**: Staging blocks OOS items at `addProductsToCart` level via `user_errors` (`"Product that you are trying to add is not available."`). It is NOT possible to have an OOS item in the cart to trigger a `placeOrder` OOS error. The OOS scenario was removed from `pla-place-order.spec.ts` for this reason.
 - **SKU discovery retry pattern**: Never use the `else if (item.sku)` fallback in SKU discovery — it captures configurable parent product SKUs that can't be added to cart. Collect only confirmed IN_STOCK SimpleProduct or variant SKUs, then retry adding each candidate until one succeeds.
 - **`pla-place-order-data.ts`**: `productSearchTerms` (renamed from `outOfStockSearchTerms`) is the list of search terms used for product discovery; `orderNumberPattern: /^\S+$/` is the flexible order number format check.
 
@@ -90,7 +90,7 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **Cross-spec token rate-limiting flakiness** — rapid successive `generateCustomerToken` calls for the same account (e.g. TC_01/TC_02 in `pla-authentication.spec.ts` followed by a `beforeAll` in the next spec) can trigger Platypus staging rate limiting. Specs pass 100% standalone but fail intermittently when run back-to-back in the same worker. Not a code bug — an environment constraint.
 
 - **`instore_pickup` + `placeOrder`** breaks with "Quote does not have Pickup Location assigned" — prefer `flatrate` in any spec that calls `placeOrder`.
-- **OOS items blocked at addProductsToCart** — TC_04 in `pla-place-order.spec.ts` skips gracefully when user_errors are returned on cart add.
+- **OOS items blocked at addProductsToCart** — OOS scenario removed from `pla-place-order.spec.ts`; staging blocks at cart-add level making it untestable at the `placeOrder` stage.
 
 ## TC_XX Naming Convention
 
@@ -123,6 +123,6 @@ Rules the qa-code-reviewer flagged and confirmed:
 Self-contained HTML report at `Guideline/api-scenarios-report.html`. Documents 38 GraphQL operations across 12 categories. Marks each as Covered/New and assigns P1/P2/P3 priority. Regenerate by running `qa-orchestrator` explore workflow.
 
 **Coverage as of 2026-05-27:** 37 Covered, 1 New/Gap (customer.orders P1).
-- +1 added 2026-05-27: `placeOrder` (covered by `pla-place-order.spec.ts` TC_01–04)
+- +1 added 2026-05-27: `placeOrder` (covered by `pla-place-order.spec.ts` TC_01–03)
 - +2 added 2026-05-26: `setBillingAddressOnCart`, `setPaymentMethodOnCart` (covered by `pla-checkout-billing-payment.spec.ts`)
 - +2 added with `pla-checkout-shipping.spec.ts`: `setShippingAddressesOnCart`, `setShippingMethodsOnCart`
