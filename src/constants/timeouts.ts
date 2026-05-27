@@ -13,7 +13,7 @@ export const TIMEOUTS = {
   
   // Element interaction timeouts
   ELEMENT_VISIBLE: isCI ? 20000 : 10000,
-  ELEMENT_CLICKABLE: 5000,
+  ELEMENT_CLICKABLE: isCI ? 10000 : 5000,
   
   // Dialog timeouts
   DIALOG_APPEAR: 10000,
