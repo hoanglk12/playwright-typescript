@@ -5,7 +5,10 @@
  * TC_01: Happy path — placeOrder on fully configured cart returns order number
  * TC_02: Missing shipping address → placeOrder returns error
  * TC_03: Missing payment method → placeOrder returns error
- * TC_04: Out-of-stock item → placeOrder returns error (skip if OOS blocked at cart level)
+ *
+ * Note: OOS item scenario (placeOrder with OOS item in cart) is not implemented because
+ * PLA staging blocks out-of-stock items at the addProductsToCart level via user_errors,
+ * making it impossible to have an OOS item in the cart to reach the placeOrder stage.
  */
 
 import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
@@ -53,7 +56,6 @@ const SIMPLE_PAYMENT_CODES = ['checkmo', 'afterpay', 'free', 'cashondelivery'];
 let customerToken: string = '';
 let checkoutCartId: string = '';
 let validSku: string = '';
-let outOfStockSku: string = '';
 let shippingMethodSet: boolean = false;
 let checkoutReady: boolean = false;
 
@@ -262,7 +264,7 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
     logger.action('Cart created', checkoutCartId);
 
     // ── 3. Discover in-stock SKU and OOS SKU ──────────────────────────────
-    logger.step('Step 3 - Discover product SKUs (in-stock + out-of-stock)');
+    logger.step('Step 3 - Discover in-stock product SKUs');
     const candidateSkus: string[] = [];
     for (const term of PlaceOrderData.productSearchTerms) {
       const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
@@ -278,20 +280,12 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
               candidateSkus.push(variant.product.sku);
             }
           }
-          if (!outOfStockSku) {
-            const oosVariant = item.variants.find(v => v.product?.stock_status === 'OUT_OF_STOCK');
-            if (oosVariant) outOfStockSku = oosVariant.product.sku;
-          }
-        }
-        if (!outOfStockSku && item.stock_status === 'OUT_OF_STOCK' && item.__typename === 'SimpleProduct') {
-          outOfStockSku = item.sku;
         }
       }
-      if (candidateSkus.length >= 3 && outOfStockSku) break;
+      if (candidateSkus.length >= 3) break;
     }
 
     logger.verify('candidateSkus found', 'at least 1', candidateSkus.length);
-    logger.verify('outOfStockSku found', outOfStockSku || 'not found — TC_04 will be skipped', outOfStockSku);
 
     if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found in any search');
 
@@ -551,107 +545,5 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
     expect(errorMessage.length, 'Expected error message for placeOrder without payment method').toBeGreaterThan(0);
   });
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // TC_04 — out-of-stock item
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  test('TC_04 - placeOrder with out-of-stock item → error returned', async ({ createGraphQLClient }) => {
-    const logger = createTestLogger('TC_04 placeOrder out-of-stock item');
-
-    if (!outOfStockSku) {
-      test.skip(true, 'No out-of-stock SKU found on staging — skipping TC_04');
-      return;
-    }
-
-    if (!shippingMethodSet) {
-      test.skip(true, 'Shipping methods not available on staging — skipping TC_04');
-      return;
-    }
-
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-
-    logger.step('Step 1 - Create fresh cart and attempt to add out-of-stock product');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-    if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-    const errorCartId = cartGql.data?.cartId ?? '';
-    if (!errorCartId) throw new Error('TC_04: errorCartId is empty');
-
-    logger.action('POST', `addProductsToCart (cartId=${errorCartId}, sku=${outOfStockSku})`);
-    const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-      cartId: errorCartId,
-      cartItems: [{ sku: outOfStockSku, quantity: 1 }],
-    })).getGraphQLResponse();
-
-    // Magento 2 staging blocks OOS items at cart-addition level via user_errors
-    const addUserErrors: CartUserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
-    if (addUserErrors.length > 0 || (addGql.errors?.length ?? 0) > 0) {
-      test.skip(true, 'Staging blocks OOS items at addProductsToCart level — placeOrder OOS error not testable directly');
-      return;
-    }
-
-    logger.step('Step 2 - Complete checkout setup for OOS cart');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutBillingPaymentData.shippingInlineAddress;
-    const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId: errorCartId,
-      shippingAddresses: [{
-        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      }],
-    })).getGraphQLResponse();
-
-    const availableMethods: ShippingMethod[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
-    const flatrate = availableMethods.find(m => m.available && m.carrier_code === 'flatrate');
-    const firstAvailable = flatrate ?? availableMethods.find(m => m.available && m.carrier_code !== 'instore_pickup');
-    if (!firstAvailable) {
-      test.skip(true, 'No suitable shipping method (flatrate/standard) — OOS placeOrder test not possible');
-      return;
-    }
-
-    const methodGql = await (await authClient.mutateWrapped(SET_SHIPPING_METHOD_MUTATION, {
-      cartId: errorCartId,
-      carrierCode: firstAvailable.carrier_code,
-      methodCode: firstAvailable.method_code,
-    })).getGraphQLResponse();
-    if (methodGql.errors?.length) {
-      throw new Error(`TC_04 setup: setShippingMethodsOnCart failed: ${methodGql.errors[0]?.message ?? 'unknown'}`);
-    }
-
-    const billingGql = await (await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
-      cartId: errorCartId,
-      billingAddress: { same_as_shipping: true },
-    })).getGraphQLResponse();
-    if (billingGql.errors?.length) {
-      throw new Error(`TC_04 setup: setBillingAddressOnCart failed: ${billingGql.errors[0]?.message ?? 'unknown'}`);
-    }
-
-    const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId: errorCartId })).getData();
-    const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
-    const paymentCode = methods.map(m => m.code).find(c => SIMPLE_PAYMENT_CODES.includes(c)) ?? '';
-
-    if (!paymentCode) {
-      test.skip(true, 'No simple payment method available — OOS placeOrder test not possible');
-      return;
-    }
-
-    const payGql = await (await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
-      cartId: errorCartId,
-      paymentMethodCode: paymentCode,
-    })).getGraphQLResponse();
-    if (payGql.errors?.length) {
-      throw new Error(`TC_04 setup: setPaymentMethodOnCart failed: ${payGql.errors[0]?.message ?? 'unknown'}`);
-    }
-
-    logger.step('Step 3 - Execute placeOrder with out-of-stock item');
-    logger.action('POST', `placeOrder (cartId=${errorCartId})`);
-    const response = await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: errorCartId });
-
-    logger.step('Step 4 - Assert error returned for OOS item');
-    await response.assertHasErrors();
-
-    const gql = await response.getGraphQLResponse();
-    const errorMessage = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
-
-    logger.verify('Error message present for OOS item at placeOrder', true, errorMessage.length > 0);
-    expect(errorMessage.length, 'Expected error message for placeOrder with OOS item').toBeGreaterThan(0);
-  });
-
 });
+

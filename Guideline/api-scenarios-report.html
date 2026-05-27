@@ -413,7 +413,7 @@
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">placeOrder</span><br><span class="spec-file">pla-place-order.spec.ts (TC_01–04)</span></td>
+          <td><span class="op-name">placeOrder</span><br><span class="spec-file">pla-place-order.spec.ts (TC_01–03)</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: PlaceOrderInput<br>  cart_id: String!</div></td>
           <td>Places the order for a cart with all required checkout steps completed. Returns order.order_number.</td>
@@ -421,7 +421,7 @@
             <li>TC_01: Full checkout flow: address → shipping → billing → payment → placeOrder → order number returned</li>
             <li class="error">TC_02: Error: missing shipping address → cannot place order</li>
             <li class="error">TC_03: Error: missing payment method → cannot place order</li>
-            <li class="error">TC_04: Error: out-of-stock item in cart → skipped if staging blocks OOS at cart level</li>
+            <li style="color:#888;font-style:italic">OOS item scenario not implemented — PLA staging blocks out-of-stock items at addProductsToCart level (user_errors), making it impossible to reach placeOrder with an OOS item in the cart</li>
           </ul></td>
           <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
