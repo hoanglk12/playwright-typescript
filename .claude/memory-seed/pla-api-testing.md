@@ -23,6 +23,7 @@ metadata:
 | `tests/api/pla-wishlist.spec.ts` | Wishlist mutations (addProductsToWishlist, removeProductsFromWishlist) |
 | `tests/api/pla-checkout-shipping.spec.ts` | setShippingAddressesOnCart TC_01–04, setShippingMethodsOnCart TC_05–07 |
 | `tests/api/pla-checkout-billing-payment.spec.ts` | setBillingAddressOnCart TC_01–02, setPaymentMethodOnCart TC_03–05 (added 2026-05-26) |
+| `tests/api/pla-place-order.spec.ts` | placeOrder TC_01–04: happy path, missing shipping, missing payment, OOS item (added 2026-05-27) |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across PLA spec files in one worker |
 | `src/data/api/pla-test-data.ts` | Dynamic email + all account/address/cart test data |
 | `src/data/api/pla-auth-data.ts` | Auth-specific test data (reset password inputs, error messages) |
@@ -70,6 +71,14 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **`shippingMethodSet` flag pattern**: declare a module-level `let shippingMethodSet: boolean = false` in beforeAll; set to `true` only after shipping method mutation succeeds. Use this flag to skip payment tests gracefully rather than failing all tests when shipping setup fails.
 - **`validSku` scope**: when a SKU is only used inside `beforeAll` (to add product to cart), declare it as a local `let` inside `beforeAll` — not a module-level variable.
 
+## Place Order Patterns (added 2026-05-27)
+
+- **`instore_pickup` + `placeOrder`**: Selecting `instore_pickup` as the shipping method then calling `placeOrder` fails with `"Unable to place order: Quote does not have Pickup Location assigned."` — always prefer `flatrate_flatrate` (or other non-instore carrier) when the test needs to call `placeOrder`.
+- **PLA order number format**: NOT purely numeric. Do NOT assert `/^\d+$/`. Use `/^\S+$/` or just `toBeTruthy()`.
+- **OOS items blocked at cart level**: Staging blocks OOS items at `addProductsToCart` level via `user_errors` (`"Product that you are trying to add is not available."`). It is NOT possible to have an OOS item in the cart to trigger a `placeOrder` OOS error. TC_04 correctly skips when this happens.
+- **SKU discovery retry pattern**: Never use the `else if (item.sku)` fallback in SKU discovery — it captures configurable parent product SKUs that can't be added to cart. Collect only confirmed IN_STOCK SimpleProduct or variant SKUs, then retry adding each candidate until one succeeds.
+- **`pla-place-order-data.ts`**: `productSearchTerms` (renamed from `outOfStockSearchTerms`) is the list of search terms used for product discovery; `orderNumberPattern: /^\S+$/` is the flexible order number format check.
+
 ## Staging API Quirks (discovered 2026-05-15, expanded 2026-05-19, 2026-05-26)
 
 - **`requestPasswordResetEmail` with non-existent email** returns a `graphql-input` error (NOT silent `true` as in standard Magento 2). The staging app discloses account non-existence through this error.
@@ -79,6 +88,9 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **`changeCustomerPassword` wrong-password error** returns `"Invalid login or password."` — NOT the standard Magento `"The password doesn't match this account"`. Update `plaCustomerProfileErrorMessages.wrongCurrentPassword` if Magento is upgraded.
 - **`updateCustomerV2` personal info (firstname/lastname/dob/phone) always blocked on staging** — staging has "Require Password for Account Changes" Magento admin config enabled, but `CustomerUpdateInput` GraphQL type does NOT include a `password` field. This makes personal info updates structurally impossible via GraphQL on this staging. TC_05–07 in `pla-customer-profile.spec.ts` document and assert this staging-specific error behavior. `is_subscribed` / `loyalty_program_status` (covered in `pla-my-details.spec.ts`) are NOT subject to this restriction.
 - **Cross-spec token rate-limiting flakiness** — rapid successive `generateCustomerToken` calls for the same account (e.g. TC_01/TC_02 in `pla-authentication.spec.ts` followed by a `beforeAll` in the next spec) can trigger Platypus staging rate limiting. Specs pass 100% standalone but fail intermittently when run back-to-back in the same worker. Not a code bug — an environment constraint.
+
+- **`instore_pickup` + `placeOrder`** breaks with "Quote does not have Pickup Location assigned" — prefer `flatrate` in any spec that calls `placeOrder`.
+- **OOS items blocked at addProductsToCart** — TC_04 in `pla-place-order.spec.ts` skips gracefully when user_errors are returned on cart add.
 
 ## TC_XX Naming Convention
 
@@ -110,6 +122,7 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 Self-contained HTML report at `Guideline/api-scenarios-report.html`. Documents 38 GraphQL operations across 12 categories. Marks each as Covered/New and assigns P1/P2/P3 priority. Regenerate by running `qa-orchestrator` explore workflow.
 
-**Coverage as of 2026-05-26:** 34 Covered, 4 New/Gap.
+**Coverage as of 2026-05-27:** 37 Covered, 1 New/Gap (customer.orders P1).
+- +1 added 2026-05-27: `placeOrder` (covered by `pla-place-order.spec.ts` TC_01–04)
 - +2 added 2026-05-26: `setBillingAddressOnCart`, `setPaymentMethodOnCart` (covered by `pla-checkout-billing-payment.spec.ts`)
 - +2 added with `pla-checkout-shipping.spec.ts`: `setShippingAddressesOnCart`, `setShippingMethodsOnCart`

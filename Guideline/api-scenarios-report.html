@@ -71,8 +71,8 @@
 
   <div class="stats-row">
     <div class="stat-card total"><div class="value">38</div><div class="label">Total Operations</div></div>
-    <div class="stat-card covered"><div class="value">36</div><div class="label">Covered</div></div>
-    <div class="stat-card new"><div class="value">2</div><div class="label">New / Gap</div></div>
+    <div class="stat-card covered"><div class="value">37</div><div class="label">Covered</div></div>
+    <div class="stat-card new"><div class="value">1</div><div class="label">New / Gap</div></div>
     <div class="stat-card mutations"><div class="value">16</div><div class="label">Mutations</div></div>
     <div class="stat-card queries"><div class="value">22</div><div class="label">Queries</div></div>
   </div>
@@ -413,17 +413,17 @@
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">placeOrder</span></td>
+          <td><span class="op-name">placeOrder</span><br><span class="spec-file">pla-place-order.spec.ts (TC_01–04)</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
           <td><div class="variables">input: PlaceOrderInput<br>  cart_id: String!</div></td>
           <td>Places the order for a cart with all required checkout steps completed. Returns order.order_number.</td>
           <td class="scenarios"><ul>
-            <li>Full checkout flow: address → shipping → billing → payment → placeOrder → order number returned</li>
-            <li class="error">Error: missing shipping address → cannot place order</li>
-            <li class="error">Error: missing payment method → cannot place order</li>
-            <li class="error">Error: out-of-stock item in cart → cannot place order</li>
+            <li>TC_01: Full checkout flow: address → shipping → billing → payment → placeOrder → order number returned</li>
+            <li class="error">TC_02: Error: missing shipping address → cannot place order</li>
+            <li class="error">TC_03: Error: missing payment method → cannot place order</li>
+            <li class="error">TC_04: Error: out-of-stock item in cart → skipped if staging blocks OOS at cart level</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p1">P1</span></td>
         </tr>
       </tbody>
@@ -915,7 +915,7 @@
   Total GraphQL operations documented: <strong>38</strong> &nbsp;|&nbsp;
   Covered: <strong>25</strong> &nbsp;|&nbsp;
   New scenarios to automate: <strong>13</strong> &nbsp;|&nbsp;
-  Generated: 2026-05-15 · Updated: 2026-05-19 &nbsp;|&nbsp;
+  Generated: 2026-05-15 · Updated: 2026-05-27 &nbsp;|&nbsp;
   Endpoint: https://stag-platypus-au.accentgra.com/graphql
 </div>
 

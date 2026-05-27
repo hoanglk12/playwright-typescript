@@ -72,6 +72,9 @@ These are Platypus staging-specific behaviours — do not assume standard Magent
 | Braintree payment variants | `braintree`, `braintree_applepay`, `braintree_paypal` require an SDK-provided `payment_method_nonce`. Setting just `{ code: "braintree" }` returns `"Required parameter 'braintree' for 'payment_method' is missing."` — untestable without Braintree SDK |
 | Available payment methods on staging | `checkmo`, `braintree_applepay`, `afterpay`, `braintree`, `braintree_paypal` (AU cart, confirmed 2026-05-26). Use `checkmo` and `afterpay` for payment method API tests |
 | `setBillingAddressOnCart` same_as_shipping | `billing_address` IS populated (non-null) in the response when `same_as_shipping: true` — it contains the shipping address data |
+| `instore_pickup` + `placeOrder` | Selecting `instore_pickup` as shipping method then calling `placeOrder` fails with `"Unable to place order: Quote does not have Pickup Location assigned."` — always prefer `flatrate_flatrate` for tests that call `placeOrder` |
+| `placeOrder` order number format | PLA staging order numbers are NOT purely numeric — do NOT assert `/^\d+$/`. Use `/^\S+$/` (any non-whitespace) or just `.toBeTruthy()` |
+| OOS items + `placeOrder` | Staging blocks out-of-stock items at `addProductsToCart` level via `user_errors` (`"Product that you are trying to add is not available."`). It is not possible to have an OOS item in the cart to test a `placeOrder` OOS error — skip gracefully when `user_errors` is non-empty on add |
 
 ## Error Presence Check — Critical
 
@@ -160,6 +163,32 @@ if (!shippingMethodSet || availablePaymentMethods.length === 0) {
 ```
 
 Braintree payment variants (`braintree`, `braintree_applepay`, `braintree_paypal`) require an SDK-provided nonce and cannot be tested without Braintree integration. Use `checkmo` (primary) and `afterpay` (alternate) for payment method API tests on staging.
+
+## Place Order — SKU Discovery
+
+When discovering a valid SKU for cart operations in `beforeAll`, **never use the fallback `else if (item.sku)` pattern** that captures configurable parent product SKUs. Parent SKUs are not addable to cart and return `user_errors: "Product that you are trying to add is not available."`.
+
+Correct pattern: collect only confirmed in-stock simple product SKUs or variant SKUs, then retry adding each candidate in order:
+
+```ts
+const candidateSkus: string[] = [];
+for (const item of items) {
+  if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
+    candidateSkus.push(item.sku);
+  } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+    for (const v of item.variants) {
+      if (v.product?.stock_status === 'IN_STOCK') candidateSkus.push(v.product.sku);
+    }
+  }
+  // NO fallback to item.sku here
+}
+// Then try adding each candidate until one succeeds
+for (const sku of candidateSkus) {
+  const addGql = await addToCart(sku);
+  const userErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
+  if (!addGql.errors?.length && !userErrors.length) { validSku = sku; break; }
+}
+```
 
 ## Test Naming Convention
 
