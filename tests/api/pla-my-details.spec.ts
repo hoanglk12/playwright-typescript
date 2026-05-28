@@ -6,9 +6,9 @@ import {
 import { setCustomerToken, setAddressId, setCustomerId, getCustomerId, getAddressId } from './shared-state';
 import { createTestLogger } from '../../src/utils/test-logger';
 
-let customerToken: string;
-export let customerId: string;
-export let addressId: string;
+let customerToken: string = '';
+export let customerId: string = '';
+export let addressId: string = '';
 
 const intRegex = /^\d+$/;
 
@@ -119,7 +119,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     const signInResponse = await client.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
     const signInGql = await signInResponse.getGraphQLResponse();
 
-    if (!signInGql.errors) {
+    if (!(signInGql.errors?.length)) {
       const token = signInGql.data?.generateCustomerToken?.token;
       if (!token) throw new Error('Sign-in succeeded but token was missing from response');
       customerToken = token;
@@ -131,8 +131,8 @@ test.describe("PLA GraphQL API - My Details apis", () => {
       const createResponse = await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer);
       const createGql = await createResponse.getGraphQLResponse();
 
-      if (createGql.errors) {
-        const errorMsg = createGql.errors[0]?.message ?? '';
+      if ((createGql.errors?.length ?? 0) > 0) {
+        const errorMsg = createGql.errors?.[0]?.message ?? '';
         if (!errorMsg.toLowerCase().includes('already') && !errorMsg.toLowerCase().includes('exists')) {
           throw new Error(`Account creation failed: ${errorMsg}`);
         }
@@ -145,8 +145,8 @@ test.describe("PLA GraphQL API - My Details apis", () => {
 
       const signIn2Response = await client.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
       const signIn2Gql = await signIn2Response.getGraphQLResponse();
-      if (signIn2Gql.errors) {
-        throw new Error(`Sign-in failed after account creation: ${signIn2Gql.errors[0]?.message}`);
+      if ((signIn2Gql.errors?.length ?? 0) > 0) {
+        throw new Error(`Sign-in failed after account creation: ${signIn2Gql.errors?.[0]?.message}`);
       }
       const token2 = signIn2Gql.data?.generateCustomerToken?.token;
       if (!token2) throw new Error('Sign-in after account creation returned no token');
@@ -228,29 +228,31 @@ test.describe("PLA GraphQL API - My Details apis", () => {
       'Expected at least one address in address book'
     ).toBe(true);
 
-    addressId = addresses![0].id;
+    // Find the address created by the previous test — do not assume it's at index 0
+    // (the account may have older addresses that appear first in the list)
+    const targetAddress = addresses!.find((addr: { id: unknown }) => String(addr.id) === String(addressId));
+    expect(targetAddress, `Expected address with id=${addressId} to exist in address book`).toBeDefined();
     logger.action('Address ID from response', addressId);
-    setAddressId(addressId);
 
     softExpect(data.customer.id).toBe(customerId);
-    softExpect(addresses![0].id).toBe(addressId);
-    softExpect(addresses![0].__typename).toBe('CustomerAddress');
-    softExpect(addresses![0].city).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.city);
-    softExpect(addresses![0].company).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.company);
-    softExpect(addresses![0].country_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.country_code);
-    softExpect(addresses![0].default_billing).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_billing);
-    softExpect(addresses![0].default_shipping).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_shipping);
-    softExpect(addresses![0].firstname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.firstname);
-    softExpect(addresses![0].lastname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.lastname);
-    softExpect(addresses![0].middlename).toBeNull();
-    softExpect(addresses![0].postcode).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.postcode);
-    softExpect(addresses![0].region.region).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.region.region);
-    softExpect(addresses![0].region.__typename).toBe('CustomerAddressRegion');
-    softExpect(addresses![0].custom_attributes![0].attribute_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.attribute_code);
-    softExpect(addresses![0].custom_attributes![0].value).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.value);
-    softExpect(addresses![0].custom_attributes![0].__typename).toBe('CustomerAddressAttribute');
-    softExpect(addresses![0].street[0]).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.street);
-    softExpect(addresses![0].telephone).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.telephone);
+    softExpect(targetAddress!.id).toBe(addressId);
+    softExpect(targetAddress!.__typename).toBe('CustomerAddress');
+    softExpect(targetAddress!.city).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.city);
+    softExpect(targetAddress!.company).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.company);
+    softExpect(targetAddress!.country_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.country_code);
+    softExpect(targetAddress!.default_billing).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_billing);
+    softExpect(targetAddress!.default_shipping).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_shipping);
+    softExpect(targetAddress!.firstname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.firstname);
+    softExpect(targetAddress!.lastname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.lastname);
+    softExpect(targetAddress!.middlename).toBeNull();
+    softExpect(targetAddress!.postcode).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.postcode);
+    softExpect(targetAddress!.region.region).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.region.region);
+    softExpect(targetAddress!.region.__typename).toBe('CustomerAddressRegion');
+    softExpect(targetAddress!.custom_attributes![0].attribute_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.attribute_code);
+    softExpect(targetAddress!.custom_attributes![0].value).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.value);
+    softExpect(targetAddress!.custom_attributes![0].__typename).toBe('CustomerAddressAttribute');
+    softExpect(targetAddress!.street[0]).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.street);
+    softExpect(targetAddress!.telephone).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.telephone);
     softExpect(data.customer.__typename).toBe('Customer');
     softExpect(data.countries![0].id).toBe('AU');
     softExpect(data.countries![0].full_name_locale).toBe('Australia');
