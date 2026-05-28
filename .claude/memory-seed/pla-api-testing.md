@@ -92,6 +92,26 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **`instore_pickup` + `placeOrder`** breaks with "Quote does not have Pickup Location assigned" — prefer `flatrate` in any spec that calls `placeOrder`.
 - **OOS items blocked at addProductsToCart** — OOS scenario removed from `pla-place-order.spec.ts`; staging blocks at cart-add level making it untestable at the `placeOrder` stage.
 
+## Address List Assertions — Find by ID, Not Index 0
+
+When asserting the fields of a newly created address, never use `addresses[0]` — the account may have pre-existing addresses that appear first in the API response list. Always find by ID:
+
+```ts
+// WRONG — assumes newly created address is first in list
+softExpect(addresses![0].city).toBe(expectedCity);
+
+// CORRECT — find the specific address by ID set in the previous test
+const targetAddress = addresses!.find((addr: { id: unknown }) => String(addr.id) === String(addressId));
+expect(targetAddress, `Expected address with id=${addressId} to exist in address book`).toBeDefined();
+softExpect(targetAddress!.city).toBe(expectedCity);
+```
+
+**Why `String()` on both sides:** Magento 2 returns address IDs as `Int` in GraphQL, but the module-level `addressId` variable is typed `string`. `String()` coercion avoids a number-vs-string mismatch that would cause `.find()` to return `undefined` even when the ID is correct.
+
+**Why the guard is hard:** `expect(targetAddress).toBeDefined()` is a hard precondition — if the address isn't found, every subsequent `targetAddress!.xxx` would throw a useless `Cannot read properties of undefined`. The hard assertion gives a clear "address not found" message.
+
+**Confirmed in:** `pla-my-details.spec.ts` `PLA_GetCustomerAddressesForAddressBook` (fixed 2026-05-28). Root cause: test account had an existing SYDNEY address that sorted first, pushing the newly created PERTH address to a later index.
+
 ## TC_XX Naming Convention
 
 PLA auth tests use `TC_XX - Description` format. Earlier PLA specs (`pla-account-creation-signin`) use `PLA_OperationName - description` format. New tests should use `TC_XX`.
@@ -112,7 +132,7 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 5. **`test.describe.configure({ mode: 'serial' })` outside all `describe` blocks** — not `test.describe.serial(...)`.
 
-6. **Guard `errors[0]` access with `.length` check**: `gql.errors.length ? gql.errors[0]?.message ?? '' : ''`.
+6. **Guard `errors[0]` access with optional chaining — even inside a length check**: `gql.errors?.[0]?.message ?? ''`. TypeScript does NOT narrow `errors` to non-undefined inside `if ((gql.errors?.length ?? 0) > 0)` — you must still use `?.` on the index access. Pattern: `if ((gql.errors?.length ?? 0) > 0) { const msg = gql.errors?.[0]?.message ?? ''; }`.
 
 7. **`plaTestData.cartId` was a dead field** — removed 2026-05-16. The field imported `cartId` from shared-state at module init time, capturing `undefined` before any test set it. The `cartId` import and `PlaTestData.cartId` interface field have been deleted from `pla-test-data.ts`.
 

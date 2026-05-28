@@ -1,8 +1,12 @@
 ---
-name: Feedback & Preferences
-description: Confirmed working patterns, corrections given, stylistic preferences
-type: feedback
+name: feedback-preferences
+description: "Confirmed working patterns, corrections given, stylistic preferences"
+metadata: 
+  node_type: memory
+  type: feedback
+  originSessionId: 5b9e8abb-bc2d-45d4-afe6-f5ea79300554
 ---
+
 **Keep responses short.** User gives terse commands and expects terse execution — no narration, no step summaries, no "Here's what I did" paragraphs at the end.
 
 **Why:** User said "implement 1,2,3" with no additional context — expected Claude to infer from prior turn and execute. This is the consistent interaction style.
