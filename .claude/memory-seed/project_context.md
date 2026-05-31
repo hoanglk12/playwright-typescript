@@ -4,7 +4,7 @@ description: "Framework architecture decisions, CI shape, active initiatives, ke
 metadata: 
   node_type: memory
   type: project
-  originSessionId: 5b9e8abb-bc2d-45d4-afe6-f5ea79300554
+  originSessionId: 551a0925-f8d8-4f42-bbe1-663d6c154edd
 ---
 
 Playwright TypeScript automation framework for Fieldfisher (law firm) web properties. Covers frontsite, admin, and ecommerce areas with a composition-based Page Object Model.
@@ -17,7 +17,7 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 
 **Reporters:** html + json + junit + list + monocart-reporter (all additive). monocart outputs at `monocart-report/` (UI) and `monocart-api-report/` (API). Trend via `actions/cache` + `MONOCART_TREND_FILE`.
 
-**Completed (2026-05-07):** monocart reports hosted on Cloudflare Pages. Cloudflare was chosen over Netlify after research (see `specs/monocart-cloudflare-hosting.research.md`). Report links in Slack now point to Cloudflare-hosted HTML reports.
+**Completed (2026-05-07):** monocart reports hosted on Cloudflare Pages. Report links in Slack now point to Cloudflare-hosted HTML reports.
 
 **Test environments:** testing (default), staging, production. Env loaded from `.env.{NODE_ENV}`.
 
@@ -30,8 +30,19 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - Test data at `src/data/api/pla-test-data.ts` — generates unique email per test run; all PLA specs reuse `getTestEmail()` to stay in sync
 - `api-scenarios-report.html` at `Guideline/api-scenarios-report.html`: 38 GraphQL operations documented, **37 covered, 1 gap** (customer.orders P1) as of 2026-05-27 — see [[pla-api-testing]] for patterns and API quirks
 
-**Ecommerce E2E UI tests (tests/ecommerce/):**
-- Targets: 8 storefronts (Platypus AU/NZ, Skechers AU/NZ, Vans AU/NZ, Dr. Martens AU/NZ) from `src/data/ecommerce/storefronts.ts`
-- Smoke tests in `tests/ecommerce/smoke/`: homepage, navigation, search, plp, pdp, cart
-- `cart-smoke.spec.ts` added 2026-05-28: E2E-CART-001 ("Mini cart shows 0 items when empty") — all 8 storefronts pass
-- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas (P1 cart scenarios E2E-CART-002 through E2E-CART-011 remain to implement)
+**Ecommerce UI smoke tests (6 spec files, ~192 tests as of 2026-05-31):**
+- `homepage-smoke.spec.ts`: E2E-HOME-001/002/003 — 3 × 8 = 24 tests
+- `navigation-smoke.spec.ts`: E2E-NAV-001/002/003/004/005/009 — ~6 × 8 = 48 tests
+- `search-smoke.spec.ts`: E2E-SRCH-001/002 — 2 × 8 = 16 tests
+- `plp-smoke.spec.ts`: E2E-PLP-001/004/006/011/012 — 5 × 8 = 40 tests
+- `pdp-smoke.spec.ts`: E2E-PDP-001/002/004/005/006/007 — 6 × 8 = 48 tests
+- `cart-smoke.spec.ts`: E2E-CART-001 (empty mini cart) + E2E-CART-002 (ATC count) — 2 × 8 = 16 tests
+- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-003 through E2E-CART-011 remain
+- All specs use `test.describe.serial`; see [[ecommerce-pdp-page-gotchas]] for PDP/cart patterns
+
+**E2E-CART-002 implementation (2026-05-31):**
+- Scans up to 5 products on the initial PLP (WOMENS for most, MENS for Skechers/Vans NZ via `preferMens`) with quick `getAvailableSizes()` after each `waitForPdpLoad()`
+- Final `waitForSizeButtonsToRender()` applied after the scan if still empty (handles async size render)
+- `getMiniCartCount()` reads from aria-label first (`"You have N item(s)"`) then DOM badge — aria-label updates faster for Vans AU under serial batch load
+- Key `pdp-page.ts` timeouts changed: `waitForMiniCartCountIncrement` → `NETWORK_IDLE_SLOW` (45s); `waitForSizeButtonsToRender` → `ELEMENT_VISIBLE` (CI-aware); `addToCart()` stabilises with `waitFor(attached)` before click
+- Platypus AU MENS PLP starts with socks — not a valid footwear fallback; scan WOMENS positions 0–4 instead

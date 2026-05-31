@@ -371,7 +371,7 @@ export class EcommercePDPPage extends BasePage {
     await this.waits
       .waitForCustomCondition(
         async () => (await this.getAvailableSizes()).length > 0,
-        { timeout: TIMEOUTS.ELEMENT_CLICKABLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+        { timeout: TIMEOUTS.ELEMENT_VISIBLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
       )
       .catch(() => {});
   }
@@ -381,6 +381,10 @@ export class EcommercePDPPage extends BasePage {
     // while still firing React synthetic events — same pattern as selectSize().
     // Safe for <button type="submit"> elements: React event delegation handles force-dispatched events.
     const buttons = this.addToCartBtnLocator;
+    // Wait for the ATC button to stabilise after React re-renders triggered by size selection.
+    // Under batch load the reconciliation phase can transiently unmount the button, causing an
+    // immediate count() to see 0. ELEMENT_VISIBLE gives enough headroom; .catch keeps it best-effort.
+    await buttons.first().waitFor({ state: 'attached', timeout: TIMEOUTS.ELEMENT_VISIBLE }).catch(() => {});
     const count = await buttons.count();
     if (count === 0) {
       throw new Error('addToCart: no Add to Cart / Add to Bag button found in DOM');
@@ -388,13 +392,13 @@ export class EcommercePDPPage extends BasePage {
     for (let i = 0; i < count; i++) {
       const btn = buttons.nth(i);
       if (await btn.isVisible().catch(() => false)) {
-        await btn.click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE, force: true });
+        await btn.click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
         return;
       }
     }
     // No visible button found — force-click the first anyway (triggers React validation even
     // when the element is off-screen, as confirmed on Platypus AU: "Size was not chosen" appears).
-    await buttons.first().click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE, force: true });
+    await buttons.first().click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
   }
 
   async hasSizeValidationMessage(): Promise<boolean> {
@@ -438,8 +442,10 @@ export class EcommercePDPPage extends BasePage {
 
   // Reads the numeric badge adjacent to the cart icon. Anchors on semantic cart links
   // (aria-label or href) to avoid class-hashed selectors, which are unreliable on these storefronts.
-  // CAVEAT: returns 0 when (a) the badge sits outside the cart link subtree, (b) the cart icon
-  // has no numeric text node (icon-only state), or (c) the count is non-numeric ("99+").
+  // Two read paths tried in order per candidate element:
+  //   1. aria-label text "You have N item(s)" — updates with React state, may precede DOM badge render
+  //   2. numeric leaf-node text — the visible badge span added to the button subtree after ATC
+  // CAVEAT: returns 0 when neither path finds a count (icon-only state at 0 items is expected).
   // For E2E-PDP-006 this is a secondary signal only — the primary check is hasSizeValidationMessage().
   async getMiniCartCount(): Promise<number> {
     const text = await this.page.evaluate(() => {
@@ -449,6 +455,12 @@ export class EcommercePDPPage extends BasePage {
       for (const link of cartLinks) {
         const r = (link as Element).getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
+        // Path 1: parse count from aria-label — updates with React state on Vans/Platypus storefronts
+        // Pattern: "You have 1 item in your cart" / "You have 2 items in your cart"
+        const ariaLabel = link.getAttribute('aria-label') ?? '';
+        const ariaMatch = ariaLabel.match(/\byou have (\d+) items?\b/i);
+        if (ariaMatch && parseInt(ariaMatch[1], 10) > 0) return ariaMatch[1];
+        // Path 2: numeric leaf node added to the button subtree after ATC
         const descendants = [link, ...Array.from(link.querySelectorAll('*'))];
         for (const el of descendants) {
           if ((el as Element).children.length > 0) continue;
@@ -507,7 +519,7 @@ export class EcommercePDPPage extends BasePage {
           currentCount = await this.getMiniCartCount();
           return currentCount > previousCount;
         },
-        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST },
       )
       .catch(() => {});
     return currentCount;
