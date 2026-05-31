@@ -27,6 +27,7 @@
 | `search-page.ts` | `ecommerceSearchPage` | `tests/ecommerce/smoke/search-smoke.spec.ts` |
 | `plp-page.ts` | `ecommercePLPPage` | `tests/ecommerce/smoke/plp-smoke.spec.ts` |
 | `pdp-page.ts` | `ecommercePDPPage` | `tests/ecommerce/smoke/pdp-smoke.spec.ts` |
+| `pdp-page.ts` + `nav-page.ts` + `plp-page.ts` | `ecommercePDPPage` + `ecommerceNavPage` + `ecommercePLPPage` | `tests/ecommerce/smoke/cart-smoke.spec.ts` |
 
 ### API (`tests/api/`)
 
@@ -48,10 +49,11 @@
 | `pla-wishlist.spec.ts` | `apiClientExt` | PLA wishlist |
 | `pla-checkout-shipping.spec.ts` | `apiClientExt` | PLA checkout shipping (TC_01-07) |
 | `pla-checkout-billing-payment.spec.ts` | `apiClientExt` | PLA checkout billing/payment |
+| `pla-place-order.spec.ts` | `apiClientExt` | PLA placeOrder (TC_01-03: happy path, missing shipping, missing payment) |
 
-## Ecommerce Smoke Coverage (as of 2026-05-26)
+## Ecommerce Smoke Coverage (as of 2026-05-31)
 
-All 5 ecommerce specs run serially (`test.describe.serial`). Each scenario repeats across all 8 storefronts. Total: ~176 tests.
+All 6 ecommerce specs run serially (`test.describe.serial`). Each scenario repeats across all 8 storefronts. Total: ~192 tests.
 
 ### homepage-smoke.spec.ts — 3 × 8 = 24 tests
 
@@ -100,9 +102,17 @@ All 5 ecommerce specs run serially (`test.describe.serial`). Each scenario repea
 | E2E-PDP-006 | Add to Cart without size shows validation |
 | E2E-PDP-007 | Add to Cart adds item and updates mini cart count |
 
-## Coverage gaps (as of 2026-05-26)
+### cart-smoke.spec.ts — 2 × 8 = 16 tests
+
+| Scenario | Title | Notes |
+|---|---|---|
+| E2E-CART-001 | Mini cart shows 0 items on fresh session | Calls `getMiniCartCount()` from homepage |
+| E2E-CART-002 | Mini cart shows item count after Add to Cart | Scans up to 5 PLP products, tries up to 3 sizes; skips if no purchasable size found |
+
+## Coverage gaps (as of 2026-05-31)
 
 - No UI tests for ecommerce checkout flow
 - No UI tests for admin content management
 - `plp-smoke.spec.ts` — tests skip conditionally per storefront when nav labels not configured; not blanket-skipped
-- PLA API: 38 GraphQL operations documented in `Guideline/api-scenarios-report.html`; 34 covered, 4 gaps as of 2026-05-26
+- PLA API: 38 GraphQL operations documented in `Guideline/api-scenarios-report.html`; **37 covered, 1 gap** (customer.orders P1)
+- E2E-CART-003 through E2E-CART-011 remain unimplemented (discovery report: `Guideline/E2E_DISCOVERY_REPORT.md`)
