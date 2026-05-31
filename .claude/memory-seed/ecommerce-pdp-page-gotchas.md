@@ -1,6 +1,6 @@
 ---
 name: ecommerce-pdp-page-gotchas
-description: Known DOM/selector bugs in EcommercePDPPage discovered during E2E-PDP-002 implementation — avoids re-discovering the same root causes
+description: Known DOM/selector bugs and patterns in EcommercePDPPage — avoids re-discovering root causes for Bloomreach popup, gallery selectors, dual-h1, swatch navigation, cart count, nav-label selection, and storefront nav URLs
 metadata: 
   node_type: memory
   type: feedback
@@ -9,89 +9,104 @@ metadata:
 
 ## 1. Vans AU — Bloomreach acquisition popup blocks swatch click
 
-Vans AU injects a `.bloomreach-acquisition-popup-template.state-open` overlay that intercepts pointer events before any swatch interaction. Without dismissal the swatch `goto()` navigates but the overlay may still intercept earlier clicks in the flow.
+Vans AU injects a `.bloomreach-acquisition-popup-template.state-open` overlay that intercepts pointer events before any swatch interaction.
 
 **Fix applied in `pdp-page.ts`:**
-- Private field: `acquisitionPopupSelector = '[class*="bloomreach-acquisition-popup"][class*="state-open"]'`
-- Private method `dismissAcquisitionPopup()` — tries close button first, falls back to `Escape`, then `waits.sleep(400)`. Called at the top of `clickColourSwatch()`.
-- Same overlay pattern exists in `plp-page.ts` `dismissOverlays()` — both handle the same Bloomreach component.
+- Private method `dismissAcquisitionPopup()` — tries close button first, falls back to `Escape`. Called at the top of `clickColourSwatch()` and `ensureNoOverlay()`.
 
-**Why:** `force: true` on the swatch click was not enough — the overlay's z-index still swallows pointer events on some pages.
+**Why:** `force: true` on the swatch click was not enough — the overlay's z-index still swallows pointer events.
 
-**How to apply:** Any new PDP interaction method on Vans AU storefronts should call `dismissAcquisitionPopup()` first.
+**How to apply:** Any new PDP interaction method on Vans AU storefronts should call `ensureNoOverlay()` first.
 
 ---
 
 ## 2. Dr. Martens AU — gallery images use `alt="image-product"`, not class-based selectors
 
-Dr. Martens AU uses styled-components with hashed class names. Product gallery images have `alt="image-product"` and no recognisable class pattern (`gallery`, `product`, `swiper-slide`, etc.).
+Dr. Martens AU uses styled-components with hashed class names. Gallery images have `alt="image-product"` and no recognisable class pattern.
 
 **Fix applied in `pdp-page.ts`:**
 ```ts
 private readonly galleryImageSelector =
   '[class*="gallery"] img, .product-gallery img, .swiper-slide img, img[class*="product"], img[alt*="product"]';
 ```
-The trailing `img[alt*="product"]` catches Dr. Martens AU/NZ images.
 
-**Why:** `isImageGalleryVisible()` and `waitForVariantNavigation()` use `querySelectorAll(selector)` with `getBoundingClientRect()`. Without the alt-based fallback the selector returns an empty NodeList and the check returns false indefinitely.
-
-**How to apply:** If a storefront's gallery images are not matched by the existing selectors, inspect the `alt` attribute — Dr. Martens uses `"image-product"` as a stable alt value.
+**How to apply:** If a storefront's gallery images are not matched, inspect the `alt` attribute — Dr. Martens uses `"image-product"` as a stable alt value.
 
 ---
 
 ## 3. Dr. Martens NZ — two `<h1>` elements on PDP triggers strict-mode violation
 
-Dr. Martens NZ PDPs render two `<h1>` elements: the product name (e.g. "Jadon III Pisa") and a marketing section heading ("DM'S Technology"). Playwright's `getByRole('heading', { level: 1 })` without `.first()` throws a strict-mode violation in `waitFor()`.
-
-**Fix applied in `pdp-page.ts`:**
-```ts
-private readonly productNameHeading = this.page.getByRole('heading', { level: 1 }).first();
-```
-
-**Why:** `locator.waitFor()` uses strict mode by default — it fails if the locator resolves to more than one element.
-
-**How to apply:** Always add `.first()` to `getByRole('heading', { level: 1 })` locators on ecommerce PDPs. If the product name is unexpectedly returning a marketing heading, the DOM has multiple `<h1>` elements and `.first()` targets the correct one (product name always appears first in DOM order on all tested storefronts).
+Dr. Martens NZ PDPs render two `<h1>` elements (product name + marketing heading). Always use `.first()` on `getByRole('heading', { level: 1 })` for ecommerce PDPs.
 
 ---
 
 ## 4. Swatch click navigation — use `page.goto()` not `click({ force: true })`
 
-Clicking colour swatch anchors with `{ force: true }` dispatches the browser click event but does not reliably trigger React router navigation on all storefronts (confirmed failure on Vans NZ).
+React router intercepts `<a>` clicks via synthetic event listeners. `force: true` bypasses actionability checks but may not propagate to the React handler (confirmed failure on Vans NZ).
 
-**Fix applied in `pdp-page.ts` `clickColourSwatch()`:**
-```ts
-await this.page.goto(absolute, {
-  waitUntil: 'domcontentloaded',
-  timeout: TIMEOUTS.PAGE_LOAD_SLOW,
-});
-```
-Where `absolute` is the resolved href of the target swatch anchor.
-
-**Why:** React router intercepts `<a>` clicks via a synthetic event listener. `force: true` bypasses actionability checks but the event may not propagate to the React handler in all environments. Direct `goto()` is deterministic and storefront-agnostic.
-
-**How to apply:** For any swatch/variant navigation via `<a>` anchors in a React SPA, extract the `href` attribute and use `page.goto()` directly rather than clicking the element.
-
----
-
-## 6. `getMiniCartCount()` is usable from any page, not just PDP
-
-`EcommercePDPPage.getMiniCartCount()` queries the cart icon in the header via `page.evaluate()`. The cart icon is a global header element present on every page — the method works correctly from the homepage, PLP, or any other page context, not just the PDP.
-
-**Confirmed:** E2E-CART-001 (2026-05-28) — all 8 storefronts pass when `getMiniCartCount()` is called immediately after navigating to the homepage with no prior cart interaction.
-
-**How to apply:** When writing cart-related tests that start on a non-PDP page, inject `ecommercePDPPage` as a fixture and call `getMiniCartCount()` directly — there is no need to navigate to a PDP first.
+**Fix:** Extract `href` and call `page.goto()` directly. `clickColourSwatch()` in `pdp-page.ts` implements this.
 
 ---
 
 ## 5. `waitForVariantNavigation` gallery check — make best-effort, not hard
 
-The `waitForFunction` for gallery images inside `waitForVariantNavigation` must be wrapped in `.catch(() => {})`. Some storefronts (e.g. Dr. Martens with mega-nav open post-navigation) may not satisfy the gallery selector within `ELEMENT_VISIBLE` timeout. The real gate is the explicit `isImageGalleryVisible()` soft assertion in the spec.
+The `waitForFunction` for gallery images inside `waitForVariantNavigation` must be wrapped in `.catch(() => {})`. Let the downstream soft assertion be the source of truth.
 
-**Fix applied:**
+---
+
+## 6. Cart count — use `waitForMiniCartCountIncrement()`, assert delta not absolute
+
+`getMiniCartCount()` is a **global header read** — it works from any page (homepage, PLP, PDP). Confirmed in E2E-CART-001 (all 8 storefronts, called from homepage).
+
+**Two read paths (updated 2026-05-31):**
+1. **aria-label fast path**: parses `"You have N item(s)"` from the cart button's `aria-label` — updates with React state immediately. Critical for Vans AU where the aria-label updates seconds after ATC but the DOM badge child node may take much longer under batch load.
+2. **DOM leaf node**: numeric child span added to the cart button subtree after ATC (works on Platypus AU, Dr. Martens, etc.).
+
+**Current timeouts in `pdp-page.ts` (updated 2026-05-31):**
+- `waitForMiniCartCountIncrement` → `TIMEOUTS.NETWORK_IDLE_SLOW` (45s fixed) — ATC triggers a Magento REST roundtrip, not a browser dialog; 45s survives serial-batch accumulated latency.
+- `waitForSizeButtonsToRender` → `TIMEOUTS.ELEMENT_VISIBLE` (10s local / 20s CI) — sizes render asynchronously post-PDP load.
+- `addToCart()` → `waitFor({ state: 'attached' })` before counting + `ELEMENT_VISIBLE` click timeout — React reconciliation transiently unmounts the ATC button after `selectSize()` under batch load.
+
+**Serial assertion rule:** assert delta (`initialCartCount + 1`), never absolute count (`1`). Serial tests share browser context.
+
+**How to apply:** Capture `initialCartCount` before ATC, call `waitForMiniCartCountIncrement(initialCartCount)`, soft-assert delta.
+
+---
+
+## 7. PDP specs — prefer MENS nav for Skechers and Vans NZ
+
+When a PDP test needs footwear with a size selector, Skechers and Vans NZ must enter via MENS PLP:
+- **Skechers WOMENS PLP** — first products are non-footwear (no size selector)
+- **Vans NZ WOMENS** — lands on a sub-category PLP (Classics), not individual PDPs
+
+**Pattern established in E2E-PDP-005/006/007 and E2E-CART-002:**
 ```ts
-await this.page
-  .waitForFunction(/* gallery check */, selector, { timeout: TIMEOUTS.ELEMENT_VISIBLE })
-  .catch(() => { /* best-effort */ });
+const preferMens =
+  site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+const navLabel = preferMens
+  ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
+  : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
 ```
 
-**How to apply:** Keep the `waitForFunction` as a fast-path sync signal, but always `.catch()` it. Let the downstream soft assertion be the source of truth.
+---
+
+## 8. Platypus AU — nav category inventory pitfalls
+
+Discovered 2026-05-31 during E2E-CART-002 troubleshooting:
+
+| Nav label | URL | First products | Safe for footwear test? |
+|---|---|---|---|
+| WOMENS | `/shop/womens` | Footwear (Converse, Skechers, Vans) — order varies | Yes, scan 3–5 products |
+| MENS | `/shop/mens` | **Socks first** | **No** — not a reliable footwear fallback |
+| ALL | `/shop/best-sellers` | **Socks first** | **No** |
+| SALE | `/shop/sale` | Toddler shoes (T6/T7 sizes) | Marginal |
+| PRESALE | `/shop/presale` | Real footwear (Dr. Martens, Converse) | Avoid — time-limited |
+
+**Confirmed nav URLs per storefront (from live browser inspection 2026-05-31):**
+- Platypus AU: WOMENS→`/shop/womens`, MENS→`/shop/mens`
+- Skechers AU: WOMEN→`/shop/women`, MENS→`/shop/men` (note: different spelling)
+- Vans AU: WOMEN→`/shop/womens`, MEN→`/shop/mens`, OUTLET→`/shop/sale`
+
+**Cart button DOM:** Platypus AU uses a `<button>` (not `<a>`) with `aria-label="Toggle mini cart. You have N items in your cart."`. At 0 items: SVG only, no numeric child. After ATC: badge element appended. `getMiniCartCount()` detects this via `[aria-label*="cart" i]` + aria-label text parsing.
+
+**E2E-CART-002 scan strategy:** Use WOMENS as primary, scan up to 5 products with quick `getAvailableSizes()` after each `waitForPdpLoad()`. Apply final `waitForSizeButtonsToRender()` on the last product if still empty. Do NOT use MENS as fallback — it starts with accessories, not footwear.
