@@ -39,15 +39,15 @@ const DESTRUCTIVE = [
     msg: 'BLOCKED: "Remove-Item -Recurse -Force" is irreversible.\n'
        + 'Use "npm run clean" or rimraf instead.',
   },
-  {
-    // git push (any remote, including --force)
-    re: /\bgit\s+push\b/i,
-    msg: 'BLOCKED: "git push" could overwrite remote history or trigger CI.\n'
-       + 'Review changes first:\n'
-       + '  • git log --oneline -10\n'
-       + '  • git diff HEAD~1\n'
-       + 'Push manually from your terminal when ready.',
-  },
+  // {
+  //   // git push (any remote, including --force)
+  //   re: /\bgit\s+push\b/i,
+  //   msg: 'BLOCKED: "git push" could overwrite remote history or trigger CI.\n'
+  //      + 'Review changes first:\n'
+  //      + '  • git log --oneline -10\n'
+  //      + '  • git diff HEAD~1\n'
+  //      + 'Push manually from your terminal when ready.',
+  // },
   {
     // npm publish
     re: /\bnpm\s+(?:run\s+)?publish\b/i,
