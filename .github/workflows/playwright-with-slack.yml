@@ -76,16 +76,16 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/ms-playwright
@@ -102,7 +102,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Restore monocart trend data
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         id: monocart-trend
         with:
           path: monocart-trend/index.json
@@ -181,7 +181,7 @@ jobs:
         run: cp -r test-results monocart-report/ 2>/dev/null || true
 
       - name: Upload monocart shard report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: monocart-shard-${{ runner.os }}-${{ github.run_id }}
@@ -189,7 +189,7 @@ jobs:
           retention-days: 1
 
       - name: Upload UI Test Results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ui-test-results-${{ runner.os }}-${{ env.TEST_ENV }}-${{ env.TEST_MODE }}
@@ -219,10 +219,10 @@ jobs:
     if: ${{ inputs.test_type != 'ui' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -271,7 +271,7 @@ jobs:
           API_TIMEOUT: '60000'
 
       - name: Upload API Test Results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: api-test-results-${{ env.TEST_ENV }}
@@ -314,7 +314,7 @@ jobs:
       api_deploy_url:  ${{ steps.cf-api.outputs.url }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Download UI test artifacts
         uses: actions/download-artifact@v7
@@ -359,7 +359,7 @@ jobs:
           echo "</body></html>" >> ./combined-report/index.html
 
       - name: Setup Node.js for monocart merge
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -478,7 +478,7 @@ jobs:
           API_JSON: ${{ format('combined-results/api/monocart-api-report/index.json') }}
 
       - name: Upload merged UI monocart report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: monocart-merged-ui-report-${{ github.run_id }}
@@ -486,7 +486,7 @@ jobs:
           retention-days: 30
 
       - name: Upload API monocart report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         if: always() && needs.api-test.result != 'skipped'
         with:
           name: monocart-api-report-${{ github.run_id }}
@@ -562,7 +562,7 @@ jobs:
           fi
 
       - name: Upload combined report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: combined-test-report-${{ env.TEST_ENV }}
           path: |
