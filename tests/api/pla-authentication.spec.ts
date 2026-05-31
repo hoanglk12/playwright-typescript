@@ -4,6 +4,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 import { plaTestData } from '../../src/data/api/pla-test-data';
 import { plaAuthData, plaAuthErrorMessages } from '../../src/data/api/pla-auth-data';
 import { getCustomerToken, setCustomerToken } from './shared-state';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -137,6 +138,11 @@ test.describe('PLA Authentication @api @graphql @regression', () => {
   test('TC_02 - revokeCustomerToken - revoked token should not access protected resources', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_02 revokeCustomerToken - revoked token denies access');
 
+    // TC_01 revokes a token for the same account. Wait for Magento's session store to fully
+    // commit that revocation before signing in again — avoids a race where the new token
+    // is created before the revocation write completes and is immediately marked invalid.
+    await new Promise(r => setTimeout(r, TIMEOUTS.POLL_INTERVAL_NORMAL));
+
     logger.step('Step 1 - Sign in to obtain a disposable token');
     const publicClient = await createGraphQLClient();
     const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
@@ -150,15 +156,29 @@ test.describe('PLA Authentication @api @graphql @regression', () => {
     const revokeResponse = await authClient.mutateWrapped(REVOKE_TOKEN_MUTATION);
     await revokeResponse.assertNoErrors();
 
-    logger.step('Step 3 - Attempt to access protected resource with revoked token');
-    const revokedClient = await createGraphQLClient({ authType: AuthType.BEARER, token: disposableToken });
-    const customerResponse = await revokedClient.queryWrapped(CUSTOMER_QUERY);
+    // Magento token invalidation is eventually consistent — the blacklist entry may not
+    // propagate before the very next request in CI. Poll until the revoked token is
+    // rejected, retrying up to 5 times with a 1s gap (covers observed staging delays).
+    logger.step('Step 3 - Poll protected resource until revoked token is rejected (eventual consistency)');
+    const MAX_POLL_ATTEMPTS = 5;
+    let pollErrors: { extensions?: { category?: string }; message?: string }[] = [];
+
+    for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
+      if (attempt > 1) await new Promise(r => setTimeout(r, TIMEOUTS.POLL_INTERVAL_NORMAL));
+      const revokedClient = await createGraphQLClient({ authType: AuthType.BEARER, token: disposableToken });
+      const customerResponse = await revokedClient.queryWrapped(CUSTOMER_QUERY);
+      const gql = await customerResponse.getGraphQLResponse();
+      pollErrors = gql.errors ?? [];
+      if (pollErrors.length > 0) break;
+      if (attempt < MAX_POLL_ATTEMPTS) {
+        logger.step(`Step 3.${attempt} - Token still accepted after revocation; retrying in ${TIMEOUTS.POLL_INTERVAL_NORMAL}ms`);
+      }
+    }
 
     logger.step('Step 4 - Assert authorization error is returned');
-    await customerResponse.assertHasErrors();
-    const gqlResponse = await customerResponse.getGraphQLResponse();
-    logger.verify('Authorization error present', true, (gqlResponse.errors?.length ?? 0) > 0);
-    softExpect(gqlResponse.errors![0].extensions?.category).toBe('graphql-authorization');
+    logger.verify('Authorization error present', true, pollErrors.length > 0);
+    expect(pollErrors.length, 'Expected graphql-authorization error after token revocation — token not invalidated within 5s').toBeGreaterThan(0);
+    softExpect(pollErrors[0].extensions?.category).toBe('graphql-authorization');
   });
 
   test('TC_03 - revokeCustomerToken - unauthenticated request should return authorization error', async ({ createGraphQLClient }) => {

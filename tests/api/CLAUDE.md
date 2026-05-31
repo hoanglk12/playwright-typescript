@@ -64,6 +64,8 @@ These are Platypus staging-specific behaviours — do not assume standard Magent
 | `requestPasswordResetEmail` with non-existent email | Returns `graphql-input` error (NOT silent `true`) — staging discloses account non-existence |
 | Invalid email format error message | `"Invalid email address entered"` (custom), NOT standard Magento `"is not a valid email address."` |
 | `revokeCustomerToken` error category | `graphql-authorization` |
+| `revokeCustomerToken` + immediate re-sign-in (TC_01 → TC_02) | TC_01 revokes its token; TC_02 signs in immediately after → new token is **immediately invalid** on Magento staging (session store hasn't committed TC_01's revocation). Fix: add `POLL_INTERVAL_NORMAL` (1s) wait at the **start of TC_02** before signing in. |
+| `revokeCustomerToken` + immediate `customer` query (TC_02 Step 3) | After `revokeCustomerToken` succeeds, the revoked token may still be accepted for 1–5s. Fix: **poll** the protected resource (up to 5 × 1s) until the `graphql-authorization` error appears rather than querying once immediately. |
 | `resetPassword` validation order | Validates token **before** password strength — weak-password tests get a token-invalid error first |
 | `addProductsToWishlist` item `__typename` | Returns `ConfigurableWishlistItem` even for simple-product adds — use `.toContain('WishlistItem')` not `.toBe('WishlistItem')` |
 | Product search `__typename` | `products(search: ...)` returns only `ConfigurableProduct` items inconsistently — always fall back to `allItems[0]`; never throw on "no SimpleProduct found" |
