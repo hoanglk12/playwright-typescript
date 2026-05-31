@@ -40,6 +40,10 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-003 through E2E-CART-011 remain
 - All specs use `test.describe.serial`; see [[ecommerce-pdp-page-gotchas]] for PDP/cart patterns
 
+**CAPTCHA solving integration (researched 2026-05-31, not yet implemented):**
+- Research report: `specs/captcha-solving-integration.html` — covers 2captcha official TS SDK, types: Cloudflare Turnstile, reCAPTCHA v2/v3, hCaptcha
+- No CaptchaHelper class or test files exist in the repo yet — report is the blueprint for a future `fixture-only` helper
+
 **E2E-CART-002 implementation (2026-05-31):**
 - Scans up to 5 products on the initial PLP (WOMENS for most, MENS for Skechers/Vans NZ via `preferMens`) with quick `getAvailableSizes()` after each `waitForPdpLoad()`
 - Final `waitForSizeButtonsToRender()` applied after the scan if still empty (handles async size render)
