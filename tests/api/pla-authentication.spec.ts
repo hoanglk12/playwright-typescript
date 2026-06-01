@@ -3,7 +3,7 @@ import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { plaTestData } from '../../src/data/api/pla-test-data';
 import { plaAuthData, plaAuthErrorMessages } from '../../src/data/api/pla-auth-data';
-import { getCustomerToken, setCustomerToken } from './shared-state';
+import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 
 test.describe.configure({ mode: 'serial' });
@@ -77,36 +77,9 @@ test.describe('PLA Authentication @api @graphql @regression', () => {
   let customerToken: string;
 
   test.beforeAll(async ({ createGraphQLClient }) => {
-    customerToken = getCustomerToken();
-
-    if (!customerToken) {
-      console.log('No shared token found — creating account and signing in...');
-      const client = await createGraphQLClient();
-
-      const createResponse = await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer);
-      const createGql = await createResponse.getGraphQLResponse();
-
-      if (createGql.errors) {
-        const msg = createGql.errors[0]?.message ?? '';
-        if (!msg.toLowerCase().includes('already') && !msg.toLowerCase().includes('exists')) {
-          throw new Error(`Account creation failed: ${msg}`);
-        }
-        console.log('Account already exists — proceeding to sign in');
-      }
-
-      const signInResponse = await client.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
-      const signInGql = await signInResponse.getGraphQLResponse();
-
-      if (signInGql.errors) {
-        throw new Error(`Sign-in failed in beforeAll: ${signInGql.errors[0]?.message}`);
-      }
-
-      customerToken = signInGql.data.generateCustomerToken.token;
-      setCustomerToken(customerToken);
-      console.log('✅ Authentication ready for tests');
-    } else {
-      console.log('✅ Reusing shared token from earlier tests');
-    }
+    const logger = createTestLogger('beforeAll PLA Authentication setup');
+    const client = await createGraphQLClient();
+    customerToken = await signInAndStoreToken(client, logger);
   });
 
   // ─── revokeCustomerToken ───────────────────────────────────────────────────

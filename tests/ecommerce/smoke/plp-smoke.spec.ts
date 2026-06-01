@@ -1,6 +1,7 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
+import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
 
 test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
   test.slow();
@@ -21,20 +22,8 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       logger.step('Step 6 - Assert product count is greater than zero');
       const count = await ecommercePLPPage.getProductCount();
@@ -57,20 +46,8 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${filterNavLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(filterNavLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, filterNavLabel);
 
       logger.step('Step 6 - Capture initial product count');
       const initialCount = await ecommercePLPPage.getTotalProductCount();
@@ -117,20 +94,8 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${sizeNavLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(sizeNavLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, sizeNavLabel);
 
       logger.step('Step 6 - Capture initial product count');
       const initialCount = await ecommercePLPPage.getTotalProductCount();
@@ -157,7 +122,7 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const quickAddTcId = `E2E-PLP-011-${String(index + 1).padStart(3, '0')}`;
-    const quickAddNavLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel;
+    const quickAddNavLabel = getPreferredNavLabel(site);
 
     test(`${quickAddTcId} - ${site.name} Quick Add button opens size selector or adds item`, async ({
       ecommerceNavPage,
@@ -170,20 +135,8 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${quickAddNavLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(quickAddNavLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, quickAddNavLabel);
 
       logger.step('Step 6 - Hover over first product card and click Quick Add button');
       await ecommercePLPPage.quickAdd(0);
@@ -200,7 +153,7 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const pdpTcId = `E2E-PLP-012-${String(index + 1).padStart(3, '0')}`;
-    const pdpNavLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel;
+    const pdpNavLabel = getPreferredNavLabel(site);
 
     test(`${pdpTcId} - ${site.name} clicking product card image navigates to PDP`, async ({
       ecommerceNavPage,
@@ -214,20 +167,8 @@ test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${pdpNavLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(pdpNavLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, pdpNavLabel);
 
       logger.step('Step 6 - Click first product card image/link');
       await ecommercePLPPage.clickProductCard(0);

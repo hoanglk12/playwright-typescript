@@ -108,8 +108,8 @@ export default defineConfig({
       'Accept': 'application/json',
     },
     ignoreHTTPSErrors: true,
-    /* Global timeout for API requests */
-    actionTimeout: 15000,
+    /* Global timeout for API requests — 30s covers slow staging operations like placeOrder */
+    actionTimeout: 30000,
     
     
     /* No browser context needed for API tests */

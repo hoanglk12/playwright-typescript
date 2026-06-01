@@ -10,7 +10,7 @@ import {
   WishlistItemShape,
   WishlistShape,
 } from '../../src/data/api/pla-wishlist-data';
-import { setCustomerToken } from './shared-state';
+import { signInAndStoreToken } from './api-test-helpers';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -161,44 +161,8 @@ test.describe('PLA GraphQL API - Wishlist @api @regression', () => {
     const logger = createTestLogger('PLA Wishlist - Setup');
 
     // ── 1. Fresh auth ──────────────────────────────────────────────────────────
-    logger.step('Sign in fresh to obtain a valid token');
     const publicClient = await createGraphQLClient();
-    const signInVars = {
-      email: plaTestData.validCredentials.email,
-      password: plaTestData.validCredentials.password,
-      remember: plaTestData.validCredentials.remember,
-    };
-    const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, signInVars);
-    const signInGql = await signInResponse.getGraphQLResponse();
-
-    if (!(signInGql.errors?.length)) {
-      const token = signInGql.data?.generateCustomerToken?.token;
-      if (!token) throw new Error('Sign-in succeeded but token was missing from response');
-      customerToken = token;
-      setCustomerToken(customerToken);
-      logger.action('Fresh token acquired', '');
-    } else {
-      logger.step('Sign-in failed — creating account first');
-      const createResponse = await publicClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer);
-      const createGql = await createResponse.getGraphQLResponse();
-      if (createGql.errors?.length) {
-        const errorMsg = createGql.errors[0]?.message ?? '';
-        if (!errorMsg.toLowerCase().includes('already') && !errorMsg.toLowerCase().includes('exists')) {
-          throw new Error(`Account creation failed: ${errorMsg}`);
-        }
-        logger.action('Account already exists — proceeding to sign in', '');
-      }
-      const signIn2Response = await publicClient.mutateWrapped(SIGN_IN_MUTATION, signInVars);
-      const signIn2Gql = await signIn2Response.getGraphQLResponse();
-      if (signIn2Gql.errors?.length) {
-        throw new Error(`Sign-in failed after account creation: ${signIn2Gql.errors[0]?.message ?? ''}`);
-      }
-      const token2 = signIn2Gql.data?.generateCustomerToken?.token;
-      if (!token2) throw new Error('Sign-in after account creation returned no token');
-      customerToken = token2;
-      setCustomerToken(customerToken);
-      logger.action('Token acquired after account creation', '');
-    }
+    customerToken = await signInAndStoreToken(publicClient, logger);
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 

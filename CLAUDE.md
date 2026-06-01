@@ -137,6 +137,15 @@ test.describe('Feature Name @tag1 @tag2', () => {
 
 Tags go in `test.describe()` name string (e.g. `@homepage`, `@frontsite`, `@admin`).
 
+### Test naming conventions
+
+**Existing tests** use one of these legacy patterns — do not rename them (breaks CI tag filtering and monocart history):
+- `TC_01 - Description` (frontsite / admin / most API specs)
+- `E2E-{DOMAIN}-{NNN}-{site}` (ecommerce smoke)
+- `PLA_OperationName - description` (older PLA account spec)
+
+**New tests** should follow `TC_XX - Description` for API/UI tests or `E2E-{DOMAIN}-{NNN}-{site}` for ecommerce smoke, matching the existing suite they extend.
+
 ## Soft Assertions
 
 Soft assertions let a test **continue past a failure** and report all failures together at the end. Two patterns are available:
