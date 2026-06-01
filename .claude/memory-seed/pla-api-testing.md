@@ -11,6 +11,7 @@ metadata:
 
 | File | Purpose |
 |---|---|
+| `tests/api/api-test-helpers.ts` | `signInAndStoreToken(client, logger)` — canonical always-fresh auth bootstrap used in all PLA spec `beforeAll` blocks |
 | `tests/api/pla-account-creation-signin.spec.ts` | Create account, sign in, get customer details |
 | `tests/api/pla-cart_minicart.spec.ts` | Cart / minicart queries and mutations (TC_01–TC_12 cover addProductsToCart, updateCartItems, removeItemFromCart, applyCouponToCart) |
 | `tests/api/pla-my-details.spec.ts` | Address book, newsletter / loyalty subscription updates |
@@ -25,7 +26,7 @@ metadata:
 | `tests/api/pla-checkout-billing-payment.spec.ts` | setBillingAddressOnCart TC_01–02, setPaymentMethodOnCart TC_03–05 (added 2026-05-26) |
 | `tests/api/pla-place-order.spec.ts` | placeOrder TC_01–03: happy path, missing shipping, missing payment (added 2026-05-27; OOS scenario not implemented — staging blocks at addProductsToCart level) |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across PLA spec files in one worker |
-| `src/data/api/pla-test-data.ts` | Dynamic email + all account/address/cart test data |
+| `src/data/api/pla-test-data.ts` | **Factory `createPlaTestData()`** returns a fresh self-consistent instance (email, name, address all share same random seed). Call once at module level: `const plaTestData = createPlaTestData()` |
 | `src/data/api/pla-auth-data.ts` | Auth-specific test data (reset password inputs, error messages) |
 | `src/data/api/pla-search-data.ts` | Search terms and pagination config for search tests |
 | `src/data/api/pla-customer-profile-data.ts` | changeCustomerPassword inputs, updateCustomerV2 personal info inputs, error messages |
@@ -37,10 +38,21 @@ metadata:
 
 All PLA specs use `test.describe.configure({ mode: 'serial' })` (NOT `test.describe.serial(...)`) + a `beforeAll` that:
 
+**`shared-state.ts` implementation (2026-06-01 refactor):**
+- Now a **singleton `TestState` class** — not bare module-level variables
+- Getter/setter pairs for `customerToken`, `customerId`, `cartId`, `addressId`
+- Setters throw `Error` on empty/falsy value — prevents silently storing blank state
+- Module-level exports (`getCustomerToken()`, `setCustomerToken()`, etc.) remain for backward compat
+
+**`api-test-helpers.ts` — canonical auth bootstrap (2026-06-01):**
+- `signInAndStoreToken(client: GraphQLClient, logger: TestLogger): Promise<string>`
+- Encapsulates the always-fresh auth flow: try sign-in → if errors, create account first → retry sign-in → `setCustomerToken(token)`
+- All PLA spec `beforeAll` blocks now call this instead of inlining the sign-in mutation
+
 **Always-fresh-auth pattern (mandatory for specs needing auth):**
-- Always sign in fresh in `beforeAll` — never reuse `getCustomerToken()` from shared-state
+- Always sign in fresh in `beforeAll` via `signInAndStoreToken()` — never reuse `getCustomerToken()` from shared-state
 - Root cause: `pla-authentication.spec.ts` calls `generateCustomerToken` for the same account (TC_01/TC_02 disposable tokens), which invalidates any previously issued token. The `if (!customerToken)` guard is bypassed when the variable is a non-empty stale string.
-- Pattern:
+- Pattern (now handled by `signInAndStoreToken`):
   1. Try `generateCustomerToken` with `plaTestData.validCredentials`
   2. If errors → create account → sign in again
   3. Call `setCustomerToken(token)` to update shared-state for downstream specs
