@@ -15,7 +15,7 @@ import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
 import { plaTestData } from '../../src/data/api/pla-test-data';
 import { CheckoutBillingPaymentData } from '../../src/data/api/pla-checkout-billing-payment-data';
 import { PlaceOrderData } from '../../src/data/api/pla-place-order-data';
-import { setCustomerToken } from './shared-state';
+import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 
@@ -227,31 +227,8 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
     const logger = createTestLogger('beforeAll Place Order setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
-    logger.step('Step 1 - Authenticate (fresh sign-in)');
     const anonClient = await createGraphQLClient();
-
-    const { email, password, remember } = plaTestData.validCredentials;
-    const signInGql = await (await anonClient.mutateWrapped(SIGN_IN_MUTATION, { email, password, remember })).getGraphQLResponse();
-
-    if (!(signInGql.errors?.length)) {
-      customerToken = signInGql.data?.generateCustomerToken?.token ?? '';
-    } else {
-      logger.action('Sign-in failed', 'creating account then retrying');
-      const createGql = await (await anonClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer)).getGraphQLResponse();
-      const createMsg = createGql.errors?.length ? createGql.errors[0]?.message ?? '' : '';
-      if (createMsg && !createMsg.includes('already') && !createMsg.includes('exists')) {
-        throw new Error(`Account creation failed: ${createMsg}`);
-      }
-      const retryGql = await (await anonClient.mutateWrapped(SIGN_IN_MUTATION, { email, password, remember })).getGraphQLResponse();
-      if (retryGql.errors?.length) {
-        throw new Error(`Sign-in failed after account creation: ${retryGql.errors[0]?.message ?? 'unknown'}`);
-      }
-      customerToken = retryGql.data?.generateCustomerToken?.token ?? '';
-    }
-
-    if (!customerToken) throw new Error('beforeAll: customerToken is empty after auth flow');
-    setCustomerToken(customerToken);
-    logger.action('Token acquired', 'place order tests');
+    customerToken = await signInAndStoreToken(anonClient, logger);
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 

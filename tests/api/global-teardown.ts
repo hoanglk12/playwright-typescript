@@ -1,12 +1,9 @@
 import { FullConfig } from '@playwright/test';
+import { sharedState } from './shared-state';
 
 async function globalTeardown(config: FullConfig) {
   console.log('🧹 Starting API test global teardown...');
-  
-  // API-specific cleanup
-  // - Clean up test data
-  // - Reset API state if needed
-  
+  sharedState.reset();
   console.log('✅ API test global teardown completed');
 }
 

@@ -1,13 +1,14 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
+import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
 
 test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
   test.slow();
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-PDP-001-${String(index + 1).padStart(3, '0')}`;
-    const navLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel;
+    const navLabel = getPreferredNavLabel(site);
 
     test(`${tcId} - ${site.name} PDP loads with product name, price, and image gallery`, async ({
       ecommerceNavPage,
@@ -22,20 +23,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       logger.step('Step 6 - Click first product card');
       await ecommercePLPPage.clickProductCard(0);
@@ -74,20 +63,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       const MAX_PRODUCTS_TO_TRY = 20;
       logger.step(`Step 6 - Find a PDP with 2+ colour swatches (try up to ${MAX_PRODUCTS_TO_TRY} product cards)`);
@@ -135,7 +112,7 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-PDP-004-${String(index + 1).padStart(3, '0')}`;
-    const navLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel;
+    const navLabel = getPreferredNavLabel(site);
 
     test(`${tcId} - ${site.name} Size selector shows correct sizes with gender toggle`, async ({
       ecommerceNavPage,
@@ -150,20 +127,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       logger.step('Step 6 - Click first product card');
       await ecommercePLPPage.clickProductCard(0);
@@ -268,10 +233,7 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-PDP-005-${String(index + 1).padStart(3, '0')}`;
-    // Skechers WOMENS PLP leads to non-footwear first → prefer MENS for reliable size coverage
-    const navLabel = site.name.toLowerCase().includes('skechers')
-      ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
-      : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+    const navLabel = getPreferredNavLabel(site, site.name.toLowerCase().includes('skechers'));
 
     test(`${tcId} - ${site.name} Selecting a size enables Add to Cart button`, async ({
       ecommerceNavPage,
@@ -286,20 +248,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       logger.step('Step 6 - Click first product card');
       await ecommercePLPPage.clickProductCard(0);
@@ -365,11 +315,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
     const tcId = `E2E-PDP-006-${String(index + 1).padStart(3, '0')}`;
     // Skechers and Vans NZ: MENS PLP leads to footwear with consistent size selectors.
     // Vans NZ WOMENS lands on a sub-category PLP (Classics) rather than a product PDP.
-    const preferMens =
-      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
-    const navLabel = preferMens
-      ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
-      : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+    const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Add to Cart without size shows validation`, async ({
       ecommerceNavPage,
@@ -384,20 +331,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       logger.step('Step 6 - Click first product card');
       await ecommercePLPPage.clickProductCard(0);
@@ -462,11 +397,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
     const tcId = `E2E-PDP-007-${String(index + 1).padStart(3, '0')}`;
     // Skechers and Vans NZ: MENS PLP leads to footwear with consistent size selectors.
     // Vans NZ WOMENS lands on a sub-category PLP (Classics) rather than a product PDP.
-    const preferMens =
-      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
-    const navLabel = preferMens
-      ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
-      : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+    const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Add to Cart adds item and updates mini cart count`, async ({
       ecommerceNavPage,
@@ -481,20 +413,8 @@ test.describe.serial('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       logger.step('Step 6 - Click first product card');
       await ecommercePLPPage.clickProductCard(0);

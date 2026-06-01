@@ -3,7 +3,8 @@ import { AuthType } from "../../src/api/ApiClient";
 import {
   plaTestData,
 } from "../../src/data/api/pla-test-data";
-import { setCustomerToken, setAddressId, setCustomerId, getCustomerId, getAddressId } from './shared-state';
+import { setAddressId, setCustomerId, getCustomerId, getAddressId } from './shared-state';
+import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 
 let customerToken: string = '';
@@ -111,49 +112,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     addressId = getAddressId();
 
     const client = await createGraphQLClient();
-
-    // Always sign in fresh — Magento 2 may invalidate earlier tokens when
-    // other spec files generate new tokens for the same account (e.g. pla-authentication.spec.ts).
-    // Reusing a stale token from shared-state causes graphql-authorization errors in CI.
-    logger.step('Sign in fresh to obtain a valid token');
-    const signInResponse = await client.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
-    const signInGql = await signInResponse.getGraphQLResponse();
-
-    if (!(signInGql.errors?.length)) {
-      const token = signInGql.data?.generateCustomerToken?.token;
-      if (!token) throw new Error('Sign-in succeeded but token was missing from response');
-      customerToken = token;
-      setCustomerToken(customerToken);
-      logger.action('Fresh token acquired', '');
-    } else {
-      // Account may not exist yet (standalone run) — create it, then sign in
-      logger.step('Sign-in failed — creating account first');
-      const createResponse = await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer);
-      const createGql = await createResponse.getGraphQLResponse();
-
-      if ((createGql.errors?.length ?? 0) > 0) {
-        const errorMsg = createGql.errors?.[0]?.message ?? '';
-        if (!errorMsg.toLowerCase().includes('already') && !errorMsg.toLowerCase().includes('exists')) {
-          throw new Error(`Account creation failed: ${errorMsg}`);
-        }
-        logger.action('Account already exists — proceeding to sign in', '');
-      } else {
-        customerId = createGql.data?.createCustomer?.customer?.id;
-        setCustomerId(customerId);
-        logger.action('Account created', '');
-      }
-
-      const signIn2Response = await client.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
-      const signIn2Gql = await signIn2Response.getGraphQLResponse();
-      if ((signIn2Gql.errors?.length ?? 0) > 0) {
-        throw new Error(`Sign-in failed after account creation: ${signIn2Gql.errors?.[0]?.message}`);
-      }
-      const token2 = signIn2Gql.data?.generateCustomerToken?.token;
-      if (!token2) throw new Error('Sign-in after account creation returned no token');
-      customerToken = token2;
-      setCustomerToken(customerToken);
-      logger.action('Token acquired after account creation', '');
-    }
+    customerToken = await signInAndStoreToken(client, logger);
 
     // Fetch customer ID from API if not available from shared-state
     customerId = getCustomerId();

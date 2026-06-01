@@ -18,7 +18,8 @@ import {
   getTestEmail,
 } from '../../src/data/api/pla-test-data';
 import { CartOperationsData } from '../../src/data/api/pla-cart-operations-data';
-import { getCustomerToken, setCartId, setCustomerToken } from './shared-state';
+import { setCartId } from './shared-state';
+import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 
@@ -167,42 +168,8 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     const logger = createTestLogger('beforeAll PLA Cart & MiniCart setup');
 
     // ── 1. Authentication ──────────────────────────────────────────────────
-    customerToken = getCustomerToken();
-
-    if (!customerToken) {
-      logger.step('No shared token found — creating account and signing in');
-      const client = await createGraphQLClient();
-
-      const createResponse = await client.mutateWrapped(
-        CREATE_ACCOUNT_MUTATION,
-        plaTestData.validCustomer
-      );
-      const createData = await createResponse.getGraphQLResponse();
-
-      if (createData.errors) {
-        const msg = createData.errors.length ? createData.errors[0]?.message ?? '' : '';
-        if (!msg.includes('already') && !msg.includes('exists')) {
-          throw new Error(`Account creation failed: ${msg}`);
-        }
-        logger.action('Account exists', 'proceeding to sign in');
-      } else {
-        logger.action('Account created', testEmail);
-      }
-
-      const { email, password, remember } = plaTestData.validCredentials;
-      const signInResponse = await client.mutateWrapped(SIGN_IN_MUTATION, { email, password, remember });
-      const signInData = await signInResponse.getGraphQLResponse();
-
-      if (signInData.errors) {
-        throw new Error(`Sign-in failed: ${signInData.errors.length ? signInData.errors[0]?.message : 'unknown error'}`);
-      }
-
-      customerToken = signInData.data.generateCustomerToken.token;
-      setCustomerToken(customerToken);
-      logger.action('Token acquired', 'for cart tests');
-    } else {
-      logger.action('Using', 'existing shared token from test suite');
-    }
+    const anonClient = await createGraphQLClient();
+    customerToken = await signInAndStoreToken(anonClient, logger);
 
     // ── 2. Discover a valid in-stock product SKU ───────────────────────────
     const authClient = await createGraphQLClient({

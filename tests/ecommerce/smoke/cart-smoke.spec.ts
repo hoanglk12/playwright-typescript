@@ -1,6 +1,7 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
+import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
 
 test.describe.serial('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
   test.slow();
@@ -31,13 +32,8 @@ test.describe.serial('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CART-002-${String(index + 1).padStart(3, '0')}`;
-    // Skechers and Vans NZ: MENS PLP leads to footwear with consistent size selectors.
-    // Vans NZ WOMENS lands on a sub-category PLP (Classics) rather than a product PDP.
-    const preferMens =
-      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
-    const navLabel = preferMens
-      ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
-      : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+    const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Mini cart shows item count after Add to Cart`, async ({
       ecommerceNavPage,
@@ -52,20 +48,8 @@ test.describe.serial('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
         return;
       }
 
-      logger.step('Step 1 - Navigate to homepage');
-      await ecommerceNavPage.navigate(site.url);
-
-      logger.step('Step 2 - Wait for SPA nav hydration');
-      await ecommerceNavPage.waitForNavHydration();
-
-      logger.step(`Step 3 - Click "${navLabel}" nav link to enter PLP`);
-      await ecommerceNavPage.clickNavLink(navLabel);
-
-      logger.step('Step 4 - Wait for PLP URL to resolve');
-      await ecommercePLPPage.waitForPlpUrl();
-
-      logger.step('Step 5 - Wait for product grid to render');
-      await ecommercePLPPage.waitForProductGrid();
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
       // Scan up to 5 products on the initial PLP for one with available (non-sold-out) sizes.
       // Quick check per product (no extended wait in loop); sold-out and non-footwear products are
