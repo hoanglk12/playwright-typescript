@@ -79,13 +79,12 @@ When a PDP test needs footwear with a size selector, Skechers and Vans NZ must e
 - **Skechers WOMENS PLP** — first products are non-footwear (no size selector)
 - **Vans NZ WOMENS** — lands on a sub-category PLP (Classics), not individual PDPs
 
-**Pattern established in E2E-PDP-005/006/007 and E2E-CART-002:**
+**Canonical helper (2026-06-01):** `getPreferredNavLabel(site, preferMens)` in `tests/ecommerce/smoke/smoke-helpers.ts` encapsulates this logic — use it instead of inlining the pattern.
+
 ```ts
-const preferMens =
-  site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
-const navLabel = preferMens
-  ? (site.mensNavLabel ?? site.womensNavLabel ?? site.saleNavLabel)
-  : (site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel);
+import { getPreferredNavLabel } from '../smoke-helpers';
+const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+const navLabel = getPreferredNavLabel(site, preferMens);
 ```
 
 ---
