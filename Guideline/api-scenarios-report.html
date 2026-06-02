@@ -70,10 +70,10 @@
 <div class="container">
 
   <div class="stats-row">
-    <div class="stat-card total"><div class="value">38</div><div class="label">Total Operations</div></div>
-    <div class="stat-card covered"><div class="value">37</div><div class="label">Covered</div></div>
+    <div class="stat-card total"><div class="value">40</div><div class="label">Total Operations</div></div>
+    <div class="stat-card covered"><div class="value">39</div><div class="label">Covered</div></div>
     <div class="stat-card new"><div class="value">1</div><div class="label">New / Gap</div></div>
-    <div class="stat-card mutations"><div class="value">16</div><div class="label">Mutations</div></div>
+    <div class="stat-card mutations"><div class="value">18</div><div class="label">Mutations</div></div>
     <div class="stat-card queries"><div class="value">22</div><div class="label">Queries</div></div>
   </div>
 
@@ -742,28 +742,30 @@
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">applyRewardPointsToCart (PlatyPoints)</span></td>
+          <td><span class="op-name">applyRewardPointsToCart (PlatyPoints)</span><br><span class="spec-file">pla-loyalty-rewards.spec.ts (TC_01–02, TC_06)</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
-          <td><div class="variables">cart_id: String!</div></td>
-          <td>Applies PlatyPoints (multiple_rewards) to the cart for discount. Cart response includes applied_multiple_rewards with applied_amount and applied_rewards.</td>
+          <td><div class="variables">cartId: ID! (direct arg, not input wrapper)</div></td>
+          <td>Applies PlatyPoints (multiple_rewards) to the cart for discount. Cart response includes applied_multiple_rewards with applied_amount and applied_rewards. Returns null for applied_multiple_rewards when account has no balance (not an error). Also covers removeRewardPointsFromCart(cartId: ID!).</td>
           <td class="scenarios"><ul>
-            <li>Apply points to cart with items → applied_multiple_rewards populated</li>
-            <li class="error">Error: no available rewards → error or no-op</li>
-            <li class="error">Error: unauthenticated → UNAUTHORIZED error</li>
+            <li>TC_01: Apply points (auth) → response valid, applied_multiple_rewards null for zero-balance account</li>
+            <li class="error">TC_02: Unauthenticated → graphql-authorization error</li>
+            <li>TC_06: removeRewardPointsFromCart → applied_multiple_rewards cleared</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
         <tr>
-          <td><span class="op-name">applyQantasPointsToCart (QFF)</span></td>
+          <td><span class="op-name">applyQantasPointsToCart (QFF)</span><br><span class="spec-file">pla-loyalty-rewards.spec.ts (TC_03–05, TC_07)</span></td>
           <td><span class="badge badge-mutation">Mutation</span></td>
-          <td><div class="variables">cart_id: String!<br>points: Int!</div></td>
-          <td>Applies Qantas Frequent Flyer points to the cart. Cart response includes applied_qantas_points with points_burned, dollar_value, member_number.</td>
+          <td><div class="variables">input: ApplyQantasPointsInput!<br>  cart_id: String! (required)<br>  quote_ref: String! (required)<br>  points_burned: Int! (required)<br>  dollar_value: Float! (required)<br>  member_number: String (optional)</div></td>
+          <td>Applies Qantas Frequent Flyer points to the cart. Cart's applied_qantas_points (points_burned, dollar_value, member_number) is updated. STAGING BUG: mutation response always returns ISE; verify side effect via separate cart query. No auth guard on staging. QFF credentials (member/lastname/PIN) are inputs to the external Qantas API to obtain quote_ref — not Magento GraphQL args. Also covers removeQantasPointsFromCart(input: RemoveQantasPointsInput!).</td>
           <td class="scenarios"><ul>
-            <li class="error">Error: not a QFF member → error or qff_reward.is_qff_member: false</li>
-            <li class="error">Error: insufficient Qantas points → error returned</li>
+            <li>TC_03: Valid input → staging ISE in response (known bug), side effect succeeds</li>
+            <li>TC_04: Cart query after apply → applied_qantas_points populated with submitted values</li>
+            <li class="error">TC_05: Invalid cart_id → cart-not-found error</li>
+            <li>TC_07: removeQantasPointsFromCart → applied_qantas_points cleared</li>
           </ul></td>
-          <td><span class="badge badge-new">New</span></td>
+          <td><span class="badge badge-covered">Covered</span></td>
           <td><span class="badge badge-p2">P2</span></td>
         </tr>
       </tbody>
@@ -912,10 +914,10 @@
 </div>
 
 <div class="footer">
-  Total GraphQL operations documented: <strong>38</strong> &nbsp;|&nbsp;
-  Covered: <strong>25</strong> &nbsp;|&nbsp;
-  New scenarios to automate: <strong>13</strong> &nbsp;|&nbsp;
-  Generated: 2026-05-15 · Updated: 2026-05-27 &nbsp;|&nbsp;
+  Total GraphQL operations documented: <strong>40</strong> &nbsp;|&nbsp;
+  Covered: <strong>39</strong> &nbsp;|&nbsp;
+  New scenarios to automate: <strong>1</strong> (customer.orders P1) &nbsp;|&nbsp;
+  Generated: 2026-05-15 · Updated: 2026-06-02 &nbsp;|&nbsp;
   Endpoint: https://stag-platypus-au.accentgra.com/graphql
 </div>
 

@@ -377,6 +377,105 @@ const response = await graphqlClient.queryWrapped(
 
 ---
 
+### 13. PLA GraphQL Tests — Shared-State & Auth Patterns
+
+Apply this section **only** to files under `tests/api/pla-*.spec.ts`.
+
+- [ ] **[CRITICAL]** Auth bootstrap uses `signInAndStoreToken` from `./api-test-helpers` — **never** a manual `generateCustomerToken` mutation inline in `beforeAll`. Inline sign-in duplicates code that the helper already handles (account creation fallback, shared-state update, error guards).
+
+```ts
+// CRITICAL — manual sign-in duplicates the helper
+const gql = await client.mutateWrapped(SIGN_IN_MUTATION, { email, password });
+customerToken = gql.data?.generateCustomerToken?.token ?? '';  // WRONG
+
+// Correct — one call, handles create-if-missing, stores in shared-state
+import { signInAndStoreToken } from './api-test-helpers';
+customerToken = await signInAndStoreToken(anonClient, logger);
+```
+
+- [ ] **[CRITICAL]** Cart is always created fresh in `beforeAll` with `createEmptyCart` — **never** reuse `getCartId()` from shared-state across specs. A `cartId` from a previous session is inaccessible with a new token (Magento returns `"The current user cannot perform operations on cart"`).
+
+- [ ] **[CRITICAL]** Error presence check uses `!(gql.errors?.length)` — **never** `!gql.errors`. An empty array `[]` is truthy and bypasses the error branch silently.
+
+```ts
+// CRITICAL — empty array bypasses error branch
+if (!gql.errors) { ... }           // WRONG — [] is truthy
+
+// Correct
+if (!(gql.errors?.length)) { ... }
+```
+
+- [ ] **[WARNING]** Fixed account credentials (real employee emails, real passwords) must **not** appear in `src/data/api/` modules. Use the shared dynamic test account via `plaTestData.validCredentials` from `pla-test-data.ts` and the `signInAndStoreToken` helper.
+
+```ts
+// WARNING — hardcoded real credentials in data module
+export const MyData = {
+  fixedAccount: { email: 'real.person@company.com', password: 'RealPass1' }  // WRONG
+};
+
+// Correct — no fixed account needed; signInAndStoreToken uses plaTestData.validCredentials
+```
+
+- [ ] **[WARNING]** `afterAll` must remove **all cart items** (not just loyalty points) after tests that call `addProductsToCart`. `createEmptyCart` reuses the existing customer cart — items accumulate across runs and corrupt cart state.
+
+```ts
+// WARNING — only removes loyalty state, not items
+afterAll: async () => {
+  await authClient.mutateWrapped(REMOVE_QANTAS_POINTS_MUTATION, ...);
+  // WRONG — items remain in cart
+}
+
+// Correct — query items, then remove each one
+const itemsData = await authClient.queryWrapped(GET_CART_ITEMS_QUERY, { cartId });
+for (const item of itemsData?.cart?.items ?? []) {
+  await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
+    input: { cart_id: cartId, cart_item_id: Number(item.id) },
+  });
+}
+```
+
+- [ ] **[WARNING]** API test data modules follow a one-file-per-domain pattern in `src/data/api/` (e.g. `pla-catalog-data.ts`, `pla-auth-data.ts`). A spec must not declare its data inline or in a generic `test-data.ts` file.
+
+- [ ] **[WARNING]** Module-level GraphQL strings (`const QUERY = \`...\``) are hoisted to the top of the file — never inlined inside `test()` bodies or `beforeAll`. Inline query strings cannot be reused across tests and make diffs harder to read.
+
+---
+
+### 14. Ecommerce Smoke Tests — Shared Helper Patterns
+
+Apply this section **only** to files under `tests/ecommerce/smoke/`.
+
+- [ ] **[CRITICAL]** Any test that navigates from a storefront homepage to a PLP must call `navigateToPlp` from `./smoke-helpers` — **never** inline the 5-step sequence (`navigate` → `waitForNavHydration` → `clickNavLink` → `waitForPlpUrl` → `waitForProductGrid`).
+
+```ts
+// CRITICAL — inline 5-step sequence duplicates navigateToPlp
+logger.step('Step 1 - Navigate to homepage');
+await navPage.navigate(site.url);
+await navPage.waitForNavHydration();
+await navPage.clickNavLink(navLabel);
+await plpPage.waitForPlpUrl();
+await plpPage.waitForProductGrid();   // WRONG
+
+// Correct — one call handles the full sequence
+import { navigateToPlp } from './smoke-helpers';
+await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+```
+
+- [ ] **[WARNING]** Nav label selection for PLP tests must use `getPreferredNavLabel(site, preferMens?)` from `./smoke-helpers` — **never** inline the `womensNavLabel ?? mensNavLabel ?? saleNavLabel` fallback chain. The helper encodes the `preferMens` logic for Skechers/Vans NZ; inlining it diverges over time.
+
+```ts
+// WARNING — inline conditional duplicates getPreferredNavLabel logic
+const navLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.saleNavLabel;  // WRONG
+
+// Correct
+import { getPreferredNavLabel } from './smoke-helpers';
+const navLabel = getPreferredNavLabel(site);              // defaults to womens-first
+const navLabel = getPreferredNavLabel(site, preferMens);  // caller controls preference
+```
+
+- [ ] **[WARNING]** `getPreferredNavLabel` is imported but not used — **either use it for all nav label derivations in the spec or remove the import**. Mixing helper calls and inline fallback chains in the same file is inconsistent.
+
+---
+
 ## Output Format
 
 Structure your review as:
