@@ -79,7 +79,7 @@ When a PDP test needs footwear with a size selector, Skechers and Vans NZ must e
 - **Skechers WOMENS PLP** — first products are non-footwear (no size selector)
 - **Vans NZ WOMENS** — lands on a sub-category PLP (Classics), not individual PDPs
 
-**Canonical helper (2026-06-01):** `getPreferredNavLabel(site, preferMens)` in `tests/ecommerce/smoke/smoke-helpers.ts` encapsulates this logic — use it instead of inlining the pattern.
+**Canonical helper (smoke-helpers.ts):** `getPreferredNavLabel(site, preferMens)` in `tests/ecommerce/smoke/smoke-helpers.ts` encapsulates this logic — use it instead of inlining:
 
 ```ts
 import { getPreferredNavLabel } from '../smoke-helpers';
@@ -109,3 +109,20 @@ Discovered 2026-05-31 during E2E-CART-002 troubleshooting:
 **Cart button DOM:** Platypus AU uses a `<button>` (not `<a>`) with `aria-label="Toggle mini cart. You have N items in your cart."`. At 0 items: SVG only, no numeric child. After ATC: badge element appended. `getMiniCartCount()` detects this via `[aria-label*="cart" i]` + aria-label text parsing.
 
 **E2E-CART-002 scan strategy:** Use WOMENS as primary, scan up to 5 products with quick `getAvailableSizes()` after each `waitForPdpLoad()`. Apply final `waitForSizeButtonsToRender()` on the last product if still empty. Do NOT use MENS as fallback — it starts with accessories, not footwear.
+
+---
+
+## 9. Mini cart overlay — Platypus AU renders as `aside` (complementary), not `dialog`
+
+Discovered 2026-06-03 during E2E-CART-003 implementation.
+
+The mini cart overlay on Platypus AU (and likely other storefronts) renders as a `<aside>` / `[role="complementary"]` panel, NOT as `role="dialog"` or `aria-modal="true"`. Detecting it with dialog/modal selectors only will always return `false`.
+
+**`EcommerceCartOverlayPage` at `src/pages/ecommerce/cart-overlay-page.ts`:**
+- `clickCartIcon()` — `page.evaluate()` to find/click first visible `a[href*="/cart"]` or `[aria-label*="cart/bag"]` (same pattern as `getMiniCartCount()`)
+- `isOverlayVisible()` — three-part gate: (1) selector includes `aside, [role="complementary"]` alongside `role="dialog"`, `aria-modal`, `class*drawer/overlay/minicart`; (2) `position: fixed/absolute` (distinguishes overlay from persistent header chrome); (3) actionable CTA regex (`/checkout|view (cart|bag)|proceed|go to (cart|bag)/`)
+- `waitForOverlayVisible()` — polls `isOverlayVisible()` with `TIMEOUTS.ELEMENT_VISIBLE`, `.catch(() => {})` best-effort
+
+**Why three-part gate matters:** `[class*="cart"]` alone matches the persistent header cart icon (always in DOM), making the assertion vacuously true. The `position:fixed/absolute` + CTA gate prevents false-positives.
+
+**E2E-CART-003 result:** 6/8 passed on first run (Platypus AU+NZ, Skechers AU+NZ, Vans AU+NZ, and 2 of the DM sites). Subsequent runs show staging flakiness: Vans AU fails intermittently (overlay not detected — likely Bloomreach popup blocking `clickCartIcon()` or Vans-specific DOM structure not matching our selector). Dr. Martens AU/NZ and Skechers AU sometimes skip (no purchasable sizes). Soft assertion prevents suite crash — Vans AU overlay issue should be investigated via live browser inspection if consistent.

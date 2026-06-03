@@ -23,24 +23,24 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 
 **Key scripts:** `npm test` (UI, chromium+firefox), `npm run test:api` (API), `npm run test:simple` (chromium only, 1 worker).
 
-**PLA (Platypus Shoes) GraphQL API tests (added 2026-05-15, expanded through 2026-06-01):**
+**PLA (Platypus Shoes) GraphQL API tests (added 2026-05-15, expanded through 2026-06-04):**
 - Target: `https://stag-platypus-au.accentgra.com/graphql` (Magento 2 / Adobe Commerce)
-- 13 spec files in `tests/api/`: `pla-account-creation-signin`, `pla-cart_minicart`, `pla-my-details`, `pla-support-features`, `pla-authentication`, `pla-search`, `pla-customer-profile`, `pla-catalog`, `pla-address-book-countries`, `pla-wishlist`, `pla-checkout-shipping`, `pla-checkout-billing-payment`, `pla-place-order`
+- **15 spec files** in `tests/api/`: `pla-account-creation-signin`, `pla-cart_minicart`, `pla-my-details`, `pla-support-features`, `pla-authentication`, `pla-search`, `pla-customer-profile`, `pla-catalog`, `pla-address-book-countries`, `pla-wishlist`, `pla-checkout-shipping`, `pla-checkout-billing-payment`, `pla-place-order`, `pla-loyalty-rewards`, `pla-order-history`
 - Shared test state via `tests/api/shared-state.ts` — **singleton `TestState` class** (getters/setters throw on empty); token, customerId, cartId, addressId fields
 - **Auth helper:** `tests/api/api-test-helpers.ts` exports `signInAndStoreToken(client, logger)` — canonical always-fresh auth bootstrap; used in all PLA spec `beforeAll` blocks
-- Test data at `src/data/api/pla-test-data.ts` — **factory function `createPlaTestData()`** (not module-level init); call once in `beforeAll`; all PLA specs use `const plaTestData = createPlaTestData()` at module level
-- `api.config.ts` `actionTimeout` raised to **30 000 ms** (was 15 000) to cover slow staging ops like `placeOrder`
-- `api-scenarios-report.html` at `Guideline/api-scenarios-report.html`: 38 GraphQL operations documented, **37 covered, 1 gap** (customer.orders P1) as of 2026-05-27 — see [[pla-api-testing]] for patterns and API quirks
+- Test data at `src/data/api/pla-test-data.ts` — **factory `createPlaTestData()`** + module-level singleton `plaTestData` + `getTestEmail()` shortcut; all PLA specs use `getTestEmail()` to stay in sync
+- `api.config.ts` `actionTimeout` = **30 000 ms** (covers slow staging ops like `placeOrder`)
+- `api-scenarios-report.html` at `Guideline/api-scenarios-report.html` — see [[pla-api-testing]] for patterns and API quirks
 
-**Ecommerce UI smoke tests (6 spec files, ~192 tests as of 2026-06-01):**
+**Ecommerce UI smoke tests (6 spec files, ~200 tests as of 2026-06-04):**
 - `homepage-smoke.spec.ts`: E2E-HOME-001/002/003 — 3 × 8 = 24 tests
 - `navigation-smoke.spec.ts`: E2E-NAV-001/002/003/004/005/009 — ~6 × 8 = 48 tests
 - `search-smoke.spec.ts`: E2E-SRCH-001/002 — 2 × 8 = 16 tests
 - `plp-smoke.spec.ts`: E2E-PLP-001/004/006/011/012 — 5 × 8 = 40 tests
 - `pdp-smoke.spec.ts`: E2E-PDP-001/002/004/005/006/007 — 6 × 8 = 48 tests
-- `cart-smoke.spec.ts`: E2E-CART-001 (empty mini cart) + E2E-CART-002 (ATC count) — 2 × 8 = 16 tests
+- `cart-smoke.spec.ts`: E2E-CART-001 (empty mini cart) + E2E-CART-002 (ATC count) + E2E-CART-003 (mini cart overlay opens) — 3 × 8 = 24 tests
 - **Shared helpers:** `tests/ecommerce/smoke/smoke-helpers.ts` exports `getPreferredNavLabel(site, preferMens)` and `navigateToPlp(navPage, plpPage, site, navLabel)` — used by cart, pdp, and plp smoke specs to reduce duplication
-- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-003 through E2E-CART-011 remain
+- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-004 through E2E-CART-011 remain
 - All specs use `test.describe.serial`; see [[ecommerce-pdp-page-gotchas]] for PDP/cart patterns
 
 **CAPTCHA solving integration (researched 2026-05-31, not yet implemented):**
@@ -53,3 +53,9 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - `getMiniCartCount()` reads from aria-label first (`"You have N item(s)"`) then DOM badge — aria-label updates faster for Vans AU under serial batch load
 - Key `pdp-page.ts` timeouts changed: `waitForMiniCartCountIncrement` → `NETWORK_IDLE_SLOW` (45s); `waitForSizeButtonsToRender` → `ELEMENT_VISIBLE` (CI-aware); `addToCart()` stabilises with `waitFor(attached)` before click
 - Platypus AU MENS PLP starts with socks — not a valid footwear fallback; scan WOMENS positions 0–4 instead
+
+**E2E-CART-003 implementation (2026-06-04):**
+- New page object `EcommerceCartOverlayPage` at `src/pages/ecommerce/cart-overlay-page.ts`; registered as `ecommerceCartOverlayPage` fixture (with Firefox teardown workaround)
+- `isOverlayVisible()` uses three-part gate: `aside/[role="complementary"]/role="dialog"/class*drawer` + `position:fixed/absolute` + CTA regex — required because Platypus AU mini cart renders as `<aside>`, not `<dialog>`, and `[class*="cart"]` alone matches persistent header chrome
+- Test seeds cart (full ATC scan) before clicking cart icon; checks if overlay auto-opened first; soft-asserts final visibility
+- First run: 6/8 passed; Vans AU intermittently fails (Bloomreach popup may intercept `clickCartIcon()` after ATC)

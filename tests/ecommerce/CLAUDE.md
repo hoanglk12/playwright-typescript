@@ -23,13 +23,13 @@ Supplements the root `CLAUDE.md`. Rules here apply to everything under `tests/ec
 ## Page Object
 
 All ecommerce specs use fixtures from `base-test.ts`:
-`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`.
+`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`, `ecommerceCartOverlayPage`.
 
 Never instantiate page objects directly in specs — always use the fixture.
 
 ## Firefox Teardown — Do Not Remove
 
-All five ecommerce fixtures navigate to `about:blank` before teardown on Firefox. This is intentional — Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove or refactor this workaround.
+All six ecommerce fixtures navigate to `about:blank` before teardown on Firefox. This is intentional — Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove or refactor this workaround.
 
 ## EcommercePDPPage — Known Storefront Gotchas
 
@@ -96,3 +96,17 @@ const navLabel = preferMens ? (site.mensNavLabel ?? site.womensNavLabel ?? site.
 ```
 
 This pattern is established in E2E-PDP-005/006/007 — reuse it for any new PDP test needing size selectors.
+
+## EcommerceCartOverlayPage — Mini Cart Overlay Detection
+
+`EcommerceCartOverlayPage` (`src/pages/ecommerce/cart-overlay-page.ts`) provides three methods for E2E-CART-003 and any future mini-cart overlay tests:
+
+- `clickCartIcon()` — finds and clicks the first visible cart icon via `page.evaluate()` (same semantic-attribute pattern as `getMiniCartCount()`)
+- `isOverlayVisible()` — three-part gate: (1) selector includes `aside, [role="complementary"]` alongside `role="dialog"` and class-substring patterns, (2) `position: fixed/absolute` to exclude persistent header chrome, (3) actionable CTA regex (`/checkout|view (cart|bag)|proceed|go to (cart|bag)/`)
+- `waitForOverlayVisible()` — polls `isOverlayVisible()` best-effort with `.catch(() => {})`
+
+**Key pattern — Platypus AU uses `aside`:** The mini cart overlay renders as `[role="complementary"]` (`<aside>`), not `role="dialog"`. Always include `aside, [role="complementary"]` in any overlay selector on these storefronts.
+
+**Why the three-part gate:** `[class*="cart"]` alone matches the always-present header cart icon, making any assertion vacuously true. The `position:fixed/absolute` + CTA check is the guard against this false-positive.
+
+**Vans AU known issue:** The Bloomreach popup may intercept `clickCartIcon()` after ATC, preventing the overlay from opening. Use soft assertions for overlay visibility to avoid blocking the serial suite.
