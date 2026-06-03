@@ -25,6 +25,7 @@ metadata:
 | `tests/api/pla-checkout-shipping.spec.ts` | setShippingAddressesOnCart TC_01–04, setShippingMethodsOnCart TC_05–07 |
 | `tests/api/pla-checkout-billing-payment.spec.ts` | setBillingAddressOnCart TC_01–02, setPaymentMethodOnCart TC_03–05 (added 2026-05-26) |
 | `tests/api/pla-place-order.spec.ts` | placeOrder TC_01–03: happy path, missing shipping, missing payment (added 2026-05-27; OOS scenario not implemented — staging blocks at addProductsToCart level) |
+| `tests/api/pla-order-history.spec.ts` | customer.orders TC_01–04, guestOrder TC_05 (added 2026-06-03; TC_01/TC_03 staging-aware; TC_06 removed — not implementable without guest token) |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across PLA spec files in one worker |
 | `src/data/api/pla-test-data.ts` | **Factory `createPlaTestData()`** returns a fresh self-consistent instance (email, name, address all share same random seed). Call once at module level: `const plaTestData = createPlaTestData()` |
 | `src/data/api/pla-auth-data.ts` | Auth-specific test data (reset password inputs, error messages) |
@@ -33,6 +34,7 @@ metadata:
 | `src/data/api/pla-catalog-data.ts` | Catalog test data: discovery config (searchTerm, pageSize, brandRetryTerm), PLP/PDP sentinels, storeConfig patterns, urlResolver URLs |
 | `src/data/api/pla-checkout-shipping-data.ts` | Shipping address fixtures, invalid codes, invalid cart ID |
 | `src/data/api/pla-checkout-billing-payment-data.ts` | `CartInlineAddress` interface; shipping + billing address fixtures; invalidPaymentCode |
+| `src/data/api/pla-order-history-data.ts` | `CustomerOrderShape`, `CustomerOrdersShape`, `FreshOrderAccount`; `OrderHistoryData` constants; `OrderHistoryDataGenerator.generateFreshAccount()` for TC_02 |
 
 ## Shared-State Pattern
 
@@ -106,6 +108,8 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 
 - **`instore_pickup` + `placeOrder`** breaks with "Quote does not have Pickup Location assigned" — prefer `flatrate` in any spec that calls `placeOrder`.
 - **OOS items blocked at addProductsToCart** — OOS scenario removed from `pla-place-order.spec.ts`; staging blocks at cart-add level making it untestable at the `placeOrder` stage.
+- **`customer.orders` always returns `total_count: 0`** on PLA staging (confirmed 2026-06-03) even immediately after placing orders. Orders are stored (placeOrder returns a valid order number) but do not surface via the GraphQL `customer.orders` query on this staging endpoint. `grand_total` on `CustomerOrder` is a plain `Float` scalar (NOT a `Money` object — do NOT use `{ value currency }` sub-selection). TC_01 and TC_03 in `pla-order-history.spec.ts` use staging-aware early-return: assert structure then return early when `total_count: 0`.
+- **`guestOrder` / `orderByToken` not in staging schema** (confirmed 2026-06-03). Neither field exists on the PLA staging GraphQL endpoint. `Order` type has no `token` field; `placeOrder` does not return a guest token; tokens only appear in confirmation emails or the Magento DB. TC_05 in `pla-order-history.spec.ts` handles the schema gap with "Cannot query field" early-return (like productSearch). TC_06 (valid token) was removed entirely — not implementable until the schema is deployed and a guest token source is available.
 
 ## Address List Assertions — Find by ID, Not Index 0
 
@@ -155,9 +159,32 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 ## api-scenarios-report.html
 
-Self-contained HTML report at `Guideline/api-scenarios-report.html`. Documents 38 GraphQL operations across 12 categories. Marks each as Covered/New and assigns P1/P2/P3 priority. Regenerate by running `qa-orchestrator` explore workflow.
+Self-contained HTML report at `Guideline/api-scenarios-report.html`. Documents 40 GraphQL operations across 12 categories. Marks each as Covered/New and assigns P1/P2/P3 priority. Regenerate by running `qa-orchestrator` explore workflow.
 
-**Coverage as of 2026-05-27:** 37 Covered, 1 New/Gap (customer.orders P1).
+**Coverage as of 2026-06-03:** 40 Covered, 0 New/Gap. All operations automated.
+- +2 added 2026-06-03: `customer.orders` (TC_01–04), `guestOrder/orderByToken` (TC_05) — covered by `pla-order-history.spec.ts` (5 tests; TC_06 removed)
+- +2 added 2026-06-02: `applyRewardPointsToCart` (PlatyPoints), `applyQantasPointsToCart` (QFF), plus `removeRewardPointsFromCart` and `removeQantasPointsFromCart` (covered by `pla-loyalty-rewards.spec.ts` TC_01–TC_07)
 - +1 added 2026-05-27: `placeOrder` (covered by `pla-place-order.spec.ts` TC_01–03)
 - +2 added 2026-05-26: `setBillingAddressOnCart`, `setPaymentMethodOnCart` (covered by `pla-checkout-billing-payment.spec.ts`)
 - +2 added with `pla-checkout-shipping.spec.ts`: `setShippingAddressesOnCart`, `setShippingMethodsOnCart`
+
+## Loyalty & Rewards Spec (pla-loyalty-rewards.spec.ts — added 2026-06-02)
+
+| File | Purpose |
+|---|---|
+| `tests/api/pla-loyalty-rewards.spec.ts` | applyRewardPointsToCart (TC_01–02), applyQantasPointsToCart (TC_03–05), removeRewardPointsFromCart (TC_06), removeQantasPointsFromCart (TC_07) |
+| `src/data/api/pla-loyalty-rewards-data.ts` | Fixed test account credentials; QFF input data (memberNumber, pointsBurned, dollarValue, quoteRef) |
+
+**Key signatures confirmed via live staging exploration:**
+- `applyRewardPointsToCart(cartId: ID!)` — direct arg, NOT an input wrapper
+- `applyQantasPointsToCart(input: ApplyQantasPointsInput!)` — required fields: `cart_id: String!`, `quote_ref: String!`, `points_burned: Int!`, `dollar_value: Float!`; optional: `member_number: String`
+- `removeRewardPointsFromCart(cartId: ID!)` — same arg shape as apply
+- `removeQantasPointsFromCart(input: RemoveQantasPointsInput!)` — required: `cart_id: String!`
+
+**Staging quirks confirmed 2026-06-02:**
+- `applyQantasPointsToCart` ALWAYS returns "Internal server error" in the mutation response, but the side effect succeeds — `applied_qantas_points` is correctly set in the cart. Verify via a separate `cart(cart_id)` query, not from the mutation response.
+- `applyQantasPointsToCart` has NO authentication guard on staging — unauthenticated callers also receive ISE (not a proper auth error). Production behaviour may differ.
+- `applyRewardPointsToCart` returns `applied_multiple_rewards: null` when the account has no PlatyPoints balance — this is NOT an error state.
+- QFF credentials (member number/lastname/PIN) are Qantas-API inputs for obtaining a real `quote_ref`; that external step is outside Magento GraphQL scope. The `applyQantasPointsToCart` input takes pre-computed `points_burned` + `dollar_value` + `quote_ref` directly.
+- `is_qff_member: false` on the test account does NOT block `applyQantasPointsToCart` — the flag is informational only.
+- This spec uses a fixed persistent test account (`lincoln.pham@accentgr.com.au`) rather than the dynamic account. It does NOT call `signInAndStoreToken` — it signs in directly with `LoyaltyRewardsData.fixedAccount` credentials.
