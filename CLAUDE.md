@@ -112,6 +112,7 @@ export class MyPage extends BasePage {
 | `ecommerceSearchPage` | `EcommerceSearchPage` | ecommerce |
 | `ecommercePLPPage` | `EcommercePLPPage` | ecommerce |
 | `ecommercePDPPage` | `EcommercePDPPage` | ecommerce |
+| `ecommerceCartOverlayPage` | `EcommerceCartOverlayPage` | ecommerce |
 | `percyHelper` | `PercyHelper` | visual regression |
 | `softAssert` | `SoftAssertHelper` | soft assertions with logger integration |
 
@@ -583,7 +584,7 @@ Both `playwright.config.ts` and `api.config.ts` auto-detect CI environments (`CI
 
 ## Firefox Teardown — Do Not Remove
 
-All five ecommerce fixtures in `base-test.ts` (`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`) navigate to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround from any of these fixtures.
+All six ecommerce fixtures in `base-test.ts` (`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`, `ecommerceCartOverlayPage`) navigate to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround from any of these fixtures.
 
 ## monocart Reporter
 
