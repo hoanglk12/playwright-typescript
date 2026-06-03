@@ -72,18 +72,6 @@
           },
           {
             "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';const isTs=f.endsWith('.ts')||f.endsWith('.tsx');process.exit(isTs?0:1);})\" && npx tsc --noEmit 2>&1 || true",
-            "timeout": 60,
-            "statusMessage": "TypeScript type-checking..."
-          },
-          {
-            "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';const isTs=f.endsWith('.ts')||f.endsWith('.tsx');process.exit(isTs?0:1);})\" && npm run lint 2>&1 || true",
-            "timeout": 60,
-            "statusMessage": "Linting..."
-          },
-          {
-            "type": "command",
             "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';if(f.endsWith('.spec.ts')){const {spawnSync}=require('child_process');const r=spawnSync('npx',['playwright','test',f,'--reporter=list','--project=chromium'],{stdio:'inherit'});if(r.status!==0)process.exit(2);}process.exit(0);})\"",
             "timeout": 300,
             "asyncRewake": true,
@@ -120,6 +108,32 @@
           {
             "type": "command",
             "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const name=j.agent_name||'Sub-agent';const usage=j.usage||{};const tokens=usage.total_tokens?` (${usage.total_tokens.toLocaleString()} tokens)`:'';process.stdout.write(JSON.stringify({systemMessage:`${name} finished${tokens}.`}));process.exit(0);})\""
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/post-tool-use-failure.js",
+            "timeout": 30,
+            "statusMessage": "Diagnosing write failure..."
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/post-tool-batch.js",
+            "timeout": 90,
+            "statusMessage": "Batch TypeScript check..."
           }
         ]
       }
