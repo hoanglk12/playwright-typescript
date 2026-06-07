@@ -3,7 +3,7 @@ import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
 import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
 
-test.describe.serial('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
+test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
   test.slow();
 
   for (const [index, site] of storefronts.entries()) {

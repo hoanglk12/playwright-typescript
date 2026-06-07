@@ -81,8 +81,7 @@ await this.page
 `getMiniCartCount()` is synchronous — call `waitForMiniCartCountIncrement(initialCount)` after
 `addToCart()` to poll until the badge updates (best-effort, `.catch(() => {})` like other polling methods).
 
-**Serial assertion rule:** assert delta (`initialCartCount + 1`), not absolute count (`1`) — serial
-tests share browser state so the cart may already contain items from earlier loop iterations.
+**Delta assertion rule:** assert delta (`initialCartCount + 1`), not absolute count (`1`) — read `getMiniCartCount()` before ATC and expect exactly one more after. This is robust against any pre-existing items in the cart.
 
 ## PDP Specs — Nav Label Selection for Footwear Coverage
 
@@ -109,4 +108,4 @@ This pattern is established in E2E-PDP-005/006/007 — reuse it for any new PDP 
 
 **Why the three-part gate:** `[class*="cart"]` alone matches the always-present header cart icon, making any assertion vacuously true. The `position:fixed/absolute` + CTA check is the guard against this false-positive.
 
-**Vans AU known issue:** The Bloomreach popup may intercept `clickCartIcon()` after ATC, preventing the overlay from opening. Use soft assertions for overlay visibility to avoid blocking the serial suite.
+**Vans AU known issue:** The Bloomreach popup may intercept `clickCartIcon()` after ATC, preventing the overlay from opening. Use soft assertions for overlay visibility so a Bloomreach-blocked Vans AU test records a failure without cascading to other storefronts.

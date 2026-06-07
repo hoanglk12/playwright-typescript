@@ -41,7 +41,7 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - `cart-smoke.spec.ts`: E2E-CART-001 (empty mini cart) + E2E-CART-002 (ATC count) + E2E-CART-003 (mini cart overlay opens) — 3 × 8 = 24 tests
 - **Shared helpers:** `tests/ecommerce/smoke/smoke-helpers.ts` exports `getPreferredNavLabel(site, preferMens)` and `navigateToPlp(navPage, plpPage, site, navLabel)` — used by cart, pdp, and plp smoke specs to reduce duplication
 - Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-004 through E2E-CART-011 remain
-- All specs use `test.describe.serial`; see [[ecommerce-pdp-page-gotchas]] for PDP/cart patterns
+- **Serial mode removed (2026-06-07):** All 6 smoke specs changed from `test.describe.serial` to `test.describe` — fixtures are test-scoped (each test gets its own browser context), so serial mode only added destructive cascade-skip behaviour with no benefit. See [[ecommerce-pdp-page-gotchas]] for PDP/cart patterns.
 
 **CAPTCHA solving integration (researched 2026-05-31, not yet implemented):**
 - Research report: `specs/captcha-solving-integration.html` — covers 2captcha official TS SDK, types: Cloudflare Turnstile, reCAPTCHA v2/v3, hCaptcha

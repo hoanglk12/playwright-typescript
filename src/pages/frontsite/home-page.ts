@@ -27,7 +27,7 @@ export class HomePage extends BasePage {
    */
   async navigateToHomePage(): Promise<void> {
     const env = getEnvironment();
-    await this.page.goto(env.frontSiteUrl);
+    await this.goto(env.frontSiteUrl);
     await this.waitForPageLoad();
   }
 
@@ -37,7 +37,7 @@ export class HomePage extends BasePage {
   async clickHamburgerMenu(): Promise<void> {
     await this.hamburgerMenuBtn.click();
     // Wait for side navigation links to appear after menu animation
-    await this.page.locator(this.sideNavLink).first().waitFor({ state: 'visible', timeout: 5000 });
+    await this.elements.locator(this.sideNavLink).first().waitFor({ state: 'visible', timeout: 5000 });
   }
 
   /**
@@ -45,7 +45,7 @@ export class HomePage extends BasePage {
    * Encapsulates the raw CSS selector inside the POM so tests remain selector-free.
    */
   async hoverNavigationLinks(): Promise<void> {
-    const links = this.page.locator(this.sideNavLink);
+    const links = this.elements.locator(this.sideNavLink);
     const count = await links.count();
     if (count > 0) {
       await links.first().hover();
@@ -61,7 +61,7 @@ export class HomePage extends BasePage {
 
   /** Locator for the first side-navigation link — use with toHaveCSS() assertion */
   get firstNavLink() {
-    return this.page.locator(this.sideNavLink).first();
+    return this.elements.locator(this.sideNavLink).first();
   }
 
   /**

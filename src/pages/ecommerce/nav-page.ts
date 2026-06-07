@@ -52,7 +52,7 @@ export class EcommerceNavPage extends BasePage {
 
   private async dismissBloomreachPopup(): Promise<void> {
     try {
-      const popup = this.page.locator(this.acquisitionPopupSelector);
+      const popup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await popup.count()) === 0) return;
       const closeBtn = popup.getByRole('button').first();
       if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {

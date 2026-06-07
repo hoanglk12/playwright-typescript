@@ -33,7 +33,7 @@ export class InsightsPage extends BasePage {
    * Navigate to Insights page
    */
   async navigateToInsightsPage(): Promise<void> {
-    await this.page.goto(`${this.environment.frontSiteUrl}/insights`);
+    await this.goto(`${this.environment.frontSiteUrl}/insights`);
     await this.waitForPageLoadState('domcontentloaded');
   }
 
@@ -49,7 +49,7 @@ export class InsightsPage extends BasePage {
     await this.searchInput.pressSequentially(searchText, { delay: 50 });
     await this.searchInput.press('Enter');
     // Wait for URL to update with searchText param — confirms search was submitted
-    await this.page.waitForURL(/searchText=/, { timeout: 10000 }).catch(() => {});
+    await this.waits.waitForUrlMatches(/searchText=/, 10000).catch(() => {});
   }
 
   /** Locator for search results container — use with toContainText() assertion */

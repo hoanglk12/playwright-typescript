@@ -2,7 +2,7 @@ import { test } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
 
-test.describe.serial('Ecommerce Homepage Smoke @ecommerce @smoke @homepage', () => {
+test.describe('Ecommerce Homepage Smoke @ecommerce @smoke @homepage', () => {
   // These SPA staging sites need extra time to hydrate, especially in Firefox
   test.slow();
 

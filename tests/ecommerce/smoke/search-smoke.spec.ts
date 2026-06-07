@@ -2,7 +2,7 @@ import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
 
-test.describe.serial('Ecommerce Search Smoke @ecommerce @smoke @search', () => {
+test.describe('Ecommerce Search Smoke @ecommerce @smoke @search', () => {
   test.slow();
 
   for (const [index, site] of storefronts.entries()) {

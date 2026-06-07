@@ -28,7 +28,7 @@ export class ProfileListingPage extends BasePage {
   private profileLinks(): Locator {
     return this.page
       .getByRole('link')
-      .and(this.page.locator('[href*="/people/"]'));
+      .and(this.elements.locator('[href*="/people/"]'));
   }
 
   /** Search input — matched by role or label */
@@ -45,7 +45,7 @@ export class ProfileListingPage extends BasePage {
    * Uses Playwright auto-waiting instead of waitForTimeout.
    */
   async navigateToProfileListingPage(): Promise<void> {
-    await this.page.goto(ProfileListingData.ProfileListingTestDataGenerator.profileListingUrl);
+    await this.goto(ProfileListingData.ProfileListingTestDataGenerator.profileListingUrl);
     await this.waitForPageLoadState('domcontentloaded');
     // Auto-wait: block until at least one profile link is visible (no hard wait)
     await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });

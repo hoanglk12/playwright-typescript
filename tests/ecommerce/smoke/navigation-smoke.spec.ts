@@ -8,7 +8,7 @@ const mensSites = storefronts.filter((s) => !!s.mensNavLabel);
 const kidsSites = storefronts.filter((s) => !!s.kidsNavLabel);
 const saleSites = storefronts.filter((s) => !!s.saleNavLabel);
 
-test.describe.serial('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => {
+test.describe('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => {
   // All sites require SPA hydration polling before link assertions — triple timeout covers the slowest staging site
   test.slow();
 

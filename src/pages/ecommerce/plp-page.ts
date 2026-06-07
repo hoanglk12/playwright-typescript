@@ -32,7 +32,7 @@ export class EcommercePLPPage extends BasePage {
   private async dismissOverlays(): Promise<void> {
     try {
       // Bloomreach acquisition popup has a <div> container (not <dialog>) — target it directly
-      const bloomreachPopup = this.page.locator(this.acquisitionPopupSelector);
+      const bloomreachPopup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await bloomreachPopup.count()) > 0) {
         const closeBtn = bloomreachPopup.getByRole('button').first();
         if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
@@ -50,7 +50,7 @@ export class EcommercePLPPage extends BasePage {
       }
 
       // Generic overlay fallback (non-Bloomreach modals)
-      const overlay = this.page.locator(this.overlaySelector).first();
+      const overlay = this.elements.locator(this.overlaySelector).first();
       if (!(await overlay.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false))) return;
 
       const dialog = this.page.getByRole('dialog').first();
@@ -103,7 +103,7 @@ export class EcommercePLPPage extends BasePage {
     await this.dismissOverlays();
 
     // Scan up to 6 candidates from `index` — sticky header can cover the first card's midpoint
-    const cards = this.page.locator(this.productCardLinkSelector);
+    const cards = this.elements.locator(this.productCardLinkSelector);
     const count = await cards.count();
 
     for (let i = index; i < Math.min(count, index + 6); i++) {
@@ -203,7 +203,7 @@ export class EcommercePLPPage extends BasePage {
     // Quick Add buttons. The form renders on top and blocks the click. We scan up to
     // 6 candidates starting at `index`, picking the first one that is the topmost
     // element at its own center (i.e. not covered by another element).
-    const btns = this.page.locator(this.quickAddBtnSelector);
+    const btns = this.elements.locator(this.quickAddBtnSelector);
     const count = await btns.count();
 
     for (let i = index; i < Math.min(count, index + 6); i++) {
