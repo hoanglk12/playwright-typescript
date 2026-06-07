@@ -24,7 +24,7 @@ export class FormDragAndDropPage extends BasePage {
    */
   async navigateToFormPage(): Promise<void> {
     //const env = getEnvironment();
-    await this.page.goto(DragAndDropData.formPageUrl);
+    await this.goto(DragAndDropData.formPageUrl);
     await this.waitForPageLoadState('domcontentloaded');
   }
   /**
@@ -32,19 +32,20 @@ export class FormDragAndDropPage extends BasePage {
    */
   async dragAndDropFile(filePath: string): Promise<void> {
     await this.waitForElementClickable(this.uploadFileElement);
-    const fileInput = this.page.locator(this.uploadFileElement);
+    const fileInput = this.elements.locator(this.uploadFileElement);
     await fileInput.setInputFiles(filePath);
   }
 
   async getUploadedFileName(): Promise<string> {
-    const fileNameElement = this.page.locator(this.fileName);
+    const fileNameElement = this.elements.locator(this.fileName);
     await fileNameElement.waitFor({ state: 'visible', timeout: 5000 });
     return await fileNameElement.textContent() || '';
   }
   async getAlertText(): Promise<string> {
+    // WHY: no WaitHelper equivalent for browser dialog events
     const dialog = await this.page.waitForEvent('dialog');
     return dialog.message();
-}
+  }
 
 }
 

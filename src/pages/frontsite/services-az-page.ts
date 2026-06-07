@@ -28,9 +28,13 @@ export class ServicesAZPage extends BasePage {
   /** Semantic role-based locator — avoids brittle aria-label attribute selectors */
   private readonly hamburgerMenuBtn: Locator;
   private readonly sideNavLink = '.side-navigation__link';
-  private readonly servicesExpandButton =
-    'nav li:has(> div > a[href="/en/services"]) button';
+  // WHY: scoped to the <li> containing the /en/services link so no structural chaining is needed;
+  // the button is the expand toggle beside the Services nav link (no accessible name on the element)
+  private readonly servicesNavToggle = this.page.getByRole('navigation').locator('li').filter({
+    has: this.page.locator('a[href="/en/services"]'),
+  }).getByRole('button');
   private readonly servicesAZLink = 'nav a[href="/en/services/services-a-z-list"]';
+  private readonly pageMainHeading = 'main h1';
 
   // ── A-Z page locators ─────────────────────────────────────────────
   /** Section heading for a given letter (e.g. <h2>D</h2>) — use with toBeInViewport() */
@@ -58,7 +62,7 @@ export class ServicesAZPage extends BasePage {
    * (e.g. the hamburger menu button) before any interaction.
    */
   async navigateToHomePage(): Promise<void> {
-    await this.page.goto(ServicesAZData.homePageUrl, {
+    await this.gotoWithOptions(ServicesAZData.homePageUrl, {
       waitUntil: 'domcontentloaded',
     });
     await this.hamburgerMenuBtn.waitFor({
@@ -71,7 +75,7 @@ export class ServicesAZPage extends BasePage {
    */
   async openHamburgerMenu(): Promise<void> {
     await this.hamburgerMenuBtn.click();
-    await this.page.locator(this.sideNavLink).first().waitFor({
+    await this.elements.locator(this.sideNavLink).first().waitFor({
       state: 'visible',
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
@@ -81,8 +85,8 @@ export class ServicesAZPage extends BasePage {
    * Expand the "Services" sub-menu inside the side navigation.
    */
   async expandServicesSubMenu(): Promise<void> {
-    await this.page.locator(this.servicesExpandButton).click();
-    await this.page.locator(this.servicesAZLink).waitFor({
+    await this.elements.clickLocator(this.servicesNavToggle);
+    await this.elements.locator(this.servicesAZLink).waitFor({
       state: 'visible',
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
@@ -93,11 +97,11 @@ export class ServicesAZPage extends BasePage {
    */
   async clickServicesAZLink(): Promise<void> {
     await Promise.all([
-      this.page.waitForLoadState('domcontentloaded', { timeout: TIMEOUTS.PAGE_LOAD }),
-      this.page.locator(this.servicesAZLink).click(),
+      this.waits.waitForPageLoadState('domcontentloaded', TIMEOUTS.PAGE_LOAD),
+      this.elements.locator(this.servicesAZLink).click(),
     ]);
     // Confirm we actually landed on the A-Z page
-    await this.page.locator('main h1').first().waitFor({
+    await this.elements.locator(this.pageMainHeading).first().waitFor({
       state: 'visible',
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
@@ -185,6 +189,7 @@ export class ServicesAZPage extends BasePage {
 
     // Poll until the heading enters the viewport (replaces fixed waitForTimeout).
     // waitForFunction re-evaluates until the predicate returns truthy.
+    // WHY: no WaitHelper equivalent for arbitrary JS polling
     const elementHandle = await heading.elementHandle();
     if (elementHandle) {
       await this.page.waitForFunction(
@@ -222,7 +227,7 @@ export class ServicesAZPage extends BasePage {
    * Get the page heading text to confirm we are on the correct page.
    */
   async getPageHeading(): Promise<string> {
-    const heading = this.page.locator('main h1').first();
+    const heading = this.elements.locator(this.pageMainHeading).first();
     await heading.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
     return (await heading.textContent())?.trim() || '';
   }

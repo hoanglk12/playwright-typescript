@@ -1,6 +1,6 @@
 // /**
 //  * GraphQL API Test Examples
-//  * 
+//  *
 //  * This file demonstrates comprehensive GraphQL testing patterns using the
 //  * Playwright TypeScript framework with GraphQL integration.
 //  */
@@ -8,6 +8,9 @@
 // import { apiTest as test } from '../../src/api/ApiTest';
 // import { expect } from '@playwright/test';
 // import { AuthType } from '../../src/api/ApiClient';
+
+// DEBT-003: When uncommenting, add this line after the last import (mandatory for all API specs):
+// test.describe.configure({ mode: 'serial' });
 
 // test.describe('GraphQL API Tests - Query Operations', () => {
   

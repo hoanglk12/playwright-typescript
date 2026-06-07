@@ -79,7 +79,7 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async getColourSwatchCount(): Promise<number> {
-    return this.page
+    return this.elements
       .locator(this.colorScrollerContainerSelector)
       .locator('.swiper-slide')
       .count();
@@ -87,7 +87,7 @@ export class EcommercePDPPage extends BasePage {
 
   private async dismissAcquisitionPopup(): Promise<void> {
     try {
-      const popup = this.page.locator(this.acquisitionPopupSelector);
+      const popup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await popup.count()) === 0) return;
       const closeBtn = popup.getByRole('button').first();
       if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
@@ -109,7 +109,7 @@ export class EcommercePDPPage extends BasePage {
   async clickColourSwatch(index: number): Promise<void> {
     await this.dismissAcquisitionPopup();
     const currentUrl = this.page.url();
-    const slides = this.page
+    const slides = this.elements
       .locator(this.colorScrollerContainerSelector)
       .locator('.swiper-slide');
     const count = await slides.count();
@@ -120,6 +120,7 @@ export class EcommercePDPPage extends BasePage {
       const absolute = href ? new URL(href, currentUrl).toString() : '';
       if (absolute !== currentUrl) {
         if (alternativeIndex === index) {
+          // WHY: React-router SPA; goto() triggers client routing that waits.waitForURL() cannot drive
           await this.page.goto(absolute, {
             waitUntil: 'domcontentloaded',
             timeout: TIMEOUTS.PAGE_LOAD_SLOW,
@@ -133,11 +134,13 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async waitForVariantNavigation(previousUrl: string): Promise<void> {
+    // WHY: no WaitHelper equivalent for function-predicate URL matching
     await this.page.waitForURL((url) => url.toString() !== previousUrl, {
       timeout: TIMEOUTS.PAGE_LOAD_SLOW,
     });
     await this.waitForPdpLoad();
     const selector = this.galleryImageSelector;
+    // WHY: no WaitHelper equivalent for arbitrary JS polling
     await this.page
       .waitForFunction(
         (sel) => {
@@ -171,6 +174,7 @@ export class EcommercePDPPage extends BasePage {
   async waitForGalleryImageChange(previousSrc: string): Promise<void> {
     if (!previousSrc) return;
     const selector = this.galleryImageSelector;
+    // WHY: no WaitHelper equivalent for arbitrary JS polling
     await this.page.waitForFunction(
       ({ sel, prev }) => {
         const imgs = Array.from(document.querySelectorAll(sel)) as HTMLImageElement[];

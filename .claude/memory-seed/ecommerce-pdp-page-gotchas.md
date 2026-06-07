@@ -67,7 +67,7 @@ The `waitForFunction` for gallery images inside `waitForVariantNavigation` must 
 - `waitForSizeButtonsToRender` → `TIMEOUTS.ELEMENT_VISIBLE` (10s local / 20s CI) — sizes render asynchronously post-PDP load.
 - `addToCart()` → `waitFor({ state: 'attached' })` before counting + `ELEMENT_VISIBLE` click timeout — React reconciliation transiently unmounts the ATC button after `selectSize()` under batch load.
 
-**Serial assertion rule:** assert delta (`initialCartCount + 1`), never absolute count (`1`). Serial tests share browser context.
+**Delta assertion rule:** assert delta (`initialCartCount + 1`), not absolute count (`1`). Read `getMiniCartCount()` before ATC, expect exactly one more after. Robust against any pre-existing items. (Note: smoke specs no longer use serial mode — each test gets a fresh browser context — but the delta pattern remains best practice.)
 
 **How to apply:** Capture `initialCartCount` before ATC, call `waitForMiniCartCountIncrement(initialCartCount)`, soft-assert delta.
 
