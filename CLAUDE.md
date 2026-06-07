@@ -656,6 +656,7 @@ Specialised sub-agents live in `.claude/agents/` and are invoked automatically b
 | `security-reviewer` | Scans for secrets, vulnerable deps, unsafe patterns, and CI permission issues |
 | `technical-research-agent` | Researches SDKs, integrations, upgrades, scalability — produces a structured Technical Research Report. No code edits. |
 | `technical-implementation-agent` | Implements approved technical changes from a Research Report (framework, config, deps, CI). Only runs after user approval. |
+| `technical-debt-agent` | Full codebase technical debt audit — architecture violations, TypeScript quality, dead code, API/ecommerce pattern drift. Produces TECH_DEBT_REPORT.md with A–F grade and remediation roadmap. |
 
 Use `qa-orchestrator` as the default entry point for any end-to-end QA workflow (plan → build → review → fix).
 
@@ -707,6 +708,7 @@ Invoke with `/skill-name` in conversation:
 | `/research` | Research a technical topic — produces a Technical Research Report |
 | `/implement` | Implement an approved Technical Research Report |
 | `/security-audit` | Run a security audit (severity-rated report) |
+| `/tech-debt` | Run a full technical debt audit — produces TECH_DEBT_REPORT.md |
 | `/security-review` | Security review of pending branch changes |
 | `/code-review` | Review changed code for reuse, quality, and efficiency |
 | `/run` | Launch and drive the project's app |
