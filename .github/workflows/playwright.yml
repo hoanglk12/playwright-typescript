@@ -48,9 +48,12 @@ on:
 env:
   TEST_ENV: ${{ inputs.environment || 'testing' }}
   TEST_MODE: ${{ inputs.mode || 'parallel' }}
-  TEST_WORKERS: ${{ inputs.workers || '4' }}  
+  TEST_WORKERS: ${{ inputs.workers || '4' }}
   TEST_BROWSER: ${{ inputs.browser || 'all' }}
   TEST_TYPE: ${{ inputs.test_type || 'both' }}
+
+permissions:
+  contents: read
 
 jobs:
   ui-test:

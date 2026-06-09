@@ -13,6 +13,37 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 
+// ── Local types ───────────────────────────────────────────────────────────────
+
+interface ProductVariant {
+  product: { sku: string; stock_status: string };
+}
+
+interface ProductItem {
+  sku: string;
+  stock_status: string;
+  __typename: string;
+  variants?: ProductVariant[];
+}
+
+interface CustomerAddress {
+  id: number;
+}
+
+interface ShippingAddress {
+  firstname: string;
+  lastname: string;
+  postcode: string;
+  street: string[];
+  available_shipping_methods?: ShippingMethod[];
+}
+
+interface ShippingMethod {
+  carrier_code: string;
+  method_code: string;
+  available: boolean;
+}
+
 // ── Module-level state ────────────────────────────────────────────────────────
 let customerToken: string = '';
 let cartId: string = '';
@@ -271,14 +302,14 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
     logger.step('Step 3 - Discover in-stock product SKU');
     for (const term of ['', 'shoe', 'nike', 'a']) {
       const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-      const items: any[] = productsData?.products?.items ?? [];
+      const items: ProductItem[] = productsData?.products?.items ?? [];
       for (const item of items) {
         if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
           validSku = item.sku;
           break;
         }
         if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          const v = item.variants.find((v: any) => v.product?.stock_status === 'IN_STOCK');
+          const v = item.variants.find((v: ProductVariant) => v.product?.stock_status === 'IN_STOCK');
           if (v) { validSku = v.product.sku; break; }
         }
         if (!validSku && item.sku) validSku = item.sku;
@@ -299,7 +330,7 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
     // ── 5. Find or create a saved address ─────────────────────────────────
     logger.step('Step 5 - Resolve saved customer address');
     const addrData = await (await authClient.queryWrapped(GET_CUSTOMER_ADDRESSES_QUERY)).getData();
-    const addresses: any[] = addrData?.customer?.addresses ?? [];
+    const addresses: CustomerAddress[] = addrData?.customer?.addresses ?? [];
 
     if (addresses.length > 0) {
       savedAddressId = addresses[0].id;
@@ -350,7 +381,7 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
     await response.assertHasData();
 
     const data = await response.getData();
-    const shippingAddresses: any[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
+    const shippingAddresses: ShippingAddress[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
 
     expect(shippingAddresses.length, 'shipping_addresses must not be empty').toBeGreaterThan(0);
     const addr = shippingAddresses[0];
@@ -389,7 +420,7 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
     await response.assertHasData();
 
     const data = await response.getData();
-    const shippingAddresses: any[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
+    const shippingAddresses: ShippingAddress[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
 
     expect(shippingAddresses.length, 'shipping_addresses must not be empty').toBeGreaterThan(0);
 
@@ -458,15 +489,15 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     logger.step('Step 1 - Query cart for available shipping methods');
     const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
-    const shippingAddrs: any[] = cartData?.cart?.shipping_addresses ?? [];
+    const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
 
     if (!shippingAddrs.length) {
       test.skip(true, 'No shipping address set on cart — skipping TC_05');
       return;
     }
 
-    const availableMethods: any[] = shippingAddrs[0]?.available_shipping_methods ?? [];
-    const firstAvailable = availableMethods.find((m: any) => m.available);
+    const availableMethods: ShippingMethod[] = shippingAddrs[0]?.available_shipping_methods ?? [];
+    const firstAvailable = availableMethods.find((m: ShippingMethod) => m.available);
 
     if (!firstAvailable) {
       test.skip(true, 'No available shipping methods — skipping TC_05');
@@ -504,14 +535,14 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     logger.step('Step 1 - Query cart for available shipping methods');
     const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
-    const shippingAddrs: any[] = cartData?.cart?.shipping_addresses ?? [];
+    const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
 
     if (!shippingAddrs.length) {
       test.skip(true, 'No shipping address on cart — skipping TC_06');
       return;
     }
 
-    const availableMethods: any[] = (shippingAddrs[0]?.available_shipping_methods ?? []).filter((m: any) => m.available);
+    const availableMethods: ShippingMethod[] = (shippingAddrs[0]?.available_shipping_methods ?? []).filter((m: ShippingMethod) => m.available);
 
     if (!availableMethods.length) {
       test.skip(true, 'No available shipping methods — skipping TC_06');

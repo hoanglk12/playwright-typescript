@@ -30,6 +30,29 @@ import { createTestLogger } from '../../src/utils/test-logger';
 import { LoyaltyRewardsData } from '../../src/data/api/pla-loyalty-rewards-data';
 import { signInAndStoreToken } from './api-test-helpers';
 
+// ── Local types ───────────────────────────────────────────────────────────────
+
+interface ProductVariant {
+  product: { sku: string; stock_status: string };
+}
+
+interface ProductItem {
+  sku: string;
+  stock_status: string;
+  __typename: string;
+  variants?: ProductVariant[];
+}
+
+interface CartItem {
+  id: number | string;
+  product: { sku: string };
+}
+
+interface UserError {
+  code: string;
+  message: string;
+}
+
 // ── Module-level state ────────────────────────────────────────────────────────
 let customerToken: string = '';
 let cartId: string = '';
@@ -218,7 +241,7 @@ test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
     const candidateSkus: string[] = [];
     for (const term of ['shoe', 'a', 'boot', '']) {
       const productsGql = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-      const items: any[] = productsGql?.products?.items ?? [];
+      const items: ProductItem[] = productsGql?.products?.items ?? [];
       for (const item of items) {
         if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
           candidateSkus.push(item.sku);
@@ -238,12 +261,12 @@ test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
         cartId,
         cartItems: [{ sku, quantity: 1 }],
       })).getGraphQLResponse();
-      const userErrors: any[] = addGql.data?.addProductsToCart?.user_errors ?? [];
+      const userErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
       if (!(addGql.errors?.length) && !userErrors.length) {
         addedSku = sku;
         // Capture the cart item ID so afterAll can remove it
-        const items: any[] = addGql.data?.addProductsToCart?.cart?.items ?? [];
-        const added = items.find((i: any) => i.product?.sku === sku);
+        const items: CartItem[] = addGql.data?.addProductsToCart?.cart?.items ?? [];
+        const added = items.find((i: CartItem) => i.product?.sku === sku);
         addedCartItemId = added?.id ? Number(added.id) : 0;
         break;
       }
@@ -268,7 +291,7 @@ test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
       // createEmptyCart reuses the existing customer cart, so repeated runs
       // would keep adding items to the same cart unless we clean up here.
       const itemsGql = await (await authClient.queryWrapped(GET_CART_ITEMS_QUERY, { cartId })).getData();
-      const items: any[] = itemsGql?.cart?.items ?? [];
+      const items: CartItem[] = itemsGql?.cart?.items ?? [];
       for (const item of items) {
         await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
           input: { cart_id: cartId, cart_item_id: Number(item.id) },
@@ -326,7 +349,7 @@ test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
     const gql = await response.getGraphQLResponse();
     const errorMsg = gql.errors?.[0]?.message ?? '';
-    const errorCategory = (gql.errors?.[0] as any)?.extensions?.category ?? '';
+    const errorCategory = gql.errors?.[0]?.extensions?.category ?? '';
 
     logger.verify('Error message present', true, errorMsg.length > 0);
     logger.verify('Error category', 'graphql-authorization', errorCategory);

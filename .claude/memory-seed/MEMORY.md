@@ -7,4 +7,4 @@
 - [Context Engineering Setup](project_context_engineering.md) — CLAUDE.md, skills, settings.json state as of 2026-04-22
 - [PLA API Testing](pla-api-testing.md) — 15 PLA GraphQL spec files, shared-state TestState singleton, signInAndStoreToken(), staging API quirks, api-scenarios-report.html
 - [Ecommerce PDP Page Gotchas](ecommerce-pdp-page-gotchas.md) — 9 patterns: Bloomreach popup (Vans AU), Dr. Martens gallery, dual-h1, swatch goto(), gallery wait, cart count (aria-label fast path + NETWORK_IDLE_SLOW + addToCart stabilisation), preferMens nav-label, Platypus AU nav pitfalls (MENS=socks), mini cart overlay detection (aside/complementary + fixed/absolute + CTA gate)
-- [Technical Debt Phase 1](technical_debt_phase1.md) — DEBT-001–005 fixed (2026-06-07); DEBT-002 api-mocking-examples.spec.ts blocked (needs file relocation); Phase 2/3 open
+- [Technical Debt Status](technical_debt_phase1.md) — All Critical + Warning items resolved (Phases 1–3, 2026-06-09); only Suggestions remain (DEBT-013 dep bumps, DEBT-014 delete dead spec, DEBT-015 npm audit)

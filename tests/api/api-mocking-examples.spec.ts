@@ -1,7 +1,15 @@
+// WHY: This file drives a real browser via the `page` fixture (page.goto, page.textContent, etc.)
+// and uses ApiMockHelper/ApiMockService for route-level mocking on top of a browser context.
+// It belongs in tests/frontsite/ or tests/ecommerce/ (UI-mocking test, not a pure API test).
+// Importing from ApiTest would break all tests because ApiTest exposes no `page` fixture.
+// TODO: Relocate this file to tests/frontsite/api-mocking-examples.spec.ts and update the import
+// to `import { test, expect } from '@config/base-test'` (which it already uses correctly for UI tests).
 import { test, expect } from '@config/base-test';
 import { ApiMockHelper } from '../../src/utils/api-mock-helper';
 import { ApiMockService } from '../../src/api/ApiMockService';
 import { MockDataGenerators } from '../../src/data/api/mock-data';
+
+test.describe.configure({ mode: 'serial' });
 
 test.describe('API Mocking Examples', () => {
   

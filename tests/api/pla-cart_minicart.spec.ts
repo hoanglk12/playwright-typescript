@@ -23,6 +23,35 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 
+// ── Local types ───────────────────────────────────────────────────────────────
+
+interface ProductVariant {
+  product: { sku: string; stock_status: string; __typename: string };
+}
+
+interface ProductItem {
+  sku: string;
+  stock_status: string;
+  __typename: string;
+  variants?: ProductVariant[];
+}
+
+interface CartItem {
+  id: number;
+  quantity: number;
+  product: { sku: string; __typename: string };
+}
+
+interface UserError {
+  code: string;
+  message: string;
+}
+
+interface PaymentMethod {
+  code: string;
+  title: string;
+}
+
 // ── Module-level state ────────────────────────────────────────────────────────
 let customerToken: string = '';
 export let cartId: string = '';
@@ -182,7 +211,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
       const productsResponse = await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term });
 
       const productsData = await productsResponse.getData();
-      const items: any[] = productsData?.products?.items ?? [];
+      const items: ProductItem[] = productsData?.products?.items ?? [];
 
       for (const item of items) {
         if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
@@ -191,7 +220,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
         }
         if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
           const inStockVariant = item.variants.find(
-            (v: any) => v.product?.stock_status === 'IN_STOCK'
+            (v: ProductVariant) => v.product?.stock_status === 'IN_STOCK'
           );
           if (inStockVariant) {
             validSku = inStockVariant.product.sku;
@@ -413,11 +442,11 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     softExpect(data.cart.applied_multiple_rewards).toBeNull();
     softExpect(data.cart.applied_coupons).toBeNull();
 
-    const paymentMethodCodes = data.cart.available_payment_methods.map((m: any) => m.code);
+    const paymentMethodCodes = data.cart.available_payment_methods.map((m: PaymentMethod) => m.code);
     const expectedCodes = ['checkmo', 'braintree_applepay', 'free', 'braintree', 'braintree_paypal'];
     softExpect(paymentMethodCodes).toEqual(expect.arrayContaining(expectedCodes));
 
-    const paymentMethodTitles = data.cart.available_payment_methods.map((m: any) => m.title);
+    const paymentMethodTitles = data.cart.available_payment_methods.map((m: PaymentMethod) => m.title);
     const expectedTitles = ['Check / Money order', 'Apple Pay', 'No Payment Information Required', 'Credit or Debit Card', 'PayPal'];
     softExpect(paymentMethodTitles).toEqual(expect.arrayContaining(expectedTitles));
 
@@ -486,14 +515,14 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     const data = await response.getData();
     const cartData = data.addProductsToCart?.cart;
-    const userErrors: any[] = data.addProductsToCart?.user_errors ?? [];
+    const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
 
     logger.verify('No user_errors', 0, userErrors.length);
     expect(userErrors).toHaveLength(0);
     expect(cartData).toBeDefined();
     expect(cartData.items.length).toBeGreaterThan(0);
 
-    const addedItem = cartData.items.find((i: any) => i.product.sku === validSku);
+    const addedItem = cartData.items.find((i: CartItem) => i.product.sku === validSku);
     expect(addedItem).toBeDefined();
 
     cartItemId = addedItem!.id;
@@ -524,7 +553,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     await response.assertHasData();
 
     const data = await response.getData();
-    const userErrors: any[] = data.addProductsToCart?.user_errors ?? [];
+    const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
 
     logger.verify('user_errors present', true, userErrors.length > 0);
     expect(userErrors.length).toBeGreaterThan(0);
@@ -577,11 +606,11 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     await response.assertHasData();
 
     const data = await response.getData();
-    const userErrors: any[] = data.addProductsToCart?.user_errors ?? [];
+    const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
     expect(userErrors).toHaveLength(0);
 
     const cartData = data.addProductsToCart?.cart;
-    const item = cartData.items.find((i: any) => i.product.sku === validSku);
+    const item = cartData.items.find((i: CartItem) => i.product.sku === validSku);
     expect(item).toBeDefined();
 
     cartItemId = item!.id;
@@ -619,7 +648,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     const data = await response.getData();
     const cartData = data.updateCartItems?.cart;
-    const updatedItem = cartData?.items?.find((i: any) => i.id === cartItemId);
+    const updatedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
 
     expect(updatedItem).toBeDefined();
     logger.verify('Quantity increased', CartOperationsData.increasedQuantity, updatedItem!.quantity);
@@ -652,7 +681,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     const data = await response.getData();
     const cartData = data.updateCartItems?.cart;
-    const updatedItem = cartData?.items?.find((i: any) => i.id === cartItemId);
+    const updatedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
 
     expect(updatedItem).toBeDefined();
     logger.verify('Quantity decreased', CartOperationsData.decreasedQuantity, updatedItem!.quantity);
@@ -681,8 +710,8 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     logger.step('Step 2 - Assert item removed or validation error returned');
     const graphqlResponse = await response.getGraphQLResponse();
     const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
-    const cartItems: any[] = graphqlResponse.data?.updateCartItems?.cart?.items ?? [];
-    const itemRemoved = !hasGqlErrors && !cartItems.find((i: any) => i.id === cartItemId);
+    const cartItems: CartItem[] = graphqlResponse.data?.updateCartItems?.cart?.items ?? [];
+    const itemRemoved = !hasGqlErrors && !cartItems.find((i: CartItem) => i.id === cartItemId);
 
     logger.verify('Item removed or error returned for qty=0', true, hasGqlErrors || itemRemoved);
     expect(hasGqlErrors || itemRemoved).toBe(true);
@@ -696,7 +725,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
       });
       const reAddData = await reAddResponse.getData();
       const reAddedItem = reAddData.addProductsToCart?.cart?.items?.find(
-        (i: any) => i.product.sku === validSku
+        (i: CartItem) => i.product.sku === validSku
       );
       if (reAddedItem) {
         cartItemId = reAddedItem.id;
@@ -732,7 +761,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     const data = await response.getData();
     const cartData = data.removeItemFromCart?.cart;
-    const removedItem = cartData?.items?.find((i: any) => i.id === cartItemId);
+    const removedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
 
     logger.verify('Item absent from cart after removal', undefined, removedItem);
     expect(removedItem).toBeUndefined();

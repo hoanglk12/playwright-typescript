@@ -32,6 +32,9 @@ env:
   NODE_VERSION: '22'
   LHCI_RUNS: ${{ inputs.number_of_runs || '3' }}
 
+permissions:
+  contents: read
+
 jobs:
   lighthouse-audit:
     name: Lighthouse Audit (E-commerce Storefronts)

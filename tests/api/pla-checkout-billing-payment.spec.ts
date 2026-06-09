@@ -13,6 +13,30 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 
+// ── Local types ───────────────────────────────────────────────────────────────
+
+interface ProductVariant {
+  product: { sku: string; stock_status: string };
+}
+
+interface ProductItem {
+  sku: string;
+  stock_status: string;
+  __typename: string;
+  variants?: ProductVariant[];
+}
+
+interface ShippingMethod {
+  carrier_code: string;
+  method_code: string;
+  available: boolean;
+}
+
+interface PaymentMethod {
+  code: string;
+  title: string;
+}
+
 // ── Module-level state ────────────────────────────────────────────────────────
 let customerToken: string = '';
 let cartId: string = '';
@@ -214,14 +238,14 @@ test.describe('PLA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     let validSku: string = '';
     for (const term of ['', 'shoe', 'nike', 'a']) {
       const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-      const items: any[] = productsData?.products?.items ?? [];
+      const items: ProductItem[] = productsData?.products?.items ?? [];
       for (const item of items) {
         if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
           validSku = item.sku;
           break;
         }
         if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          const v = item.variants.find((v: any) => v.product?.stock_status === 'IN_STOCK');
+          const v = item.variants.find((v: ProductVariant) => v.product?.stock_status === 'IN_STOCK');
           if (v) { validSku = v.product.sku; break; }
         }
         if (!validSku && item.sku) validSku = item.sku;
@@ -254,8 +278,8 @@ test.describe('PLA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     } else {
       // ── 6. Set first available shipping method ─────────────────────────
       logger.step('Step 6 - Set first available shipping method');
-      const availableMethods: any[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
-      const firstAvailable = availableMethods.find((m: any) => m.available);
+      const availableMethods: ShippingMethod[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
+      const firstAvailable = availableMethods.find((m: ShippingMethod) => m.available);
 
       if (firstAvailable) {
         const { carrier_code, method_code } = firstAvailable;
@@ -280,8 +304,8 @@ test.describe('PLA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     logger.step('Step 7 - Query available payment methods');
     try {
       const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId })).getData();
-      const methods: any[] = paymentData?.cart?.available_payment_methods ?? [];
-      availablePaymentMethods = methods.map((m: any) => m.code);
+      const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
+      availablePaymentMethods = methods.map((m: PaymentMethod) => m.code);
       logger.action('Available payment methods', availablePaymentMethods.join(', ') || 'none');
     } catch {
       logger.action('Payment methods query failed', 'may be unavailable without shipping method');

@@ -25,6 +25,9 @@ on:
           - staging
           - production
 
+permissions:
+  contents: read
+
 jobs:
   api-tests:
     runs-on: ubuntu-latest

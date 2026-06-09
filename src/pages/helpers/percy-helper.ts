@@ -28,6 +28,7 @@ export class PercyHelper {
     try {
       await percySnapshot(this.page, name, options);
     } catch (err) {
+      // WHY: helper layer has no test context; console is the only available channel here
       console.warn(`⚠️  Percy snapshot failed for "${name}": ${err}`);
     }
   }

@@ -2,6 +2,7 @@ import { Page, Locator } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { getEnvironment } from '../../config/environment';
 import { AdminTestData } from '../../data/admin-data';
+import { TIMEOUTS } from '../../constants/timeouts';
 
 /**
  * BankGuru Home Page
@@ -36,7 +37,7 @@ export class LoginPage extends BasePage {
    */
   async navigateToCMSLoginPage(): Promise<void> {
     const env = getEnvironment();
-    await this.page.goto(env.adminUrl);
+    await this.goto(env.adminUrl);
     await this.waitForPageLoad(); // networkidle — ensures all JS has settled
   }
 
@@ -71,7 +72,7 @@ export class LoginPage extends BasePage {
    */
   async isHomeIconDisplayed(): Promise<boolean> {
     try {
-      await this.homeIcon.waitFor({ state: 'visible', timeout: 10000 });
+      await this.homeIcon.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
       return await this.homeIcon.isVisible();
     } catch {
       return false;
@@ -89,7 +90,7 @@ async getErrorMessageFromPopup(): Promise<string | null> {
     
     
     // Wait for popup to appear
-    await this.errorPopup.waitFor({ state: 'visible', timeout: 5000 });
+    await this.errorPopup.waitFor({ state: 'visible', timeout: TIMEOUTS.DIALOG_DISMISS });
     
     // Get the text content of the popup
     const popupText = await this.errorPopup.textContent();

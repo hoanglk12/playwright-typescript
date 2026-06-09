@@ -124,9 +124,9 @@ await graphqlClient.queryWrapped(`query { user(id: "${id}") { name } }`);
 PLA staging has broken `price_range` data on some products. Catalog queries must use `assertNoCriticalErrors()` instead of `response.assertNoErrors()`:
 
 ```ts
-function assertNoCriticalErrors(gql: { errors?: any[] }): void {
+function assertNoCriticalErrors(gql: { errors?: Array<{ path?: unknown }> }): void {
   const criticalErrors = (gql.errors ?? []).filter(
-    (e: any) => !(Array.isArray(e.path) && e.path.includes('price_range')),
+    (e) => !(Array.isArray(e.path) && (e.path as string[]).includes('price_range')),
   );
   expect(criticalErrors, 'unexpected GraphQL errors').toHaveLength(0);
 }
