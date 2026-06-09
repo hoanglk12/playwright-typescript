@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CloakBrowser Integration Plan</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222636;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141824;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #232842 100%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(108,99,255,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.4rem;
+    }
+    .header .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(108,99,255,0.2);
+      color: #a5a0ff;
+      border: 1px solid rgba(108,99,255,0.35);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.7rem;
+      margin-top: 0.8rem;
+      margin-right: 0.4rem;
+      letter-spacing: 0.03em;
+    }
+    .badge.green {
+      background: rgba(0,212,170,0.15);
+      color: #5eead4;
+      border-color: rgba(0,212,170,0.3);
+    }
+
+    /* Sections */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .section h2 .icon {
+      width: 28px; height: 28px;
+      background: rgba(108,99,255,0.2);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .section h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #c4cae0;
+      margin: 1.2rem 0 0.6rem;
+    }
+    p { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+    p strong { color: var(--text); }
+
+    /* CAPTCHA coverage table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+    th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid rgba(46,50,80,0.5);
+      vertical-align: top;
+      color: var(--muted);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(108,99,255,0.04); }
+    td:first-child { color: var(--text); font-weight: 500; }
+    .check { color: #22d3ee; font-weight: 700; }
+
+    /* Code blocks */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.25rem;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+    .filename {
+      display: inline-block;
+      background: var(--surface2);
+      color: var(--accent2);
+      font-family: monospace;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 0.4rem;
+      border: 1px solid var(--border);
+    }
+    .filename.new::after {
+      content: ' NEW';
+      color: #22d3ee;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    /* Keyword highlighting */
+    .kw { color: #c792ea; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .fn { color: #82aaff; }
+    .num { color: #f78c6c; }
+    .type { color: #ffcb6b; }
+
+    /* Scope rule box */
+    .scope-rule {
+      background: rgba(0,212,170,0.08);
+      border-left: 3px solid var(--accent2);
+      border-radius: 0 8px 8px 0;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.88rem;
+      color: #5eead4;
+      margin: 1rem 0;
+    }
+    .scope-rule strong { color: #a7f3d0; }
+
+    /* Risk table */
+    .risk-tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+    .risk-low { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .risk-med { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+    /* No-change list */
+    .no-change-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .no-change-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .no-change-item::before { content: '✓'; color: #4ade80; font-weight: 700; }
+
+    /* Verify steps */
+    .verify-steps { list-style: none; margin-top: 0.5rem; }
+    .verify-steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(46,50,80,0.4);
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+    .verify-steps li:last-child { border-bottom: none; }
+    .step-num {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      background: rgba(108,99,255,0.2);
+      color: #a5a0ff;
+      border-radius: 50%;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Note box */
+    .note {
+      background: rgba(245,158,11,0.08);
+      border-left: 3px solid var(--warn);
+      border-radius: 0 8px 8px 0;
+      padding: 0.8rem 1rem;
+      font-size: 0.85rem;
+      color: #fde68a;
+      margin: 1rem 0;
+    }
+    .note strong { color: #fbbf24; }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>CloakBrowser Integration Plan</h1>
+    <p class="subtitle">Playwright TypeScript Framework · CAPTCHA Bypass for Authorized Testing</p>
+    <span class="badge">Single Scenario Scope</span>
+    <span class="badge">Chromium Only</span>
+    <span class="badge green">MIT Licensed</span>
+    <span class="badge green">Zero Test Changes</span>
+  </div>
+
+  <!-- Context -->
+  <div class="section">
+    <h2><span class="icon">📋</span> Context</h2>
+    <p>
+      Standard Playwright Chromium leaks automation signals — CDP flags, canvas fingerprint, WebGL, audio context,
+      hardware emulation — causing bot detectors to block or challenge it. CloakBrowser is a custom Chromium build
+      with <strong>58 source-level C++ stealth patches</strong> that make the browser indistinguishable from human-driven Chrome.
+    </p>
+    <div class="scope-rule">
+      <strong>Scope rule:</strong> Only the one test scenario that hits a CAPTCHA-protected flow uses CloakBrowser.
+      All other specs, Firefox runs, and API tests remain completely untouched.
+    </div>
+    <div class="note">
+      <strong>Note:</strong> CloakBrowser <em>prevents</em> CAPTCHAs from being triggered — it does not solve existing ones.
+      If CAPTCHA can be disabled in your QA/staging environment (via Google's test site keys), that is the cleaner first option.
+      Use CloakBrowser for staging/production smoke tests where CAPTCHA cannot be turned off.
+    </div>
+  </div>
+
+  <!-- CAPTCHA Coverage -->
+  <div class="section">
+    <h2><span class="icon">🛡️</span> CAPTCHA &amp; Bot Detector Coverage</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>System</th>
+          <th>How it detects bots</th>
+          <th>CloakBrowser fix</th>
+          <th>Covered</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>reCAPTCHA v3</td>
+          <td>Score-based; Playwright scores ~0.1</td>
+          <td>Achieves ~0.9 (human-level)</td>
+          <td><span class="check">✓</span></td>
+        </tr>
+        <tr>
+          <td>reCAPTCHA v2</td>
+          <td>Checkbox / image challenge via fingerprint</td>
+          <td>Prevents challenge from appearing</td>
+          <td><span class="check">✓</span></td>
+        </tr>
+        <tr>
+          <td>Cloudflare Turnstile</td>
+          <td>JS challenge + TLS fingerprint</td>
+          <td>Bypassed via patched Chromium binary</td>
+          <td><span class="check">✓</span></td>
+        </tr>
+        <tr>
+          <td>hCaptcha</td>
+          <td>Fingerprint + behavior analysis</td>
+          <td>Prevents challenge from appearing</td>
+          <td><span class="check">✓</span></td>
+        </tr>
+        <tr>
+          <td>DataDome</td>
+          <td>Real-time JS fingerprinting</td>
+          <td>Indistinguishable from human Chrome</td>
+          <td><span class="check">✓</span></td>
+        </tr>
+        <tr>
+          <td>PerimeterX / HUMAN</td>
+          <td>Bot detection via browser signals</td>
+          <td>Bypassed via 58 binary patches</td>
+          <td><span class="check">✓</span></td>
+        </tr>
+        <tr>
+          <td>FingerprintJS</td>
+          <td>Canvas, audio, WebGL, fonts</td>
+          <td>All patched at C++ compilation level</td>
+          <td><span class="check">✓</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Approach -->
+  <div class="section">
+    <h2><span class="icon">🏗️</span> Architecture</h2>
+    <p>
+      Create a self-contained <code>cloakPage</code> fixture that spins up a CloakBrowser instance, creates a page,
+      and tears everything down after the test. The one test scenario that needs CAPTCHA bypass imports this fixture.
+      <strong>No changes to <code>base-test.ts</code>, <code>playwright.config.ts</code>, or any other test file.</strong>
+    </p>
+
+    <!-- File 1 -->
+    <h3>1 · package.json — add optional dependency</h3>
+    <pre><span class="cmt">// optionalDependencies so CI doesn't break if it can't install</span>
+<span class="str">"optionalDependencies"</span>: {
+  <span class="str">"cloakbrowser"</span>: <span class="str">"latest"</span>
+}</pre>
+
+    <!-- File 2 -->
+    <h3>2 · src/config/cloak-test.ts — new fixture file</h3>
+    <span class="filename new">src/config/cloak-test.ts</span>
+    <pre><span class="kw">import</span> { <span class="type">test as base</span>, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> { <span class="type">Browser</span>, <span class="type">BrowserContext</span>, <span class="type">Page</span> } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">type</span> <span class="type">CloakFixtures</span> = {
+  cloakBrowser: <span class="type">Browser</span>;
+  cloakContext: <span class="type">BrowserContext</span>;
+  cloakPage: <span class="type">Page</span>;
+};
+
+<span class="kw">export const</span> test = base.extend&lt;<span class="type">CloakFixtures</span>&gt;({
+  cloakBrowser: [<span class="kw">async</span> ({}, use) =&gt; {
+    <span class="kw">let</span> browser: <span class="type">Browser</span>;
+    <span class="kw">try</span> {
+      <span class="kw">const</span> { launch } = <span class="kw">await import</span>(<span class="str">'cloakbrowser'</span>);
+      browser = <span class="kw">await</span> <span class="fn">launch</span>({
+        headless: process.env.HEADLESS !== <span class="str">'false'</span>
+      }) <span class="kw">as unknown as</span> <span class="type">Browser</span>;
+    } <span class="kw">catch</span> {
+      <span class="kw">throw new</span> <span class="fn">Error</span>(
+        <span class="str">'CloakBrowser not installed. Run: npm install cloakbrowser\n'</span> +
+        <span class="str">'Required for CAPTCHA-bypass tests.'</span>
+      );
+    }
+    <span class="kw">await</span> <span class="fn">use</span>(browser);
+    <span class="kw">await</span> browser.<span class="fn">close</span>();
+  }, { scope: <span class="str">'test'</span> }],
+
+  cloakContext: <span class="kw">async</span> ({ cloakBrowser }, use) =&gt; {
+    <span class="kw">const</span> context = <span class="kw">await</span> cloakBrowser.<span class="fn">newContext</span>();
+    <span class="kw">await</span> <span class="fn">use</span>(context);
+    <span class="kw">await</span> context.<span class="fn">close</span>();
+  },
+
+  cloakPage: <span class="kw">async</span> ({ cloakContext }, use) =&gt; {
+    <span class="kw">const</span> page = <span class="kw">await</span> cloakContext.<span class="fn">newPage</span>();
+    <span class="kw">await</span> <span class="fn">use</span>(page);
+    <span class="kw">await</span> page.<span class="fn">close</span>();
+  },
+});
+
+<span class="kw">export</span> { expect };</pre>
+
+    <!-- File 3 -->
+    <h3>3 · The single CAPTCHA test — import swap only</h3>
+    <span class="filename">tests/&lt;area&gt;/your-captcha-test.spec.ts</span>
+    <pre><span class="cmt">// Change this one import line in the affected spec file:</span>
+<span class="cmt">// Before:</span>
+<span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@config/base-test'</span>;
+
+<span class="cmt">// After:</span>
+<span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@config/cloak-test'</span>;
+
+<span class="cmt">// Use cloakPage instead of page in that one test:</span>
+test(<span class="str">'TC_XX - Description @smoke'</span>, <span class="kw">async</span> ({ cloakPage }) =&gt; {
+  <span class="kw">await</span> cloakPage.<span class="fn">goto</span>(<span class="str">'https://protected-site.com/flow'</span>);
+  <span class="cmt">// standard Playwright API — identical to page.* calls</span>
+});</pre>
+
+    <div class="note">
+      <strong>Need page objects too?</strong> If the CAPTCHA test also uses fixtures from <code>base-test.ts</code>
+      (e.g. <code>homePage</code>), extend <code>base-test</code> instead of <code>@playwright/test</code> at the top
+      of <code>cloak-test.ts</code>: <code>import { test as base } from '@config/base-test'</code>.
+    </div>
+  </div>
+
+  <!-- What doesn't change -->
+  <div class="section">
+    <h2><span class="icon">🔒</span> What Does NOT Change</h2>
+    <div class="no-change-list">
+      <div class="no-change-item">playwright.config.ts</div>
+      <div class="no-change-item">src/config/base-test.ts</div>
+      <div class="no-change-item">All other spec files</div>
+      <div class="no-change-item">All page objects &amp; helpers</div>
+      <div class="no-change-item">Firefox &amp; WebKit runs</div>
+      <div class="no-change-item">API tests (api.config.ts)</div>
+      <div class="no-change-item">Docker image &amp; CI workflow</div>
+      <div class="no-change-item">Timeouts, logger, softAssert</div>
+    </div>
+  </div>
+
+  <!-- Risks -->
+  <div class="section">
+    <h2><span class="icon">⚠️</span> Known Constraints &amp; Risks</h2>
+    <table>
+      <thead>
+        <tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>TypeScript type mismatch between <code>cloakbrowser</code> and Playwright types</td>
+          <td><span class="risk-low">LOW</span></td>
+          <td><code>as unknown as Browser</code> cast — APIs are identical</td>
+        </tr>
+        <tr>
+          <td>Binary not installed in CI</td>
+          <td><span class="risk-med">MEDIUM</span></td>
+          <td><code>optionalDependencies</code> + clear error message; CAPTCHA test fails fast</td>
+        </tr>
+        <tr>
+          <td>~200 MB binary download on first run</td>
+          <td><span class="risk-low">LOW</span></td>
+          <td>Cache <code>node_modules/cloakbrowser/</code> via <code>actions/cache</code></td>
+        </tr>
+        <tr>
+          <td>New browser per test adds ~1–2s overhead</td>
+          <td><span class="risk-low">LOW</span></td>
+          <td>Acceptable for single scenario; switch to <code>scope: 'worker'</code> if needed</td>
+        </tr>
+        <tr>
+          <td>Binary download blocked in restricted network</td>
+          <td><span class="risk-med">MEDIUM</span></td>
+          <td>Pre-download locally; use <code>launch({ executablePath: process.env.CLOAKBROWSER_PATH })</code></td>
+        </tr>
+        <tr>
+          <td>CloakBrowser is Chromium only — no Firefox</td>
+          <td><span class="risk-low">LOW</span></td>
+          <td>Firefox tests continue using standard Playwright, unaffected</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Verification -->
+  <div class="section">
+    <h2><span class="icon">✅</span> Verification Steps</h2>
+    <ul class="verify-steps">
+      <li>
+        <span class="step-num">1</span>
+        <span>Run <code>npm install</code> — confirm <code>cloakbrowser</code> installs and binary auto-downloads (~200 MB first time)</span>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <span>Run the CAPTCHA test in isolation: <code>npx playwright test --grep "TC_XX"</code> — confirm it passes without triggering a CAPTCHA or bot block</span>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <span>Run the full suite normally — confirm all other tests pass unchanged and no new failures introduced</span>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <span>Run <code>npm run lint</code> — confirm zero TypeScript errors in <code>cloak-test.ts</code> and the modified spec file</span>
+      </li>
+      <li>
+        <span class="step-num">5</span>
+        <span>Check test trace or logs — CloakBrowser Chromium version should appear, distinct from standard Playwright Chromium</span>
+      </li>
+    </ul>
+  </div>
+
+  <footer>
+    CloakBrowser Integration Plan · Playwright TypeScript Framework · For authorized testing use only
+  </footer>
+
+</div>
+</body>
+</html>
