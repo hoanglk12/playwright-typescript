@@ -28,6 +28,7 @@ export class WaitHelper {
     try {
       await this.page.waitForLoadState("networkidle", { timeout: TIMEOUTS.PAGE_LOAD_FAST });
     } catch {
+      // WHY: helper layer has no test context; console is the only available channel here
       console.warn(
         `⚠️  networkidle not reached after ${TIMEOUTS.PAGE_LOAD_FAST}ms; continuing. URL: ${this.getPageContext()}`
       );
@@ -46,6 +47,7 @@ export class WaitHelper {
       await this.page.waitForLoadState("networkidle", { timeout });
     } catch {
       const msg = `⚠️  Network idle timeout after ${timeout}ms. URL: ${this.getPageContext()}`;
+      // WHY: helper layer has no test context; console is the only available channel here
       console.warn(msg);
       if (throwOnTimeout) throw new Error(msg);
     }
@@ -150,6 +152,7 @@ export class WaitHelper {
       );
     } catch {
       const msg = `⚠️  Timeout waiting for AJAX request: ${urlPattern}`;
+      // WHY: helper layer has no test context; console is the only available channel here
       console.warn(msg);
       throw new Error(msg);
     }
@@ -182,6 +185,7 @@ export class WaitHelper {
         if (Date.now() - startTime > timeout) {
           const pendingList = [...pending];
           const msg = `⚠️  AJAX timeout after ${timeout}ms. ${pendingList.length} request(s) pending. URL: ${this.getPageContext()}. Pending: ${pendingList.join(", ")}`;
+          // WHY: helper layer has no test context; console is the only available channel here
           console.warn(msg);
           if (throwOnTimeout) throw new Error(msg);
           break;
@@ -231,6 +235,7 @@ export class WaitHelper {
       if (!visible) return;
       await this.sleep(100);
     }
+    // WHY: helper layer has no test context; console is the only available channel here
     console.warn("⚠️  Timeout waiting for spinners to disappear");
   }
 

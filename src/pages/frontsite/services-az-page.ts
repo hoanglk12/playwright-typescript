@@ -132,6 +132,7 @@ export class ServicesAZPage extends BasePage {
     const letters: LetterInfo[] = [];
 
     for (const char of alphabet) {
+      // WHY: `char` is a loop variable — this locator is built dynamically per letter and cannot be a class field
       const loc = this.page.locator(`a`).filter({ hasText: new RegExp(`^${char.toLowerCase()}$|^${char}$`) }).and(
         this.page.locator(`a[href="#"]`)
       );

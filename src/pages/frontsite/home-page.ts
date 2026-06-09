@@ -1,6 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { getEnvironment } from '../../config/environment';
+import { TIMEOUTS } from '../../constants/timeouts';
 
 /**
  * Home Page Object
@@ -37,7 +38,7 @@ export class HomePage extends BasePage {
   async clickHamburgerMenu(): Promise<void> {
     await this.hamburgerMenuBtn.click();
     // Wait for side navigation links to appear after menu animation
-    await this.elements.locator(this.sideNavLink).first().waitFor({ state: 'visible', timeout: 5000 });
+    await this.elements.locator(this.sideNavLink).first().waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
   }
 
   /**

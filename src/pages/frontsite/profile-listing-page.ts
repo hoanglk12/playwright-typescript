@@ -1,6 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 import { BasePage } from '../base-page';
 import * as ProfileListingData from '../../data/profile-listing-data';
+import { TIMEOUTS } from '../../constants/timeouts';
 
 /**
  * Profile Listing Page Object
@@ -48,7 +49,7 @@ export class ProfileListingPage extends BasePage {
     await this.goto(ProfileListingData.ProfileListingTestDataGenerator.profileListingUrl);
     await this.waitForPageLoadState('domcontentloaded');
     // Auto-wait: block until at least one profile link is visible (no hard wait)
-    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: TIMEOUTS.TIMEOUT_LONG });
   }
 
   /**
@@ -57,7 +58,7 @@ export class ProfileListingPage extends BasePage {
    */
   async selectSortByDropDownWithSurname(): Promise<void> {
     const dropdown = this.sortByDropdown();
-    await dropdown.waitFor({ state: 'visible', timeout: 10000 });
+    await dropdown.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
     await dropdown.selectOption({ label: ProfileListingData.SortData.SORT_BY_SURNAME.SURNAME });
 
     // Ensure ascending order is selected — use getByText (playwright-expert: semantic, matches any element type)
@@ -72,7 +73,7 @@ export class ProfileListingPage extends BasePage {
 
     // Auto-wait for AJAX + first profile link to re-appear after sort change
     await this.waitForAjaxRequestsComplete();
-    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 15000 });
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD_FAST });
   }
 
   /**
@@ -81,7 +82,7 @@ export class ProfileListingPage extends BasePage {
    */
   async getSelectedSortByLabel(): Promise<string> {
     const dropdown = this.sortByDropdown();
-    await dropdown.waitFor({ state: 'visible', timeout: 10000 });
+    await dropdown.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
     const text = await dropdown.evaluate((el: HTMLSelectElement) => {
       const selected = el.selectedOptions[0];
       return selected ? (selected.textContent ?? '').trim() : '';
@@ -95,7 +96,7 @@ export class ProfileListingPage extends BasePage {
    */
   async searchWithKeyword(keyword: string): Promise<void> {
     const input = this.searchInput();
-    await input.waitFor({ state: 'visible', timeout: 10000 });
+    await input.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
     await input.fill(keyword);
     await this.page.keyboard.press('Enter');
     await this.waitForAjaxRequestsComplete();
@@ -107,7 +108,7 @@ export class ProfileListingPage extends BasePage {
    */
   async getProfileCount(): Promise<number> {
     try {
-      await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
+      await this.profileLinks().first().waitFor({ state: 'visible', timeout: TIMEOUTS.TIMEOUT_LONG });
     } catch {
       // swallow — the count of 0 will be asserted by the test
     }
@@ -120,7 +121,7 @@ export class ProfileListingPage extends BasePage {
    */
   async verifyProfilesSortedBySurnameAscending(): Promise<boolean> {
     // Auto-wait for profile links to be visible before reading names
-    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: TIMEOUTS.TIMEOUT_LONG });
     const allNames = await this.profileLinks().allTextContents();
 
     // Filter out empty strings, emails, phone links
@@ -171,7 +172,7 @@ export class ProfileListingPage extends BasePage {
    * Uses semantic profileLinks() locator.
    */
   async getProfileFullNames(): Promise<string[]> {
-    await this.profileLinks().first().waitFor({ state: 'visible', timeout: 30000 });
+    await this.profileLinks().first().waitFor({ state: 'visible', timeout: TIMEOUTS.TIMEOUT_LONG });
     return await this.profileLinks().allTextContents();
   }
 

@@ -1,5 +1,6 @@
 import { test, expect } from '@config/base-test';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 /**
  * Insights Page Tests
@@ -24,6 +25,6 @@ test.describe('Insights Page Search @insights @frontsite', () => {
     logger.step('Step 3 - Verify search results contain "Banking"');
     logger.action('Verify', 'search results contain "Banking"');
     // toContainText retries until results load — avoids one-shot boolean on slow QA server
-    await expect(insightsPage.resultsContainer).toContainText('Banking', { timeout: 20000 });
+    await expect(insightsPage.resultsContainer).toContainText('Banking', { timeout: TIMEOUTS.API_RESPONSE });
   });
 });

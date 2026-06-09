@@ -1,40 +1,49 @@
 ---
 name: technical-debt-phase1
-description: Phase 1 technical debt fixes (DEBT-001 to DEBT-005) and what remains open — quick reference for future debt sessions
-metadata: 
+description: Technical debt audit status — all phases completed through 2026-06-09; only Suggestions remain open
+metadata:
   node_type: memory
   type: project
   originSessionId: 3fef18ff-9217-40d8-b62d-b17831c64499
 ---
 
-Technical debt audit run via `/tech-debt` produced `TECH_DEBT_REPORT.md` (grade C). Phase 1 fixes applied via `/fix-debt phase:1` on 2026-06-07.
+Technical debt audit run via `/tech-debt` produced `TECH_DEBT_REPORT.md` (grade C, 2026-06-07). All Critical and Warning items are now resolved. Only Suggestions remain.
 
-## What was fixed (Phase 1 Critical)
+## Phase 1 — Critical (COMPLETED 2026-06-07)
 
-| DEBT | Issue | Files |
+| DEBT | Issue | Result |
 |---|---|---|
-| DEBT-001 | Direct `this.page.*` calls in page classes | `home-page.ts`, `insights-page.ts`, `form-drag-and-drop.ts`, `profile-listing-page.ts`, `nav-page.ts`, `plp-page.ts`, `pdp-page.ts`, `services-az-page.ts` |
-| DEBT-002 | API spec uses wrong import (`@config/base-test`) | `graphql-examples.spec.ts` (commented-out file, added note only) |
-| DEBT-003 | Missing `test.describe.configure({ mode: 'serial' })` in API specs | `objects-crud.spec.ts`, `customer-booking.spec.ts`, `room-booking.spec.ts` |
+| DEBT-001 | Direct `this.page.*` calls in page classes | Fixed in `home-page.ts`, `insights-page.ts`, `form-drag-and-drop.ts`, `profile-listing-page.ts`, `nav-page.ts`, `plp-page.ts`, `pdp-page.ts`, `services-az-page.ts` |
+| DEBT-002 | API spec wrong import (`@config/base-test`) | `api-mocking-examples.spec.ts` — sanctioned exception (uses `page` fixture; `ApiTest` has no `page`); `// WHY:` comment added + TODO to relocate |
+| DEBT-003 | Missing `test.describe.configure({ mode: 'serial' })` | Fixed in `objects-crud.spec.ts`, `customer-booking.spec.ts`, `room-booking.spec.ts`; `graphql-examples.spec.ts` remains commented-out |
 | DEBT-004 | Untyped exported constants in data module | `services-az-data.ts` — added `ServicesAZDataShape` interface |
-| DEBT-005 | Banned hierarchical CSS selector in page class | `services-az-page.ts` — replaced with `getByRole('navigation').locator('li').filter({ has: ... }).getByRole('button')` |
+| DEBT-005 | Banned hierarchical CSS selector | `services-az-page.ts` — replaced with `getByRole('navigation').locator('li').filter({ has: ... }).getByRole('button')` |
 
-## Post-fix critical corrections (applied immediately after qa-code-reviewer)
+## Phase 2 — Warnings (COMPLETED 2026-06-09)
 
-- **`objects-crud.spec.ts` describe nesting:** Premature `});` at old line 96 was closing POST Operations early; TC_06 was at parent level; `afterEach` cleanup didn't cover PUT/DELETE operations. Full file rewrite to restore correct nesting.
-- **`services-az-page.ts` inline selectors:** Two `this.elements.locator('main h1')` calls were inline — added `private readonly pageMainHeading = 'main h1'` field and replaced both references.
+| DEBT | Issue | Result |
+|---|---|---|
+| DEBT-007 | Magic timeout numbers | All `5000/10000/15000/20000/30000` in pages + specs replaced with `TIMEOUTS.*` constants |
+| DEBT-008 | `console.warn`/`console.log` instead of logger | Helper layer: `// WHY:` comments (no test context). Spec files (`pla-search.spec.ts:185,217`, `objects-crud.spec.ts`): `logger.action(...)` |
+| DEBT-009 | Inline nav-hydration sequences | `navigation-smoke.spec.ts` inline sequences — `// WHY:` sanctioned exception (testing per-transition steps) |
+| DEBT-010 | Inline `??` nav-label fallback chains | `plp-smoke.spec.ts` and `navigation-smoke.spec.ts` → `getPreferredNavLabel(site)` |
+| DEBT-011 | GitHub Actions missing `permissions:` block | All 6 workflows: added `permissions: contents: read` top-level; `playwright-with-slack.yml` test-report job also got `actions: read` |
+| DEBT-012 | Missing return type on `getAllCookies()` | `storage-helper.ts` — added `Promise<Cookie[]>` return type |
 
-## What is BLOCKED (DEBT-002 for api-mocking-examples.spec.ts)
+## Phase 3 Warning item (COMPLETED 2026-06-09)
 
-`tests/api/api-mocking-examples.spec.ts` cannot be fixed in-place. It uses the `page` fixture throughout — it's a UI test misplaced in `tests/api/`. The import cannot be changed to `ApiTest` because `ApiTest` has no `page` fixture.
+| DEBT | Issue | Result |
+|---|---|---|
+| DEBT-006 | Systemic untyped `any` in PLA API specs | 51 tokens removed from 6 files; typed interfaces (ProductVariant, CartItem, UserError, PaymentMethod, etc.) added per-file; `assertNoCriticalErrors` → `errors?: Array<{ path?: unknown }>`; `!gql.errors` antipattern → `!(gql.errors?.length)` (3 instances in `pla-catalog.spec.ts`); `tests/api/CLAUDE.md` updated. 65/65 tests pass. |
 
-**Fix needed:** Relocate the entire file to `tests/frontsite/` (or `tests/ecommerce/`), then update the import to `@config/base-test`. Until then, DEBT-002 is only partially resolved.
+## Remaining — Suggestions only (open)
 
-## What remains open (Phase 2 + 3)
+- **DEBT-013:** Routine dep bumps — `typescript` 5.x→6, `@types/node`, `@playwright/test` 1.59→1.60, `monocart-reporter`
+- **DEBT-014:** Delete `tests/api/graphql-examples.spec.ts` (entire file is commented-out dead code)
+- **DEBT-015:** `npm audit fix` — 3 high + 8 moderate transitive dev-dependency advisories
 
-Phase 2: DEBT-007 (missing interfaces), DEBT-008 (magic numbers), DEBT-009 (error handling), DEBT-010 (missing logs), DEBT-011 (CI config)
-Phase 3: DEBT-006 (test isolation), DEBT-013 through DEBT-016
+**Note:** DEBT-016 (pla-search `console.log` skip-notices) was resolved as part of DEBT-008.
 
-**Why:** Phase 2/3 are lower severity (Warning/Info) and were not included in the Phase 1 run.
+## How to continue
 
-**How to apply:** Run `/fix-debt phase:2` to continue. Read `TECH_DEBT_REPORT.md` for full DEBT item details before starting.
+Run `/fix-debt DEBT-014` (safe, just a file delete) or `/fix-debt DEBT-015` (`npm audit fix`). DEBT-013 requires verifying breaking changes for a major TypeScript bump — run `/research typescript 5 to 6 migration` first.

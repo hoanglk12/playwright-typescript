@@ -1,6 +1,7 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
+import { getPreferredNavLabel } from './smoke-helpers';
 
 const navStorefronts = storefronts.filter((s) => s.navLinks.length > 0);
 const womensSites = storefronts.filter((s) => !!s.womensNavLabel);
@@ -35,6 +36,8 @@ test.describe('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => 
     });
   }
 
+  // WHY: these per-category tests assert the individual URL transition steps (navigate → hydrate → click → URL match);
+  // collapsing to navigateToPlp() would lose those per-transition assertions — sanctioned exception for DEBT-009.
   for (const [index, site] of womensSites.entries()) {
     const tcId = `E2E-NAV-W${String(index + 1).padStart(3, '0')}`;
 
@@ -136,7 +139,7 @@ test.describe('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => 
 
   // E2E-NAV-009 — Logo click returns to homepage from any page (all 8 storefronts)
   for (const site of storefronts) {
-    const interiorLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.kidsNavLabel;
+    const interiorLabel = getPreferredNavLabel(site);
     if (!interiorLabel) continue;
 
     test(`E2E-NAV-009 - ${site.name} logo click returns to homepage`, async ({ ecommerceNavPage }) => {

@@ -1,6 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { getEnvironment } from '../../config/environment';
+import { TIMEOUTS } from '../../constants/timeouts';
 
 
 /**
@@ -43,13 +44,13 @@ export class InsightsPage extends BasePage {
    * Waits for the results container to appear instead of a fixed timeout.
    */
   async typeInSearchInput(searchText: string): Promise<void> {
-    await this.searchInput.waitFor({ state: 'visible', timeout: 10000 });
+    await this.searchInput.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
     await this.searchInput.clear();
     // pressSequentially fires real keyboard events, which the search field may require
     await this.searchInput.pressSequentially(searchText, { delay: 50 });
     await this.searchInput.press('Enter');
     // Wait for URL to update with searchText param — confirms search was submitted
-    await this.waits.waitForUrlMatches(/searchText=/, 10000).catch(() => {});
+    await this.waits.waitForUrlMatches(/searchText=/, TIMEOUTS.ELEMENT_VISIBLE).catch(() => {});
   }
 
   /** Locator for search results container — use with toContainText() assertion */
@@ -69,7 +70,7 @@ export class InsightsPage extends BasePage {
    */
   async verifySearchResultsContainText(expectedText: string): Promise<boolean> {
     try {
-      await this.searchResults.first().waitFor({ state: 'visible', timeout: 10000 });
+      await this.searchResults.first().waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
     } catch {
       // Results container not found — check whether we landed on a search-results URL
       const currentUrl = this.page.url();

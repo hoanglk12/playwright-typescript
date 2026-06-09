@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Page, Cookie } from "@playwright/test";
 
 /** Browser storage: cookies, localStorage, sessionStorage, and cache clearing. */
 export class StorageHelper {
@@ -6,7 +6,7 @@ export class StorageHelper {
 
   // ── Cookies ─────────────────────────────────────────────────────────────────
 
-  async getAllCookies() {
+  async getAllCookies(): Promise<Cookie[]> {
     return await this.page.context().cookies();
   }
 

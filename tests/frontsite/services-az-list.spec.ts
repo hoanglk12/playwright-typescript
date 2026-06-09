@@ -1,6 +1,7 @@
 import { test, expect } from '@config/base-test';
 import { ServicesAZData } from '../../src/data/services-az-data';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 /**
  * Services A-Z List Tests
@@ -48,7 +49,7 @@ test.describe('Services A-Z List Tests @services @frontsite', () => {
     logger.step(`Step 6 - Verify page scrolled to section "${clickedLetter}"`);
     logger.action('Verify', `section heading "${clickedLetter}" is in viewport`);
     // toBeInViewport retries until scroll animation completes — avoids one-shot race
-    await expect(servicesAZPage.getSectionHeading(clickedLetter)).toBeInViewport({ timeout: 10000 });
+    await expect(servicesAZPage.getSectionHeading(clickedLetter)).toBeInViewport({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
     // ── Step 7: Verify the section has at least one service link ─────
     logger.step(`Step 7 - Verify section "${clickedLetter}" has services`);

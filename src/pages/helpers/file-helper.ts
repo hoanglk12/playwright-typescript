@@ -45,6 +45,7 @@ export class FileHelper {
         return [];
       }, selector);
     } catch (error) {
+      // WHY: helper layer has no test context; console is the only available channel here
       console.warn(`Failed to get uploaded file names for selector: ${selector}`, error);
       return [];
     }

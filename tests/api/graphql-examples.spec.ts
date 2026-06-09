@@ -5,11 +5,10 @@
 //  * Playwright TypeScript framework with GraphQL integration.
 //  */
 
-// import { apiTest as test } from '../../src/api/ApiTest';
-// import { expect } from '@playwright/test';
+// TODO(DEBT-014): Restore GraphQL example suite — needs expect/AuthType imports,
+// logger.* instead of console.log, and typed data shapes before re-activation.
+// import { apiTest as test, expect } from '../../src/api/ApiTest';
 // import { AuthType } from '../../src/api/ApiClient';
-
-// DEBT-003: When uncommenting, add this line after the last import (mandatory for all API specs):
 // test.describe.configure({ mode: 'serial' });
 
 // test.describe('GraphQL API Tests - Query Operations', () => {

@@ -1,6 +1,7 @@
 import { Page, Dialog } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { DragAndDropData } from '../../data/drag-and-drop-data';
+import { TIMEOUTS } from '../../constants/timeouts';
 
 
 /**
@@ -38,7 +39,7 @@ export class FormDragAndDropPage extends BasePage {
 
   async getUploadedFileName(): Promise<string> {
     const fileNameElement = this.elements.locator(this.fileName);
-    await fileNameElement.waitFor({ state: 'visible', timeout: 5000 });
+    await fileNameElement.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
     return await fileNameElement.textContent() || '';
   }
   async getAlertText(): Promise<string> {

@@ -101,10 +101,8 @@ private readonly servicesNavToggle =
 
 ## 🟡 Warnings (fix within 1–2 sprints)
 
-### DEBT-006 — Systemic untyped `any`
-**File:** 54 occurrences across `src/pages/` + `tests/` (92 across the whole repo incl. `src/api/`, `src/utils/`). Sample hotspots: `tests/api/pla-cart_minicart.spec.ts` (15), `tests/api/pla-catalog.spec.ts` (12), `tests/api/pla-checkout-shipping.spec.ts` (10).
-**Issue:** `: any` / `as any` annotations exceed the 20-match systemic threshold.
-**Remediation:** Replace with typed GraphQL response shapes (`getData<T>()`) and the documented `assertNoCriticalErrors(gql: { errors?: ... })` helper signatures; the API CLAUDE.md already mandates `AuthType.BEARER` over `"bearer" as any`.
+### ~~DEBT-006~~ — ✅ RESOLVED (2026-06-09) — Systemic untyped `any`
+Added typed interfaces (ProductVariant, CartItem, UserError, PaymentMethod, ShippingMethod, AggregationItem, etc.) per file; removed 51 `: any`/`as any` tokens from 6 PLA spec files. `assertNoCriticalErrors` signature updated to `errors?: Array<{ path?: unknown }>`. Bonus: fixed `!gql.errors` antipattern (3 instances in `pla-catalog.spec.ts`) to `!(gql.errors?.length)` per API CLAUDE.md rule.
 
 ### DEBT-007 — Magic timeout numbers instead of `TIMEOUTS.*`
 **File:** `src/pages/admin/login-page.ts:74,92`; `src/pages/frontsite/form-drag-and-drop.ts:41`; `src/pages/frontsite/home-page.ts:40`; `src/pages/frontsite/insights-page.ts:46,52,72`; `src/pages/frontsite/profile-listing-page.ts:51,60,75,84,98,110,123,174`; `tests/frontsite/services-az-list.spec.ts:51`; `tests/frontsite/profile-listing-page.spec.ts:34`; `tests/frontsite/insights-search.spec.ts:27`

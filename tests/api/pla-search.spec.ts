@@ -176,13 +176,13 @@ test.describe('PLA Search API @api @graphql @regression', () => {
     const gqlResponse = await response.getGraphQLResponse();
     const hasErrors = (gqlResponse.errors?.length ?? 0) > 0;
     const isSchemaError = hasErrors && gqlResponse.errors!.some(
-      (e: any) => e.message?.includes('Cannot query field') && e.message?.includes('productSearch')
+      (e: { message?: string }) => e.message?.includes('Cannot query field') && e.message?.includes('productSearch')
     );
 
     if (isSchemaError) {
       // productSearch is listed as P2 New — not yet available on this staging endpoint
       logger.verify('productSearch not in schema (P2 — not yet deployed)', true, isSchemaError);
-      console.log('TC_06 — productSearch field not available in current schema; skipping data assertions');
+      logger.action('TC_06 — productSearch field not available in current schema', 'skipping data assertions');
       return;
     }
 
@@ -209,12 +209,12 @@ test.describe('PLA Search API @api @graphql @regression', () => {
     const gqlResponse = await response.getGraphQLResponse();
     const hasErrors = (gqlResponse.errors?.length ?? 0) > 0;
     const isSchemaError = hasErrors && gqlResponse.errors!.some(
-      (e: any) => e.message?.includes('Cannot query field') && e.message?.includes('productSearch')
+      (e: { message?: string }) => e.message?.includes('Cannot query field') && e.message?.includes('productSearch')
     );
 
     if (isSchemaError) {
       logger.verify('productSearch not in schema (P2 — not yet deployed)', true, isSchemaError);
-      console.log('TC_07 — productSearch field not available in current schema; skipping data assertions');
+      logger.action('TC_07 — productSearch field not available in current schema', 'skipping data assertions');
       return;
     }
 

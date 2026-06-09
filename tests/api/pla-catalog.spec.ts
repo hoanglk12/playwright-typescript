@@ -4,6 +4,28 @@ import { PlaCatalogData } from '../../src/data/api/pla-catalog-data';
 
 test.describe.configure({ mode: 'serial' });
 
+// ── Local types ───────────────────────────────────────────────────────────────
+
+interface AggregationOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+interface AggregationItem {
+  attribute_code: string;
+  options?: AggregationOption[];
+}
+
+interface ProductPriceItem {
+  sku: string;
+  price_range?: {
+    minimum_price?: {
+      final_price?: { value?: number };
+    };
+  };
+}
+
 // ── Discovered at runtime in beforeAll ──
 let discoveredProductUrlKey: string = '';
 let discoveredCategoryFilterField: string = '';
@@ -17,9 +39,9 @@ let discoveredCategoryUrlKey: string = '';
  * Asserts no GraphQL errors are present, but tolerates partial price_range
  * errors that occur on PLA staging when some products have broken price data.
  */
-function assertNoCriticalErrors(gql: { errors?: any[] }): void {
+function assertNoCriticalErrors(gql: { errors?: Array<{ path?: unknown }> }): void {
   const criticalErrors = (gql.errors ?? []).filter(
-    (e: any) => !(Array.isArray(e.path) && e.path.includes('price_range')),
+    (e) => !(Array.isArray(e.path) && e.path.includes('price_range')),
   );
   expect(criticalErrors, 'unexpected GraphQL errors').toHaveLength(0);
 }
@@ -240,26 +262,26 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
       pageSize: PlaCatalogData.discovery.pageSize,
     })).getGraphQLResponse();
 
-    if (!searchGql.errors && (searchGql.data?.products?.items?.length ?? 0) > 0) {
+    if (!(searchGql.errors?.length) && (searchGql.data?.products?.items?.length ?? 0) > 0) {
       discoveredProductUrlKey = searchGql.data!.products.items[0].url_key ?? '';
       logger.action('Discovered product url_key', discoveredProductUrlKey);
 
-      const aggregations: any[] = searchGql.data!.products.aggregations ?? [];
+      const aggregations: AggregationItem[] = searchGql.data!.products.aggregations ?? [];
 
-      const catUidAgg = aggregations.find((a: any) => a.attribute_code === 'category_uid');
-      const catIdAgg = aggregations.find((a: any) => a.attribute_code === 'category_id');
+      const catUidAgg = aggregations.find((a: AggregationItem) => a.attribute_code === 'category_uid');
+      const catIdAgg = aggregations.find((a: AggregationItem) => a.attribute_code === 'category_id');
       if ((catUidAgg?.options?.length ?? 0) > 0) {
         discoveredCategoryFilterField = 'category_uid';
-        discoveredCategoryFilterValue = catUidAgg.options[0].value;
+        discoveredCategoryFilterValue = catUidAgg!.options![0].value;
       } else if ((catIdAgg?.options?.length ?? 0) > 0) {
         discoveredCategoryFilterField = 'category_id';
-        discoveredCategoryFilterValue = catIdAgg.options[0].value;
+        discoveredCategoryFilterValue = catIdAgg!.options![0].value;
       }
       logger.action('Discovered category filter', `${discoveredCategoryFilterField}=${discoveredCategoryFilterValue}`);
 
-      const brandAgg = aggregations.find((a: any) => a.attribute_code === 'apparel21_brand_id');
+      const brandAgg = aggregations.find((a: AggregationItem) => a.attribute_code === 'apparel21_brand_id');
       if ((brandAgg?.options?.length ?? 0) > 0) {
-        discoveredBrandId = brandAgg.options[0].value;
+        discoveredBrandId = brandAgg!.options![0].value;
         logger.action('Discovered brand_id', discoveredBrandId);
       }
     }
@@ -271,12 +293,12 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
         search: PlaCatalogData.discovery.brandRetryTerm,
         pageSize: PlaCatalogData.discovery.pageSize,
       })).getGraphQLResponse();
-      if (!brandSearchGql.errors) {
-        const retryBrandAgg = (brandSearchGql.data?.products?.aggregations ?? []).find(
-          (a: any) => a.attribute_code === 'apparel21_brand_id',
+      if (!(brandSearchGql.errors?.length)) {
+        const retryBrandAgg = (brandSearchGql.data?.products?.aggregations ?? [] as AggregationItem[]).find(
+          (a: AggregationItem) => a.attribute_code === 'apparel21_brand_id',
         );
         if ((retryBrandAgg?.options?.length ?? 0) > 0) {
-          discoveredBrandId = retryBrandAgg.options[0].value;
+          discoveredBrandId = retryBrandAgg!.options![0].value;
           logger.action('Discovered brand_id (retry)', discoveredBrandId);
         }
       }
@@ -284,7 +306,7 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
 
     logger.step('Discover category url_key from categories root tree');
     const catGql = await (await client.queryWrapped(DISCOVER_CATEGORIES_QUERY)).getGraphQLResponse();
-    if (!catGql.errors && (catGql.data?.categories?.items?.length ?? 0) > 0) {
+    if (!(catGql.errors?.length) && (catGql.data?.categories?.items?.length ?? 0) > 0) {
       const rootCat = catGql.data!.categories.items[0];
       if ((rootCat?.children?.length ?? 0) > 0) {
         discoveredCategoryUrlKey = rootCat.children[0].url_key ?? '';
@@ -370,14 +392,14 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
     const tc03Data = tc03Gql.data;
 
     logger.step('Step 3 - Verify sort parameter accepted and price fields present in response');
-    const tc03Items = tc03Data.products.items.filter(
-      (item: any) => item != null && item.price_range?.minimum_price?.final_price?.value != null,
+    const tc03Items = (tc03Data.products.items as ProductPriceItem[]).filter(
+      (item) => item != null && item.price_range?.minimum_price?.final_price?.value != null,
     );
     softExpect(tc03Items.length).toBeGreaterThan(0);
     // Exact price ordering is not asserted — PLA staging price sort uses base price internally;
     // final_price (post-discount) does not guarantee the same order on this staging dataset
     const tc03Prices: number[] = tc03Items.map(
-      (item: any) => item.price_range.minimum_price.final_price.value,
+      (item) => item.price_range!.minimum_price!.final_price!.value!,
     );
     softExpect(tc03Prices.every((p: number) => typeof p === 'number' && p >= 0)).toBe(true);
   });
@@ -402,12 +424,12 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
     const tc04Data = tc04Gql.data;
 
     logger.step('Step 3 - Verify sort parameter accepted and price fields present in response');
-    const tc04Items = tc04Data.products.items.filter(
-      (item: any) => item != null && item.price_range?.minimum_price?.final_price?.value != null,
+    const tc04Items = (tc04Data.products.items as ProductPriceItem[]).filter(
+      (item) => item != null && item.price_range?.minimum_price?.final_price?.value != null,
     );
     softExpect(tc04Items.length).toBeGreaterThan(0);
     const tc04Prices: number[] = tc04Items.map(
-      (item: any) => item.price_range.minimum_price.final_price.value,
+      (item) => item.price_range!.minimum_price!.final_price!.value!,
     );
     softExpect(tc04Prices.every((p: number) => typeof p === 'number' && p >= 0)).toBe(true);
   });
@@ -447,7 +469,7 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
     expect(page2Data.products.items.length).toBeGreaterThan(0);
 
     logger.step('Step 3 - Verify page 2 items differ from page 1 items');
-    const page1Skus = new Set<string>(page1Data.products.items.map((i: any) => i.sku));
+    const page1Skus = new Set<string>((page1Data.products.items as ProductPriceItem[]).map((i) => i.sku));
     const page2FirstSku: string = page2Data.products.items[0]?.sku ?? '';
     softExpect(page1Skus.has(page2FirstSku)).toBe(false);
   });

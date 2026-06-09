@@ -32,7 +32,7 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
     });
 
     const filterTcId = `E2E-PLP-004-${String(index + 1).padStart(3, '0')}`;
-    const filterNavLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.kidsNavLabel ?? site.saleNavLabel;
+    const filterNavLabel = getPreferredNavLabel(site);
 
     test(`${filterTcId} - ${site.name} filter by category reduces product count`, async ({
       ecommerceNavPage,
@@ -74,7 +74,7 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const sizeTcId = `E2E-PLP-006-${String(index + 1).padStart(3, '0')}`;
-    const sizeNavLabel = site.womensNavLabel ?? site.mensNavLabel ?? site.kidsNavLabel ?? site.saleNavLabel;
+    const sizeNavLabel = getPreferredNavLabel(site);
 
     test(`${sizeTcId} - ${site.name} filter by size reduces product count`, async ({
       ecommerceNavPage,
