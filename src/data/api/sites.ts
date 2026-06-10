@@ -12,6 +12,8 @@ export interface SiteContext {
   shippingRegion: string;
   // A search term guaranteed to return product results for this brand's catalog
   catalogSearchTerm: string;
+  // Whether this brand's staging endpoint exposes the loyalty/rewards feature
+  hasLoyalty: boolean;
 }
 
 export const siteRegistry: Record<string, SiteContext> = {
@@ -23,6 +25,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     currency: 'AUD',
     shippingRegion: 'NSW',
     catalogSearchTerm: 'shoe',
+    hasLoyalty: true,
     testData: createBrandTestData('pla'),
   },
   'skx-au': {
@@ -33,6 +36,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     currency: 'AUD',
     shippingRegion: 'NSW',
     catalogSearchTerm: 'skechers',
+    hasLoyalty: true,
     testData: createBrandTestData('skx'),
   },
   'drm-au': {
@@ -43,6 +47,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     currency: 'AUD',
     shippingRegion: 'NSW',
     catalogSearchTerm: 'boot',
+    hasLoyalty: false,
     testData: createBrandTestData('drm'),
   },
   'van-au': {
@@ -53,6 +58,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     currency: 'AUD',
     shippingRegion: 'NSW',
     catalogSearchTerm: 'vans',
+    hasLoyalty: false,
     testData: createBrandTestData('van'),
   },
 };
