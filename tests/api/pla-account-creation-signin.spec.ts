@@ -5,13 +5,10 @@
  * API Endpoint: Configured via environment (graphqlApiBaseUrl)
  */
 
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
-import { plaTestData, getTestEmail, plaErrorMessages, expectedCustomerData } from '../../src/data/api/pla-test-data';
-import { setCustomerToken, setCustomerId } from './shared-state';
+import { graTest as test, expect, softExpect } from './gra-test';
+import { plaErrorMessages } from '../../src/data/api/pla-test-data';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
-
-const testEmail = getTestEmail();
 
 let customerToken: string = '';
 let customerId: string = '';
@@ -133,12 +130,12 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('PLA GraphQL API - Account Management', () => {
 
-  test('PLA_CreateAccount - error message shown when input invalid data', async ({ createGraphQLClient }) => {
+  test('PLA_CreateAccount - error message shown when input invalid data', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('PLA_CreateAccount error message shown when input invalid data');
     const graphqlClient = await createGraphQLClient();
 
     logger.step('Step 1 - Execute CreateAccount mutation with invalid email');
-    const response = await graphqlClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.invalidEmail);
+    const response = await graphqlClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, site.testData.invalidEmail);
 
     logger.step('Step 2 - Assert error response');
     const graphqlResponse = await response.getGraphQLResponse();
@@ -153,12 +150,12 @@ test.describe('PLA GraphQL API - Account Management', () => {
     logger.verify('Error category', 'graphql-input', graphqlResponse.errors![0].extensions?.category);
   });
 
-  test('PLA_CreateAccount - should create a new customer account', async ({ createGraphQLClient }) => {
+  test('PLA_CreateAccount - should create a new customer account', async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA_CreateAccount should create a new customer account');
     const graphqlClient = await createGraphQLClient();
 
     logger.step('Step 1 - Execute CreateAccount mutation with valid data');
-    const response = await graphqlClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer);
+    const response = await graphqlClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, site.testData.validCustomer);
 
     logger.step('Step 2 - Assert account created');
     await response.assertNoErrors();
@@ -167,23 +164,24 @@ test.describe('PLA GraphQL API - Account Management', () => {
 
     const data = await response.getData();
     customerId = data.createCustomer.customer.id;
-    setCustomerId(customerId);
+    siteState.setCustomerId(customerId);
 
+    const testEmail = site.testData.validCredentials.email;
     softExpect(data.createCustomer.customer.id).toBeDefined();
-    softExpect(data.createCustomer.customer.firstname).toBe(expectedCustomerData.firstname);
-    softExpect(data.createCustomer.customer.lastname).toBe(expectedCustomerData.lastname);
+    softExpect(data.createCustomer.customer.firstname).toBe(site.testData.validCustomer.firstname);
+    softExpect(data.createCustomer.customer.lastname).toBe(site.testData.validCustomer.lastname);
     softExpect(data.createCustomer.customer.email).toBe(testEmail);
 
     logger.verify('Customer email', testEmail, data.createCustomer.customer.email);
     logger.action('Stored', `customerId=${customerId}`);
   });
 
-  test('PLA_SignIn - should login fail when provide wrong email or password', async ({ createGraphQLClient }) => {
+  test('PLA_SignIn - should login fail when provide wrong email or password', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('PLA_SignIn should login fail when provide wrong email or password');
     const graphqlClient = await createGraphQLClient();
 
     logger.step('Step 1 - Execute SignIn mutation with invalid password');
-    const response = await graphqlClient.mutateWrapped(SIGN_IN_MUTATION, plaTestData.invalidPassword);
+    const response = await graphqlClient.mutateWrapped(SIGN_IN_MUTATION, site.testData.invalidPassword);
 
     logger.step('Step 2 - Assert error response');
     const graphqlResponse = await response.getGraphQLResponse();
@@ -198,12 +196,12 @@ test.describe('PLA GraphQL API - Account Management', () => {
     logger.verify('Error category', 'graphql-authentication', graphqlResponse.errors![0].extensions?.category);
   });
 
-  test('PLA_SignIn - should generate customer token for valid credentials', async ({ createGraphQLClient }) => {
+  test('PLA_SignIn - should generate customer token for valid credentials', async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA_SignIn should generate customer token for valid credentials');
     const graphqlClient = await createGraphQLClient();
 
     logger.step('Step 1 - Execute SignIn mutation with valid credentials');
-    const { email, password, remember } = plaTestData.validCredentials;
+    const { email, password, remember } = site.testData.validCredentials;
     const response = await graphqlClient.mutateWrapped(SIGN_IN_MUTATION, { email, password, remember });
 
     logger.step('Step 2 - Assert token generated');
@@ -214,7 +212,7 @@ test.describe('PLA GraphQL API - Account Management', () => {
 
     const data = await response.getData();
     customerToken = data.generateCustomerToken.token;
-    setCustomerToken(customerToken);
+    siteState.setCustomerToken(customerToken);
 
     const specialCharRegex = /[^a-zA-Z0-9._-]/;
     softExpect(customerToken).not.toMatch(specialCharRegex);
@@ -224,7 +222,7 @@ test.describe('PLA GraphQL API - Account Management', () => {
     logger.action('Stored', 'customerToken set in shared-state');
   });
 
-  test('PLA_GetCustomerDetails - should retrieve customer details with valid token', async ({ createGraphQLClient }) => {
+  test('PLA_GetCustomerDetails - should retrieve customer details with valid token', async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA_GetCustomerDetails should retrieve customer details with valid token');
 
     expect(customerToken).toBeDefined();
@@ -247,14 +245,15 @@ test.describe('PLA GraphQL API - Account Management', () => {
     const customer = data.customer;
 
     customerId = customer.id;
-    setCustomerId(customerId);
+    siteState.setCustomerId(customerId);
 
+    const testEmail = site.testData.validCredentials.email;
     softExpect(customer.id).toBeDefined();
-    softExpect(customer.firstname).toBe(expectedCustomerData.firstname);
-    softExpect(customer.lastname).toBe(expectedCustomerData.lastname);
+    softExpect(customer.firstname).toBe(site.testData.validCustomer.firstname);
+    softExpect(customer.lastname).toBe(site.testData.validCustomer.lastname);
     softExpect(customer.email).toBe(testEmail);
-    softExpect(customer.is_subscribed).toBe(expectedCustomerData.isSubscribed);
-    softExpect(customer.gender).toBe(expectedCustomerData.gender);
+    softExpect(customer.is_subscribed).toBe(false);
+    softExpect(customer.gender).toBe(site.testData.validCustomer.gender);
     softExpect(customer.__typename).toBe('Customer');
 
     logger.verify('Customer email', testEmail, customer.email);

@@ -1,7 +1,6 @@
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { plaTestData } from '../../src/data/api/pla-test-data';
 import {
   plaWishlistData,
   plaWishlistErrorCategories,
@@ -157,12 +156,12 @@ function wasRejected(
 
 test.describe('PLA GraphQL API - Wishlist @api @regression', () => {
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA Wishlist - Setup');
 
     // ── 1. Fresh auth ──────────────────────────────────────────────────────────
     const publicClient = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(publicClient, logger);
+    customerToken = await signInAndStoreToken(publicClient, logger, site, siteState);
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 

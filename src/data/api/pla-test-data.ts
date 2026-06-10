@@ -154,15 +154,16 @@ export interface ExpectedCustomerData {
 }
 
 /**
- * Generates a fresh, self-consistent PlaTestData instance.
+ * Generates a fresh, self-consistent PlaTestData instance for any brand.
+ * The emailPrefix is used as the email address prefix (e.g. 'pla', 'skx', 'drm', 'van').
  * All fields (email, name, address) share the same randomly-generated values,
  * so credentials and address data are always in sync within a single instance.
  * Call once per suite (e.g. at module load or in beforeAll) rather than per-test.
  */
-export function createPlaTestData(): PlaTestData {
+export function createBrandTestData(emailPrefix: string): PlaTestData {
   const timestamp = Date.now();
   const randomId = generateRandomString(6);
-  const email = `platest${timestamp}${randomId}@mail.com`;
+  const email = `${emailPrefix}test${timestamp}${randomId}@mail.com`;
   const firstName = generateFirstName();
   const lastName = generateLastName();
   const phoneNumber = generatePhoneNumber();
@@ -263,6 +264,10 @@ export function createPlaTestData(): PlaTestData {
       titles: ['Check / Money order', 'Apple Pay', 'No Payment Information Required', 'Credit or Debit Card', 'PayPal'],
     },
   };
+}
+
+export function createPlaTestData(): PlaTestData {
+  return createBrandTestData('pla');
 }
 
 // Module-load-time singleton — single source of truth for this run.

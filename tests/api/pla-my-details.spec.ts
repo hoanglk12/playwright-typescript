@@ -1,9 +1,5 @@
-import { apiTest as test, expect, softExpect } from "../../src/api/ApiTest";
+import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from "../../src/api/ApiClient";
-import {
-  plaTestData,
-} from "../../src/data/api/pla-test-data";
-import { setAddressId, setCustomerId, getCustomerId, getAddressId } from './shared-state';
 import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 
@@ -107,22 +103,22 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe("PLA GraphQL API - My Details apis", () => {
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA My Details - Setup');
-    addressId = getAddressId();
+    addressId = siteState.getAddressId();
 
     const client = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(client, logger);
+    customerToken = await signInAndStoreToken(client, logger, site, siteState);
 
     // Fetch customer ID from API if not available from shared-state
-    customerId = getCustomerId();
+    customerId = siteState.getCustomerId();
     if (!customerId) {
       const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
       const idResponse = await authClient.queryWrapped(GET_CUSTOMER_ID_QUERY);
       const idGql = await idResponse.getGraphQLResponse();
       customerId = idGql.data?.customer?.id;
       if (customerId) {
-        setCustomerId(customerId);
+        siteState.setCustomerId(customerId);
       }
     }
 
@@ -130,7 +126,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
   });
 
   test("PLA_AddNewCustomerAddressToAddressBook - should add new customer address with valid token", async ({
-    createGraphQLClient,
+    createGraphQLClient, site, siteState,
   }) => {
     const logger = createTestLogger('PLA_AddNewCustomerAddressToAddressBook');
     logger.step('Step 1 - Send AddNewCustomerAddress mutation with bearer token');
@@ -140,7 +136,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
       token: customerToken,
     });
 
-    const variables = plaTestData.addNewCustomerAddressForAddressBook;
+    const variables = site.testData.addNewCustomerAddressForAddressBook;
     logger.action('Mutation variables', JSON.stringify(variables));
 
     const response = await authClient.mutateWrapped(ADD_ADDRESS_MUTATION, variables);
@@ -154,7 +150,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     addressId = data.createCustomerAddress.id;
     logger.action('New address ID', addressId);
 
-    setAddressId(addressId);
+    siteState.setAddressId(addressId);
 
     expect(data.createCustomerAddress).toBeDefined();
     softExpect(data.createCustomerAddress.id.toString()).toMatch(intRegex);
@@ -162,7 +158,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
   });
 
   test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token", async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_GetCustomerAddressesForAddressBook');
     expect(customerId).toBeDefined();
@@ -196,22 +192,22 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     softExpect(data.customer.id).toBe(customerId);
     softExpect(targetAddress!.id).toBe(addressId);
     softExpect(targetAddress!.__typename).toBe('CustomerAddress');
-    softExpect(targetAddress!.city).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.city);
-    softExpect(targetAddress!.company).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.company);
-    softExpect(targetAddress!.country_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.country_code);
-    softExpect(targetAddress!.default_billing).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_billing);
-    softExpect(targetAddress!.default_shipping).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.default_shipping);
-    softExpect(targetAddress!.firstname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.firstname);
-    softExpect(targetAddress!.lastname).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.lastname);
+    softExpect(targetAddress!.city).toBe(site.testData.addNewCustomerAddressForAddressBook.address.city);
+    softExpect(targetAddress!.company).toBe(site.testData.addNewCustomerAddressForAddressBook.address.company);
+    softExpect(targetAddress!.country_code).toBe(site.testData.addNewCustomerAddressForAddressBook.address.country_code);
+    softExpect(targetAddress!.default_billing).toBe(site.testData.addNewCustomerAddressForAddressBook.address.default_billing);
+    softExpect(targetAddress!.default_shipping).toBe(site.testData.addNewCustomerAddressForAddressBook.address.default_shipping);
+    softExpect(targetAddress!.firstname).toBe(site.testData.addNewCustomerAddressForAddressBook.address.firstname);
+    softExpect(targetAddress!.lastname).toBe(site.testData.addNewCustomerAddressForAddressBook.address.lastname);
     softExpect(targetAddress!.middlename).toBeNull();
-    softExpect(targetAddress!.postcode).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.postcode);
-    softExpect(targetAddress!.region.region).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.region.region);
+    softExpect(targetAddress!.postcode).toBe(site.testData.addNewCustomerAddressForAddressBook.address.postcode);
+    softExpect(targetAddress!.region.region).toBe(site.testData.addNewCustomerAddressForAddressBook.address.region.region);
     softExpect(targetAddress!.region.__typename).toBe('CustomerAddressRegion');
-    softExpect(targetAddress!.custom_attributes![0].attribute_code).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.attribute_code);
-    softExpect(targetAddress!.custom_attributes![0].value).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.value);
+    softExpect(targetAddress!.custom_attributes![0].attribute_code).toBe(site.testData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.attribute_code);
+    softExpect(targetAddress!.custom_attributes![0].value).toBe(site.testData.addNewCustomerAddressForAddressBook.address.custom_attributes.value.value);
     softExpect(targetAddress!.custom_attributes![0].__typename).toBe('CustomerAddressAttribute');
-    softExpect(targetAddress!.street[0]).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.street);
-    softExpect(targetAddress!.telephone).toBe(plaTestData.addNewCustomerAddressForAddressBook.address.telephone);
+    softExpect(targetAddress!.street[0]).toBe(site.testData.addNewCustomerAddressForAddressBook.address.street);
+    softExpect(targetAddress!.telephone).toBe(site.testData.addNewCustomerAddressForAddressBook.address.telephone);
     softExpect(data.customer.__typename).toBe('Customer');
     softExpect(data.countries![0].id).toBe('AU');
     softExpect(data.countries![0].full_name_locale).toBe('Australia');
@@ -219,7 +215,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
   });
 
   test("PLA_UpdateCustomerAddressInAddressBook - should update customer address with valid token", async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_UpdateCustomerAddressInAddressBook');
     logger.step('Step 1 - Verify prerequisites');
@@ -234,7 +230,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
 
     const variables = {
       addressId: addressId,
-      updated_address: plaTestData.updateCustomerAddressTemplate
+      updated_address: site.testData.updateCustomerAddressTemplate
     };
 
     logger.step('Step 2 - Send UpdateCustomerAddress mutation');
@@ -291,7 +287,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
   });
 
   test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with valid token", async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_SetNewsletterSubscription - subscribe');
     logger.step('Step 1 - Send SetNewsletterSubscription mutation (subscribe)');
@@ -302,7 +298,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     });
 
     const variables = {
-      is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[0]
+      is_subscribed: site.testData.subscribeNewsletterData.isSubscribed[0]
     };
 
     const response = await authClient.mutateWrapped(SET_NEWSLETTER_MUTATION, variables);
@@ -322,7 +318,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
   });
 
   test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with valid token", async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_SetNewsletterSubscription - unsubscribe');
     logger.step('Step 1 - Send SetNewsletterSubscription mutation (unsubscribe)');
@@ -333,7 +329,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     });
 
     const variables = {
-      is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[1]
+      is_subscribed: site.testData.subscribeNewsletterData.isSubscribed[1]
     };
 
     const response = await authClient.mutateWrapped(SET_NEWSLETTER_MUTATION, variables);
@@ -353,7 +349,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
   });
 
   test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_SetLoyaltyAndNewsletterSubscription');
     logger.step('Step 1 - Send SetLoyaltyAndNewsletterSubscription mutation');
@@ -364,8 +360,8 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     });
 
     const variables = {
-      is_subscribed: plaTestData.subscribeNewsletterData.isSubscribed[1],
-      loyalty_program_status: plaTestData.loyaltyProgramData.status[1]
+      is_subscribed: site.testData.subscribeNewsletterData.isSubscribed[1],
+      loyalty_program_status: site.testData.loyaltyProgramData.status[1]
     };
 
     logger.action('Mutation variables', JSON.stringify(variables));

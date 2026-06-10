@@ -1,14 +1,13 @@
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { plaTestData } from '../../src/data/api/pla-test-data';
 import { plaAuthData, plaAuthErrorMessages } from '../../src/data/api/pla-auth-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 
 test.describe.configure({ mode: 'serial' });
 
-const testEmail = plaTestData.validCredentials.email;
+let testEmail: string = '';
 
 const SIGN_IN_MUTATION = `
   mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
@@ -76,20 +75,21 @@ const RESET_PASSWORD_MUTATION = `
 test.describe('PLA Authentication @api @graphql @regression', () => {
   let customerToken: string;
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll PLA Authentication setup');
+    testEmail = site.testData.validCredentials.email;
     const client = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(client, logger);
+    customerToken = await signInAndStoreToken(client, logger, site, siteState);
   });
 
   // ─── revokeCustomerToken ───────────────────────────────────────────────────
 
-  test('TC_01 - revokeCustomerToken - valid token should revoke and return true', async ({ createGraphQLClient }) => {
+  test('TC_01 - revokeCustomerToken - valid token should revoke and return true', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('TC_01 revokeCustomerToken - valid token returns true');
 
     logger.step('Step 1 - Sign in to obtain a disposable token');
     const publicClient = await createGraphQLClient();
-    const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
+    const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, site.testData.validCredentials);
     await signInResponse.assertNoErrors();
     const signInData = await signInResponse.getData();
     const disposableToken: string = signInData.generateCustomerToken.token;
@@ -108,7 +108,7 @@ test.describe('PLA Authentication @api @graphql @regression', () => {
     softExpect(revokeData.revokeCustomerToken?.result).toBe(true);
   });
 
-  test('TC_02 - revokeCustomerToken - revoked token should not access protected resources', async ({ createGraphQLClient }) => {
+  test('TC_02 - revokeCustomerToken - revoked token should not access protected resources', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('TC_02 revokeCustomerToken - revoked token denies access');
 
     // TC_01 revokes a token for the same account. Wait for Magento's session store to fully
@@ -118,7 +118,7 @@ test.describe('PLA Authentication @api @graphql @regression', () => {
 
     logger.step('Step 1 - Sign in to obtain a disposable token');
     const publicClient = await createGraphQLClient();
-    const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, plaTestData.validCredentials);
+    const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, site.testData.validCredentials);
     await signInResponse.assertNoErrors();
     const signInData = await signInResponse.getData();
     const disposableToken: string = signInData.generateCustomerToken.token;

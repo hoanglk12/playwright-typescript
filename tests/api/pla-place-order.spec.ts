@@ -11,8 +11,7 @@
  * making it impossible to have an OOS item in the cart to reach the placeOrder stage.
  */
 
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
-import { plaTestData } from '../../src/data/api/pla-test-data';
+import { graTest as test, expect, softExpect } from './gra-test';
 import { CheckoutBillingPaymentData } from '../../src/data/api/pla-checkout-billing-payment-data';
 import { PlaceOrderData } from '../../src/data/api/pla-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
@@ -223,12 +222,12 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll Place Order setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
     const anonClient = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(anonClient, logger);
+    customerToken = await signInAndStoreToken(anonClient, logger, site, siteState);
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 

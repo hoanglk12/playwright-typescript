@@ -15,7 +15,7 @@
  *  - TC_05/TC_06 follow the productSearch pattern: early return on "Cannot query field"
  */
 
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import {
@@ -268,12 +268,12 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('PLA GraphQL API - Order History @api @graphql', () => {
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll Order History setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
     const anonClient = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(anonClient, logger);
+    customerToken = await signInAndStoreToken(anonClient, logger, site, siteState);
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 

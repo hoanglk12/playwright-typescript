@@ -5,10 +5,13 @@ Supplements the root `CLAUDE.md`. Rules here apply to everything under `tests/ap
 ## Import — Critical
 
 ```ts
-// Always this
+// PLA GRA specs (pla-*.spec.ts) — use graTest
+import { graTest as test, expect, softExpect } from './gra-test';
+
+// Non-GRA API specs (restful-booker, objects-crud, graphql-examples)
 import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
 
-// Never this in API test files
+// Never this in any API test file
 import { test, expect } from '@config/base-test';
 ```
 
@@ -33,17 +36,52 @@ All API test data lives in `src/data/api/` — one file per feature domain (e.g.
 4. **Guard `errors[0]` access**: `gql.errors.length ? gql.errors[0]?.message ?? '' : ''`.
 5. **No `logger.verify()` adjacent to `softAssert.*` fixture calls** — `SoftAssertHelper` (the `softAssert` fixture) logs internally with `🔵 [SOFT]`; calling `logger.verify()` before a `softAssert.*` call creates a duplicate log entry. **`softExpect` (bare Pattern A, no fixture) does NOT log internally** — pairing it with `logger.verify()` is correct and expected.
 
+## GRA Multi-Brand Pattern (Phase 1, 2026-06-10)
+
+All `pla-*.spec.ts` files run across 4 AU brand projects (`pla-au`, `skx-au`, `drm-au`, `van-au`). Brand config is injected via the `site: SiteContext` fixture from `gra-test.ts`.
+
+### Key fixtures (from `graTest` in `tests/api/gra-test.ts`)
+
+| Fixture | Type | Purpose |
+|---|---|---|
+| `site` | `SiteContext` | Brand config from `src/data/api/sites.ts` — baseURL, testData, currency, etc. |
+| `siteState` | `TestState` | Per-brand isolated state map (`getStateForSite(siteCode)`) |
+| `graphqlClient` | `GraphQLClient` | Defaults to `site.baseURL` (not env config URL) |
+| `createGraphQLClient` | factory | Also defaults to `site.baseURL` |
+
+### `signInAndStoreToken` — New Signature
+
+```ts
+// Old (never use in pla-*.spec.ts)
+signInAndStoreToken(client, logger)
+
+// New — always pass site + siteState
+signInAndStoreToken(client, logger, site, siteState)
+```
+
+### `beforeAll` pattern
+
+```ts
+test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+  const logger = createTestLogger('...');
+  const client = await createGraphQLClient();
+  customerToken = await signInAndStoreToken(client, logger, site, siteState);
+  // Use site.testData.xxx instead of plaTestData.xxx
+  // Use siteState.setCartId() etc. instead of setCartId()
+});
+```
+
 ## PLA GraphQL Tests — Shared-State Pattern
 
-Shared state (`tests/api/shared-state.ts`) carries `token`, `customerId`, `cartId`, `addressId` across PLA spec files within a single worker.
+Shared state (`tests/api/shared-state.ts`) carries `token`, `customerId`, `cartId`, `addressId` keyed by `siteCode` via `getStateForSite(siteCode)`. The `siteState` fixture handles this automatically.
 
 ### Always-fresh auth (mandatory for any spec needing auth)
 
-Never reuse `getCustomerToken()` from shared-state. Always sign in fresh in `beforeAll`:
+Never reuse token from state. Always sign in fresh in `beforeAll`:
 
-1. Try `generateCustomerToken` with `plaTestData.validCredentials`
+1. Try `generateCustomerToken` with `site.testData.validCredentials`
 2. If errors → create account → sign in again
-3. Call `setCustomerToken(token)` to update shared-state
+3. `siteState.setCustomerToken(token)` updates per-brand state
 
 **Why:** `pla-authentication.spec.ts` calls `generateCustomerToken` for the same account (TC_01/TC_02), which invalidates any previously issued token. A non-empty stale string bypasses an `if (!token)` guard.
 

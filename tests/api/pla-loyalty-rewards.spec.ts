@@ -24,7 +24,7 @@
  *   Required: cart_id (String!). Works without errors. Used for cleanup in afterAll.
  */
 
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { LoyaltyRewardsData } from '../../src/data/api/pla-loyalty-rewards-data';
@@ -217,12 +217,12 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll Loyalty & Rewards setup');
 
     // ── 1. Sign in fresh (creates account if not exists) ──────────────────
     const anonClient = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(anonClient, logger);
+    customerToken = await signInAndStoreToken(anonClient, logger, site, siteState);
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
