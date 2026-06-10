@@ -237,7 +237,13 @@ test.describe('PLA GraphQL API - Account Management', () => {
     const response = await authClient.queryWrapped(GET_CUSTOMER_DETAILS_QUERY);
 
     logger.step('Step 2 - Assert customer details returned');
-    await response.assertNoErrors();
+    // Non-loyalty brands (drm-au, van-au) return a partial error on the loyalty path —
+    // filter it out so the rest of the customer data can still be verified
+    const gql = await response.getGraphQLResponse();
+    const criticalErrors = (gql.errors ?? []).filter(
+      (e) => !(Array.isArray(e.path) && (e.path as string[]).some((p) => p === 'loyalty' || p === 'loyalty_program_status')),
+    );
+    expect(criticalErrors, 'Unexpected GraphQL errors in getCustomerDetails').toHaveLength(0);
     await response.assertHasData();
     await response.assertDataField('customer.id', expect.any(Number));
 
