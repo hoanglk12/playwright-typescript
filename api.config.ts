@@ -38,14 +38,14 @@ export default defineConfig({
       : 'local',
   },
 
-  /* Run tests in files in parallel */
-  fullyParallel: false, // Disabled for API tests to avoid rate limiting
+  /* Tests within a single spec file run serially (combined with mode:'serial' in each spec) */
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Force serial execution for API tests */
-  workers: 1,
+  /* 4 workers = one per GRA brand project (pla/skx/drm/van run concurrently, serial within each) */
+  workers: 4,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html', { outputFolder: 'api-report' }],
