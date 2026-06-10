@@ -27,10 +27,12 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - **15 shared spec files** in `tests/api/pla-*.spec.ts` run across 4 AU brand projects: `pla-au`, `skx-au`, `drm-au`, `van-au`
 - Site-specific config injected via `testInfo.project.metadata.siteCode` → `SiteContext` from `src/data/api/sites.ts`
 - **Import rule:** all `pla-*.spec.ts` use `graTest as test` from `./gra-test` (NOT `apiTest`)
-- `api.config.ts` has 5 projects: `pla-au`, `skx-au`, `drm-au`, `van-au` (all match `pla-*.spec.ts`) + `misc-api` (restful-booker, objects-crud, graphql-examples)
+- `api.config.ts` has 5 projects: `pla-au`, `skx-au`, `drm-au`, `van-au` (all match `pla-*.spec.ts`) + `misc-api` (restful-booker, objects-crud). (`graphql-examples.spec.ts` deleted 2026-06-11.)
 - `shared-state.ts` re-keyed to `Map<siteCode, TestState>` — `getStateForSite(siteCode)` for per-brand isolation
 - `signInAndStoreToken(client, logger, site, siteState)` — new signature
+- `api.config.ts` `workers: 4` (2026-06-11) — 4 brand projects run concurrently; serial within each brand; `fullyParallel: false` kept
 - `api.config.ts` `actionTimeout` = **30 000 ms** (covers slow staging ops like `placeOrder`)
+- drm-au/van-au: `testIgnore: ['**/pla-loyalty-rewards.spec.ts']` — loyalty feature not deployed; excluded from report entirely
 - `api-scenarios-report.html` at `Guideline/api-scenarios-report.html` — see [[pla-api-testing]] for patterns and API quirks
 
 **Ecommerce UI smoke tests (6 spec files, ~200 tests as of 2026-06-04):**

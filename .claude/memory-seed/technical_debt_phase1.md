@@ -39,11 +39,10 @@ Technical debt audit run via `/tech-debt` produced `TECH_DEBT_REPORT.md` (grade 
 ## Remaining — Suggestions only (open)
 
 - **DEBT-013:** Routine dep bumps — `typescript` 5.x→6, `@types/node`, `@playwright/test` 1.59→1.60, `monocart-reporter`
-- **DEBT-014:** Delete `tests/api/graphql-examples.spec.ts` (entire file is commented-out dead code)
+- ~~**DEBT-014:**~~ ✅ Resolved (2026-06-11) — `tests/api/graphql-examples.spec.ts` deleted (692-line all-commented file); removed from `misc-api` testMatch in `api.config.ts`.
 - **DEBT-015:** `npm audit fix` — 3 high + 8 moderate transitive dev-dependency advisories
-
-**Note:** DEBT-016 (pla-search `console.log` skip-notices) was resolved as part of DEBT-008.
+- ~~**DEBT-016:**~~ ✅ Resolved — `pla-search.spec.ts` `console.log` skip-notices already routed through `logger.action`; confirmed during DEBT-014 session.
 
 ## How to continue
 
-Run `/fix-debt DEBT-014` (safe, just a file delete) or `/fix-debt DEBT-015` (`npm audit fix`). DEBT-013 requires verifying breaking changes for a major TypeScript bump — run `/research typescript 5 to 6 migration` first.
+Only DEBT-013 and DEBT-015 remain. DEBT-013 requires verifying breaking changes — run `/research typescript 5 to 6 migration` first. DEBT-015: `npm audit fix` is safe (all transitive dev-dep advisories).

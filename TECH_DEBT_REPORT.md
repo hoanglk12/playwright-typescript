@@ -32,7 +32,7 @@ All direct `this.page.locator()`, `this.page.goto()`, `this.page.waitForURL()`, 
 `tests/api/api-mocking-examples.spec.ts` uses the `page` fixture (browser page object) — it cannot use `ApiTest`. A `// WHY:` comment documents the sanctioned exception and the relocation TODO. The file must be relocated to `tests/frontsite/` or `tests/ecommerce/` in a future sprint.
 
 ### ~~DEBT-003~~ — ✅ RESOLVED (2026-06-09) — Missing serial-mode declaration in API specs
-`test.describe.configure({ mode: 'serial' })` added to all three affected specs: `api-mocking-examples.spec.ts`, `graphql-examples.spec.ts`, `objects-crud.spec.ts`.
+`test.describe.configure({ mode: 'serial' })` added to affected specs: `api-mocking-examples.spec.ts`, `objects-crud.spec.ts`. (`graphql-examples.spec.ts` was later deleted as DEBT-014.)
 
 ### ~~DEBT-004~~ — ✅ RESOLVED (2026-06-09) — Untyped exported data module
 `ServicesAZDataShape` interface added to `src/data/services-az-data.ts`; `ServicesAZData` const annotated with the interface per the `admin-data.ts` reference pattern.
@@ -76,9 +76,9 @@ The `preferMens` conditional chains in `pdp-smoke.spec.ts` / `cart-smoke.spec.ts
 ## 🟢 Suggestions (backlog / nice-to-have)
 
 - **DEBT-013** `package.json` — `typescript` is 1 major behind (5.9.3 → 6.0.3) and `@types/node` is 1 major behind (24 → 25); `@playwright/test` 1.59.1 → 1.60.0, `monocart-reporter` 2.10.1 → 2.11.2. None are >2 majors behind, so low urgency; schedule a routine bump.
-- **DEBT-014** `tests/api/graphql-examples.spec.ts:14-279+` — the entire file is commented-out example tests (`// test('should …`). Delete it or convert to a documented fixture sample; dead commented code rots.
+- ~~**DEBT-014**~~ ✅ Resolved (2026-06-11) — deleted `tests/api/graphql-examples.spec.ts` (692-line all-commented file) and removed from `misc-api` testMatch.
 - **DEBT-015** npm audit — 3 high (`fast-uri`, `systeminformation`, `tmp`) + 8 moderate are all transitive dev-dependency advisories with fixes available via `npm audit fix` (non-breaking). No production runtime exposure (test framework only), hence not Critical.
-- **DEBT-016** `tests/api/pla-search.spec.ts:185,217` — `console.log` skip-notices for the documented `productSearch` schema gap; route through `logger.action`/`test.skip(true, reason)` so the signal appears in the report rather than stdout.
+- ~~**DEBT-016**~~ ✅ Resolved — `console.log` skip-notices in `pla-search.spec.ts` already routed through `logger.action`; no action needed.
 - **DEBT-017** Comment hygiene — page-object/spec comment density is well within the 50-line threshold and most comments document non-obvious WHYs (Firefox teardown, Bloomreach popup, staging quirks). No action needed; recorded as a healthy baseline to preserve.
 
 ---
@@ -96,7 +96,7 @@ The `preferMens` conditional chains in `pdp-smoke.spec.ts` / `cart-smoke.spec.ts
 
 ### Phase 4 — Backlog (low urgency)
 1. **[DEBT-013 — ~30 min]** Routine dependency bump: TypeScript, @types/node, @playwright/test, monocart-reporter.
-2. **[DEBT-014, DEBT-016 — ~30 min]** Delete commented `graphql-examples.spec.ts`; route `console.log` skip-notices in `pla-search.spec.ts` through `logger.action`/`test.skip`.
+2. ~~**[DEBT-014, DEBT-016]**~~ ✅ Resolved (2026-06-11).
 3. **[DEBT-015 — ~15 min]** Run `npm audit fix` for transitive dev-dependency advisories.
 
 ---
