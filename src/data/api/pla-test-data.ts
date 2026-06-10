@@ -180,7 +180,7 @@ export function createBrandTestData(emailPrefix: string): PlaTestData {
       is_subscribed: false,
       loyalty_program_status: false,
       order_number: null,
-      gender: Math.floor(Math.random() * 2),
+      gender: 0,
       date_of_birth: null,
     },
     invalidEmail: {

@@ -38,13 +38,13 @@ const PRODUCT_SEARCH_SUGGESTIONS_QUERY = `
 
 test.describe('PLA Search API @api @graphql @regression', () => {
 
-  test('TC_01 - products - valid search term returns non-empty results with aggregations', async ({ createGraphQLClient }) => {
+  test('TC_01 - products - valid search term returns non-empty results with aggregations', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('TC_01 products - valid search term returns non-empty results');
 
-    logger.step('Step 1 - Execute ProductSearch query with valid search term "nike"');
+    logger.step(`Step 1 - Execute ProductSearch query with valid search term "${site.catalogSearchTerm}"`);
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_QUERY, {
-      search: PlaSearchData.searchTerms.valid,
+      search: site.catalogSearchTerm,
       pageSize: PlaSearchData.pagination.pageSize,
       currentPage: 1,
     });
@@ -63,13 +63,13 @@ test.describe('PLA Search API @api @graphql @regression', () => {
     logger.verify('items non-empty', true, data.products.items.length > 0);
   });
 
-  test('TC_02 - products - valid search term returns items with expected shape', async ({ createGraphQLClient }) => {
+  test('TC_02 - products - valid search term returns items with expected shape', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('TC_02 products - valid search term returns items with sku and name');
 
     logger.step('Step 1 - Execute ProductSearch query with valid search term');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_QUERY, {
-      search: PlaSearchData.searchTerms.valid,
+      search: site.catalogSearchTerm,
       pageSize: PlaSearchData.pagination.pageSize,
       currentPage: 1,
     });

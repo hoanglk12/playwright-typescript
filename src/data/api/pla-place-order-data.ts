@@ -4,6 +4,6 @@ export interface PlaceOrderDataShape {
 }
 
 export const PlaceOrderData: Readonly<PlaceOrderDataShape> = {
-  productSearchTerms: ['', 'shoe', 'nike', 'a', 'boot'],
+  productSearchTerms: ['', 'shoe', 'sneaker', 'a', 'boot'],
   orderNumberPattern: /^\S+$/,
 };

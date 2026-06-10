@@ -10,6 +10,8 @@ export interface SiteContext {
   countryCode: string;
   currency: string;
   shippingRegion: string;
+  // A search term guaranteed to return product results for this brand's catalog
+  catalogSearchTerm: string;
 }
 
 export const siteRegistry: Record<string, SiteContext> = {
@@ -20,6 +22,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     countryCode: 'AU',
     currency: 'AUD',
     shippingRegion: 'NSW',
+    catalogSearchTerm: 'shoe',
     testData: createBrandTestData('pla'),
   },
   'skx-au': {
@@ -29,6 +32,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     countryCode: 'AU',
     currency: 'AUD',
     shippingRegion: 'NSW',
+    catalogSearchTerm: 'skechers',
     testData: createBrandTestData('skx'),
   },
   'drm-au': {
@@ -38,6 +42,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     countryCode: 'AU',
     currency: 'AUD',
     shippingRegion: 'NSW',
+    catalogSearchTerm: 'boot',
     testData: createBrandTestData('drm'),
   },
   'van-au': {
@@ -47,6 +52,7 @@ export const siteRegistry: Record<string, SiteContext> = {
     countryCode: 'AU',
     currency: 'AUD',
     shippingRegion: 'NSW',
+    catalogSearchTerm: 'vans',
     testData: createBrandTestData('van'),
   },
 };
