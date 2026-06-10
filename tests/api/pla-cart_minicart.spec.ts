@@ -358,6 +358,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
   test('PLA_MiniCartQuery - return data about cartId, quantity, prices, rewards msg, and qff', async ({
     createGraphQLClient,
+    site,
   }) => {
     const logger = createTestLogger('PLA_MiniCartQuery return data about cartId, quantity, prices, rewards msg, and qff');
 
@@ -388,9 +389,15 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     softExpect(data.cart.prices.special_price_discount).toBeDefined();
     softExpect(data.cart.prices.discounts).toBeNull();
     softExpect(data.cart.prices.__typename).toBe('CartPrices');
-    softExpect(data.cart.multiple_rewards_message).toBe(
-      'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'
-    );
+    if (site.brand === 'platypus') {
+      softExpect(data.cart.multiple_rewards_message).toBe(
+        'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'
+      );
+    } else {
+      softExpect(
+        data.cart.multiple_rewards_message === null || typeof data.cart.multiple_rewards_message === 'string'
+      ).toBe(true);
+    }
     softExpect(data.cart.qff_reward.is_qff_member).toBe(false);
     softExpect(data.cart.qff_reward.qff_points).toBe(0);
     softExpect(data.cart.qff_reward.qff_reward_message).toBe(

@@ -48,7 +48,7 @@ export class OrderHistoryDataGenerator {
       lastname: 'HistoryTest',
       password: 'Johncena5',
       phone_number: '0412345678',
-      gender: 1,
+      gender: 0,
     };
   }
 }
