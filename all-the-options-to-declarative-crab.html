@@ -259,7 +259,7 @@ code.hljs {
 <ol>
 <li><p><strong>"PLA NZ" is actually Platypus AU today.</strong> All GRA hosts default to store_code <code>au</code>, AUD, country AU when no <code>Store</code> header is sent. The existing PLA suite exercises the AU store on every host, including <code>stag-platypus-nz</code>. True NZ store views require a <code>Store: nz</code> header.</p>
 </li>
-<li><p><strong>A framework gap blocks NZ authenticated tests.</strong> <code>ApiClient.init()</code> applies auth via a mutually-exclusive switch — you cannot send a Bearer token AND a <code>Store: nz</code> custom header on one client instance. This is a hard blocker for NZ authed scenarios.</p>
+<li><p><strong>An ergonomic framework gap affects NZ authenticated tests (not a hard blocker).</strong> <code>ApiClient.init()</code> applies auth via a mutually-exclusive switch — you cannot combine <code>AuthType.BEARER</code> <em>with</em> <code>customHeaders</code> on one client instance. However, NZ authed tests are <strong>still achievable today with no framework change</strong> by putting both headers into <code>customHeaders</code> under <code>AuthType.CUSTOM</code> (e.g. <code>{ 'Store': 'nz', 'Authorization': 'Bearer …' }</code>) — <code>init()</code>'s <code>CUSTOM</code> branch runs <code>Object.assign(headers, customHeaders)</code>, so both headers are sent. The recommended <code>init()</code> additive-merge fix is a <strong>cleanliness improvement</strong> (keeps tests using <code>AuthType.BEARER</code> semantically) — not a prerequisite that blocks NZ coverage.</p>
 </li>
 </ol>
 <hr>
@@ -493,6 +493,8 @@ Store: nz
 <li>Parameterise <code>signInAndStoreToken</code> to accept <code>SiteContext</code></li>
 </ul>
 <p><strong>Changes to <code>api.config.ts</code>:</strong> add explicit projects <code>pla-au</code>, <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code> (replacing the implicit default run).</p>
+<p><strong>Per-project <code>SiteContext</code> wiring (must be specified — the registry alone is not enough):</strong> each project carries <code>metadata: { siteCode: 'skx-au' }</code> <strong>and</strong> a <code>testMatch</code>/<code>grep</code> filter so it runs only the relevant specs (otherwise every project runs every spec, multiplying the suite 8×). Expose the site to specs via a fixture that reads <code>testInfo.project.metadata.siteCode</code>, looks it up in the <code>sites.ts</code> registry, and yields a <code>site: SiteContext</code> fixture. Specs take <code>{ graphqlClient, site }</code> and pull <code>baseURL</code> / <code>storeHeader</code> / data from <code>site</code> — no env-var juggling. The <code>graphqlClient</code> fixture builds from <code>site.baseURL</code> and, when <code>site.storeHeader</code> is set, passes <code>customHeaders: { Store: site.storeHeader }</code>.</p>
+<p><strong>Sequencing note:</strong> with <code>workers: 1</code> + <code>fullyParallel: false</code> (current <code>api.config.ts</code>), a single local <code>npm run test:api</code> runs all 8 projects <strong>sequentially</strong> (8× duration) in one process — which is also why <code>shared-state</code> re-keying matters locally. In the CI matrix (one site per job = one process), the singleton is already process-isolated, so the re-key is a safety belt there rather than a strict requirement.</p>
 <h3 id="phase-2-nz-store-views-requires-framework-fix">Phase 2: NZ store views (requires framework fix)</h3>
 <p><strong>Framework change needed in <code>src/api/ApiClient.ts</code>:</strong> make <code>init()</code> merge <code>customHeaders</code> additively with auth headers.</p>
 <p><strong>Why:</strong> <code>ApiClient.init()</code> uses a mutually-exclusive switch — <code>AuthType.BEARER</code> sets only the Bearer token; <code>AuthType.CUSTOM</code> sets only custom headers. You cannot apply both at once. NZ authenticated tests need two headers simultaneously on every request:</p>
@@ -536,9 +538,9 @@ Store: nz
 </tr>
 </thead>
 <tbody><tr>
-<td><code>Bearer</code> + <code>Store: nz</code> mutually exclusive</td>
-<td><strong>High</strong> — NZ authed tests impossible</td>
-<td>Phase 2 <code>ApiClient.init()</code> header-merge fix; backward-compat gate</td>
+<td><code>AuthType.BEARER</code> cannot combine with <code>customHeaders</code></td>
+<td><strong>Low</strong> — workaround exists (<code>AuthType.CUSTOM</code> with both headers); NZ authed tests achievable today</td>
+<td><code>ApiClient.init()</code> additive-merge fix preferred for clean API, but not required; backward-compat gate</td>
 </tr>
 <tr>
 <td>Global <code>shared-state</code> singleton collides</td>
@@ -581,7 +583,7 @@ Store: nz
 <li><strong>Refactor PLA spec files</strong> to consume <code>SiteContext</code> instead of importing <code>plaTestData</code> directly</li>
 <li><strong>Add AU projects to <code>api.config.ts</code></strong> — <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code>; keep <code>pla-au</code> project</li>
 <li><strong>Run Phase 1</strong> — validate all AU brand runs pass</li>
-<li><strong>Fix <code>ApiClient.init()</code></strong> — additive header merge (Phase 2 prerequisite)</li>
+<li><strong>Fix <code>ApiClient.init()</code></strong> — additive header merge (preferred ergonomic fix; remove the redundant <code>AuthType.CUSTOM</code> case body when applying). Not a Phase 2 prerequisite — the <code>AuthType.CUSTOM</code> workaround unblocks NZ authed tests without it</li>
 <li><strong>Create NZ data files</strong> for all 4 brands</li>
 <li><strong>Add NZ projects to <code>api.config.ts</code></strong> with <code>storeHeader: 'nz'</code></li>
 <li><strong>NZ loyalty spec</strong> — create a separate NZ loyalty spec that covers only <code>applyRewardPointsToCart</code>; AU loyalty spec retains both <code>applyRewardPointsToCart</code> + <code>applyQantasPointsToCart</code></li>
@@ -590,7 +592,7 @@ Store: nz
 <hr>
 <h2 id="9-user-decisions-confirmed-2026-06-07">9. User Decisions (confirmed 2026-06-07)</h2>
 <ol>
-<li><strong>NZ scope:</strong> Full NZ store view coverage — all 15 scenarios run for every NZ endpoint with <code>Store: nz</code> header + NZD/NZ data. Phase 2 <code>ApiClient</code> fix is required because <code>ApiClient.init()</code> uses a mutually-exclusive auth switch: <code>AuthType.BEARER</code> sets only the Bearer token, <code>AuthType.CUSTOM</code> sets only custom headers — you cannot send both on the same client. Authenticated NZ tests need <code>Authorization: Bearer {token}</code> + <code>Store: nz</code> simultaneously. Without the fix, ~9/15 spec areas (cart, wishlist, checkout, loyalty, auth, profile, etc.) are impossible on NZ. Public NZ tests (catalog, search, storeConfig) work without the fix via <code>AuthType.CUSTOM</code>.</li>
+<li><strong>NZ scope:</strong> Full NZ store view coverage — all 15 scenarios run for every NZ endpoint with <code>Store: nz</code> header + NZD/NZ data. <code>ApiClient.init()</code> uses a mutually-exclusive auth switch: <code>AuthType.BEARER</code> sets only the Bearer token, <code>AuthType.CUSTOM</code> sets only custom headers — you cannot combine <code>AuthType.BEARER</code> with <code>customHeaders</code> on the same client. Authenticated NZ tests need <code>Authorization: Bearer {token}</code> + <code>Store: nz</code> simultaneously. <strong>This is achievable today without any framework change</strong> by sending both via <code>AuthType.CUSTOM</code> (<code>customHeaders: { 'Store': 'nz', 'Authorization': 'Bearer …' }</code>). The Phase 2 <code>ApiClient.init()</code> additive-merge fix is <strong>preferred but optional</strong> — it lets NZ authed tests keep using <code>AuthType.BEARER</code> semantically instead of hand-building the <code>Authorization</code> header. Public NZ tests (catalog, search, storeConfig) already work via <code>AuthType.CUSTOM</code> with just <code>{ 'Store': 'nz' }</code>.</li>
 <li><strong>PLA AU:</strong> Add as explicit <code>pla-au</code> project (formalise the current default run).</li>
 <li><strong>Qantas:</strong> AU-wide feature. All 4 AU sites include Qantas tests in their loyalty spec. All 4 NZ sites have Qantas tests <strong>removed entirely</strong> — not skipped, not conditionally gated, just absent. NZ loyalty spec covers only <code>applyRewardPointsToCart</code>.<ul>
 <li>Include Qantas: pla-au, skx-au, drm-au, van-au</li>
@@ -715,8 +717,21 @@ export function getStateForSite(siteCode: string): TestState {
 // pla-au, skx-au, drm-au, van-au each get their own isolated token / cartId / addressId
 </code></pre>
 
-<h3 id="phase-2-apiclient-fix">Phase 2 — The <code>ApiClient.init()</code> Fix (Required for All NZ Authenticated Tests)</h3>
-<p>One additive merge after the switch. Backward-compatible — existing AU tests are unaffected because they do not set <code>customHeaders</code>.</p>
+<h3 id="phase-2-apiclient-fix">Phase 2 — The <code>ApiClient.init()</code> Fix (Preferred, Not Required, for NZ Authenticated Tests)</h3>
+<p><strong>Workaround without the fix (works on current code):</strong> put both headers into <code>customHeaders</code> under <code>AuthType.CUSTOM</code>. The <code>CUSTOM</code> branch runs <code>Object.assign(headers, customHeaders)</code>, so both <code>Store: nz</code> and <code>Authorization: Bearer …</code> are sent on every request:</p>
+<pre><code class="hljs ts">// No framework change needed — both headers sent via AuthType.CUSTOM
+const nzAuthClient = await createGraphQLClient({
+  baseURL: 'https://stag-platypus-nz.accentgra.com/graphql',
+  authType: AuthType.CUSTOM,
+  customHeaders: {
+    'Store': 'nz',
+    'Authorization': `Bearer ${nzCustomerToken}`,
+  },
+});
+// Authorization: Bearer ...  ✓
+// Store: nz                  ✓
+</code></pre>
+<p><strong>Preferred fix (cleaner API):</strong> one additive merge after the switch lets tests keep using <code>AuthType.BEARER</code> semantically. Backward-compatible — existing AU tests are unaffected because they do not set <code>customHeaders</code>. <strong>Note:</strong> when applying this, remove the now-redundant <code>case AuthType.CUSTOM</code> body — the post-switch merge already covers it (leaving both would assign <code>customHeaders</code> twice; harmless but dead code).</p>
 <pre><code class="hljs ts">// ApiClient.ts — fixed init()
 async init(): Promise&lt;void&gt; {
   const headers: Record&lt;string, string&gt; = {};
@@ -778,10 +793,10 @@ const nzAuthClient = await createGraphQLClient({
 </tr>
 <tr>
 <td>Any NZ authenticated tests (cart, wishlist, checkout, loyalty)</td>
-<td><strong>Blocked</strong> — <code>ApiClient.init()</code> cannot merge Bearer + custom headers simultaneously</td>
-<td><strong>Framework gap — Phase 2 fix required</strong></td>
+<td>Achievable today via <code>AuthType.CUSTOM</code> with <code>{ 'Store': 'nz', 'Authorization': 'Bearer …' }</code>; <code>AuthType.BEARER</code> + <code>customHeaders</code> cannot be combined</td>
+<td><strong>Works with workaround — <code>init()</code> fix preferred for clean API, not required</strong></td>
 </tr>
 </tbody>
 </table>
-<p>The <code>ApiClient.init()</code> additive-merge fix is the only framework code change required before any NZ authenticated test can be written. Everything else (Phase 1 + Phase 2) is additive: new data modules, <code>SiteContext</code> registry, re-keyed shared-state, new spec files, updated <code>api.config.ts</code> projects.</p>
+<p>No framework code change is strictly required before NZ authenticated tests can be written — the <code>AuthType.CUSTOM</code> workaround unblocks them today. The <code>ApiClient.init()</code> additive-merge fix is a preferred ergonomic improvement. Everything else (Phase 1 + Phase 2) is additive: new data modules, <code>SiteContext</code> registry, re-keyed shared-state, new spec files, updated <code>api.config.ts</code> projects.</p>
 </body></html>
