@@ -57,7 +57,6 @@ interface UserError {
 let customerToken: string = '';
 let cartId: string = '';
 let addedCartItemId: number = 0;
-let suiteShouldRun: boolean = true;
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
 
@@ -218,17 +217,8 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
-  test.beforeEach(() => {
-    if (!suiteShouldRun) test.skip();
-  });
-
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll Loyalty & Rewards setup');
-
-    if (!site.hasLoyalty) {
-      suiteShouldRun = false;
-      return;
-    }
 
     // ── 1. Sign in fresh (creates account if not exists) ──────────────────
     const anonClient = await createGraphQLClient();

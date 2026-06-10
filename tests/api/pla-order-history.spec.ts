@@ -269,6 +269,8 @@ test.describe.configure({ mode: 'serial' });
 test.describe('PLA GraphQL API - Order History @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    // Full checkout flow (9 steps) can exceed the 30s default on slow staging
+    test.setTimeout(120000);
     const logger = createTestLogger('beforeAll Order History setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────

@@ -137,12 +137,16 @@ export default defineConfig({
       name: 'drm-au',
       testDir: './tests/api',
       testMatch: ['**/tests/api/pla-*.spec.ts'],
+      // Loyalty feature not deployed on Dr. Martens — exclude entirely so tests don't appear in report
+      testIgnore: ['**/pla-loyalty-rewards.spec.ts'],
       metadata: { siteCode: 'drm-au' },
     },
     {
       name: 'van-au',
       testDir: './tests/api',
       testMatch: ['**/tests/api/pla-*.spec.ts'],
+      // Loyalty feature not deployed on Vans — exclude entirely so tests don't appear in report
+      testIgnore: ['**/pla-loyalty-rewards.spec.ts'],
       metadata: { siteCode: 'van-au' },
     },
     // Non-GRA specs (restful-booker, graphql-examples, objects-crud)
