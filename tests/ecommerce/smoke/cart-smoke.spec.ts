@@ -39,7 +39,6 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       ecommerceNavPage,
       ecommercePLPPage,
       ecommercePDPPage,
-      softAssert,
     }) => {
       const logger = createTestLogger(`${tcId} - ${site.name} Mini cart shows item count after ATC`);
 
@@ -62,6 +61,8 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
       for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
         if (i > 0) {
+          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
+          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
           await ecommercePDPPage.goBack();
           await ecommercePLPPage.waitForPlpUrl();
           await ecommercePLPPage.waitForProductGrid();
@@ -121,11 +122,10 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       const finalCartCount = await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
 
       logger.step('Step 15 - Assert mini cart count incremented by exactly 1');
-      softAssert.toBe(
+      expect(
         finalCartCount,
-        initialCartCount + 1,
         `${site.name}: Mini cart count should increment by 1 after Add to Cart (was ${initialCartCount}, expected ${initialCartCount + 1}, got ${finalCartCount})`,
-      );
+      ).toBe(initialCartCount + 1);
     });
   }
 
@@ -163,6 +163,8 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
       for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
         if (i > 0) {
+          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
+          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
           await ecommercePDPPage.goBack();
           await ecommercePLPPage.waitForPlpUrl();
           await ecommercePLPPage.waitForProductGrid();

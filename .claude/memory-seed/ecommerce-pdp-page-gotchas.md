@@ -126,3 +126,18 @@ The mini cart overlay on Platypus AU (and likely other storefronts) renders as a
 **Why three-part gate matters:** `[class*="cart"]` alone matches the persistent header cart icon (always in DOM), making the assertion vacuously true. The `position:fixed/absolute` + CTA gate prevents false-positives.
 
 **E2E-CART-003 result:** 6/8 passed on first run (Platypus AU+NZ, Skechers AU+NZ, Vans AU+NZ, and 2 of the DM sites). Subsequent runs show staging flakiness: Vans AU fails intermittently (overlay not detected — likely Bloomreach popup blocking `clickCartIcon()` or Vans-specific DOM structure not matching our selector). Dr. Martens AU/NZ and Skechers AU sometimes skip (no purchasable sizes). Soft assertion prevents suite crash — Vans AU overlay issue should be investigated via live browser inspection if consistent.
+
+---
+
+## 10. Dr. Martens AU — `getTotalProductCount()` returns 0 on PLP (open investigation)
+
+First observed: 2026-06-10 during E2E-PLP-004-007 and E2E-PLP-006-007.
+
+`getTotalProductCount()` in `EcommercePLPPage` scans `<p>` elements for text matching `/^(\d+)\s+Products$/i`. It returns 0 for Dr. Martens AU, causing E2E-PLP-004 (category filter) and E2E-PLP-006 (size filter) to fail at the precondition guard (`expect(initialCount).toBeGreaterThan(0)`).
+
+**Likely causes to investigate:**
+1. Dr. Martens AU renders product count in a different element (e.g. `<span>`, `<div>`) or uses a different string format (e.g. `"N Results"`, `"Showing N products"`, or a number-only element with no trailing word)
+2. Count element may not be present at all on Dr. Martens AU PLP (no result count displayed)
+3. The count element may render asynchronously and not yet be in DOM when `getTotalProductCount()` runs
+
+**Next step:** Open Dr. Martens AU PLP in a live browser, inspect the product count display, and update `getTotalProductCount()` to handle the site-specific format — or make the regex broader (e.g. `/(\d+)\s*(Products?|Results?|Items?)/i`) and scan more element types.

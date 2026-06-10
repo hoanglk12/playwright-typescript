@@ -8,8 +8,7 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-PLP-001-${String(index + 1).padStart(3, '0')}`;
-    // Prefer women's nav link; fall back to sale for sites without one (e.g. Platypus NZ)
-    const navLabel = site.womensNavLabel ?? site.saleNavLabel;
+    const navLabel = getPreferredNavLabel(site);
 
     test(`${tcId} - ${site.name} PLP loads with product grid visible`, async ({
       ecommerceNavPage,
