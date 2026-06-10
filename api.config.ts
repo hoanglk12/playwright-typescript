@@ -156,7 +156,6 @@ export default defineConfig({
       testMatch: [
         '**/tests/api/restful-booker.spec.ts',
         '**/tests/api/objects-crud.spec.ts',
-        '**/tests/api/graphql-examples.spec.ts',
       ],
     },
   ],

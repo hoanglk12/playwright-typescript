@@ -6,11 +6,6 @@ async function globalSetup(config: FullConfig) {
   console.log('Mode: Serial execution (no parallel)');
   console.log('Browser: None (pure API testing)');
   
-  // API-specific setup without browser
-  // - Check API availability
-  // - Setup test data
-  // - Authenticate if needed
-  
   console.log('✅ API test global setup completed');
 }
 

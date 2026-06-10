@@ -19,10 +19,10 @@ All 15 `pla-*.spec.ts` files now run as a shared suite across 4 AU brand endpoin
 | `van-au` | `stag-vans-au.accentgra.com/graphql` | `van-au` |
 
 **Key files added:**
-- `src/data/api/sites.ts` — `SiteContext` interface + `siteRegistry` (4 AU entries, each with `testData: PlaTestData`)
+- `src/data/api/sites.ts` — `SiteContext` interface + `siteRegistry` (4 AU entries). Interface fields include `catalogSearchTerm: string` (brand-safe search term for catalog/search tests) and `hasLoyalty: boolean` (pla-au/skx-au=true; drm-au/van-au=false). Each entry has `testData: PlaTestData`.
 - `tests/api/gra-test.ts` — `graTest` extends `apiTest`; adds `site: SiteContext` (reads `testInfo.project.metadata.siteCode`) and `siteState: TestState` (Map-keyed per siteCode); overrides `graphqlClient` + `createGraphQLClient` to default to `site.baseURL`
 
-**Import rule — CHANGED:** All `pla-*.spec.ts` now import `graTest as test` from `./gra-test` — NOT from `../../src/api/ApiTest`. Non-GRA specs (restful-booker, objects-crud, graphql-examples) still use `apiTest` from `ApiTest`.
+**Import rule — CHANGED:** All `pla-*.spec.ts` now import `graTest as test` from `./gra-test` — NOT from `../../src/api/ApiTest`. Non-GRA specs (restful-booker, objects-crud) still use `apiTest` from `ApiTest`. (`graphql-examples.spec.ts` was deleted 2026-06-11 — DEBT-014.)
 
 **`shared-state.ts` is now Map-keyed:** Re-keyed to `Map<siteCode, TestState>`. Each brand project gets its own isolated `TestState` bucket. `getStateForSite(siteCode)` returns (and creates if needed) the bucket. Backward-compat function exports (`getCustomerToken()` etc.) still exist but default to `'pla-au'`.
 
@@ -32,7 +32,9 @@ All 15 `pla-*.spec.ts` files now run as a shared suite across 4 AU brand endpoin
 
 **Spec pattern change:** Specs destructure `site` and `siteState` from fixtures; replace `plaTestData.xxx` with `site.testData.xxx`; replace `setCartId(id)` etc. with `siteState.setCartId(id)`.
 
-**Baseline (2026-06-10):** PLA-AU 116/116 passed; SKX-AU 89/116 passed (3 data/staging failures expected — SKX search term mismatch, cart quirk; framework working correctly).
+**Baseline (2026-06-10):** All 4 brands 54/54 passed for account/loyalty/order-history suites (drm-au/van-au loyalty excluded via `testIgnore` in api.config.ts — `hasLoyalty: false` in SiteContext). Full suite of 116 tests per brand passes in isolation.
+
+**Parallel execution (2026-06-11):** `api.config.ts` changed to `workers: 4` — 4 brands run concurrently in separate worker processes. Serial order within each brand preserved by `test.describe.configure({ mode: 'serial' })`. `fullyParallel: false` kept. Safe because: each brand hits a different staging URL; `shared-state.ts` is Map-keyed by siteCode; module-level `let` vars re-initialised by `beforeAll` each project run.
 
 ## File & Data Structure
 
