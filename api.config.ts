@@ -120,14 +120,41 @@ export default defineConfig({
   ],
   /* Projects for API testing - NO BROWSERS */
   projects: [
+    // GRA brand projects — all run pla-*.spec.ts with site-specific metadata
     {
-      name: 'api',
+      name: 'pla-au',
       testDir: './tests/api',
-      use: {
-        // No browser context - pure API testing
-        
-      },
-    }
+      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      metadata: { siteCode: 'pla-au' },
+    },
+    {
+      name: 'skx-au',
+      testDir: './tests/api',
+      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      metadata: { siteCode: 'skx-au' },
+    },
+    {
+      name: 'drm-au',
+      testDir: './tests/api',
+      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      metadata: { siteCode: 'drm-au' },
+    },
+    {
+      name: 'van-au',
+      testDir: './tests/api',
+      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      metadata: { siteCode: 'van-au' },
+    },
+    // Non-GRA specs (restful-booker, graphql-examples, objects-crud)
+    {
+      name: 'misc-api',
+      testDir: './tests/api',
+      testMatch: [
+        '**/tests/api/restful-booker.spec.ts',
+        '**/tests/api/objects-crud.spec.ts',
+        '**/tests/api/graphql-examples.spec.ts',
+      ],
+    },
   ],
   /* Output directories */
   outputDir: 'test-results/api/',

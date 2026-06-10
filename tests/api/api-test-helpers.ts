@@ -1,6 +1,6 @@
 import { GraphQLClient } from '../../src/api/GraphQLClient';
-import { plaTestData } from '../../src/data/api/pla-test-data';
-import { setCustomerToken } from './shared-state';
+import { SiteContext } from '../../src/data/api/sites';
+import { TestState } from './shared-state';
 import { TestLogger } from '../../src/utils/test-logger';
 
 const SIGN_IN_MUTATION = `
@@ -30,8 +30,8 @@ const CREATE_ACCOUNT_MUTATION = `
 `;
 
 /**
- * Signs in fresh with `plaTestData.validCredentials`, creates the account first if it
- * doesn't exist yet, stores the token via `setCustomerToken`, and returns it.
+ * Signs in fresh with site.testData.validCredentials, creates the account first if it
+ * doesn't exist yet, stores the token via state.setCustomerToken, and returns it.
  *
  * Always authenticates fresh — never reuses an existing shared-state token.
  * Per tests/api/CLAUDE.md: "Never reuse getCustomerToken() from shared-state."
@@ -39,8 +39,10 @@ const CREATE_ACCOUNT_MUTATION = `
 export async function signInAndStoreToken(
   client: GraphQLClient,
   logger: TestLogger,
+  site: SiteContext,
+  state: TestState,
 ): Promise<string> {
-  const { email, password, remember } = plaTestData.validCredentials;
+  const { email, password, remember } = site.testData.validCredentials;
   const signInVars = { email, password, remember };
 
   logger.step('Auth: sign in fresh to obtain a valid token');
@@ -51,7 +53,7 @@ export async function signInAndStoreToken(
   if (!(signInGql.errors?.length)) {
     const token: string = signInGql.data?.generateCustomerToken?.token ?? '';
     if (!token) throw new Error('signInAndStoreToken: sign-in succeeded but token was missing');
-    setCustomerToken(token);
+    state.setCustomerToken(token);
     logger.action('Fresh token acquired', '');
     return token;
   }
@@ -59,7 +61,7 @@ export async function signInAndStoreToken(
   // Sign-in failed — create account first (ignore "already exists"), then retry
   logger.step('Auth: sign-in failed — creating account first');
   const createGql = await (
-    await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer)
+    await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, site.testData.validCustomer)
   ).getGraphQLResponse();
 
   if ((createGql.errors?.length ?? 0) > 0) {
@@ -82,7 +84,7 @@ export async function signInAndStoreToken(
 
   const retryToken: string = retryGql.data?.generateCustomerToken?.token ?? '';
   if (!retryToken) throw new Error('signInAndStoreToken: sign-in after account creation returned no token');
-  setCustomerToken(retryToken);
+  state.setCustomerToken(retryToken);
   logger.action('Token acquired after account creation', '');
   return retryToken;
 }

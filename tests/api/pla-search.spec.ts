@@ -1,4 +1,4 @@
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { PlaSearchData } from '../../src/data/api/pla-search-data';
 

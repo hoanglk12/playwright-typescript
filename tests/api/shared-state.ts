@@ -1,16 +1,8 @@
-class TestState {
-  private static instance: TestState | null = null;
+export class TestState {
   private _customerToken: string | null = null;
   private _customerId: string | null = null;
   private _cartId: string | null = null;
   private _addressId: string | null = null;
-
-  static getInstance(): TestState {
-    if (!TestState.instance) {
-      TestState.instance = new TestState();
-    }
-    return TestState.instance;
-  }
 
   getCustomerToken(): string { return this._customerToken ?? ''; }
   setCustomerToken(token: string): void {
@@ -44,8 +36,16 @@ class TestState {
   }
 }
 
-export const sharedState = TestState.getInstance();
+// Map-based registry — one TestState per site
+const stateMap = new Map<string, TestState>();
 
+export function getStateForSite(siteCode: string): TestState {
+  if (!stateMap.has(siteCode)) stateMap.set(siteCode, new TestState());
+  return stateMap.get(siteCode)!;
+}
+
+// Backward-compat exports — default to pla-au bucket
+export const sharedState = getStateForSite('pla-au');
 export function getCustomerToken(): string { return sharedState.getCustomerToken(); }
 export function setCustomerToken(token: string): void { sharedState.setCustomerToken(token); }
 export function getCustomerId(): string { return sharedState.getCustomerId(); }

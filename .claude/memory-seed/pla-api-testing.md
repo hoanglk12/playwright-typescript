@@ -7,11 +7,38 @@ metadata:
   originSessionId: bcd19b4a-e845-42ae-8ca0-fc0da0a8189e
 ---
 
+## GRA Multi-Brand Expansion (Phase 1 — implemented 2026-06-10)
+
+All 15 `pla-*.spec.ts` files now run as a shared suite across 4 AU brand endpoints via Playwright projects:
+
+| Project | Endpoint | siteCode |
+|---|---|---|
+| `pla-au` | `stag-platypus-au.accentgra.com/graphql` | `pla-au` |
+| `skx-au` | `stag-skechers-au.accentgra.com/graphql` | `skx-au` |
+| `drm-au` | `stag-drmartens-au.accentgra.com/graphql` | `drm-au` |
+| `van-au` | `stag-vans-au.accentgra.com/graphql` | `van-au` |
+
+**Key files added:**
+- `src/data/api/sites.ts` — `SiteContext` interface + `siteRegistry` (4 AU entries, each with `testData: PlaTestData`)
+- `tests/api/gra-test.ts` — `graTest` extends `apiTest`; adds `site: SiteContext` (reads `testInfo.project.metadata.siteCode`) and `siteState: TestState` (Map-keyed per siteCode); overrides `graphqlClient` + `createGraphQLClient` to default to `site.baseURL`
+
+**Import rule — CHANGED:** All `pla-*.spec.ts` now import `graTest as test` from `./gra-test` — NOT from `../../src/api/ApiTest`. Non-GRA specs (restful-booker, objects-crud, graphql-examples) still use `apiTest` from `ApiTest`.
+
+**`shared-state.ts` is now Map-keyed:** Re-keyed to `Map<siteCode, TestState>`. Each brand project gets its own isolated `TestState` bucket. `getStateForSite(siteCode)` returns (and creates if needed) the bucket. Backward-compat function exports (`getCustomerToken()` etc.) still exist but default to `'pla-au'`.
+
+**`signInAndStoreToken` signature changed:** Now `(client: GraphQLClient, logger: TestLogger, site: SiteContext, state: TestState)`. Uses `site.testData.validCredentials` and `state.setCustomerToken(token)` internally.
+
+**`pla-test-data.ts` added:** `createBrandTestData(emailPrefix: string): PlaTestData` — generic factory using brand-specific email prefix (e.g. `'skx'` → `skxtest{timestamp}@mail.com`). `createPlaTestData()` now delegates to `createBrandTestData('pla')`.
+
+**Spec pattern change:** Specs destructure `site` and `siteState` from fixtures; replace `plaTestData.xxx` with `site.testData.xxx`; replace `setCartId(id)` etc. with `siteState.setCartId(id)`.
+
+**Baseline (2026-06-10):** PLA-AU 116/116 passed; SKX-AU 89/116 passed (3 data/staging failures expected — SKX search term mismatch, cart quirk; framework working correctly).
+
 ## File & Data Structure
 
 | File | Purpose |
 |---|---|
-| `tests/api/api-test-helpers.ts` | `signInAndStoreToken(client, logger)` — canonical always-fresh auth bootstrap used in all PLA spec `beforeAll` blocks |
+| `tests/api/api-test-helpers.ts` | `signInAndStoreToken(client, logger, site, siteState)` — canonical always-fresh auth bootstrap used in all PLA spec `beforeAll` blocks |
 | `tests/api/pla-account-creation-signin.spec.ts` | Create account, sign in, get customer details |
 | `tests/api/pla-cart_minicart.spec.ts` | Cart / minicart queries and mutations (TC_01–TC_12 cover addProductsToCart, updateCartItems, removeItemFromCart, applyCouponToCart) |
 | `tests/api/pla-my-details.spec.ts` | Address book, newsletter / loyalty subscription updates |

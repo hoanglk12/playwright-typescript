@@ -1,7 +1,6 @@
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { plaTestData } from '../../src/data/api/pla-test-data';
 import {
   plaCustomerProfileData,
   plaCustomerProfileErrorMessages,
@@ -112,15 +111,15 @@ const GET_CUSTOMER_QUERY = `
 test.describe('PLA Customer Profile @api @graphql @regression', () => {
   let customerToken: string = '';
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('PLA Customer Profile - Setup');
     const client = await createGraphQLClient();
 
     logger.step('Sign in fresh to obtain a valid token');
     const signInVars = {
-      email: plaTestData.validCredentials.email,
-      password: plaTestData.validCredentials.password,
-      remember: plaTestData.validCredentials.remember,
+      email: site.testData.validCredentials.email,
+      password: site.testData.validCredentials.password,
+      remember: site.testData.validCredentials.remember,
     };
     const signInResponse = await client.mutateWrapped(SIGN_IN_MUTATION, signInVars);
     const signInGql = await signInResponse.getGraphQLResponse();
@@ -134,7 +133,7 @@ test.describe('PLA Customer Profile @api @graphql @regression', () => {
     }
 
     logger.step('Sign-in failed — creating account first');
-    const createResponse = await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, plaTestData.validCustomer);
+    const createResponse = await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, site.testData.validCustomer);
     const createGql = await createResponse.getGraphQLResponse();
 
     if (createGql.errors) {
@@ -159,7 +158,7 @@ test.describe('PLA Customer Profile @api @graphql @regression', () => {
   // ─── changeCustomerPassword ────────────────────────────────────────────────
 
   test('TC_01 - changeCustomerPassword - valid credentials should update password successfully', async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('TC_01 changeCustomerPassword - valid credentials succeed');
 
@@ -176,7 +175,7 @@ test.describe('PLA Customer Profile @api @graphql @regression', () => {
     const changeData = await changeResponse.getData();
     logger.step('Step 2 - Assert password change returned customer object');
     logger.verify('changeCustomerPassword returned customer data', true, !!changeData.changeCustomerPassword);
-    softExpect(changeData.changeCustomerPassword?.email).toBe(plaTestData.validCredentials.email);
+    softExpect(changeData.changeCustomerPassword?.email).toBe(site.testData.validCredentials.email);
     softExpect(changeData.changeCustomerPassword?.__typename).toBe('Customer');
 
     logger.step('Step 3 - Restore original password so other specs remain functional');
@@ -326,14 +325,14 @@ test.describe('PLA Customer Profile @api @graphql @regression', () => {
   });
 
   test('TC_09 - updateCustomerV2 - duplicate email should return already exists error', async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('TC_09 updateCustomerV2 - duplicate email returns already exists error');
 
     logger.step('Step 1 - Send updateCustomerV2 attempting to claim an already-registered email');
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(UPDATE_EMAIL_MUTATION, {
-      email: plaTestData.validCredentials.email,
+      email: site.testData.validCredentials.email,
     });
 
     logger.step('Step 2 - Assert error is returned (duplicate or password-required)');

@@ -11,14 +11,11 @@
  * API Endpoint: Configured via environment (graphqlApiBaseUrl)
  */
 
-import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
+import { graTest as test, expect, softExpect } from './gra-test';
 import {
-  plaTestData,
   plaErrorMessages,
-  getTestEmail,
 } from '../../src/data/api/pla-test-data';
 import { CartOperationsData } from '../../src/data/api/pla-cart-operations-data';
-import { setCartId } from './shared-state';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -58,7 +55,6 @@ export let cartId: string = '';
 let validSku: string = '';
 let cartItemId: number = 0;
 
-const testEmail = getTestEmail();
 const specialCharRegex = /[^a-zA-Z0-9._-]/;
 
 // ── Reusable mutation/query strings ──────────────────────────────────────────
@@ -193,12 +189,12 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll PLA Cart & MiniCart setup');
 
     // ── 1. Authentication ──────────────────────────────────────────────────
     const anonClient = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(anonClient, logger);
+    customerToken = await signInAndStoreToken(anonClient, logger, site, siteState);
 
     // ── 2. Discover a valid in-stock product SKU ───────────────────────────
     const authClient = await createGraphQLClient({
@@ -248,7 +244,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   test('PLA_CreateCartAfterSignIn - should create new cartId with valid token', async ({
-    createGraphQLClient,
+    createGraphQLClient, siteState,
   }) => {
     const logger = createTestLogger('PLA_CreateCartAfterSignIn should create new cartId with valid token');
 
@@ -267,7 +263,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     const data = await response.getData();
     cartId = data.cartId;
-    setCartId(cartId);
+    siteState.setCartId(cartId);
 
     expect(cartId).toBeDefined();
     softExpect(cartId).not.toMatch(specialCharRegex);
@@ -277,10 +273,10 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
   });
 
   test('PLA_GetItemCount - should show error with wrong cartId', async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_GetItemCount should show error with wrong cartId');
-    const variables = { cartId: plaTestData.invalidCartId };
+    const variables = { cartId: site.testData.invalidCartId };
     const graphQLClient = await createGraphQLClient();
 
     logger.step('Step 1 - Execute getItemCount with invalid cartId');
@@ -334,14 +330,14 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
   });
 
   test('PLA_MiniCartQuery - should show error with wrong cartId', async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_MiniCartQuery should show error with wrong cartId');
 
     expect(cartId).toBeDefined();
     expect(cartId).toBeTruthy();
 
-    const variables = { cartId: plaTestData.invalidCartId };
+    const variables = { cartId: site.testData.invalidCartId };
     const graphQLClient = await createGraphQLClient();
 
     logger.step('Step 1 - Execute MiniCartQuery with invalid cartId');

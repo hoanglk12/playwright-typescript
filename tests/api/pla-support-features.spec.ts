@@ -1,7 +1,5 @@
-import { apiTest as test, expect, softExpect } from "../../src/api/ApiTest";
+import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from "../../src/api/ApiClient";
-import { plaTestData } from "../../src/data/api/pla-test-data";
-import { setCartId } from './shared-state';
 import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 
@@ -53,11 +51,11 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe("PLA GraphQL API - Support Features @api @graphql @regression", () => {
 
-  test.beforeAll(async ({ createGraphQLClient }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA Support Features - Setup');
 
     const client = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(client, logger);
+    customerToken = await signInAndStoreToken(client, logger, site, siteState);
 
     logger.step('Create fresh cart for this session');
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
@@ -70,7 +68,7 @@ test.describe("PLA GraphQL API - Support Features @api @graphql @regression", ()
     const newCartId = cartGql.data?.createEmptyCart;
     if (!newCartId) throw new Error('Cart creation returned no cartId');
     cartId = newCartId;
-    setCartId(cartId);
+    siteState.setCartId(cartId);
     logger.action('Fresh cart created', cartId);
   });
 

@@ -23,12 +23,13 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 
 **Key scripts:** `npm test` (UI, chromium+firefox), `npm run test:api` (API), `npm run test:simple` (chromium only, 1 worker).
 
-**PLA (Platypus Shoes) GraphQL API tests (added 2026-05-15, expanded through 2026-06-04):**
-- Target: `https://stag-platypus-au.accentgra.com/graphql` (Magento 2 / Adobe Commerce)
-- **15 spec files** in `tests/api/`: `pla-account-creation-signin`, `pla-cart_minicart`, `pla-my-details`, `pla-support-features`, `pla-authentication`, `pla-search`, `pla-customer-profile`, `pla-catalog`, `pla-address-book-countries`, `pla-wishlist`, `pla-checkout-shipping`, `pla-checkout-billing-payment`, `pla-place-order`, `pla-loyalty-rewards`, `pla-order-history`
-- Shared test state via `tests/api/shared-state.ts` — **singleton `TestState` class** (getters/setters throw on empty); token, customerId, cartId, addressId fields
-- **Auth helper:** `tests/api/api-test-helpers.ts` exports `signInAndStoreToken(client, logger)` — canonical always-fresh auth bootstrap; used in all PLA spec `beforeAll` blocks
-- Test data at `src/data/api/pla-test-data.ts` — **factory `createPlaTestData()`** + module-level singleton `plaTestData` + `getTestEmail()` shortcut; all PLA specs use `getTestEmail()` to stay in sync
+**GRA GraphQL API tests — Phase 1 live (2026-06-10):**
+- **15 shared spec files** in `tests/api/pla-*.spec.ts` run across 4 AU brand projects: `pla-au`, `skx-au`, `drm-au`, `van-au`
+- Site-specific config injected via `testInfo.project.metadata.siteCode` → `SiteContext` from `src/data/api/sites.ts`
+- **Import rule:** all `pla-*.spec.ts` use `graTest as test` from `./gra-test` (NOT `apiTest`)
+- `api.config.ts` has 5 projects: `pla-au`, `skx-au`, `drm-au`, `van-au` (all match `pla-*.spec.ts`) + `misc-api` (restful-booker, objects-crud, graphql-examples)
+- `shared-state.ts` re-keyed to `Map<siteCode, TestState>` — `getStateForSite(siteCode)` for per-brand isolation
+- `signInAndStoreToken(client, logger, site, siteState)` — new signature
 - `api.config.ts` `actionTimeout` = **30 000 ms** (covers slow staging ops like `placeOrder`)
 - `api-scenarios-report.html` at `Guideline/api-scenarios-report.html` — see [[pla-api-testing]] for patterns and API quirks
 
