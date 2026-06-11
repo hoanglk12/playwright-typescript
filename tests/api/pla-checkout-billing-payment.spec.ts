@@ -230,35 +230,46 @@ test.describe('PLA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
     logger.action('Cart created', cartId);
 
-    // ── 3. Discover a valid SKU ────────────────────────────────────────────
-    logger.step('Step 3 - Discover in-stock product SKU');
-    let validSku: string = '';
+    // ── 3. Discover in-stock candidate SKUs ───────────────────────────────
+    logger.step('Step 3 - Discover in-stock product SKU candidates');
+    const candidateSkus: string[] = [];
     for (const term of ['', 'shoe', 'nike', 'a']) {
       const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
       const items: ProductItem[] = productsData?.products?.items ?? [];
       for (const item of items) {
         if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          validSku = item.sku;
-          break;
+          if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
+        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+          for (const v of item.variants) {
+            if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
+              candidateSkus.push(v.product.sku);
+            }
+          }
         }
-        if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          const v = item.variants.find((v: ProductVariant) => v.product?.stock_status === 'IN_STOCK');
-          if (v) { validSku = v.product.sku; break; }
-        }
-        if (!validSku && item.sku) validSku = item.sku;
+        // No fallback to item.sku — parent configurable SKUs are not addable to cart
       }
-      if (validSku) break;
+      if (candidateSkus.length >= 3) break;
     }
-    if (!validSku) throw new Error('beforeAll: no in-stock product SKU found');
-    logger.verify('SKU found', 'truthy', validSku);
+    if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found');
 
-    // ── 4. Add product to cart ─────────────────────────────────────────────
-    logger.step('Step 4 - Add product to cart');
-    const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-      cartId,
-      cartItems: [{ sku: validSku, quantity: 1 }],
-    })).getGraphQLResponse();
-    if (addGql.errors?.length) throw new Error(`addProductsToCart failed: ${addGql.errors[0]?.message ?? 'unknown'}`);
+    // ── 4. Try candidate SKUs until one adds successfully ─────────────────
+    logger.step('Step 4 - Add in-stock product to cart (with SKU retry)');
+    let validSku: string = '';
+    for (const sku of candidateSkus) {
+      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+        cartId,
+        cartItems: [{ sku, quantity: 1 }],
+      })).getGraphQLResponse();
+      const addUserErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
+      if (!(addGql.errors?.length) && !addUserErrors.length) {
+        validSku = sku;
+        logger.action('Product added to cart', sku);
+        break;
+      }
+      logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
+    }
+    if (!validSku) throw new Error('beforeAll: no candidate SKU could be added to cart');
+    logger.verify('SKU added', 'truthy', validSku);
 
     // ── 5. Set shipping address (required for same_as_shipping and payment) ─
     logger.step('Step 5 - Set shipping address');

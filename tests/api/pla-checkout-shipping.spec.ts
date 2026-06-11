@@ -295,34 +295,45 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
     if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
     logger.action('Cart created', cartId);
 
-    // ── 3. Discover a valid SKU ────────────────────────────────────────────
-    logger.step('Step 3 - Discover in-stock product SKU');
+    // ── 3. Discover in-stock candidate SKUs ───────────────────────────────
+    logger.step('Step 3 - Discover in-stock product SKU candidates');
+    const candidateSkus: string[] = [];
     for (const term of ['', 'shoe', 'nike', 'a']) {
       const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
       const items: ProductItem[] = productsData?.products?.items ?? [];
       for (const item of items) {
         if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          validSku = item.sku;
-          break;
+          if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
+        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+          for (const v of item.variants) {
+            if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
+              candidateSkus.push(v.product.sku);
+            }
+          }
         }
-        if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          const v = item.variants.find((v: ProductVariant) => v.product?.stock_status === 'IN_STOCK');
-          if (v) { validSku = v.product.sku; break; }
-        }
-        if (!validSku && item.sku) validSku = item.sku;
+        // No fallback to item.sku — parent configurable SKUs are not addable to cart
       }
-      if (validSku) break;
+      if (candidateSkus.length >= 3) break;
     }
-    if (!validSku) throw new Error('beforeAll: no in-stock product SKU found');
-    logger.verify('SKU found', 'truthy', validSku);
+    if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found');
 
-    // ── 4. Add product to cart ─────────────────────────────────────────────
-    logger.step('Step 4 - Add product to cart');
-    const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-      cartId,
-      cartItems: [{ sku: validSku, quantity: 1 }],
-    })).getGraphQLResponse();
-    if (addGql.errors?.length) throw new Error(`addProductsToCart failed: ${addGql.errors[0]?.message ?? 'unknown'}`);
+    // ── 4. Try candidate SKUs until one adds successfully ─────────────────
+    logger.step('Step 4 - Add in-stock product to cart (with SKU retry)');
+    for (const sku of candidateSkus) {
+      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+        cartId,
+        cartItems: [{ sku, quantity: 1 }],
+      })).getGraphQLResponse();
+      const addUserErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
+      if (!(addGql.errors?.length) && !addUserErrors.length) {
+        validSku = sku;
+        logger.action('Product added to cart', sku);
+        break;
+      }
+      logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
+    }
+    if (!validSku) throw new Error('beforeAll: no candidate SKU could be added to cart');
+    logger.verify('SKU added', 'truthy', validSku);
 
     // ── 5. Find or create a saved address ─────────────────────────────────
     logger.step('Step 5 - Resolve saved customer address');
@@ -484,7 +495,17 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Query cart for available shipping methods');
+    // Re-set inline address — TC_04's empty-firstname mutation may have cleared the cart's shipping address on some staging environments
+    logger.step('Step 1 - Re-set inline shipping address');
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutShippingData.inlineAddress;
+    await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      cartId,
+      shippingAddresses: [{
+        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+      }],
+    });
+
+    logger.step('Step 2 - Query cart for available shipping methods');
     const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
     const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
 
@@ -504,14 +525,14 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
     const { carrier_code, method_code } = firstAvailable;
     logger.action('Using method', `${carrier_code}_${method_code}`);
 
-    logger.step('Step 2 - Execute setShippingMethodsOnCart with first available method');
+    logger.step('Step 3 - Execute setShippingMethodsOnCart with first available method');
     const response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
       cartId,
       carrierCode: carrier_code,
       methodCode: method_code,
     });
 
-    logger.step('Step 3 - Assert no errors and selected method matches');
+    logger.step('Step 4 - Assert no errors and selected method matches');
     await response.assertNoErrors();
     await response.assertHasData();
 
@@ -530,7 +551,17 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Query cart for available shipping methods');
+    // Re-set inline address — defensive guard; TC_05 already sets it but re-query may see stale state
+    logger.step('Step 1 - Re-set inline shipping address');
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutShippingData.inlineAddress;
+    await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      cartId,
+      shippingAddresses: [{
+        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+      }],
+    });
+
+    logger.step('Step 2 - Query cart for available shipping methods');
     const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
     const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
 
@@ -551,14 +582,14 @@ test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
     const { carrier_code, method_code } = targetMethod;
     logger.action('Using method', `${carrier_code}_${method_code}`);
 
-    logger.step('Step 2 - Execute setShippingMethodsOnCart with target method');
+    logger.step('Step 3 - Execute setShippingMethodsOnCart with target method');
     const response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
       cartId,
       carrierCode: carrier_code,
       methodCode: method_code,
     });
 
-    logger.step('Step 3 - Assert no errors and selected method applied');
+    logger.step('Step 4 - Assert no errors and selected method applied');
     await response.assertNoErrors();
     await response.assertHasData();
 
