@@ -71,13 +71,11 @@ const RESET_PASSWORD_MUTATION = `
 `;
 
 test.describe('PLA Authentication @api @graphql @regression', () => {
-  let customerToken: string;
-
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll PLA Authentication setup');
     testEmail = site.testData.validCredentials.email;
     const client = await createGraphQLClient();
-    customerToken = await signInAndStoreToken(client, logger, site, siteState);
+    await signInAndStoreToken(client, logger, site, siteState);
   });
 
   // ─── revokeCustomerToken ───────────────────────────────────────────────────

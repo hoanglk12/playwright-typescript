@@ -27,6 +27,7 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 import { LoyaltyRewardsData } from '../../src/data/api/pla-loyalty-rewards-data';
 import { signInAndStoreToken } from './api-test-helpers';
 
@@ -216,6 +217,7 @@ const GET_CART_LOYALTY_STATE_QUERY = `
 test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('beforeAll Loyalty & Rewards setup');
 
     // ── 1. Sign in fresh (creates account if not exists) ──────────────────
