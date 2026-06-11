@@ -211,8 +211,6 @@ const SET_PAYMENT_METHOD_MUTATION = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('PLA GraphQL API - Checkout Billing & Payment @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

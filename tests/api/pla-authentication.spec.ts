@@ -5,8 +5,6 @@ import { plaAuthData, plaAuthErrorMessages } from '../../src/data/api/pla-auth-d
 import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 
-test.describe.configure({ mode: 'serial' });
-
 let testEmail: string = '';
 
 const SIGN_IN_MUTATION = `

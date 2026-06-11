@@ -99,8 +99,6 @@ const SET_LOYALTY_NEWSLETTER_MUTATION = `
 
 const LOYALTY_QUERY = `query loyalty{multiplerewards_loyalty_newsletter_subscription_messages multiplerewards_loyalty_newsletter_subscription_banner_messages}`;
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe("PLA GraphQL API - My Details apis", () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

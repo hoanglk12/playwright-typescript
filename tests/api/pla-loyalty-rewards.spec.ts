@@ -213,8 +213,6 @@ const GET_CART_LOYALTY_STATE_QUERY = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

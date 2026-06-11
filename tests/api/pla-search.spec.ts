@@ -2,8 +2,6 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { PlaSearchData } from '../../src/data/api/pla-search-data';
 
-test.describe.configure({ mode: 'serial' });
-
 const PRODUCT_SEARCH_QUERY = `
   query ProductSearch($search: String!, $pageSize: Int, $currentPage: Int) {
     products(search: $search, pageSize: $pageSize, currentPage: $currentPage) {

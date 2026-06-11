@@ -126,8 +126,6 @@ const GET_CUSTOMER_DETAILS_QUERY = `
   }
 `;
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('PLA GraphQL API - Account Management', () => {
 
   test('PLA_CreateAccount - error message shown when input invalid data', async ({ createGraphQLClient, site }) => {

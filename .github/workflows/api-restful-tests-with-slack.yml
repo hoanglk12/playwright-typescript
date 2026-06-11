@@ -285,7 +285,7 @@ jobs:
                   "fields": [
                     {
                       "title": "Execution Mode",
-                      "value": "Serial (1 worker)",
+                      "value": "Sequential (4 workers, fullyParallel:false)",
                       "short": true
                     },
                     {

@@ -6,8 +6,6 @@ import {
   plaCustomerProfileErrorMessages,
 } from '../../src/data/api/pla-customer-profile-data';
 
-test.describe.configure({ mode: 'serial' });
-
 const SIGN_IN_MUTATION = `
   mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
     generateCustomerToken(email: $email, password: $password, remember: $remember) {
