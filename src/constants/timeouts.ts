@@ -25,6 +25,9 @@ export const TIMEOUTS = {
   // API timeouts
   API_RESPONSE: 20000,
   API_RESPONSE_SLOW: 40000,
+  // Multi-call API suite setup hooks (e.g. full checkout configuration in beforeAll —
+  // 8 sequential staging calls can exceed the 30s default hook timeout on slow brands)
+  API_SUITE_SETUP: 90000,
 
   //Timeout
   TIMEOUT_SHORT: 7000,

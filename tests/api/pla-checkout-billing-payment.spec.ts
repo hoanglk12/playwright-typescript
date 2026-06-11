@@ -11,6 +11,7 @@ import { CheckoutBillingPaymentData } from '../../src/data/api/pla-checkout-bill
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -214,6 +215,8 @@ const SET_PAYMENT_METHOD_MUTATION = `
 test.describe('PLA GraphQL API - Checkout Billing & Payment @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    // 7+ sequential staging calls; default 30s hook timeout is too tight on slow brands
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('beforeAll Checkout Billing & Payment setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
