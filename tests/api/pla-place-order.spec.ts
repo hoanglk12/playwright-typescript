@@ -13,7 +13,7 @@
 
 import { graTest as test, expect, softExpect } from './gra-test';
 import { CheckoutBillingPaymentData } from '../../src/data/api/pla-checkout-billing-payment-data';
-import { PlaceOrderData } from '../../src/data/api/pla-place-order-data';
+import { PlaceOrderData, PlaceOrderTestDataGenerator } from '../../src/data/api/pla-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -217,6 +217,15 @@ const PLACE_ORDER_MUTATION = `
   }
 `;
 
+const SET_GUEST_EMAIL_MUTATION = `
+  mutation SetGuestEmailOnCart($cartId: String!, $email: String!) {
+    setGuestEmailOnCart(input: { cart_id: $cartId, email: $email }) {
+      cart { email __typename }
+      __typename
+    }
+  }
+`;
+
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
 test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
@@ -411,16 +420,21 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
       return;
     }
 
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+    // GUEST cart, not customer cart: for an authenticated customer, createEmptyCart
+    // returns the customer's existing ACTIVE cart — which beforeAll has fully configured
+    // (incl. payment). If quote deactivation lags after TC_01's order, this test would
+    // receive that complete cart back and placeOrder would SUCCEED, failing the negative
+    // assertion. Guest carts are guaranteed unique and genuinely incomplete.
+    const guestClient = await createGraphQLClient();
 
-    logger.step('Step 1 - Create fresh cart with product only (no shipping address)');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+    logger.step('Step 1 - Create fresh guest cart with product only (no shipping address)');
+    const cartGql = await (await guestClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
     if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
     const errorCartId = cartGql.data?.cartId ?? '';
     if (!errorCartId) throw new Error('TC_02: errorCartId is empty');
 
     logger.action('POST', `addProductsToCart (cartId=${errorCartId}, sku=${validSku})`);
-    const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+    const addGql = await (await guestClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
       cartId: errorCartId,
       cartItems: [{ sku: validSku, quantity: 1 }],
     })).getGraphQLResponse();
@@ -429,11 +443,17 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
       throw new Error(`TC_02 setup: addProductsToCart failed: ${addGql.errors?.[0]?.message ?? addUserErrors[0]?.message ?? 'unknown'}`);
     }
 
-    logger.step('Step 2 - Execute placeOrder without setting shipping address');
-    logger.action('POST', `placeOrder (cartId=${errorCartId})`);
-    const response = await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: errorCartId });
+    logger.step('Step 2 - Set guest email (so the only missing precondition is the shipping address)');
+    await guestClient.mutateWrapped(SET_GUEST_EMAIL_MUTATION, {
+      cartId: errorCartId,
+      email: PlaceOrderTestDataGenerator.generateGuestEmail(),
+    });
 
-    logger.step('Step 3 - Assert error returned for missing shipping address');
+    logger.step('Step 3 - Execute placeOrder without setting shipping address');
+    logger.action('POST', `placeOrder (cartId=${errorCartId})`);
+    const response = await guestClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: errorCartId });
+
+    logger.step('Step 4 - Assert error returned for missing shipping address');
     await response.assertHasErrors();
 
     const gql = await response.getGraphQLResponse();
@@ -455,17 +475,19 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
       return;
     }
 
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+    // GUEST cart, not customer cart — see TC_02 comment: customer createEmptyCart can
+    // return the beforeAll-configured active cart (with payment), making placeOrder succeed
+    const guestClient = await createGraphQLClient();
 
-    // Fresh cart: product + shipping address + shipping method + billing — but NO payment method
-    logger.step('Step 1 - Create fresh cart and add product');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+    // Fresh guest cart: product + email + shipping address + shipping method + billing — but NO payment method
+    logger.step('Step 1 - Create fresh guest cart and add product');
+    const cartGql = await (await guestClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
     if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
     const errorCartId = cartGql.data?.cartId ?? '';
     if (!errorCartId) throw new Error('TC_03: errorCartId is empty');
 
     logger.action('POST', `addProductsToCart (cartId=${errorCartId})`);
-    const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+    const addGql = await (await guestClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
       cartId: errorCartId,
       cartItems: [{ sku: validSku, quantity: 1 }],
     })).getGraphQLResponse();
@@ -474,9 +496,14 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
       throw new Error(`TC_03 setup: addProductsToCart failed: ${addGql.errors?.[0]?.message ?? addUserErrors[0]?.message ?? 'unknown'}`);
     }
 
-    logger.step('Step 2 - Set shipping address and method');
+    logger.step('Step 2 - Set guest email, shipping address and method');
+    await guestClient.mutateWrapped(SET_GUEST_EMAIL_MUTATION, {
+      cartId: errorCartId,
+      email: PlaceOrderTestDataGenerator.generateGuestEmail(),
+    });
+
     const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutBillingPaymentData.shippingInlineAddress;
-    const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+    const shippingGql = await (await guestClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
       cartId: errorCartId,
       shippingAddresses: [{
         address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
@@ -491,7 +518,7 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
       return;
     }
 
-    const methodGql = await (await authClient.mutateWrapped(SET_SHIPPING_METHOD_MUTATION, {
+    const methodGql = await (await guestClient.mutateWrapped(SET_SHIPPING_METHOD_MUTATION, {
       cartId: errorCartId,
       carrierCode: firstAvailable.carrier_code,
       methodCode: firstAvailable.method_code,
@@ -501,7 +528,7 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
     }
 
     logger.step('Step 3 - Set billing address (no payment method)');
-    const billingGql = await (await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
+    const billingGql = await (await guestClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
       cartId: errorCartId,
       billingAddress: { same_as_shipping: true },
     })).getGraphQLResponse();
@@ -511,7 +538,7 @@ test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
 
     logger.step('Step 4 - Execute placeOrder without setting payment method');
     logger.action('POST', `placeOrder (cartId=${errorCartId})`);
-    const response = await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: errorCartId });
+    const response = await guestClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: errorCartId });
 
     logger.step('Step 5 - Assert error returned for missing payment method');
     await response.assertHasErrors();
