@@ -185,8 +185,6 @@ const CHECK_USER_IS_AUTHED_QUERY = `query checkUserIsAuthed($cartId:String!){car
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

@@ -255,13 +255,11 @@ import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 ```
 
-### Serial Mode — Mandatory
+### Execution Mode
 
-Every API spec file must declare this at the top, outside all `test.describe` blocks:
+GRA spec files (`pla-*.spec.ts`) use **default mode** — do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential execution is guaranteed by `fullyParallel: false` in `api.config.ts`. Serial mode causes cascade-skips on failure which hides test signal.
 
-```ts
-test.describe.configure({ mode: 'serial' });
-```
+Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain serial mode.
 
 ### Fixtures (defined in `src/api/ApiTest.ts`)
 

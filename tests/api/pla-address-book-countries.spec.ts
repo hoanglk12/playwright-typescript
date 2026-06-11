@@ -2,8 +2,6 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { addressBookCountriesData, CountryItem } from '../../src/data/api/pla-address-book-countries-data';
 
-test.describe.configure({ mode: 'serial' });
-
 const COUNTRIES_QUERY = `
   query GetCountries {
     countries {

@@ -264,8 +264,6 @@ const GUEST_ORDER_QUERY = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('PLA GraphQL API - Order History @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

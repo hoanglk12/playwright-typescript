@@ -11,8 +11,6 @@ import {
 } from '../../src/data/api/pla-wishlist-data';
 import { signInAndStoreToken } from './api-test-helpers';
 
-test.describe.configure({ mode: 'serial' });
-
 let customerToken: string = '';
 let wishlistId: string = '';
 let addedItemId: string = '';

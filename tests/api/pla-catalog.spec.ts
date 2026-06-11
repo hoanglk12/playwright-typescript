@@ -2,8 +2,6 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { PlaCatalogData } from '../../src/data/api/pla-catalog-data';
 
-test.describe.configure({ mode: 'serial' });
-
 // ── Local types ───────────────────────────────────────────────────────────────
 
 interface AggregationOption {

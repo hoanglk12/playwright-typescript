@@ -218,8 +218,6 @@ const PLACE_ORDER_MUTATION = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

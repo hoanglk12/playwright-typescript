@@ -47,8 +47,6 @@ const GET_CURRENCY_QUERY = `
 
 const GET_DYNAMIC_DATA_QUERY = `query GetDynamicData($cart_id:String!){cart(cart_id:$cart_id){dynamic_promo_blocks{discount{phrase __typename}gift{phrase __typename}message{progress_percent phrase success_phrase __typename}__typename}__typename}storeConfig{id store_code ewave_dynamicpromoblocks_discount_enable ewave_dynamicpromoblocks_general_enable ewave_dynamicpromoblocks_gift_enable ewave_dynamicpromoblocks_message_enable __typename}}`;
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe("PLA GraphQL API - Support Features @api @graphql @regression", () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

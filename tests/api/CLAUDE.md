@@ -15,14 +15,13 @@ import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
 import { test, expect } from '@config/base-test';
 ```
 
-## Serial Mode — Mandatory
+## Execution Mode
 
-Every spec file must declare this **outside all `test.describe` blocks**:
+GRA spec files (`pla-*.spec.ts`) use **default mode** (no `test.describe.configure` call needed). Sequential execution within a file is guaranteed by `fullyParallel: false` in `api.config.ts`.
 
-```ts
-test.describe.configure({ mode: 'serial' });
-// NOT: test.describe.serial(...)
-```
+Do **NOT** add `test.describe.configure({ mode: 'serial' })` to GRA specs — serial mode cascades skips on failure, which hides test signal.
+
+Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain serial mode if needed for their own reasons.
 
 ## API Test Data
 

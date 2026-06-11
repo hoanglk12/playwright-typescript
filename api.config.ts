@@ -38,7 +38,7 @@ export default defineConfig({
       : 'local',
   },
 
-  /* Tests within a single spec file run serially (combined with mode:'serial' in each spec) */
+  /* Tests within a single spec file run sequentially (fullyParallel:false — do NOT set to true; shared cartId/addressId state would break across workers) */
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
