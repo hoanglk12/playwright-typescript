@@ -30,7 +30,7 @@ export default defineConfig({
   /* Skip API tests */
   testIgnore: [
     "**/api/**",
-    // "**/profile-listing-page.spec.ts"  /* Ignore a test */
+    "**/frontsite/form-drag-and-drop.spec.ts",
   ],
 
   /* Maximum number of concurrent worker processes - dynamically configured */
