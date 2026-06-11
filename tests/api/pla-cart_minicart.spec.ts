@@ -19,6 +19,7 @@ import { CartOperationsData } from '../../src/data/api/pla-cart-operations-data'
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -188,50 +189,86 @@ const CHECK_USER_IS_AUTHED_QUERY = `query checkUserIsAuthed($cartId:String!){car
 test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    // Auth + SKU discovery + cart creation + probe add/remove = multiple sequential
+    // staging calls; the default 30s hook timeout is too tight on slow brands
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('beforeAll PLA Cart & MiniCart setup');
 
     // ── 1. Authentication ──────────────────────────────────────────────────
     const anonClient = await createGraphQLClient();
     customerToken = await signInAndStoreToken(anonClient, logger, site, siteState);
 
-    // ── 2. Discover a valid in-stock product SKU ───────────────────────────
     const authClient = await createGraphQLClient({
       authType: AuthType.BEARER,
       token: customerToken,
     });
 
+    // ── 2. Discover in-stock candidate SKUs ────────────────────────────────
+    logger.step('Discover in-stock product SKU candidates');
+    const candidateSkus: string[] = [];
     const searchTerms = ['', 'shoe', 'nike', 'a'];
     for (const term of searchTerms) {
       const productsResponse = await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term });
-
       const productsData = await productsResponse.getData();
       const items: ProductItem[] = productsData?.products?.items ?? [];
 
       for (const item of items) {
         if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          validSku = item.sku;
-          break;
-        }
-        if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          const inStockVariant = item.variants.find(
-            (v: ProductVariant) => v.product?.stock_status === 'IN_STOCK'
-          );
-          if (inStockVariant) {
-            validSku = inStockVariant.product.sku;
-            break;
+          if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
+        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+          for (const v of item.variants) {
+            if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
+              candidateSkus.push(v.product.sku);
+            }
           }
         }
-        if (!validSku && item.sku) {
-          validSku = item.sku;
-        }
+        // No fallback to item.sku — parent configurable SKUs return PRODUCT_NOT_FOUND on add
       }
+      if (candidateSkus.length >= 3) break;
+    }
 
-      if (validSku) break;
-      logger.action('Search', `no products found for term="${term}"`);
+    if (!candidateSkus.length) {
+      throw new Error('beforeAll: no in-stock product found — cannot run cart operation tests');
+    }
+
+    // ── 3. Create shared cart in the hook (not in a test) ─────────────────
+    // Retry workers re-run beforeAll but NOT earlier tests; creating the cart here
+    // guarantees cartId is never empty in a retry worker (fixes "cart_id missing" cascade)
+    logger.step('Create shared cart');
+    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+    if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
+    cartId = cartGql.data?.cartId ?? '';
+    if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
+    siteState.setCartId(cartId);
+    logger.action('Cart created', cartId);
+
+    // ── 4. Verify a candidate SKU is genuinely addable (probe add → remove) ─
+    logger.step('Verify candidate SKU addability (probe add, then remove)');
+    for (const sku of candidateSkus) {
+      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+        cartId,
+        cartItems: [{ sku, quantity: 1 }],
+      })).getGraphQLResponse();
+      const addUserErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
+      if (!(addGql.errors?.length) && !addUserErrors.length) {
+        validSku = sku;
+        // Remove the probe item so TC_01 starts from an empty cart
+        const probeItem = (addGql.data?.addProductsToCart?.cart?.items ?? []).find(
+          (i: CartItem) => i.product.sku === sku,
+        );
+        if (probeItem) {
+          await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
+            input: { cart_id: cartId, cart_item_id: probeItem.id },
+          });
+        }
+        logger.action('SKU verified addable', sku);
+        break;
+      }
+      logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
     }
 
     if (!validSku) {
-      throw new Error('beforeAll: no in-stock product found — cannot run cart operation tests');
+      throw new Error('beforeAll: no candidate SKU could be added to cart — cannot run cart operation tests');
     }
 
     logger.verify('beforeAll ready', 'validSku found', validSku);

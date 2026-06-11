@@ -17,6 +17,7 @@ import { PlaceOrderData } from '../../src/data/api/pla-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -221,6 +222,9 @@ const PLACE_ORDER_MUTATION = `
 test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    // Full checkout setup = 8 sequential staging API calls; the default 30s hook
+    // timeout is too tight on slow brands (drm-au) and kills TC_02/TC_03 as "did not run"
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('beforeAll Place Order setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
