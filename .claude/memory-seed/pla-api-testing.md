@@ -34,7 +34,7 @@ All 15 `pla-*.spec.ts` files now run as a shared suite across 4 AU brand endpoin
 
 **Baseline (2026-06-10):** All 4 brands 54/54 passed for account/loyalty/order-history suites (drm-au/van-au loyalty excluded via `testIgnore` in api.config.ts — `hasLoyalty: false` in SiteContext). Full suite of 116 tests per brand passes in isolation.
 
-**Parallel execution (2026-06-11):** `api.config.ts` changed to `workers: 4` — 4 brands run concurrently in separate worker processes. Serial order within each brand preserved by `test.describe.configure({ mode: 'serial' })`. `fullyParallel: false` kept. Safe because: each brand hits a different staging URL; `shared-state.ts` is Map-keyed by siteCode; module-level `let` vars re-initialised by `beforeAll` each project run.
+**Parallel execution (2026-06-11):** `api.config.ts` changed to `workers: 4` — 4 brands run concurrently in separate worker processes. Sequential order within each brand preserved by `fullyParallel: false` in `api.config.ts`. `test.describe.configure({ mode: 'serial' })` was **removed** from all 15 `pla-*.spec.ts` files on 2026-06-11 — serial mode cascades skips on failure; `fullyParallel: false` alone is sufficient for sequential ordering without cascade-skip behaviour. Safe because: each brand hits a different staging URL; `shared-state.ts` is Map-keyed by siteCode; module-level `let` vars re-initialised by `beforeAll` each project run.
 
 ## File & Data Structure
 
@@ -67,7 +67,7 @@ All 15 `pla-*.spec.ts` files now run as a shared suite across 4 AU brand endpoin
 
 ## Shared-State Pattern
 
-All PLA specs use `test.describe.configure({ mode: 'serial' })` (NOT `test.describe.serial(...)`) + a `beforeAll` that:
+All PLA specs rely on `fullyParallel: false` in `api.config.ts` for sequential ordering within each file — no `test.describe.configure` call is needed or present in GRA spec files. `beforeAll` pattern:
 
 **`shared-state.ts` implementation (2026-06-01 refactor):**
 - Now a **singleton `TestState` class** — not bare module-level variables
@@ -112,6 +112,7 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **Braintree payment variants** (`braintree`, `braintree_applepay`, `braintree_paypal`) require an SDK-provided `payment_method_nonce` field. Attempting `setPaymentMethodOnCart` with just `{ code: "braintree" }` returns `"Required parameter 'braintree' for 'payment_method' is missing."` — cannot test these without real Braintree SDK integration.
 - **Available payment methods on staging AU cart** (confirmed 2026-05-26): `checkmo`, `braintree_applepay`, `afterpay`, `braintree`, `braintree_paypal`. Use `checkmo` (TC_03) and `afterpay` (TC_04) for payment method tests.
 - **`shippingMethodSet` flag pattern**: declare a module-level `let shippingMethodSet: boolean = false` in beforeAll; set to `true` only after shipping method mutation succeeds. Use this flag to skip payment tests gracefully rather than failing all tests when shipping setup fails.
+- **TC_04 `setShippingAddressesOnCart` with empty `firstname` clears cart address on drm-au staging**: TC_04's invalid-firstname mutation leaves the cart's shipping address in an unusable state. TC_05/TC_06 must re-set the full inline shipping address at the start (before querying `available_shipping_methods`) — otherwise they get "No shipping address on cart" and skip. This is a drm-au staging quirk, not standard Magento 2. (Fixed 2026-06-11.)
 - **`validSku` scope**: when a SKU is only used inside `beforeAll` (to add product to cart), declare it as a local `let` inside `beforeAll` — not a module-level variable.
 
 ## Place Order Patterns (added 2026-05-27)
@@ -120,7 +121,10 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **PLA order number format**: NOT purely numeric. Do NOT assert `/^\d+$/`. Use `/^\S+$/` or just `toBeTruthy()`.
 - **OOS items blocked at cart level**: Staging blocks OOS items at `addProductsToCart` level via `user_errors` (`"Product that you are trying to add is not available."`). It is NOT possible to have an OOS item in the cart to trigger a `placeOrder` OOS error. The OOS scenario was removed from `pla-place-order.spec.ts` for this reason.
 - **SKU discovery retry pattern**: Never use the `else if (item.sku)` fallback in SKU discovery — it captures configurable parent product SKUs that can't be added to cart. Collect only confirmed IN_STOCK SimpleProduct or variant SKUs, then retry adding each candidate until one succeeds.
-- **`pla-place-order-data.ts`**: `productSearchTerms` (renamed from `outOfStockSearchTerms`) is the list of search terms used for product discovery; `orderNumberPattern: /^\S+$/` is the flexible order number format check.
+- **`pla-place-order-data.ts`**: `productSearchTerms` (renamed from `outOfStockSearchTerms`) is the list of search terms used for product discovery; `orderNumberPattern: /^\S+$/` is the flexible order number format check. Also contains `PlaceOrderTestDataGenerator.generateGuestEmail()` — unique guest email per call (needed before `placeOrder` validation runs on guest carts).
+- **`createEmptyCart` for authenticated customers returns the EXISTING active cart** — not a new one (Magento 2 behaviour). For TC_02/TC_03 (negative tests: missing shipping / missing payment), the authenticated `beforeAll` fully configures the customer's cart including payment for TC_01. After TC_01's `placeOrder` succeeds, quote deactivation lags on staging — a second `createEmptyCart` returns the same fully-configured cart, causing `placeOrder` to SUCCEED and `assertHasErrors()` to fail. Fix: use a **guest client** (`createGraphQLClient()` with no auth) for TC_02/TC_03. Guest `createEmptyCart` calls are guaranteed unique. Requires `setGuestEmailOnCart` before `placeOrder` validation runs. Confirmed 2026-06-11 for pla-au and skx-au.
+- **`beforeAll` timeout for multi-call suites**: 8+ sequential staging API calls can exceed the default 30s hook timeout, causing all tests in the suite to appear as "skipped". Fix: `test.setTimeout(TIMEOUTS.API_SUITE_SETUP)` (90s) as the **first line** of `beforeAll`. `TIMEOUTS.API_SUITE_SETUP = 90000` was added to `src/constants/timeouts.ts` on 2026-06-11.
+- **Cart creation must be in `beforeAll`, not in a test**: when Playwright retries a failed test, it re-runs `beforeAll` but NOT earlier tests. If `cartId` is only set in an earlier test (e.g. `PLA_CreateCartAfterSignIn`), the retry worker has `cartId = ''` and all subsequent mutations fail with "Required parameter cart_id is missing". Move cart creation into `beforeAll` and probe-add/remove a SKU there to verify the SKU is addable, leaving the cart empty for TC_01.
 
 ## Staging API Quirks (discovered 2026-05-15, expanded 2026-05-19, 2026-05-26)
 
@@ -135,6 +139,7 @@ When running a PLA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 - **`updateCustomerV2` personal info (firstname/lastname/dob/phone) always blocked on staging** — staging has "Require Password for Account Changes" Magento admin config enabled, but `CustomerUpdateInput` GraphQL type does NOT include a `password` field. This makes personal info updates structurally impossible via GraphQL on this staging. TC_05–07 in `pla-customer-profile.spec.ts` document and assert this staging-specific error behavior. `is_subscribed` / `loyalty_program_status` (covered in `pla-my-details.spec.ts`) are NOT subject to this restriction.
 - **Cross-spec token rate-limiting flakiness** — rapid successive `generateCustomerToken` calls for the same account (e.g. TC_01/TC_02 in `pla-authentication.spec.ts` followed by a `beforeAll` in the next spec) can trigger Platypus staging rate limiting. Specs pass 100% standalone but fail intermittently when run back-to-back in the same worker. Not a code bug — an environment constraint.
 
+- **`createEmptyCart` for authenticated customers returns existing active cart** — NOT a new cart. Quote deactivation after `placeOrder` lags on staging (seconds to minutes). Negative-assertion tests (TC_02/TC_03 in `pla-place-order.spec.ts`) that need genuinely incomplete carts must use a **guest client** with `setGuestEmailOnCart` — not the authenticated customer client. Guest carts are always unique.
 - **`instore_pickup` + `placeOrder`** breaks with "Quote does not have Pickup Location assigned" — prefer `flatrate` in any spec that calls `placeOrder`.
 - **OOS items blocked at addProductsToCart** — OOS scenario removed from `pla-place-order.spec.ts`; staging blocks at cart-add level making it untestable at the `placeOrder` stage.
 - **`customer.orders` always returns `total_count: 0`** on PLA staging (confirmed 2026-06-03) even immediately after placing orders. Orders are stored (placeOrder returns a valid order number) but do not surface via the GraphQL `customer.orders` query on this staging endpoint. `grand_total` on `CustomerOrder` is a plain `Float` scalar (NOT a `Money` object — do NOT use `{ value currency }` sub-selection). TC_01 and TC_03 in `pla-order-history.spec.ts` use staging-aware early-return: assert structure then return early when `total_count: 0`.
@@ -178,7 +183,7 @@ Rules the qa-code-reviewer flagged and confirmed:
 
 4. **`AuthType.BEARER` enum** — never `"bearer" as any`.
 
-5. **`test.describe.configure({ mode: 'serial' })` outside all `describe` blocks** — not `test.describe.serial(...)`.
+5. **Do NOT add `test.describe.configure({ mode: 'serial' })` to GRA specs** — it cascades skips on failure. Sequential order is guaranteed by `fullyParallel: false` in `api.config.ts` alone.
 
 6. **Guard `errors[0]` access with optional chaining — even inside a length check**: `gql.errors?.[0]?.message ?? ''`. TypeScript does NOT narrow `errors` to non-undefined inside `if ((gql.errors?.length ?? 0) > 0)` — you must still use `?.` on the index access. Pattern: `if ((gql.errors?.length ?? 0) > 0) { const msg = gql.errors?.[0]?.message ?? ''; }`.
 
