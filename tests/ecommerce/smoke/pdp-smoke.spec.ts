@@ -251,32 +251,39 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      logger.step('Step 6 - Click first product card');
-      await ecommercePLPPage.clickProductCard(0);
+      // The first PDP may be fully OOS (all sizes disabled). Retry up to MAX_PRODUCTS_TO_TRY
+      // products before giving up — mirrors the colour-swatch retry in E2E-PDP-002.
+      const MAX_PRODUCTS_TO_TRY = 10;
+      let availableSizes: string[] = [];
 
-      logger.step('Step 7 - Wait for PDP to fully load');
-      await ecommercePDPPage.waitForPdpLoad();
+      for (let productIndex = 0; productIndex < MAX_PRODUCTS_TO_TRY; productIndex++) {
+        if (productIndex > 0) {
+          await ecommercePDPPage.goBack();
+          await ecommercePLPPage.waitForPlpUrl();
+          await ecommercePLPPage.waitForProductGrid();
+        }
 
-      logger.step('Step 8 - Dismiss any overlay before size interaction');
-      await ecommercePDPPage.ensureNoOverlay();
+        logger.step(`Step 6 - Click product card #${productIndex + 1}`);
+        await ecommercePLPPage.clickProductCard(productIndex);
 
-      logger.step('Step 8b - Wait for size buttons to render (best-effort; times out silently for non-footwear)');
-      await ecommercePDPPage.waitForSizeButtonsToRender();
+        logger.step('Step 7 - Wait for PDP to fully load');
+        await ecommercePDPPage.waitForPdpLoad();
 
-      logger.step('Step 9 - Assert size selector is visible (hard precondition)');
-      const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
-      if (!sizeSelectorVisible) {
-        test.skip(
-          true,
-          `${site.name}: size selector not visible on first PDP — product may have no sizes`,
-        );
-        return;
+        logger.step('Step 8 - Dismiss any overlay before size interaction');
+        await ecommercePDPPage.ensureNoOverlay();
+
+        logger.step('Step 8b - Wait for size buttons to render (best-effort; times out silently for non-footwear)');
+        await ecommercePDPPage.waitForSizeButtonsToRender();
+
+        const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
+        if (!sizeSelectorVisible) continue;
+
+        availableSizes = await ecommercePDPPage.getAvailableSizes();
+        if (availableSizes.length > 0) break;
       }
 
-      logger.step('Step 10 - Get available (enabled) sizes');
-      const availableSizes = await ecommercePDPPage.getAvailableSizes();
       if (availableSizes.length === 0) {
-        test.skip(true, `${site.name}: no enabled sizes found on first PDP`);
+        test.skip(true, `${site.name}: no enabled sizes found in first ${MAX_PRODUCTS_TO_TRY} PDPs`);
         return;
       }
 
@@ -416,29 +423,39 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      logger.step('Step 6 - Click first product card');
-      await ecommercePLPPage.clickProductCard(0);
+      // The first PDP may be fully OOS (all sizes disabled). Retry up to MAX_PRODUCTS_TO_TRY
+      // products before giving up — mirrors the colour-swatch retry in E2E-PDP-002.
+      const MAX_PRODUCTS_TO_TRY = 10;
+      let availableSizes: string[] = [];
 
-      logger.step('Step 7 - Wait for PDP to fully load');
-      await ecommercePDPPage.waitForPdpLoad();
+      for (let productIndex = 0; productIndex < MAX_PRODUCTS_TO_TRY; productIndex++) {
+        if (productIndex > 0) {
+          await ecommercePDPPage.goBack();
+          await ecommercePLPPage.waitForPlpUrl();
+          await ecommercePLPPage.waitForProductGrid();
+        }
 
-      logger.step('Step 8 - Dismiss any overlay before size interaction');
-      await ecommercePDPPage.ensureNoOverlay();
+        logger.step(`Step 6 - Click product card #${productIndex + 1}`);
+        await ecommercePLPPage.clickProductCard(productIndex);
 
-      logger.step('Step 8b - Wait for size buttons to render (best-effort)');
-      await ecommercePDPPage.waitForSizeButtonsToRender();
+        logger.step('Step 7 - Wait for PDP to fully load');
+        await ecommercePDPPage.waitForPdpLoad();
 
-      logger.step('Step 9 - Assert size selector is visible (hard precondition)');
-      const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
-      if (!sizeSelectorVisible) {
-        test.skip(true, `${site.name}: size selector not visible on first PDP — product may have no sizes`);
-        return;
+        logger.step('Step 8 - Dismiss any overlay before size interaction');
+        await ecommercePDPPage.ensureNoOverlay();
+
+        logger.step('Step 8b - Wait for size buttons to render (best-effort)');
+        await ecommercePDPPage.waitForSizeButtonsToRender();
+
+        const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
+        if (!sizeSelectorVisible) continue;
+
+        availableSizes = await ecommercePDPPage.getAvailableSizes();
+        if (availableSizes.length > 0) break;
       }
 
-      logger.step('Step 10 - Get available (enabled) sizes');
-      const availableSizes = await ecommercePDPPage.getAvailableSizes();
       if (availableSizes.length === 0) {
-        test.skip(true, `${site.name}: no enabled sizes found on first PDP`);
+        test.skip(true, `${site.name}: no enabled sizes found in first ${MAX_PRODUCTS_TO_TRY} PDPs`);
         return;
       }
 
