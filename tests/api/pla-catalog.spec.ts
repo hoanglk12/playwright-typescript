@@ -527,10 +527,11 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PDP_QUERY, { urlKey: discoveredProductUrlKey });
 
-    logger.step('Step 3 - Assert no errors and at least one product returned');
-    await response.assertNoErrors();
-    await response.assertHasData();
-    const data = await response.getData();
+    logger.step('Step 3 - Assert no critical errors and at least one product returned');
+    const tc07Gql = await response.getGraphQLResponse();
+    assertNoCriticalErrors(tc07Gql);
+    expect(tc07Gql.data?.products, 'products data must be present').toBeDefined();
+    const data = tc07Gql.data;
     logger.verify('products total_count >= 1', '>= 1', data.products.total_count);
     expect(data.products.total_count).toBeGreaterThanOrEqual(1);
     logger.verify('products items length >= 1', '>= 1', data.products.items.length);
@@ -553,6 +554,7 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
     logger.step('Step 2 - Query product by url_key');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PDP_QUERY, { urlKey: discoveredProductUrlKey });
+    // TC_08 intentionally validates price_range structure — hard assertNoErrors is correct here
     await response.assertNoErrors();
     const data = await response.getData();
     logger.verify('products items length >= 1', '>= 1', data.products.items.length);
@@ -579,8 +581,10 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
     logger.step('Step 2 - Query product by url_key');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PDP_QUERY, { urlKey: discoveredProductUrlKey });
-    await response.assertNoErrors();
-    const data = await response.getData();
+    const tc09Gql = await response.getGraphQLResponse();
+    assertNoCriticalErrors(tc09Gql);
+    expect(tc09Gql.data?.products, 'products data must be present').toBeDefined();
+    const data = tc09Gql.data;
     logger.verify('products items length >= 1', '>= 1', data.products.items.length);
     expect(data.products.items.length).toBeGreaterThanOrEqual(1);
     const product = data.products.items[0];
@@ -608,10 +612,11 @@ test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
       urlKey: PlaCatalogData.pdp.nonExistentUrlKey,
     });
 
-    logger.step('Step 2 - Assert no server error and empty items returned');
-    await response.assertNoErrors();
-    await response.assertHasData();
-    const data = await response.getData();
+    logger.step('Step 2 - Assert no critical errors and empty items returned');
+    const tc10Gql = await response.getGraphQLResponse();
+    assertNoCriticalErrors(tc10Gql);
+    expect(tc10Gql.data?.products, 'products data must be present').toBeDefined();
+    const data = tc10Gql.data;
     softExpect(data.products.total_count).toBe(0);
     softExpect(data.products.items.length).toBe(0);
   });

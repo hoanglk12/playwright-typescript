@@ -6,33 +6,6 @@ import { createTestLogger } from '../../src/utils/test-logger';
 let customerToken: string = '';
 let cartId: string = '';
 
-const SIGN_IN_MUTATION = `
-  mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
-    generateCustomerToken(email: $email, password: $password, remember: $remember) {
-      token
-      __typename
-    }
-  }
-`;
-
-const CREATE_ACCOUNT_MUTATION = `
-  mutation CreateAccount(
-    $email: String!, $firstname: String!, $lastname: String!,
-    $password: String!, $phone_number: String!, $is_subscribed: Boolean!,
-    $loyalty_program_status: Boolean, $order_number: String,
-    $gender: Int, $date_of_birth: String
-  ) {
-    createCustomer(input: {
-      email: $email, firstname: $firstname, lastname: $lastname,
-      password: $password, phone_number: $phone_number,
-      is_subscribed: $is_subscribed, loyalty_program_status: $loyalty_program_status,
-      order_number: $order_number, gender: $gender, date_of_birth: $date_of_birth
-    }) {
-      customer { id email __typename }
-    }
-  }
-`;
-
 const CREATE_CART_MUTATION = `mutation CreateCartAfterSignIn { createEmptyCart }`;
 
 const GET_CURRENCY_QUERY = `
@@ -59,9 +32,8 @@ test.describe("PLA GraphQL API - Support Features @api @graphql @regression", ()
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const cartResponse = await authClient.mutateWrapped(CREATE_CART_MUTATION);
     const cartGql = await cartResponse.getGraphQLResponse();
-    if (cartGql.errors) {
-      const errMsg = cartGql.errors.length ? cartGql.errors[0]?.message ?? '' : '';
-      throw new Error(`Cart creation failed: ${errMsg}`);
+    if (cartGql.errors?.length) {
+      throw new Error(`Cart creation failed: ${cartGql.errors[0]?.message ?? ''}`);
     }
     const newCartId = cartGql.data?.createEmptyCart;
     if (!newCartId) throw new Error('Cart creation returned no cartId');

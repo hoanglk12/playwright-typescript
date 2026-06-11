@@ -1,36 +1,11 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
+import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 import {
   plaCustomerProfileData,
   plaCustomerProfileErrorMessages,
 } from '../../src/data/api/pla-customer-profile-data';
-
-const SIGN_IN_MUTATION = `
-  mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
-    generateCustomerToken(email: $email, password: $password, remember: $remember) {
-      token
-    }
-  }
-`;
-
-const CREATE_ACCOUNT_MUTATION = `
-  mutation CreateAccount(
-    $email: String!, $firstname: String!, $lastname: String!,
-    $password: String!, $phone_number: String!, $is_subscribed: Boolean!,
-    $loyalty_program_status: Boolean, $order_number: String,
-    $gender: Int, $date_of_birth: String
-  ) {
-    createCustomer(input: {
-      email: $email, firstname: $firstname, lastname: $lastname,
-      password: $password, phone_number: $phone_number,
-      is_subscribed: $is_subscribed, loyalty_program_status: $loyalty_program_status,
-      order_number: $order_number, gender: $gender, date_of_birth: $date_of_birth
-    }) {
-      customer { id email __typename }
-    }
-  }
-`;
 
 const CHANGE_PASSWORD_MUTATION = `
   mutation ChangeCustomerPassword($currentPassword: String!, $newPassword: String!) {
@@ -109,48 +84,10 @@ const GET_CUSTOMER_QUERY = `
 test.describe('PLA Customer Profile @api @graphql @regression', () => {
   let customerToken: string = '';
 
-  test.beforeAll(async ({ createGraphQLClient, site }) => {
+  test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA Customer Profile - Setup');
     const client = await createGraphQLClient();
-
-    logger.step('Sign in fresh to obtain a valid token');
-    const signInVars = {
-      email: site.testData.validCredentials.email,
-      password: site.testData.validCredentials.password,
-      remember: site.testData.validCredentials.remember,
-    };
-    const signInResponse = await client.mutateWrapped(SIGN_IN_MUTATION, signInVars);
-    const signInGql = await signInResponse.getGraphQLResponse();
-
-    if (!signInGql.errors) {
-      const token = signInGql.data?.generateCustomerToken?.token;
-      if (!token) throw new Error('Sign-in succeeded but token was missing from response');
-      customerToken = token;
-      logger.action('Fresh token acquired', '');
-      return;
-    }
-
-    logger.step('Sign-in failed — creating account first');
-    const createResponse = await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, site.testData.validCustomer);
-    const createGql = await createResponse.getGraphQLResponse();
-
-    if (createGql.errors) {
-      const errorMsg = createGql.errors.length ? (createGql.errors[0]?.message ?? '') : '';
-      if (!errorMsg.toLowerCase().includes('already') && !errorMsg.toLowerCase().includes('exists')) {
-        throw new Error(`Account creation failed: ${errorMsg}`);
-      }
-      logger.action('Account already exists — proceeding to sign in', '');
-    }
-
-    const signIn2Response = await client.mutateWrapped(SIGN_IN_MUTATION, signInVars);
-    const signIn2Gql = await signIn2Response.getGraphQLResponse();
-    if (signIn2Gql.errors) {
-      throw new Error(`Sign-in failed after account creation: ${signIn2Gql.errors[0]?.message}`);
-    }
-    const token2 = signIn2Gql.data?.generateCustomerToken?.token;
-    if (!token2) throw new Error('Sign-in after account creation returned no token');
-    customerToken = token2;
-    logger.action('Token acquired after account creation', '');
+    customerToken = await signInAndStoreToken(client, logger, site, siteState);
   });
 
   // ─── changeCustomerPassword ────────────────────────────────────────────────

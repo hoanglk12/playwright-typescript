@@ -18,6 +18,7 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 import {
   OrderHistoryData,
   OrderHistoryDataGenerator,
@@ -267,8 +268,7 @@ const GUEST_ORDER_QUERY = `
 test.describe('PLA GraphQL API - Order History @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
-    // Full checkout flow (9 steps) can exceed the 30s default on slow staging
-    test.setTimeout(120000);
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('beforeAll Order History setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────

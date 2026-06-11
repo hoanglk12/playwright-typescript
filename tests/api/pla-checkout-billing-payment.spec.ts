@@ -45,45 +45,6 @@ let availablePaymentMethods: string[] = [];
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
 
-const CREATE_ACCOUNT_MUTATION = `
-  mutation CreateAccount(
-    $email: String!,
-    $firstname: String!,
-    $lastname: String!,
-    $password: String!,
-    $phone_number: String!,
-    $is_subscribed: Boolean!,
-    $loyalty_program_status: Boolean,
-    $order_number: String,
-    $gender: Int,
-    $date_of_birth: String
-  ) {
-    createCustomer(input: {
-      email: $email,
-      firstname: $firstname,
-      lastname: $lastname,
-      password: $password,
-      phone_number: $phone_number,
-      is_subscribed: $is_subscribed,
-      loyalty_program_status: $loyalty_program_status,
-      order_number: $order_number,
-      gender: $gender,
-      date_of_birth: $date_of_birth
-    }) {
-      customer { id email __typename }
-    }
-  }
-`;
-
-const SIGN_IN_MUTATION = `
-  mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
-    generateCustomerToken(email: $email, password: $password, remember: $remember) {
-      token
-      __typename
-    }
-  }
-`;
-
 const GET_PRODUCTS_QUERY = `
   query GetTestProducts($search: String!) {
     products(search: $search, pageSize: 10, currentPage: 1) {
