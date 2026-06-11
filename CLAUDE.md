@@ -52,7 +52,7 @@ import { test, expect, softExpect } from '@config/base-test';
 | Config | Scope | Command |
 |---|---|---|
 | `playwright.config.ts` | UI tests (ignores `**/api/**`) | `npm test` |
-| `api.config.ts` | API tests only (1 worker, serial) | `npm run test:api` |
+| `api.config.ts` | API tests only (4 workers, sequential) | `npm run test:api` |
 
 Both configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`.
 
@@ -467,8 +467,8 @@ const client = await ApiClient.withStoredToken(
 - **Lifecycle**: `tests/api/global-setup.ts` and `tests/api/global-teardown.ts` — before/after the full API suite
 - **Mocking** (UI tests only): `ApiMockService` in `src/api/ApiMockService.ts` — centralised scenarios (`mockSuccessfulLogin`, `mockProductList`, `mockGraphQLQuery`, `mockGraphQLError`, etc.)
 - **Services**: `src/api/services/{service-name}/` — models live alongside their service
-- **Config**: `api.config.ts` — 1 worker, serial execution; reads from `.env.{NODE_ENV}` via `src/api/config/environment.ts`
-- **Run**: `npm run test:api` — 1 worker to avoid rate-limiting
+- **Config**: `api.config.ts` — 4 workers (one per GRA brand), sequential within each spec (`fullyParallel: false`); reads from `.env.{NODE_ENV}` via `src/api/config/environment.ts`
+- **Run**: `npm run test:api` — 4 workers (brands run concurrently, tests within a spec run sequentially)
 
 ## Visual Testing (Percy)
 
