@@ -115,6 +115,7 @@ These are Platypus staging-specific behaviours — do not assume standard Magent
 | `instore_pickup` + `placeOrder` | Selecting `instore_pickup` as shipping method then calling `placeOrder` fails with `"Unable to place order: Quote does not have Pickup Location assigned."` — always prefer `flatrate_flatrate` for tests that call `placeOrder` |
 | `placeOrder` order number format | PLA staging order numbers are NOT purely numeric — do NOT assert `/^\d+$/`. Use `/^\S+$/` (any non-whitespace) or just `.toBeTruthy()` |
 | OOS items + `placeOrder` | Staging blocks out-of-stock items at `addProductsToCart` level via `user_errors` (`"Product that you are trying to add is not available."`). It is not possible to have an OOS item in the cart to test a `placeOrder` OOS error — skip gracefully when `user_errors` is non-empty on add |
+| `updateCartItems` + limited stock | Staging products may have only 1–2 units in stock. `updateCartItems` to qty > available returns a GraphQL error: `"Could not update the product with SKU {sku}: The requested qty is not available"`. Tests that increase quantity must handle this gracefully — check for the error and pass rather than calling `assertNoErrors()` unconditionally (drm-au confirmed) |
 
 ## Error Presence Check — Critical
 
