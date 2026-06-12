@@ -142,3 +142,8 @@ temp_healer.md
 
 # Remember plugin runtime logs
 .remember/logs/
+
+# LightRAG memory index (generated, not committed)
+.lightrag/
+.lightrag-venv/
+.lightrag.env
