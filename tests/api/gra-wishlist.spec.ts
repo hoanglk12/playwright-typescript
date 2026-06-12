@@ -8,7 +8,7 @@ import {
   DiscoveredProduct,
   WishlistItemShape,
   WishlistShape,
-} from '../../src/data/api/pla-wishlist-data';
+} from '../../src/data/api/gra-wishlist-data';
 import { signInAndStoreToken } from './api-test-helpers';
 
 let customerToken: string = '';
@@ -125,7 +125,7 @@ function wasRejected(
 
 // ── Test suite ─────────────────────────────────────────────────────────────────
 
-test.describe('PLA GraphQL API - Wishlist @api @regression', () => {
+test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA Wishlist - Setup');

@@ -257,7 +257,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 
 ### Execution Mode
 
-GRA spec files (`pla-*.spec.ts`) use **default mode** — do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential execution is guaranteed by `fullyParallel: false` in `api.config.ts`. Serial mode causes cascade-skips on failure which hides test signal.
+GRA spec files (`gra-*.spec.ts`) use **default mode** — do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential execution is guaranteed by `fullyParallel: false` in `api.config.ts`. Serial mode causes cascade-skips on failure which hides test signal.
 
 Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain serial mode.
 

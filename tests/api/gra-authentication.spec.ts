@@ -1,7 +1,7 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { plaAuthData, plaAuthErrorMessages } from '../../src/data/api/pla-auth-data';
+import { plaAuthData, plaAuthErrorMessages } from '../../src/data/api/gra-auth-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 
@@ -70,7 +70,7 @@ const RESET_PASSWORD_MUTATION = `
   }
 `;
 
-test.describe('PLA Authentication @api @graphql @regression', () => {
+test.describe('GRA Authentication @api @graphql @regression', () => {
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('beforeAll PLA Authentication setup');
     testEmail = site.testData.validCredentials.email;

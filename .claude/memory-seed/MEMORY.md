@@ -5,7 +5,7 @@
 - [Feedback & Preferences](feedback_preferences.md) — Preferred patterns, corrections, confirmed approaches
 - [Project Architecture](project_architecture.md) — BasePage with 9 helpers; dual configs; import rules; fixture system
 - [Context Engineering Setup](project_context_engineering.md) — CLAUDE.md, skills, settings.json state as of 2026-04-22
-- [PLA API Testing](pla-api-testing.md) — GRA multi-brand Phase 1 (4 AU projects); graTest fixture; signInAndStoreToken(client,logger,site,siteState); 15 pla-*.spec.ts shared suite; staging API quirks
+- [GRA API Testing](gra-api-testing.md) — GRA multi-brand Phase 1 (4 AU projects); graTest fixture; signInAndStoreToken(client,logger,site,siteState); 15 gra-*.spec.ts shared suite; staging API quirks
 - [Ecommerce PDP Page Gotchas](ecommerce-pdp-page-gotchas.md) — 9 patterns: Bloomreach popup (Vans AU), Dr. Martens gallery, dual-h1, swatch goto(), gallery wait, cart count (aria-label fast path + NETWORK_IDLE_SLOW + addToCart stabilisation), preferMens nav-label, Platypus AU nav pitfalls (MENS=socks), mini cart overlay detection (aside/complementary + fixed/absolute + CTA gate)
 - [Technical Debt Status](technical_debt_phase1.md) — All Critical + Warning items resolved (Phases 1–3, 2026-06-09); DEBT-014/016 resolved 2026-06-11; open: DEBT-013 dep bumps, DEBT-015 npm audit
 - [Ecommerce Storefronts](ecommerce-storefronts.md) — 8 brands (AU/NZ), staging URLs, nav label spelling, preferMens brands, API siteCode map, per-brand DOM quirks

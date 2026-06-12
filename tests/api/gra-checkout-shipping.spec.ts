@@ -7,7 +7,7 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { CheckoutShippingData } from '../../src/data/api/pla-checkout-shipping-data';
+import { CheckoutShippingData } from '../../src/data/api/gra-checkout-shipping-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -238,7 +238,7 @@ const GET_CART_SHIPPING_METHODS_QUERY = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe('PLA GraphQL API - Checkout Shipping @api @graphql', () => {
+test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     // 6+ sequential staging calls; default 30s hook timeout is too tight on slow brands

@@ -7,7 +7,7 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { CheckoutBillingPaymentData } from '../../src/data/api/pla-checkout-billing-payment-data';
+import { CheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -173,7 +173,7 @@ const SET_PAYMENT_METHOD_MUTATION = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe('PLA GraphQL API - Checkout Billing & Payment @api @graphql', () => {
+test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     // 7+ sequential staging calls; default 30s hook timeout is too tight on slow brands

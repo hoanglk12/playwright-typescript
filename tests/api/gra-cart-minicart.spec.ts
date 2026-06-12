@@ -14,8 +14,8 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import {
   plaErrorMessages,
-} from '../../src/data/api/pla-test-data';
-import { CartOperationsData } from '../../src/data/api/pla-cart-operations-data';
+} from '../../src/data/api/gra-test-data';
+import { CartOperationsData } from '../../src/data/api/gra-cart-operations-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -147,7 +147,7 @@ const CHECK_USER_IS_AUTHED_QUERY = `query checkUserIsAuthed($cartId:String!){car
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
+test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     // Auth + SKU discovery + cart creation + probe add/remove = multiple sequential
@@ -239,7 +239,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
   // SECTION 1 — Cart creation & read queries (existing coverage)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  test('PLA_CreateCartAfterSignIn - should create new cartId with valid token', async ({
+  test('GRA_CreateCartAfterSignIn - should create new cartId with valid token', async ({
     createGraphQLClient, siteState,
   }) => {
     const logger = createTestLogger('PLA_CreateCartAfterSignIn should create new cartId with valid token');
@@ -268,7 +268,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     logger.action('Stored', `cartId=${cartId}`);
   });
 
-  test('PLA_GetItemCount - should show error with wrong cartId', async ({
+  test('GRA_GetItemCount - should show error with wrong cartId', async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_GetItemCount should show error with wrong cartId');
@@ -291,7 +291,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     logger.verify('Error message', plaErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
   });
 
-  test('PLA_GetItemCount - should return data about cartId, quantity and shipping address', async ({
+  test('GRA_GetItemCount - should return data about cartId, quantity and shipping address', async ({
     createGraphQLClient,
   }) => {
     const logger = createTestLogger('PLA_GetItemCount should return data about cartId, quantity and shipping address');
@@ -325,7 +325,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     logger.verify('Cart typename', 'Cart', data.cart.__typename);
   });
 
-  test('PLA_MiniCartQuery - should show error with wrong cartId', async ({
+  test('GRA_MiniCartQuery - should show error with wrong cartId', async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_MiniCartQuery should show error with wrong cartId');
@@ -352,7 +352,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     logger.verify('Error message', plaErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
   });
 
-  test('PLA_MiniCartQuery - return data about cartId, quantity, prices, rewards msg, and qff', async ({
+  test('GRA_MiniCartQuery - return data about cartId, quantity, prices, rewards msg, and qff', async ({
     createGraphQLClient,
     site,
   }) => {
@@ -407,7 +407,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     logger.verify('Cart typename', 'Cart', data.cart.__typename);
   });
 
-  test('PLA_GetCartDetailsAfterSignIn - return data about cartId, quantity, prices, rewards msg, and qff', async ({
+  test('GRA_GetCartDetailsAfterSignIn - return data about cartId, quantity, prices, rewards msg, and qff', async ({
     createGraphQLClient,
   }) => {
     const logger = createTestLogger('PLA_GetCartDetailsAfterSignIn return data about cartId, quantity, prices, rewards msg, and qff');
@@ -453,7 +453,7 @@ test.describe('PLA GraphQL API - Cart & MiniCart @api @graphql', () => {
     logger.verify('Payment method titles present', true, paymentMethodTitles.length > 0);
   });
 
-  test('PLA_checkUserIsAuthed - return data about cartId, quantity, prices, rewards msg, and qff', async ({
+  test('GRA_checkUserIsAuthed - return data about cartId, quantity, prices, rewards msg, and qff', async ({
     createGraphQLClient,
   }) => {
     const logger = createTestLogger('PLA_checkUserIsAuthed return data about cartId, quantity, prices, rewards msg, and qff');

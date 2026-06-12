@@ -28,7 +28,7 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
-import { LoyaltyRewardsData } from '../../src/data/api/pla-loyalty-rewards-data';
+import { LoyaltyRewardsData } from '../../src/data/api/gra-loyalty-rewards-data';
 import { signInAndStoreToken } from './api-test-helpers';
 
 // ── Local types ───────────────────────────────────────────────────────────────
@@ -214,7 +214,7 @@ const GET_CART_LOYALTY_STATE_QUERY = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe('PLA GraphQL API - Loyalty & Rewards @api @graphql', () => {
+test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
