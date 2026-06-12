@@ -1,4 +1,4 @@
-import { PlaTestData, createBrandTestData } from './pla-test-data';
+import { PlaTestData, createBrandTestData } from './gra-test-data';
 
 export interface SiteContext {
   siteCode: string;

@@ -6,7 +6,7 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { plaErrorMessages } from '../../src/data/api/pla-test-data';
+import { plaErrorMessages } from '../../src/data/api/gra-test-data';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 
@@ -126,9 +126,9 @@ const GET_CUSTOMER_DETAILS_QUERY = `
   }
 `;
 
-test.describe('PLA GraphQL API - Account Management', () => {
+test.describe('GRA GraphQL API - Account Management', () => {
 
-  test('PLA_CreateAccount - error message shown when input invalid data', async ({ createGraphQLClient, site }) => {
+  test('GRA_CreateAccount - error message shown when input invalid data', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('PLA_CreateAccount error message shown when input invalid data');
     const graphqlClient = await createGraphQLClient();
 
@@ -148,7 +148,7 @@ test.describe('PLA GraphQL API - Account Management', () => {
     logger.verify('Error category', 'graphql-input', graphqlResponse.errors![0].extensions?.category);
   });
 
-  test('PLA_CreateAccount - should create a new customer account', async ({ createGraphQLClient, site, siteState }) => {
+  test('GRA_CreateAccount - should create a new customer account', async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA_CreateAccount should create a new customer account');
     const graphqlClient = await createGraphQLClient();
 
@@ -174,7 +174,7 @@ test.describe('PLA GraphQL API - Account Management', () => {
     logger.action('Stored', `customerId=${customerId}`);
   });
 
-  test('PLA_SignIn - should login fail when provide wrong email or password', async ({ createGraphQLClient, site }) => {
+  test('GRA_SignIn - should login fail when provide wrong email or password', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('PLA_SignIn should login fail when provide wrong email or password');
     const graphqlClient = await createGraphQLClient();
 
@@ -194,7 +194,7 @@ test.describe('PLA GraphQL API - Account Management', () => {
     logger.verify('Error category', 'graphql-authentication', graphqlResponse.errors![0].extensions?.category);
   });
 
-  test('PLA_SignIn - should generate customer token for valid credentials', async ({ createGraphQLClient, site, siteState }) => {
+  test('GRA_SignIn - should generate customer token for valid credentials', async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA_SignIn should generate customer token for valid credentials');
     const graphqlClient = await createGraphQLClient();
 
@@ -220,7 +220,7 @@ test.describe('PLA GraphQL API - Account Management', () => {
     logger.action('Stored', 'customerToken set in shared-state');
   });
 
-  test('PLA_GetCustomerDetails - should retrieve customer details with valid token', async ({ createGraphQLClient, site, siteState }) => {
+  test('GRA_GetCustomerDetails - should retrieve customer details with valid token', async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA_GetCustomerDetails should retrieve customer details with valid token');
 
     expect(customerToken).toBeDefined();

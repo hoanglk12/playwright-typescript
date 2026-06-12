@@ -1,6 +1,6 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { PlaCatalogData } from '../../src/data/api/pla-catalog-data';
+import { PlaCatalogData } from '../../src/data/api/gra-catalog-data';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -248,7 +248,7 @@ const URL_RESOLVER_QUERY = `
   }
 `;
 
-test.describe('PLA Catalog & Products API @api @graphql @regression', () => {
+test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('PLA Catalog - Discovery Setup');

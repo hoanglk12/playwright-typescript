@@ -72,7 +72,7 @@ const SET_LOYALTY_NEWSLETTER_MUTATION = `
 
 const LOYALTY_QUERY = `query loyalty{multiplerewards_loyalty_newsletter_subscription_messages multiplerewards_loyalty_newsletter_subscription_banner_messages}`;
 
-test.describe("PLA GraphQL API - My Details apis", () => {
+test.describe("GRA GraphQL API - My Details apis", () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     const logger = createTestLogger('PLA My Details - Setup');
@@ -96,7 +96,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     logger.action('Setup complete', `customerId=${customerId}`);
   });
 
-  test("PLA_AddNewCustomerAddressToAddressBook - should add new customer address with valid token", async ({
+  test("GRA_AddNewCustomerAddressToAddressBook - should add new customer address with valid token", async ({
     createGraphQLClient, site, siteState,
   }) => {
     const logger = createTestLogger('PLA_AddNewCustomerAddressToAddressBook');
@@ -128,7 +128,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     softExpect(data.createCustomerAddress.__typename).toBe('CustomerAddress');
   });
 
-  test("PLA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token", async ({
+  test("GRA_GetCustomerAddressesForAddressBook - should retrieve customer addresses with valid token", async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_GetCustomerAddressesForAddressBook');
@@ -185,7 +185,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     softExpect(data.countries![0].__typename).toBe('Country');
   });
 
-  test("PLA_UpdateCustomerAddressInAddressBook - should update customer address with valid token", async ({
+  test("GRA_UpdateCustomerAddressInAddressBook - should update customer address with valid token", async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_UpdateCustomerAddressInAddressBook');
@@ -223,7 +223,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     logger.action('Address updated successfully', addressId);
   });
 
-  test("PLA_DeleteCustomerAddressFromAddressBook - should delete customer address with valid token", async ({
+  test("GRA_DeleteCustomerAddressFromAddressBook - should delete customer address with valid token", async ({
     createGraphQLClient,
   }) => {
     const logger = createTestLogger('PLA_DeleteCustomerAddressFromAddressBook');
@@ -257,7 +257,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     logger.action('Address deleted successfully', addressId);
   });
 
-  test("PLA_SetNewsletterSubscription - user is subscribed to newsletter with valid token", async ({
+  test("GRA_SetNewsletterSubscription - user is subscribed to newsletter with valid token", async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_SetNewsletterSubscription - subscribe');
@@ -288,7 +288,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     logger.action('Newsletter subscription set', 'true');
   });
 
-  test("PLA_SetNewsletterSubscription - user is unsubscribed to newsletter with valid token", async ({
+  test("GRA_SetNewsletterSubscription - user is unsubscribed to newsletter with valid token", async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_SetNewsletterSubscription - unsubscribe');
@@ -319,7 +319,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     logger.action('Newsletter subscription set', 'false');
   });
 
-  test("PLA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
+  test("GRA_SetLoyaltyAndNewsletterSubscription - user is unsubscribed to newsletter and not a loyalty member with valid token", async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('PLA_SetLoyaltyAndNewsletterSubscription');
@@ -354,7 +354,7 @@ test.describe("PLA GraphQL API - My Details apis", () => {
     logger.action('Loyalty and newsletter preferences updated', 'unsubscribed, not a loyalty member');
   });
 
-  test("PLA_loyalty - retrieve loyalty newsletter subscription message with valid token", async ({
+  test("GRA_loyalty - retrieve loyalty newsletter subscription message with valid token", async ({
     createGraphQLClient,
   }) => {
     const logger = createTestLogger('PLA_loyalty');

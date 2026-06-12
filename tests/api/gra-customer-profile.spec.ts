@@ -5,7 +5,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 import {
   plaCustomerProfileData,
   plaCustomerProfileErrorMessages,
-} from '../../src/data/api/pla-customer-profile-data';
+} from '../../src/data/api/gra-customer-profile-data';
 
 const CHANGE_PASSWORD_MUTATION = `
   mutation ChangeCustomerPassword($currentPassword: String!, $newPassword: String!) {
@@ -81,7 +81,7 @@ const GET_CUSTOMER_QUERY = `
   }
 `;
 
-test.describe('PLA Customer Profile @api @graphql @regression', () => {
+test.describe('GRA Customer Profile @api @graphql @regression', () => {
   let customerToken: string = '';
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {

@@ -5,7 +5,7 @@ Supplements the root `CLAUDE.md`. Rules here apply to everything under `tests/ap
 ## Import — Critical
 
 ```ts
-// PLA GRA specs (pla-*.spec.ts) — use graTest
+// GRA specs (gra-*.spec.ts) — use graTest
 import { graTest as test, expect, softExpect } from './gra-test';
 
 // Non-GRA API specs (restful-booker, objects-crud, graphql-examples)
@@ -17,15 +17,16 @@ import { test, expect } from '@config/base-test';
 
 ## Execution Mode
 
-GRA spec files (`pla-*.spec.ts`) use **default mode** (no `test.describe.configure` call needed). Sequential execution within a file is guaranteed by `fullyParallel: false` in `api.config.ts`.
+GRA spec files (`gra-*.spec.ts`) use **default mode** (no `test.describe.configure` call needed). Sequential execution within a file is guaranteed by `fullyParallel: false` in `api.config.ts`.
 
 Do **NOT** add `test.describe.configure({ mode: 'serial' })` to GRA specs — serial mode cascades skips on failure, which hides test signal.
 
 Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain serial mode if needed for their own reasons.
 
+
 ## API Test Data
 
-All API test data lives in `src/data/api/` — one file per feature domain (e.g., `pla-catalog-data.ts`, `pla-auth-data.ts`, `pla-search-data.ts`). Always annotate exported constants and generator return types with named interfaces (see root CLAUDE.md Test Data section).
+All API test data lives in `src/data/api/` — one file per feature domain (e.g., `gra-catalog-data.ts`, `gra-auth-data.ts`, `gra-search-data.ts`). Always annotate exported constants and generator return types with named interfaces (see root CLAUDE.md Test Data section).
 
 ## Code Quality Rules
 
@@ -37,7 +38,7 @@ All API test data lives in `src/data/api/` — one file per feature domain (e.g.
 
 ## GRA Multi-Brand Pattern (Phase 1, 2026-06-10)
 
-All `pla-*.spec.ts` files run across 4 AU brand projects (`pla-au`, `skx-au`, `drm-au`, `van-au`). Brand config is injected via the `site: SiteContext` fixture from `gra-test.ts`.
+All `gra-*.spec.ts` files run across 4 AU brand projects (`pla-au`, `skx-au`, `drm-au`, `van-au`). Brand config is injected via the `site: SiteContext` fixture from `gra-test.ts`.
 
 ### Key fixtures (from `graTest` in `tests/api/gra-test.ts`)
 
@@ -51,7 +52,7 @@ All `pla-*.spec.ts` files run across 4 AU brand projects (`pla-au`, `skx-au`, `d
 ### `signInAndStoreToken` — New Signature
 
 ```ts
-// Old (never use in pla-*.spec.ts)
+// Old (never use in gra-*.spec.ts)
 signInAndStoreToken(client, logger)
 
 // New — always pass site + siteState
@@ -232,5 +233,5 @@ for (const sku of candidateSkus) {
 
 ## Test Naming Convention
 
-New PLA tests: `TC_XX - Description` format.
-Older PLA specs (`pla-account-creation-signin`): `PLA_OperationName - description` format — do not rename existing tests.
+New GRA tests: `TC_XX - Description` format.
+Older GRA specs (`gra-account-creation-signin`): `GRA_OperationName - description` format.

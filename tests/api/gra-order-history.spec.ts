@@ -25,9 +25,9 @@ import {
   orderHistoryErrorCategories,
   CustomerOrderShape,
   CustomerOrdersShape,
-} from '../../src/data/api/pla-order-history-data';
-import { CheckoutBillingPaymentData } from '../../src/data/api/pla-checkout-billing-payment-data';
-import { PlaceOrderData } from '../../src/data/api/pla-place-order-data';
+} from '../../src/data/api/gra-order-history-data';
+import { CheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
+import { PlaceOrderData } from '../../src/data/api/gra-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
 
 // ── Local types ───────────────────────────────────────────────────────────────
@@ -265,7 +265,7 @@ const GUEST_ORDER_QUERY = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe('PLA GraphQL API - Order History @api @graphql', () => {
+test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     test.setTimeout(TIMEOUTS.API_SUITE_SETUP);

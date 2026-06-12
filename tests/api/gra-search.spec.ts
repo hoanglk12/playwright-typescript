@@ -1,6 +1,6 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { PlaSearchData } from '../../src/data/api/pla-search-data';
+import { PlaSearchData } from '../../src/data/api/gra-search-data';
 
 const PRODUCT_SEARCH_QUERY = `
   query ProductSearch($search: String!, $pageSize: Int, $currentPage: Int) {
@@ -34,7 +34,7 @@ const PRODUCT_SEARCH_SUGGESTIONS_QUERY = `
   }
 `;
 
-test.describe('PLA Search API @api @graphql @regression', () => {
+test.describe('GRA Search API @api @graphql @regression', () => {
 
   test('TC_01 - products - valid search term returns non-empty results with aggregations', async ({ createGraphQLClient, site }) => {
     const logger = createTestLogger('TC_01 products - valid search term returns non-empty results');

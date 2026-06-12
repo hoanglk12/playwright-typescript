@@ -120,33 +120,33 @@ export default defineConfig({
   ],
   /* Projects for API testing - NO BROWSERS */
   projects: [
-    // GRA brand projects — all run pla-*.spec.ts with site-specific metadata
+    // GRA brand projects — all run gra-*.spec.ts with site-specific metadata
     {
       name: 'pla-au',
       testDir: './tests/api',
-      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
       metadata: { siteCode: 'pla-au' },
     },
     {
       name: 'skx-au',
       testDir: './tests/api',
-      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
       metadata: { siteCode: 'skx-au' },
     },
     {
       name: 'drm-au',
       testDir: './tests/api',
-      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
       // Loyalty feature not deployed on Dr. Martens — exclude entirely so tests don't appear in report
-      testIgnore: ['**/pla-loyalty-rewards.spec.ts'],
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts'],
       metadata: { siteCode: 'drm-au' },
     },
     {
       name: 'van-au',
       testDir: './tests/api',
-      testMatch: ['**/tests/api/pla-*.spec.ts'],
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
       // Loyalty feature not deployed on Vans — exclude entirely so tests don't appear in report
-      testIgnore: ['**/pla-loyalty-rewards.spec.ts'],
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts'],
       metadata: { siteCode: 'van-au' },
     },
     // Non-GRA specs (restful-booker, graphql-examples, objects-crud)

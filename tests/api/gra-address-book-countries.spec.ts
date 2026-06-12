@@ -1,6 +1,6 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { addressBookCountriesData, CountryItem } from '../../src/data/api/pla-address-book-countries-data';
+import { addressBookCountriesData, CountryItem } from '../../src/data/api/gra-address-book-countries-data';
 
 const COUNTRIES_QUERY = `
   query GetCountries {
@@ -12,7 +12,7 @@ const COUNTRIES_QUERY = `
   }
 `;
 
-test.describe('PLA GraphQL API - Address Book: countries @api @regression', () => {
+test.describe('GRA GraphQL API - Address Book: countries @api @regression', () => {
 
   test('TC_01 - Fetch all countries → AU present in list', async ({ graphqlClient }) => {
     const logger = createTestLogger('TC_01 Fetch all countries → AU present in list');

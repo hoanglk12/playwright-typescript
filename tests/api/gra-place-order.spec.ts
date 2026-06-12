@@ -12,8 +12,8 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { CheckoutBillingPaymentData } from '../../src/data/api/pla-checkout-billing-payment-data';
-import { PlaceOrderData, PlaceOrderTestDataGenerator } from '../../src/data/api/pla-place-order-data';
+import { CheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
+import { PlaceOrderData, PlaceOrderTestDataGenerator } from '../../src/data/api/gra-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -189,7 +189,7 @@ const SET_GUEST_EMAIL_MUTATION = `
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
-test.describe('PLA GraphQL API - Place Order @api @graphql', () => {
+test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     // Full checkout setup = 8 sequential staging API calls; the default 30s hook
