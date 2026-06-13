@@ -1,6 +1,6 @@
 # Playwright TypeScript Automation Framework
 
-A production-grade test automation framework built with Playwright and TypeScript for the **AccentGroup GRA e-commerce platform** and frontsite applications. Covers UI smoke testing across 8 ecommerce brands, frontsite regression, admin authentication, and a GraphQL API suite that runs across 4 GRA brands concurrently.
+A production-grade test automation framework built with Playwright and TypeScript for the **AG GRA e-commerce platform** and frontsite applications. Covers UI smoke testing across 8 ecommerce brands, frontsite regression, admin authentication, and a GraphQL API suite that runs across 4 GRA brands concurrently.
 
 ---
 
