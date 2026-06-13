@@ -125,8 +125,9 @@ playwright-typescript/
 │       └── gra-address-book-countries.spec.ts
 │
 ├── scripts/
-│   ├── sync-memory-to-vault.mjs    # Syncs .claude/memory-seed → memory-vault/
-│   └── sync-vault-to-lightrag.mjs # Syncs vault notes to LightRAG knowledge graph
+│   ├── sync-memory-to-vault.mjs    # Syncs live memory → memory-vault/
+│   ├── sync-vault-to-lightrag.mjs # Syncs vault notes to LightRAG knowledge graph
+│   └── init-memory-from-vault.mjs # Bootstrap live memory from vault (new machine)
 │
 ├── playwright.config.ts            # UI test config (chromium + firefox, ignores api/)
 ├── api.config.ts                   # API config (4 GRA brand projects + misc-api)
@@ -289,7 +290,7 @@ npm run docker:clean
 npm run lint                      # TypeScript type check (no emit)
 npm run clean                     # Remove all test output dirs
 npm run clean:install             # Clean + npm ci + install browsers
-npm run sync-memory               # Sync memory-seed → vault → LightRAG
+npm run sync-memory               # Sync live memory → vault → LightRAG
 npm run codegen                   # Playwright recording tool
 ```
 
