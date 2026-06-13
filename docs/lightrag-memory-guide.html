@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LightRAG Graph+Vector Memory for Claude Code</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --accent: #7c6af7;
+    --accent2: #56d4a8;
+    --accent3: #f97c6f;
+    --text: #e2e5f0;
+    --text-muted: #8892aa;
+    --text-dim: #5a6078;
+    --code-bg: #13162a;
+    --warn: #f5c842;
+    --warn-bg: #2a2310;
+    --tip-bg: #0f2a1f;
+    --danger: #f97c6f;
+    --danger-bg: #2a1010;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .page-wrap {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(124,106,247,.15);
+    border: 1px solid rgba(124,106,247,.35);
+    color: #a89ef9;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #c4bcff 0%, #7c6af7 50%, #56d4a8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 680px;
+    margin-bottom: 24px;
+  }
+  .meta-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .meta-pill span { color: var(--text-muted); }
+
+  /* ── TOC ── */
+  .toc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 48px;
+  }
+  .toc-card h3 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px 24px;
+  }
+  .toc-grid a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-radius: 4px;
+    transition: color .15s;
+  }
+  .toc-grid a:hover { color: var(--accent); }
+  .toc-grid a::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  /* ── Sections ── */
+  section { margin-bottom: 64px; }
+
+  h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  h2 .sec-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(124,106,247,.15);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 28px 0 12px;
+    color: #c4bcff;
+  }
+
+  h4 {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--accent2);
+    margin: 20px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-size: 11px;
+  }
+
+  p { margin-bottom: 14px; color: var(--text-muted); }
+  p strong { color: var(--text); }
+
+  /* ── Code ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    position: relative;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre .lang-tag {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-family: inherit;
+  }
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    color: #c4bcff;
+  }
+  pre code { color: var(--text); }
+  .kw { color: #7c6af7; }
+  .str { color: #56d4a8; }
+  .cm { color: var(--text-dim); font-style: italic; }
+  .num { color: #f5c842; }
+  .fn { color: #f7c06a; }
+  .var { color: #a8d8f0; }
+  .hl { background: rgba(124,106,247,.12); display: block; margin: 0 -20px; padding: 0 20px; }
+
+  code.inline {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12.5px;
+    color: #a89ef9;
+  }
+
+  /* ── Cards ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-icon { font-size: 24px; margin-bottom: 10px; }
+  .card h4 { color: var(--text); margin: 0 0 8px; font-size: .9rem; text-transform: none; letter-spacing: 0; }
+  .card p { font-size: 13px; margin: 0; }
+  .card.accent-purple { border-color: rgba(124,106,247,.4); }
+  .card.accent-green { border-color: rgba(86,212,168,.3); }
+  .card.accent-orange { border-color: rgba(249,124,111,.3); }
+
+  /* ── Steps ── */
+  .steps { list-style: none; }
+  .steps li {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .steps li::before {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 36px;
+    bottom: -28px;
+    width: 2px;
+    background: var(--border);
+  }
+  .steps li:last-child::before { display: none; }
+  .step-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(124,106,247,.15);
+    border: 1.5px solid rgba(124,106,247,.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #a89ef9;
+    flex-shrink: 0;
+  }
+  .step-body { flex: 1; padding-top: 6px; }
+  .step-title { font-weight: 600; color: var(--text); margin-bottom: 6px; }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(46,51,71,.6);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(255,255,255,.02); }
+  td code.inline { font-size: 12px; }
+
+  /* ── Callouts ── */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+    font-size: 13.5px;
+  }
+  .callout .icon { flex-shrink: 0; font-size: 16px; line-height: 1.6; }
+  .callout p { margin: 0; }
+  .callout.warn { background: var(--warn-bg); border: 1px solid rgba(245,200,66,.25); color: #d4b040; }
+  .callout.warn .icon::before { content: '⚠️'; }
+  .callout.tip { background: var(--tip-bg); border: 1px solid rgba(86,212,168,.25); color: #56d4a8; }
+  .callout.tip .icon::before { content: '💡'; }
+  .callout.danger { background: var(--danger-bg); border: 1px solid rgba(249,124,111,.3); color: var(--danger); }
+  .callout.danger .icon::before { content: '🚨'; }
+  .callout.info { background: rgba(124,106,247,.08); border: 1px solid rgba(124,106,247,.2); color: #a89ef9; }
+  .callout.info .icon::before { content: 'ℹ️'; }
+
+  /* ── Error log ── */
+  .error-log {
+    border-radius: 10px;
+    border: 1px solid rgba(249,124,111,.3);
+    overflow: hidden;
+    margin: 16px 0 24px;
+  }
+  .error-log-header {
+    background: rgba(249,124,111,.12);
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--danger);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .error-log-body { padding: 14px 18px; }
+  .fix-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin: 10px 0 6px;
+  }
+
+  /* ── Architecture diagram ── */
+  .arch-diagram {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 24px;
+    margin: 20px 0;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-muted);
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .arch-diagram .node { color: var(--accent2); }
+  .arch-diagram .arrow { color: var(--accent); }
+  .arch-diagram .label { color: var(--warn); }
+  .arch-diagram .dim { color: var(--text-dim); }
+
+  /* ── Divider ── */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    color: var(--text-dim);
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .03em;
+  }
+  .badge-purple { background: rgba(124,106,247,.15); color: #a89ef9; border: 1px solid rgba(124,106,247,.3); }
+  .badge-green  { background: rgba(86,212,168,.1);  color: #56d4a8; border: 1px solid rgba(86,212,168,.3); }
+  .badge-orange { background: rgba(249,124,111,.1); color: #f9a090; border: 1px solid rgba(249,124,111,.3); }
+  .badge-yellow { background: rgba(245,200,66,.1);  color: #d4b040; border: 1px solid rgba(245,200,66,.3); }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 1.9rem; }
+    .card-grid { grid-template-columns: 1fr; }
+    .toc-grid { grid-template-columns: 1fr 1fr; }
+    .arch-diagram { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- ── HERO ── -->
+  <div class="hero">
+    <div class="hero-badge">Knowledge Graph Memory</div>
+    <h1>LightRAG Graph+Vector Memory<br>for Claude Code</h1>
+    <p>
+      A full implementation guide — from knowledge graph fundamentals through installation,
+      configuration, ingestion, MCP wiring, new-machine setup, and all errors encountered
+      with their exact fixes.
+    </p>
+    <div class="meta-row">
+      <div class="meta-pill">📦 <span>LightRAG v1.5.2</span></div>
+      <div class="meta-pill">🔌 <span>OpenAI-compatible endpoint</span></div>
+      <div class="meta-pill">🖥️ <span>Windows 11 / PowerShell</span></div>
+      <div class="meta-pill">🗓️ <span>Last updated: 2026-06-12</span></div>
+    </div>
+  </div>
+
+  <!-- ── TOC ── -->
+  <div class="toc-card">
+    <h3>Contents</h3>
+    <div class="toc-grid">
+      <a href="#s1">1. What is a Knowledge Graph?</a>
+      <a href="#s2">2. Why LightRAG + Obsidian?</a>
+      <a href="#s3">3. Architecture Overview</a>
+      <a href="#s4">4. Prerequisites</a>
+      <a href="#s5">5. Python &amp; LightRAG Install</a>
+      <a href="#s6">6. Configuration (.lightrag.env)</a>
+      <a href="#s7">7. Model Selection</a>
+      <a href="#s8">8. Starting the Server</a>
+      <a href="#s9">9. Ingesting the Vault</a>
+      <a href="#s10">10. MCP Server Setup</a>
+      <a href="#s11">11. New Machine Setup</a>
+      <a href="#s12">12. Errors &amp; Fixes</a>
+      <a href="#s13">13. Scripts Reference</a>
+      <a href="#s14">14. Agents Created</a>
+      <a href="#s15">15. Benefits of this Approach</a>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION 1 ═══ -->
+  <section id="s1">
+    <h2><span class="sec-icon">🧠</span> What is a Knowledge Graph?</h2>
+
+    <p>
+      A <strong>knowledge graph</strong> is a data structure that represents information as a network of
+      <em>entities</em> (nodes) connected by <em>relationships</em> (edges). Unlike a flat list of facts or
+      a traditional vector search index, a knowledge graph captures <em>how things relate to each other</em>,
+      allowing retrieval that follows conceptual links rather than just similarity scores.
+    </p>
+
+    <div class="card-grid">
+      <div class="card accent-purple">
+        <div class="card-icon">🔵</div>
+        <h4>Entities (Nodes)</h4>
+        <p>Named concepts: <em>BasePage</em>, <em>GRA API</em>, <em>Ecommerce PDP</em>, <em>Firefox teardown</em>.
+        Extracted automatically from your notes by an LLM.</p>
+      </div>
+      <div class="card accent-green">
+        <div class="card-icon">🔗</div>
+        <h4>Relationships (Edges)</h4>
+        <p>Typed connections: <em>BasePage OWNS ElementHelper</em>, <em>GRA API HAS 4 brands</em>,
+        <em>EcommerceCartOverlayPage REQUIRES Firefox workaround</em>.</p>
+      </div>
+      <div class="card accent-orange">
+        <div class="card-icon">🌐</div>
+        <h4>Dual Retrieval</h4>
+        <p>
+          <strong>Local</strong>: entity neighborhood (what is directly related to this concept).<br>
+          <strong>Global</strong>: theme-level reasoning across the entire graph.
+        </p>
+      </div>
+    </div>
+
+    <p>
+      Traditional RAG (Retrieval-Augmented Generation) splits documents into chunks and finds the nearest
+      chunks by vector similarity. This works well for isolated facts but misses connections — it cannot
+      answer <em>"what are all the constraints that affect the Firefox ecommerce tests?"</em> because the
+      answer lives across six different notes.
+    </p>
+    <p>
+      A knowledge graph solves this by pre-computing the connections at ingest time, so queries can traverse
+      the graph and retrieve semantically related context from multiple notes in a single hop.
+    </p>
+  </section>
+
+
+  <!-- ═══ SECTION 2 ═══ -->
+  <section id="s2">
+    <h2><span class="sec-icon">✨</span> Why LightRAG + Obsidian?</h2>
+
+    <p>
+      The project stores its Claude Code memory in <strong>Obsidian</strong> — a markdown vault with
+      wikilinks and a graph view. The vault at <code class="inline">memory-vault/</code> is already structured
+      with typed notes (<em>user</em>, <em>feedback</em>, <em>project</em>, <em>reference</em>) and
+      wikilinks between them. LightRAG is the semantic layer on top.
+    </p>
+
+    <h3>Why not plain Grep?</h3>
+    <p>
+      Claude already uses <code class="inline">Grep</code> over the vault for keyword search. This covers 90%
+      of lookups. LightRAG adds value when:
+    </p>
+    <ul style="list-style: none; padding: 0; margin: 0 0 20px;">
+      <li style="display: flex; gap: 10px; margin-bottom: 8px; color: var(--text-muted);">
+        <span style="color: var(--accent);">→</span>
+        The question spans multiple notes and requires synthesising relationships
+      </li>
+      <li style="display: flex; gap: 10px; margin-bottom: 8px; color: var(--text-muted);">
+        <span style="color: var(--accent);">→</span>
+        The keyword is not the exact word in the note (semantic similarity)
+      </li>
+      <li style="display: flex; gap: 10px; margin-bottom: 8px; color: var(--text-muted);">
+        <span style="color: var(--accent);">→</span>
+        You want a summary of all context related to a concept (e.g. "all GRA API quirks")
+      </li>
+      <li style="display: flex; gap: 10px; margin-bottom: 8px; color: var(--text-muted);">
+        <span style="color: var(--accent);">→</span>
+        You add new notes via Jira/Confluence and want them immediately searchable
+      </li>
+    </ul>
+
+    <h3>Why LightRAG specifically?</h3>
+    <table>
+      <thead>
+        <tr><th>Option</th><th>Approach</th><th>Trade-off</th><th>Chosen?</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>LightRAG</strong></td>
+          <td>Graph + vector hybrid, built-in HTTP server, OpenAI-compatible</td>
+          <td>Requires Python process; best retrieval quality</td>
+          <td><span class="badge badge-green">✓ Yes</span></td>
+        </tr>
+        <tr>
+          <td>Chroma MCP</td>
+          <td>Vector-only, local embedding store</td>
+          <td>No graph; weaker multi-note reasoning</td>
+          <td><span class="badge badge-orange">Rejected</span></td>
+        </tr>
+        <tr>
+          <td>pgvector</td>
+          <td>Postgres extension, SQL + vector</td>
+          <td>Requires Docker / Postgres; no graph</td>
+          <td><span class="badge badge-orange">Rejected</span></td>
+        </tr>
+        <tr>
+          <td>Obsidian MCP</td>
+          <td>Direct vault read via MCP bridge</td>
+          <td>File access only — no semantic search, no graph</td>
+          <td><span class="badge badge-orange">Rejected</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ═══ SECTION 3 ═══ -->
+  <section id="s3">
+    <h2><span class="sec-icon">🏗️</span> Architecture Overview</h2>
+
+    <div class="arch-diagram"><span class="label">┌─────────────────────────── MEMORY PIPELINE ────────────────────────────┐</span>
+<span class="dim">│                                                                        │</span>
+<span class="dim">│</span>  <span class="node">Claude session</span>               <span class="arrow">──writes──►</span>  <span class="node">~/.claude/projects/.../memory/</span>  <span class="dim">│</span>
+<span class="dim">│</span>      <span class="dim">(live memory)</span>                               <span class="dim">(seed files)</span>             <span class="dim">│</span>
+<span class="dim">│              │                                                          │</span>
+<span class="dim">│              │</span>  <span class="label">Stop hook</span>  <span class="arrow">──runs──►</span>  <span class="node">sync-memory-to-vault.mjs</span>          <span class="dim">│</span>
+<span class="dim">│              │                                    │                     │</span>
+<span class="dim">│              │                                    ▼                     │</span>
+<span class="dim">│              │                        <span class="node">memory-vault/20-memory/</span>           │</span>
+<span class="dim">│              │                        <span class="dim">(Obsidian-readable .md files)</span>     │</span>
+<span class="dim">│              │                                    │                     │</span>
+<span class="dim">│              │              <span class="label">Stop hook</span>  <span class="arrow">──runs──►</span>  <span class="node">sync-vault-to-lightrag.mjs</span>  │</span>
+<span class="dim">│              │                                    │                     │</span>
+<span class="dim">│              │                                    ▼                     │</span>
+<span class="dim">│              └──────────────────────────►  <span class="node">LightRAG HTTP server :9621</span>  │</span>
+<span class="dim">│                                            <span class="dim">(knowledge graph + vectors)</span>  │</span>
+<span class="dim">│                                                    │                     │</span>
+<span class="dim">│                                                    ▼                     │</span>
+<span class="dim">│                              <span class="node">lightrag-mcp</span>  <span class="arrow">◄──stdio──►</span>  <span class="node">Claude Code</span>     │</span>
+<span class="dim">│                              <span class="dim">(MCP bridge)</span>              <span class="dim">(semantic query)</span>  │</span>
+<span class="dim">│                                                                          │</span>
+<span class="label">└────────────────────────────────────────────────────────────────────────┘</span>
+
+<span class="dim">  Vault ingestion path (one-time or on-demand):</span>
+  <span class="node">memory-vault/20-memory/*.md</span>  <span class="arrow">──POST /documents/text──►</span>  <span class="node">LightRAG</span>
+  <span class="dim">  LLM extracts entities + relationships → builds graph + vector index</span></div>
+
+    <h3>Data stores inside <code class="inline">.lightrag/</code></h3>
+    <table>
+      <thead><tr><th>File/Dir</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">graph_chunk_entity_relation.graphml</code></td><td>Neo4j-compatible knowledge graph (entities, edges, weights)</td></tr>
+        <tr><td><code class="inline">vdb_entities.json</code></td><td>Entity vector index (OpenAI embeddings)</td></tr>
+        <tr><td><code class="inline">vdb_chunks.json</code></td><td>Chunk vector index for raw passage retrieval</td></tr>
+        <tr><td><code class="inline">vdb_relationships.json</code></td><td>Relationship vector index</td></tr>
+        <tr><td><code class="inline">kv_store_*.json</code></td><td>Key-value caches (entities, communities, doc hashes)</td></tr>
+        <tr><td><code class="inline">lightrag.log</code></td><td>Server log for debugging</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ═══ SECTION 4 ═══ -->
+  <section id="s4">
+    <h2><span class="sec-icon">📋</span> Prerequisites</h2>
+
+    <table>
+      <thead><tr><th>Requirement</th><th>Version</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Python</strong></td>
+          <td>≥ 3.10</td>
+          <td>LightRAG uses match statements (3.10+). Check: <code class="inline">python --version</code></td>
+        </tr>
+        <tr>
+          <td><strong>uv</strong> (Python package manager)</td>
+          <td>latest</td>
+          <td>Used by <code class="inline">uvx</code> to run the MCP server. Install: <code class="inline">pip install uv</code> or <code class="inline">winget install astral-sh.uv</code></td>
+        </tr>
+        <tr>
+          <td><strong>Node.js</strong></td>
+          <td>≥ 18</td>
+          <td>Required for sync scripts (<code class="inline">sync-memory-to-vault.mjs</code>, <code class="inline">sync-vault-to-lightrag.mjs</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>OpenAI-compatible API key</strong></td>
+          <td>—</td>
+          <td>This project uses <code class="inline">https://direct.shopaikey.com/v1</code>. Any OpenAI-compatible proxy works.</td>
+        </tr>
+        <tr>
+          <td><strong>Claude Code</strong></td>
+          <td>latest</td>
+          <td>For MCP integration via <code class="inline">.mcp.json</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ═══ SECTION 5 ═══ -->
+  <section id="s5">
+    <h2><span class="sec-icon">🐍</span> Python &amp; LightRAG Installation</h2>
+
+    <ul class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Create a Python virtual environment in the project root</div>
+          <p>A local venv keeps LightRAG isolated from the global Python install. It is gitignored.</p>
+          <pre><code><span class="cm"># From the project root (playwright-typescript/)</span>
+python -m venv .lightrag-venv</code><span class="lang-tag">PowerShell</span></pre>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Activate the virtual environment</div>
+          <pre><code>.lightrag-venv\Scripts\Activate.ps1</code><span class="lang-tag">PowerShell</span></pre>
+          <div class="callout warn">
+            <div class="icon"></div>
+            <p>If PowerShell execution policy blocks scripts, run:
+            <code class="inline">Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></p>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Install LightRAG with the OpenAI binding and API server</div>
+          <pre><code>pip install "lightrag-hku[api]"</code><span class="lang-tag">PowerShell</span></pre>
+          <p>
+            The <code class="inline">[api]</code> extra adds the built-in HTTP server (<code class="inline">lightrag-server</code>)
+            and all dependencies including <code class="inline">aiohttp</code>, <code class="inline">nano-vectordb</code>,
+            <code class="inline">networkx</code>, and the OpenAI SDK.
+          </p>
+          <p>Verify installation:</p>
+          <pre><code>lightrag-server --help</code><span class="lang-tag">PowerShell</span></pre>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Install the MCP bridge package (for Claude Code integration)</div>
+          <p>
+            <code class="inline">lightrag-mcp</code> is a separate PyPI package that bridges Claude Code's
+            MCP protocol to the LightRAG HTTP server. It runs as a stdio process.
+          </p>
+          <pre><code>pip install lightrag-mcp</code><span class="lang-tag">PowerShell</span></pre>
+          <p>
+            Alternatively, <code class="inline">uvx</code> can install and run it on-demand (the
+            <code class="inline">.mcp.json</code> config uses <code class="inline">uvx</code> so the venv
+            is not required for MCP startup).
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Create the working directory</div>
+          <pre><code>New-Item -ItemType Directory -Force .lightrag</code><span class="lang-tag">PowerShell</span></pre>
+          <p>This directory is gitignored. LightRAG writes all graph and vector data here.</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- ═══ SECTION 6 ═══ -->
+  <section id="s6">
+    <h2><span class="sec-icon">⚙️</span> Configuration (<code class="inline">.lightrag.env</code>)</h2>
+
+    <p>
+      Create <code class="inline">.lightrag.env</code> in the project root. This file is gitignored —
+      it holds the API key and is never committed.
+    </p>
+
+    <pre><code><span class="cm"># ─── LLM (entity + relationship extraction) ───────────────────────────────</span>
+<span class="var">LLM_BINDING</span>=<span class="str">openai</span>
+<span class="var">LLM_MODEL</span>=<span class="str">gpt-4o-mini</span>           <span class="cm"># cheaper; gpt-4o for best quality</span>
+<span class="var">LLM_BINDING_HOST</span>=<span class="str">https://direct.shopaikey.com/v1</span>
+<span class="var">LLM_BINDING_API_KEY</span>=<span class="str">sk-your-api-key-here</span>
+
+<span class="cm"># ─── Embeddings ────────────────────────────────────────────────────────────</span>
+<span class="var">EMBEDDING_BINDING</span>=<span class="str">openai</span>
+<span class="var">EMBEDDING_MODEL</span>=<span class="str">text-embedding-3-large</span>
+<span class="var">EMBEDDING_BINDING_HOST</span>=<span class="str">https://direct.shopaikey.com/v1</span>
+<span class="var">EMBEDDING_BINDING_API_KEY</span>=<span class="str">sk-your-api-key-here</span>
+<span class="var">EMBEDDING_DIM</span>=<span class="num">3072</span>               <span class="cm"># text-embedding-3-large output dim</span>
+
+<span class="cm"># ─── Paths ─────────────────────────────────────────────────────────────────</span>
+<span class="var">INPUT_DIR</span>=<span class="str">./memory-vault/20-memory</span>
+<span class="var">WORKING_DIR</span>=<span class="str">./.lightrag</span>
+
+<span class="cm"># ─── Limits ────────────────────────────────────────────────────────────────</span>
+<span class="var">MAX_ASYNC</span>=<span class="num">4</span>
+<span class="var">MAX_TOKENS</span>=<span class="num">32768</span></code><span class="lang-tag">.lightrag.env</span></pre>
+
+    <div class="callout danger">
+      <div class="icon"></div>
+      <p>
+        <strong>Never commit this file.</strong> The <code class="inline">.gitignore</code> already excludes
+        <code class="inline">.lightrag.env</code>. If an API key is accidentally committed, regenerate it
+        immediately — the key is compromised once it appears in git history.
+      </p>
+    </div>
+
+    <h3>Critical variable names</h3>
+    <p>
+      LightRAG v1.5.x requires these exact names. Using the wrong names silently skips authentication
+      (the server starts but all API calls return 401):
+    </p>
+    <table>
+      <thead><tr><th>Wrong ❌</th><th>Correct ✓</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">LLM_API_KEY</code></td><td><code class="inline">LLM_BINDING_API_KEY</code></td></tr>
+        <tr><td><code class="inline">EMBEDDING_API_KEY</code></td><td><code class="inline">EMBEDDING_BINDING_API_KEY</code></td></tr>
+        <tr><td><code class="inline">OPENAI_API_KEY</code></td><td><code class="inline">LLM_BINDING_API_KEY</code> (when using openai binding)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ═══ SECTION 7 ═══ -->
+  <section id="s7">
+    <h2><span class="sec-icon">🤖</span> Model Selection</h2>
+
+    <h3>LLM — entity extraction</h3>
+    <p>
+      The LLM is called during ingestion to extract entities and relationships from each document chunk.
+      It is also called at query time to synthesise the final answer. Two sensible choices:
+    </p>
+
+    <table>
+      <thead><tr><th>Model</th><th>Input cost</th><th>Output cost</th><th>Quality</th><th>Recommendation</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code class="inline">gpt-4o</code></td>
+          <td>$2.50 / 1M</td>
+          <td>$10.00 / 1M</td>
+          <td>Best</td>
+          <td><span class="badge badge-purple">Use for large vaults or high-value queries</span></td>
+        </tr>
+        <tr>
+          <td><code class="inline">gpt-4o-mini</code></td>
+          <td>$0.15 / 1M</td>
+          <td>$0.60 / 1M</td>
+          <td>Good</td>
+          <td><span class="badge badge-green">Default — 15× cheaper, sufficient for short notes</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout tip">
+      <div class="icon"></div>
+      <p>
+        At the current vault size (~17 notes, ~13K tokens), even a full re-ingest with <code class="inline">gpt-4o</code>
+        costs under $0.10. The model choice matters more for query-time cost if Claude queries LightRAG frequently.
+        <strong><code class="inline">gpt-4o-mini</code> is the right default.</strong>
+      </p>
+    </div>
+
+    <h3>Embeddings — vector index</h3>
+    <p>
+      The embedding model converts text chunks and extracted entities into dense vectors for similarity search.
+      It is called at ingest time only (not at query time for most operations).
+    </p>
+
+    <table>
+      <thead><tr><th>Model</th><th>Cost</th><th>Dimensions</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code class="inline">text-embedding-3-large</code></td>
+          <td>$0.13 / 1M</td>
+          <td>3072</td>
+          <td>Best retrieval quality. Set <code class="inline">EMBEDDING_DIM=3072</code>.</td>
+        </tr>
+        <tr>
+          <td><code class="inline">text-embedding-3-small</code></td>
+          <td>$0.02 / 1M</td>
+          <td>1536</td>
+          <td>6× cheaper. Set <code class="inline">EMBEDDING_DIM=1536</code> if you switch.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <div class="icon"></div>
+      <p>
+        If you change the embedding model after initial ingestion, you must delete <code class="inline">.lightrag/</code>
+        and re-ingest the entire vault. The vector dimensions are fixed at first ingest — a mismatch causes
+        silent retrieval failures.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ═══ SECTION 8 ═══ -->
+  <section id="s8">
+    <h2><span class="sec-icon">🚀</span> Starting the Server</h2>
+
+    <p>
+      The server is started by <code class="inline">scripts/start-rag.bat</code>. Run it in a dedicated
+      terminal that stays open. It reads <code class="inline">.lightrag.env</code> by parsing each line
+      with <code class="inline">SET</code>, activates the venv, and starts the HTTP server.
+    </p>
+
+    <pre><code>@echo off
+cd /d "%~dp0.."
+echo Starting LightRAG server...
+echo Vault: memory-vault/20-memory
+echo Server: http://localhost:9621
+echo Swagger: http://localhost:9621/docs
+
+<span class="cm">REM Load .lightrag.env by SET-ing each variable
+REM (lightrag-server reads its own .env from cwd, which would conflict
+REM  with the project-root Node .env files for Playwright)</span>
+for /f <span class="str">"usebackq eol=# tokens=1,* delims=="</span> %%A in (<span class="str">".lightrag.env"</span>) do (
+    if not <span class="str">"%%A"</span>=="" if not <span class="str">"%%B"</span>=="" set <span class="str">"%%A=%%B"</span>
+)
+
+call .lightrag-venv\Scripts\activate
+lightrag-server ^
+    --host 0.0.0.0 ^
+    --port 9621 ^
+    --working-dir .lightrag ^
+    --input-dir memory-vault/20-memory ^
+    --llm-binding openai ^
+    --embedding-binding openai</code><span class="lang-tag">start-rag.bat</span></pre>
+
+    <h3>Verify the server is healthy</h3>
+    <pre><code>curl http://localhost:9621/health</code><span class="lang-tag">PowerShell</span></pre>
+    <p>Expected response:</p>
+    <pre><code>{
+  <span class="str">"status"</span>: <span class="str">"healthy"</span>,
+  <span class="str">"working_dir"</span>: <span class="str">".lightrag"</span>,
+  <span class="str">"input_dir"</span>: <span class="str">"memory-vault/20-memory"</span>,
+  <span class="str">"llm_model"</span>: <span class="str">"gpt-4o-mini"</span>,
+  <span class="str">"embedding_model"</span>: <span class="str">"text-embedding-3-large"</span>
+}</code><span class="lang-tag">JSON</span></pre>
+
+    <p>The Swagger UI is also available at <code class="inline">http://localhost:9621/docs</code> for manual testing.</p>
+
+    <div class="callout info">
+      <div class="icon"></div>
+      <p>
+        The server must be running <em>before</em> the MCP bridge can connect. Start
+        <code class="inline">start-rag.bat</code> first, verify health, then start Claude Code.
+        If you restart Claude Code without restarting the server, the MCP bridge reconnects automatically.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ═══ SECTION 9 ═══ -->
+  <section id="s9">
+    <h2><span class="sec-icon">📥</span> Ingesting the Vault</h2>
+
+    <p>
+      The LightRAG <code class="inline">/documents/scan</code> endpoint ignores <code class="inline">.md</code>
+      files (it only scans known document types like PDF, DOCX). The correct ingestion path is
+      <code class="inline">POST /documents/text</code> — one API call per file, sending the raw markdown content.
+    </p>
+
+    <h3>First-time ingest</h3>
+    <p>Run the sync script (Node.js) which handles both insert and update logic:</p>
+    <pre><code>node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell</span></pre>
+
+    <p>
+      If the server is not running, the script detects the connection error and exits silently (non-fatal).
+      Expected output for a fresh ingest:
+    </p>
+    <pre><code>[sync-vault-to-lightrag] LightRAG healthy — syncing...
+  Inserted: user_profile.md
+  Inserted: feedback_preferences.md
+  Inserted: ecommerce-pdp-page-gotchas.md
+  Inserted: project_context.md
+  Inserted: project_architecture.md
+  Inserted: gra-api-testing.md
+  ...
+[sync-vault-to-lightrag] Done — 14 new, 0 updated, 0 unchanged</code><span class="lang-tag">stdout</span></pre>
+
+    <h3>What actually happened — the first successful bulk ingest</h3>
+    <p>
+      Before <code class="inline">sync-vault-to-lightrag.mjs</code> was written, the original approach was
+      a PowerShell script (<code class="inline">scripts/ingest-vault.ps1</code>) that called
+      <code class="inline">POST /documents/scan</code>. That failed silently (found 0 files — see Error 5 below).
+      The replacement script was <code class="inline">ingest-vault.ps1</code> rewritten to loop over
+      each <code class="inline">.md</code> file and call <code class="inline">POST /documents/text</code>.
+    </p>
+    <p>
+      However, running <code class="inline">.\scripts\ingest-vault.ps1</code> in the terminal opened the file
+      in Notepad instead of executing it (Windows file-association block — see Error 6).
+      The workaround was to run the equivalent logic as a PowerShell <strong>inline command</strong>
+      pasted directly into the terminal:
+    </p>
+    <pre><code><span class="cm"># Inline bulk ingest — used when .ps1 execution was blocked</span>
+<span class="cm"># Run from the project root with LightRAG server already running</span>
+Get-ChildItem -Path <span class="str">"memory-vault/20-memory"</span> -Recurse -Filter <span class="str">"*.md"</span> |
+  Where-Object { <span class="var">$_</span>.DirectoryName -notlike <span class="str">"*__parsed__*"</span> } |
+  ForEach-Object {
+    <span class="var">$content</span> = Get-Content <span class="var">$_</span>.FullName -Raw
+    <span class="var">$body</span> = @{ text = <span class="var">$content</span>; file_source = <span class="var">$_</span>.Name } | ConvertTo-Json -Depth 2
+    Invoke-RestMethod -Uri <span class="str">"http://localhost:9621/documents/text"</span> `
+      -Method POST -ContentType <span class="str">"application/json"</span> -Body <span class="var">$body</span>
+    Write-Host <span class="str">"Inserted: $($_.Name)"</span>
+  }</code><span class="lang-tag">PowerShell</span></pre>
+
+    <p>
+      Each file triggers an async LightRAG pipeline. The server processes them in batches — you will see
+      log lines like <code class="inline">INFO: Processing chunk 1/3 for user_profile.md</code> in the
+      <code class="inline">start-rag.bat</code> terminal window. When all files are through, the status
+      endpoint confirms:
+    </p>
+    <pre><code>curl http://localhost:9621/documents
+<span class="cm"># Look for "status": "processed" for each file_path</span>
+<span class="cm"># All files showing "processed" = ingest complete ("all files chunked completed")</span></code><span class="lang-tag">PowerShell</span></pre>
+
+    <div class="callout info">
+      <div class="icon"></div>
+      <p>
+        The Node.js script (<code class="inline">sync-vault-to-lightrag.mjs</code>) supersedes this inline command
+        — it adds diff detection (skips unchanged files), handles deletes before re-inserts, and is non-fatal
+        when the server is down. Use the script for all normal operations; the inline command is documented here
+        as a break-glass fallback.
+      </p>
+    </div>
+
+    <h3>Verifying ingest completed</h3>
+    <p>
+      LightRAG processes documents asynchronously. After inserting files, poll the pipeline status to confirm
+      all chunks are processed before querying:
+    </p>
+    <pre><code><span class="cm"># Check pipeline status</span>
+curl http://localhost:9621/documents/pipeline_status
+
+<span class="cm"># Check which docs are indexed</span>
+curl http://localhost:9621/documents</code><span class="lang-tag">PowerShell</span></pre>
+
+    <p>Expected successful state in <code class="inline">/documents</code> response:</p>
+    <pre><code>{
+  <span class="str">"statuses"</span>: {
+    <span class="str">"processed"</span>: [
+      { <span class="str">"id"</span>: <span class="str">"..."</span>, <span class="str">"file_path"</span>: <span class="str">"user_profile.md"</span>, <span class="str">"content_length"</span>: <span class="num">842</span> },
+      { <span class="str">"id"</span>: <span class="str">"..."</span>, <span class="str">"file_path"</span>: <span class="str">"gra-api-testing.md"</span>, <span class="str">"content_length"</span>: <span class="num">3210</span> },
+      <span class="cm">// ... all 14+ notes</span>
+    ],
+    <span class="str">"pending"</span>: [],
+    <span class="str">"failed"</span>: []
+  }
+}</code><span class="lang-tag">JSON</span></pre>
+
+    <div class="callout warn">
+      <div class="icon"></div>
+      <p>
+        If any files appear in <code class="inline">"failed"</code>, the most common cause is the LLM API
+        returning an error during entity extraction (rate limit, auth failure, or model unavailable).
+        Check the <code class="inline">.lightrag/lightrag.log</code> file for the exact error, fix the
+        <code class="inline">.lightrag.env</code> credentials, and re-insert the failed files.
+      </p>
+    </div>
+
+    <h3>Ongoing sync (automatic)</h3>
+    <p>
+      The <code class="inline">Stop</code> hook in <code class="inline">.claude/settings.json</code> runs
+      <code class="inline">sync-vault-to-lightrag.mjs</code> automatically at the end of every Claude Code session.
+      The script is idempotent — unchanged files are detected by content length and skipped.
+    </p>
+
+    <h3>How the sync script works</h3>
+    <pre><code><span class="cm">// 1. Health check — exits silently if server is down</span>
+<span class="kw">const</span> <span class="var">health</span> = <span class="kw">await</span> fetch(<span class="str">`${LIGHTRAG_URL}/health`</span>);
+
+<span class="cm">// 2. Get list of already-indexed docs from LightRAG</span>
+<span class="kw">const</span> <span class="var">docs</span> = <span class="kw">await</span> fetch(<span class="str">`${LIGHTRAG_URL}/documents`</span>);
+<span class="cm">// Build map: filename → { id, contentLength }</span>
+
+<span class="cm">// 3. Walk memory-vault/20-memory/ recursively (skip __parsed__/)</span>
+<span class="cm">// 4. For each .md file:</span>
+<span class="cm">//    - If content length unchanged → skip</span>
+<span class="cm">//    - If changed → DELETE old doc, then POST /documents/text</span>
+<span class="cm">//    - If new → POST /documents/text</span></code><span class="lang-tag">JavaScript</span></pre>
+
+    <div class="callout warn">
+      <div class="icon"></div>
+      <p>
+        <strong>Never call</strong> <code class="inline">DELETE /documents</code> (no body) — this wipes the
+        entire document store. The correct per-document delete endpoint is
+        <code class="inline">DELETE /documents/delete_document</code> with body
+        <code class="inline">{"doc_ids": ["id"]}</code>.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ═══ SECTION 10 ═══ -->
+  <section id="s10">
+    <h2><span class="sec-icon">🔌</span> MCP Server Setup</h2>
+
+    <p>
+      Claude Code connects to LightRAG via the <code class="inline">lightrag-mcp</code> MCP bridge.
+      The bridge is a stdio process that proxies MCP tool calls to the HTTP server.
+    </p>
+
+    <h3><code class="inline">.mcp.json</code> (project root)</h3>
+    <pre><code>{
+  <span class="str">"mcpServers"</span>: {
+    <span class="str">"lightrag"</span>: {
+      <span class="str">"command"</span>: <span class="str">"uvx"</span>,
+      <span class="str">"args"</span>: [
+        <span class="str">"--from"</span>, <span class="str">"lightrag-mcp"</span>,
+        <span class="str">"lightrag-mcp"</span>,
+        <span class="str">"--host"</span>, <span class="str">"localhost"</span>,
+        <span class="str">"--port"</span>, <span class="str">"9621"</span>
+      ]
+    }
+  }
+}</code><span class="lang-tag">.mcp.json</span></pre>
+
+    <h3>Available MCP tools (exposed to Claude)</h3>
+    <table>
+      <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">mcp__lightrag__query</code></td><td>Semantic query — returns synthesised answer with graph context</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__insert_text</code></td><td>Insert raw text into the graph+vector index</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__insert_file</code></td><td>Insert a file by absolute path</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__get_documents</code></td><td>List all indexed documents with status</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__delete_by_doc_ids</code></td><td>Delete a document by its ID</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__check_lightrag_health</code></td><td>Health check — use before any LightRAG operation</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__get_pipeline_status</code></td><td>Check if an ingest pipeline is still processing</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Restart Claude Code to connect</h3>
+    <p>
+      MCP servers are discovered at Claude Code startup. After editing <code class="inline">.mcp.json</code>
+      or after the LightRAG server restarts, you must restart Claude Code for the MCP bridge to
+      (re)connect. The bridge itself starts automatically — no manual process needed.
+    </p>
+  </section>
+
+
+  <!-- ═══ SECTION 11 ═══ -->
+  <section id="s11">
+    <h2><span class="sec-icon">💻</span> New Machine Setup</h2>
+
+    <p>
+      After cloning the repository on a new machine, run these steps in order.
+      The vault notes and LightRAG index are not committed to git — they are regenerated from the seed.
+    </p>
+
+    <ul class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Clone the repo and install Node dependencies</div>
+          <pre><code>git clone &lt;repo-url&gt;
+cd playwright-typescript
+npm install</code><span class="lang-tag">PowerShell</span></pre>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Seed Claude Code live memory</div>
+          <pre><code>.\.claude\memory-seed\init-memory.ps1</code><span class="lang-tag">PowerShell</span></pre>
+          <p>Copies seed files to <code class="inline">~/.claude/projects/.../memory/</code> so Claude reads prior context immediately.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Regenerate the Obsidian vault</div>
+          <pre><code>node scripts/sync-memory-to-vault.mjs</code><span class="lang-tag">PowerShell</span></pre>
+          <p>Writes all notes to <code class="inline">memory-vault/20-memory/</code> from the seed.</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Install Python and create the venv</div>
+          <pre><code>python -m venv .lightrag-venv
+.lightrag-venv\Scripts\Activate.ps1
+pip install "lightrag-hku[api]"</code><span class="lang-tag">PowerShell</span></pre>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Install uv (for MCP bridge)</div>
+          <pre><code>winget install astral-sh.uv
+<span class="cm"># or</span>
+pip install uv</code><span class="lang-tag">PowerShell</span></pre>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Create <code class="inline">.lightrag.env</code> with your API key</div>
+          <pre><code>Copy-Item .lightrag.env.example .lightrag.env
+<span class="cm"># Edit the file and set LLM_BINDING_API_KEY + EMBEDDING_BINDING_API_KEY</span></code><span class="lang-tag">PowerShell</span></pre>
+          <p>(If no <code class="inline">.env.example</code> exists, manually create the file using the template in Section 6.)</p>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Start the server and ingest the vault</div>
+          <pre><code><span class="cm"># Terminal 1 — keep running</span>
+scripts\start-rag.bat
+
+<span class="cm"># Terminal 2 — after server reports "healthy"</span>
+node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell</span></pre>
+        </div>
+      </li>
+
+      <li>
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <div class="step-title">Restart Claude Code</div>
+          <p>Claude Code picks up <code class="inline">.mcp.json</code> on startup. The <code class="inline">lightrag</code>
+          MCP tools become available once the bridge connects to the running server.</p>
+        </div>
+      </li>
+    </ul>
+
+    <h3>What is and isn't committed to git</h3>
+    <table>
+      <thead><tr><th>Item</th><th>In git?</th><th>How to restore</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">.claude/memory-seed/*.md</code></td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone</td></tr>
+        <tr><td><code class="inline">scripts/</code> (sync, start-rag)</td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone</td></tr>
+        <tr><td><code class="inline">.mcp.json</code></td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone</td></tr>
+        <tr><td><code class="inline">memory-vault/20-memory/</code></td><td><span class="badge badge-orange">No</span></td><td>Run <code class="inline">sync-memory-to-vault.mjs</code></td></tr>
+        <tr><td><code class="inline">.lightrag/</code> (graph+vectors)</td><td><span class="badge badge-orange">No</span></td><td>Run <code class="inline">sync-vault-to-lightrag.mjs</code></td></tr>
+        <tr><td><code class="inline">.lightrag-venv/</code></td><td><span class="badge badge-orange">No</span></td><td>Run <code class="inline">python -m venv .lightrag-venv &amp;&amp; pip install lightrag-hku[api]</code></td></tr>
+        <tr><td><code class="inline">.lightrag.env</code></td><td><span class="badge badge-orange">No (gitignored)</span></td><td>Create manually with your API key</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ═══ SECTION 12 ═══ -->
+  <section id="s12">
+    <h2><span class="sec-icon">🐛</span> Errors Encountered &amp; Fixes</h2>
+
+    <p>All errors hit during the initial setup on Windows 11, with the exact fix applied.</p>
+
+    <!-- Error 1 -->
+    <div class="error-log">
+      <div class="error-log-header">Error 1 — <code>--env-file</code> flag not supported by lightrag-server</div>
+      <div class="error-log-body">
+        <p><strong>Symptom:</strong> Running <code class="inline">lightrag-server --env-file .lightrag.env</code> failed immediately with an unrecognised argument error.</p>
+        <div class="fix-label">Fix</div>
+        <p>
+          <code class="inline">lightrag-server</code> does not support <code class="inline">--env-file</code>.
+          The <code class="inline">start-rag.bat</code> script instead parses <code class="inline">.lightrag.env</code>
+          line-by-line using a <code class="inline">for /f</code> loop and calls <code class="inline">SET</code>
+          for each variable before invoking the server:
+        </p>
+        <pre><code>for /f "usebackq eol=# tokens=1,* delims==" %%A in (".lightrag.env") do (
+    if not "%%A"=="" if not "%%B"=="" set "%%A=%%B"
+)</code><span class="lang-tag">bat</span></pre>
+      </div>
+    </div>
+
+    <!-- Error 2 -->
+    <div class="error-log">
+      <div class="error-log-header">Error 2 — Wrong MCP entry point / command</div>
+      <div class="error-log-body">
+        <p><strong>Symptom:</strong> The MCP server entry in <code class="inline">.mcp.json</code> used
+        <code class="inline">"command": "lightrag_mcp"</code> which is not a valid executable name.</p>
+        <div class="fix-label">Fix</div>
+        <p>Use <code class="inline">uvx</code> with <code class="inline">--from lightrag-mcp</code> to run the correct executable:</p>
+        <pre><code>{
+  "command": "uvx",
+  "args": ["--from", "lightrag-mcp", "lightrag-mcp", "--host", "localhost", "--port", "9621"]
+}</code><span class="lang-tag">JSON</span></pre>
+      </div>
+    </div>
+
+    <!-- Error 3 -->
+    <div class="error-log">
+      <div class="error-log-header">Error 3 — Wrong environment variable names (silent auth failure)</div>
+      <div class="error-log-body">
+        <p><strong>Symptom:</strong> Server started successfully but all LLM/embedding API calls returned 401.
+        No error at startup — the wrong variable names were silently ignored.</p>
+        <div class="fix-label">Fix</div>
+        <p>LightRAG v1.5.x requires the <code class="inline">_BINDING_</code> infix in key names:</p>
+        <table>
+          <thead><tr><th>Wrong ❌</th><th>Correct ✓</th></tr></thead>
+          <tbody>
+            <tr><td><code class="inline">LLM_API_KEY</code></td><td><code class="inline">LLM_BINDING_API_KEY</code></td></tr>
+            <tr><td><code class="inline">EMBEDDING_API_KEY</code></td><td><code class="inline">EMBEDDING_BINDING_API_KEY</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Error 4 -->
+    <div class="error-log">
+      <div class="error-log-header">Error 4 — Port 9621 already in use (second server instance)</div>
+      <div class="error-log-body">
+        <p><strong>Symptom:</strong> Running <code class="inline">start-rag.bat</code> a second time failed
+        with <code class="inline">OSError: [Errno 98] Address already in use</code>.</p>
+        <div class="fix-label">Fix</div>
+        <p>
+          The first instance was still running and healthy. Close the duplicate terminal.
+          Check which process owns port 9621:
+        </p>
+        <pre><code>netstat -ano | findstr :9621</code><span class="lang-tag">PowerShell</span></pre>
+        <p>Kill by PID if needed: <code class="inline">taskkill /PID &lt;pid&gt; /F</code></p>
+      </div>
+    </div>
+
+    <!-- Error 5 -->
+    <div class="error-log">
+      <div class="error-log-header">Error 5 — <code>/documents/scan</code> finds 0 files</div>
+      <div class="error-log-body">
+        <p><strong>Symptom:</strong> <code class="inline">POST /documents/scan</code> returned
+        <code class="inline">{"status":"success","found":0}</code>. All 14 vault notes were present
+        but not indexed.</p>
+        <div class="fix-label">Root cause</div>
+        <p>
+          LightRAG's file scanner only recognises extensions like <code class="inline">.pdf</code>,
+          <code class="inline">.docx</code>, <code class="inline">.txt</code>. It does not process
+          <code class="inline">.md</code> files via scan.
+        </p>
+        <div class="fix-label">Fix</div>
+        <p>
+          Use <code class="inline">POST /documents/text</code> with the raw markdown content as the body.
+          The <code class="inline">sync-vault-to-lightrag.mjs</code> script implements this correctly —
+          it reads each <code class="inline">.md</code> file and POSTs its content individually.
+        </p>
+        <pre><code>await fetch(`${LIGHTRAG_URL}/documents/text`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text: fileContent, file_source: filename }),
+});</code><span class="lang-tag">JavaScript</span></pre>
+      </div>
+    </div>
+
+    <!-- Error 6 -->
+    <div class="error-log">
+      <div class="error-log-header">Error 6 — PowerShell script opens in text editor instead of running</div>
+      <div class="error-log-body">
+        <p><strong>Symptom:</strong> Double-clicking or typing <code class="inline">.\scripts\ingest-vault.ps1</code>
+        opened the file in Notepad / VS Code instead of executing it.</p>
+        <div class="fix-label">Fix</div>
+        <p>Windows associates <code class="inline">.ps1</code> files with text editors by default as a security measure.
+        Run scripts explicitly via the PowerShell executable, or use the Node.js alternative:</p>
+        <pre><code><span class="cm"># Explicit invocation (always works)</span>
+PowerShell -ExecutionPolicy Bypass -File scripts\ingest-vault.ps1
+
+<span class="cm"># Or use the Node.js sync script instead (preferred)</span>
+node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell</span></pre>
+      </div>
+    </div>
+
+    <!-- Error 7 -->
+    <div class="error-log">
+      <div class="error-log-header">Error 7 — TOKEN_SECRET / .env startup warnings</div>
+      <div class="error-log-body">
+        <p><strong>Symptom:</strong> Server printed <code class="inline">WARNING: TOKEN_SECRET not set</code>
+        and <code class="inline">Warning: Startup directory must contain .env file</code> at startup.</p>
+        <div class="fix-label">Root cause &amp; fix</div>
+        <p>
+          These are non-fatal warnings from LightRAG's auth middleware (JWT token secret) and its own
+          <code class="inline">.env</code> file reader. Since the project already has a Node
+          <code class="inline">.env.*</code> file for Playwright, these are normal.
+          The server operates correctly despite these warnings.
+          To suppress <code class="inline">TOKEN_SECRET</code>: add <code class="inline">TOKEN_SECRET=any-random-string</code>
+          to <code class="inline">.lightrag.env</code>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══ SECTION 13 ═══ -->
+  <section id="s13">
+    <h2><span class="sec-icon">📜</span> Scripts Reference</h2>
+
+    <table>
+      <thead><tr><th>Script</th><th>Runtime</th><th>Purpose</th><th>When to run</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code class="inline">scripts/start-rag.bat</code></td>
+          <td>Windows batch</td>
+          <td>Loads <code class="inline">.lightrag.env</code>, activates venv, starts LightRAG HTTP server on port 9621</td>
+          <td>Manually, in a dedicated terminal before using LightRAG features</td>
+        </tr>
+        <tr>
+          <td><code class="inline">scripts/sync-memory-to-vault.mjs</code></td>
+          <td>Node.js ESM</td>
+          <td>Reads <code class="inline">.claude/memory-seed/</code>, normalises frontmatter, writes typed notes to <code class="inline">memory-vault/20-memory/{type}/</code></td>
+          <td>Automatically via Stop hook; manually via <code class="inline">/sync-vault</code></td>
+        </tr>
+        <tr>
+          <td><code class="inline">scripts/sync-vault-to-lightrag.mjs</code></td>
+          <td>Node.js ESM</td>
+          <td>Walks <code class="inline">memory-vault/20-memory/</code>, diffs by content length, inserts new or updated notes via <code class="inline">POST /documents/text</code></td>
+          <td>Automatically via Stop hook; manually after re-seeding the vault</td>
+        </tr>
+        <tr>
+          <td><code class="inline">scripts/ingest-vault.ps1</code></td>
+          <td>PowerShell</td>
+          <td>Legacy: triggers <code class="inline">POST /documents/scan</code>. <strong>Does not work for .md files</strong> — use the Node.js sync script instead.</td>
+          <td>Deprecated — kept for reference only</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Stop hook chain (automatic, every session end)</h3>
+    <p>These three hooks run in sequence at the end of every Claude Code session (<code class="inline">.claude/settings.json</code>):</p>
+    <pre><code>"Stop": [
+  {
+    "command": "output=$(npx tsc --noEmit 2>&amp;1); ...",   <span class="cm">// TypeScript type-check</span>
+    "statusMessage": "Final TypeScript check..."
+  },
+  {
+    "command": "node scripts/sync-memory-to-vault.mjs 2>&amp;1 || true",
+    "statusMessage": "Syncing memory vault..."          <span class="cm">// seed → vault</span>
+  },
+  {
+    "command": "node scripts/sync-vault-to-lightrag.mjs 2>&amp;1 || true",
+    "statusMessage": "Syncing vault to LightRAG..."    <span class="cm">// vault → LightRAG (skips if server down)</span>
+  }
+]</code><span class="lang-tag">JSON</span></pre>
+
+    <div class="callout tip">
+      <div class="icon"></div>
+      <p>
+        The LightRAG sync is non-fatal. If the server is not running, the script logs
+        <code class="inline">[sync-vault-to-lightrag] LightRAG not running — skipping</code>
+        and exits 0. The Stop hook chain continues normally.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ═══ SECTION 14 ═══ -->
+  <section id="s14">
+    <h2><span class="sec-icon">🤖</span> Agents Created</h2>
+
+    <div class="card-grid">
+      <div class="card accent-purple">
+        <div class="card-icon">🏛️</div>
+        <h4>memory-vault-curator</h4>
+        <p>
+          Runs <code class="inline">sync-memory-to-vault.mjs</code> and optionally enriches cross-note
+          wikilinks and topical tags. Invoke via <code class="inline">/sync-vault</code> for on-demand sync.
+        </p>
+      </div>
+      <div class="card accent-green">
+        <div class="card-icon">📋</div>
+        <h4>vault-updater</h4>
+        <p>
+          Fetches a Jira issue or Confluence page and writes a typed vault note, then syncs it to
+          LightRAG via MCP tools. Invoke with a Jira key (e.g. <code class="inline">PROJ-123</code>) or
+          a Confluence page title. Invoked via the <code class="inline">vault-update</code> skill.
+        </p>
+      </div>
+    </div>
+
+    <h3>vault-updater tool access</h3>
+    <p>The agent has direct access to the LightRAG MCP tools so it can keep the graph in sync without running shell scripts:</p>
+    <table>
+      <thead><tr><th>Tool</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">mcp__atlassian__getJiraIssue</code></td><td>Fetch Jira issue content</td></tr>
+        <tr><td><code class="inline">mcp__atlassian__getConfluencePage</code></td><td>Fetch Confluence page body</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__check_lightrag_health</code></td><td>Check server before syncing</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__get_documents</code></td><td>Check if note already indexed</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__delete_by_doc_ids</code></td><td>Remove stale version before re-insert</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__insert_file</code></td><td>Insert the new/updated vault note</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__get_pipeline_status</code></td><td>Confirm ingest is processing</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Invoking vault-update skill</h3>
+    <pre><code><span class="cm"># From Claude Code conversation:</span>
+/vault-update PROJ-123
+/vault-update "Sprint planning decisions Q3"  <span class="cm"># Confluence page title</span></code><span class="lang-tag">Claude Code</span></pre>
+  </section>
+
+
+  <!-- ═══ SECTION 15 ═══ -->
+  <section id="s15">
+    <h2><span class="sec-icon">🎯</span> Benefits of This Approach</h2>
+
+    <div class="card-grid">
+      <div class="card accent-purple">
+        <div class="card-icon">🔗</div>
+        <h4>Graph-aware retrieval</h4>
+        <p>
+          Questions that span multiple notes — "what affects Firefox ecommerce tests?", "list all GRA
+          API quirks" — get synthesised answers by traversing entity relationships, not just keyword matches.
+        </p>
+      </div>
+      <div class="card accent-green">
+        <div class="card-icon">🔍</div>
+        <h4>Semantic search over vocabulary drift</h4>
+        <p>
+          A note about "Juggler protocol hang" is retrieved by a query about "Firefox teardown issue"
+          even though none of those exact words appear together.
+        </p>
+      </div>
+      <div class="card accent-orange">
+        <div class="card-icon">🔄</div>
+        <h4>Automatic sync</h4>
+        <p>
+          The Stop hook chain means Claude's memory is always propagated to Obsidian and LightRAG
+          without any manual intervention. Memory is durable across machines.
+        </p>
+      </div>
+      <div class="card accent-purple">
+        <div class="card-icon">📚</div>
+        <h4>Jira/Confluence integration</h4>
+        <p>
+          The <code class="inline">vault-updater</code> agent pulls real project knowledge from Jira/Confluence
+          into the graph. External team decisions and documentation become queryable context.
+        </p>
+      </div>
+      <div class="card accent-green">
+        <div class="card-icon">🛡️</div>
+        <h4>Non-intrusive to existing workflow</h4>
+        <p>
+          LightRAG is optional — if the server is down, sync scripts exit silently and Grep-over-vault
+          continues to work. No single point of failure.
+        </p>
+      </div>
+      <div class="card accent-orange">
+        <div class="card-icon">💰</div>
+        <h4>Cost-effective</h4>
+        <p>
+          At 17 notes (~13K tokens), a full re-ingest with <code class="inline">gpt-4o-mini</code> costs
+          under $0.01. Ongoing sync only processes changed files. Embeddings are computed once.
+        </p>
+      </div>
+    </div>
+
+    <h3>Prompt instruction — where to put it</h3>
+    <p>
+      The rule lives in <code class="inline">memory-vault/.claude/CLAUDE.md</code> under
+      <strong>LightRAG query rule</strong>. Claude Code auto-loads all <code class="inline">CLAUDE.md</code>
+      files in the project tree, so this instruction is active in every session without any manual step.
+    </p>
+    <pre><code><span class="cm">**LightRAG query rule:** when the question spans multiple notes, requires relationship</span>
+<span class="cm">reasoning ("what are all constraints for X?", "list everything that affects Y"), or Grep</span>
+<span class="cm">returns no relevant results — call `mcp__lightrag__query` with the question as the query</span>
+<span class="cm">string and `mode: "hybrid"`. Check `mcp__lightrag__check_lightrag_health` first; if the</span>
+<span class="cm">server is not running, fall back to Grep.</span></code><span class="lang-tag">CLAUDE.md instruction</span></pre>
+
+    <h3>Mode reference</h3>
+    <table>
+      <thead><tr><th>Mode</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td><code class="inline">"hybrid"</code></td><td>General use — graph + vector combined. <strong>Recommended default.</strong></td></tr>
+        <tr><td><code class="inline">"local"</code></td><td>Specific entity neighborhood ("tell me about BasePage", "what fixtures exist?")</td></tr>
+        <tr><td><code class="inline">"global"</code></td><td>Theme-level summary ("list all ecommerce patterns", "summarise API quirks")</td></tr>
+        <tr><td><code class="inline">"naive"</code></td><td>Plain vector similarity only — fastest, no graph traversal</td></tr>
+      </tbody>
+    </table>
+
+    <h3>How Claude uses LightRAG vs Grep</h3>
+    <table>
+      <thead><tr><th>Scenario</th><th>Tool</th></tr></thead>
+      <tbody>
+        <tr><td>Looking up a specific known fact ("what is the Firefox workaround?")</td><td><code class="inline">Grep</code> over vault — fast, exact</td></tr>
+        <tr><td>Looking up a known file ("show me the GRA API testing note")</td><td><code class="inline">Read</code> — direct file access</td></tr>
+        <tr><td>Grep returned no relevant results</td><td><code class="inline">mcp__lightrag__query</code> mode <code class="inline">"hybrid"</code></td></tr>
+        <tr><td>"What are all the constraints I should know before touching ecommerce tests?"</td><td><code class="inline">mcp__lightrag__query</code> mode <code class="inline">"global"</code> — multi-note synthesis</td></tr>
+        <tr><td>"What changed in Jira PROJ-456 and should I update my approach?"</td><td><code class="inline">vault-updater</code> agent → LightRAG MCP</td></tr>
+        <tr><td>New session, cold start — what is the project context?</td><td>MEMORY.md index (auto-loaded) → vault Grep</td></tr>
+        <tr><td>LightRAG server not running</td><td>Grep fallback — <code class="inline">check_lightrag_health</code> returns unhealthy</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ── FOOTER ── -->
+  <div class="footer">
+    <div>LightRAG Graph+Vector Memory · Playwright TypeScript Framework</div>
+    <div>Last updated: 2026-06-12 · LightRAG v1.5.2 · gpt-4o-mini · text-embedding-3-large (dim 3072)</div>
+  </div>
+
+</div>
+</body>
+</html>
