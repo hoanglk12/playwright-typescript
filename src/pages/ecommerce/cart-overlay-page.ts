@@ -9,6 +9,11 @@ export class EcommerceCartOverlayPage extends BasePage {
   // modal-role semantics and fixed/absolute positioning + actionable CTA to distinguish an
   // open mini cart panel from the persistent header cart icon (always in DOM).
 
+  // Shared selector for all overlay panel detection methods. Includes aside/complementary
+  // because Platypus AU renders the mini cart as an aside panel, not a dialog.
+  private readonly overlayPanelSelector =
+    '[role="dialog"], [aria-modal="true"], aside, [role="complementary"], [class*="drawer"], [class*="overlay"], [class*="minicart"], [class*="mini-cart"]';
+
   constructor(page: Page) {
     super(page);
   }
@@ -37,12 +42,9 @@ export class EcommerceCartOverlayPage extends BasePage {
   // relative/sticky), and (3) an actionable cart CTA ("checkout", "view cart/bag", "proceed").
   // This prevents false-positives from always-present header cart elements.
   async isOverlayVisible(): Promise<boolean> {
-    return this.page.evaluate(() => {
-      const panels = Array.from(
-        document.querySelectorAll(
-          '[role="dialog"], [aria-modal="true"], aside, [role="complementary"], [class*="drawer"], [class*="overlay"], [class*="minicart"], [class*="mini-cart"]',
-        ),
-      );
+    const sel = this.overlayPanelSelector;
+    return this.page.evaluate((selector) => {
+      const panels = Array.from(document.querySelectorAll(selector));
       return panels.some((el) => {
         const r = (el as Element).getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return false;
@@ -52,7 +54,63 @@ export class EcommerceCartOverlayPage extends BasePage {
         const hasCartCta = /checkout|view (cart|bag)|proceed|go to (cart|bag)/.test(text);
         return isOverlayPositioned && (text.includes('cart') || text.includes('bag')) && hasCartCta;
       });
-    });
+    }, sel);
+  }
+
+  // Checks whether any visible mini cart overlay panel contains the given text (case-insensitive).
+  // Uses a two-part gate (position:fixed/absolute + "cart"/"bag" presence) without the checkout-CTA
+  // requirement used by isOverlayVisible(). The CTA gate is intentionally dropped here because on
+  // some storefronts the product-line-items panel and the checkout-CTA footer are sibling elements
+  // at the same selector level — the product panel would fail the CTA test even when the overlay is
+  // fully open. The caller has already confirmed the overlay is open via isOverlayVisible() before
+  // calling this method.
+  async overlayContainsText(text: string): Promise<boolean> {
+    const sel = this.overlayPanelSelector;
+    return this.page.evaluate(
+      ({ selector, searchText }) => {
+        const panels = Array.from(document.querySelectorAll(selector));
+        return panels.some((el) => {
+          const r = (el as Element).getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return false;
+          const style = getComputedStyle(el as Element);
+          if (style.position !== 'fixed' && style.position !== 'absolute') return false;
+          const elText = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
+          if (!elText.includes('cart') && !elText.includes('bag')) return false;
+          return elText.includes(searchText);
+        });
+      },
+      { selector: sel, searchText: text.toLowerCase() },
+    );
+  }
+
+  // Checks whether any visible mini cart overlay panel contains the given size label as a
+  // whole token on a non-price line. `overlayContainsText` can false-positive on short
+  // numeric sizes (e.g. "4") that appear inside price strings like "$149.99". This method
+  // mitigates that by (a) splitting the panel innerText into lines, (b) filtering out any
+  // line containing "$" (price lines), and (c) matching the size value as a whole token
+  // using a word-boundary equivalent — not part of a longer digit sequence.
+  async overlayContainsSizeLabel(size: string): Promise<boolean> {
+    const sel = this.overlayPanelSelector;
+    return this.page.evaluate(
+      ({ selector, sizeValue }) => {
+        const panels = Array.from(document.querySelectorAll(selector));
+        return panels.some((el) => {
+          const r = (el as Element).getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return false;
+          const style = getComputedStyle(el as Element);
+          if (style.position !== 'fixed' && style.position !== 'absolute') return false;
+          const elText = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
+          if (!elText.includes('cart') && !elText.includes('bag')) return false;
+          const escaped = sizeValue.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const tokenPattern = new RegExp(`(^|[^\\w])${escaped}([^\\w]|$)`);
+          return elText
+            .split(/\r?\n/)
+            .filter((line) => !line.includes('$'))
+            .some((line) => tokenPattern.test(line.trim()));
+        });
+      },
+      { selector: sel, sizeValue: size },
+    );
   }
 
   // Polls isOverlayVisible() until the mini cart overlay becomes visible.

@@ -1,12 +1,16 @@
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'fs';
-import { join, dirname, basename } from 'path';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { homedir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = dirname(__dirname);
 
-const SEED_DIR = join(PROJECT_ROOT, '.claude', 'memory-seed');
+// Compute live memory path using the same encoding Claude Code applies to the project path:
+// replace every non-alphanumeric-non-hyphen character with '-', strip any leading dashes.
+const encoded = PROJECT_ROOT.replace(/[^a-zA-Z0-9-]/g, '-').replace(/^-+/, '');
+const LIVE_MEMORY_DIR = join(homedir(), '.claude', 'projects', encoded, 'memory');
 const VAULT_DIR = join(PROJECT_ROOT, 'memory-vault');
 
 const TYPE_TO_SUBFOLDER = {
@@ -18,7 +22,6 @@ const TYPE_TO_SUBFOLDER = {
 
 /**
  * Parse YAML frontmatter from file content.
- * Returns { frontmatter: Record<string, any>, body: string } or null if no frontmatter.
  * Handles Shape A (top-level type), Shape B (metadata with node_type + type + originSessionId),
  * and Shape C (metadata with only type).
  */
@@ -32,7 +35,7 @@ function parseFrontmatter(content) {
     return { frontmatter: null, body: content };
   }
 
-  const fmBlock = content.slice(4, endMatch); // between opening --- and closing ---
+  const fmBlock = content.slice(4, endMatch);
   const body = content.slice(endMatch + 4).replace(/^\n/, '');
 
   const lines = fmBlock.split('\n');
@@ -43,11 +46,9 @@ function parseFrontmatter(content) {
   for (const line of lines) {
     if (line.trim() === '') continue;
 
-    // Check if we're in a metadata block (line is indented)
     const isIndented = line.startsWith('  ');
 
     if (inMetadata && isIndented) {
-      // Parse metadata sub-key
       const colonIdx = line.indexOf(':');
       if (colonIdx !== -1) {
         const key = line.slice(0, colonIdx).trim();
@@ -59,10 +60,8 @@ function parseFrontmatter(content) {
       continue;
     }
 
-    // Reset metadata mode if we hit a non-indented line
     inMetadata = false;
 
-    // Parse top-level key: value (split on first colon only)
     const colonIdx = line.indexOf(':');
     if (colonIdx === -1) continue;
 
@@ -86,9 +85,6 @@ function parseFrontmatter(content) {
   return { frontmatter: result, body };
 }
 
-/**
- * Format a date as YYYY-MM-DD using local time (not UTC).
- */
 function formatDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -96,23 +92,14 @@ function formatDate(date) {
   return `${y}-${m}-${d}`;
 }
 
-/**
- * Build normalized frontmatter YAML string.
- */
 function buildFrontmatter(parsed, fileMtime) {
   const fm = parsed.frontmatter;
   const meta = fm._metadata || {};
 
-  // Determine type: top-level wins, else metadata.type
   const type = fm.type || meta.type || 'project';
-
-  // Determine originSessionId
   const originSessionId = meta.originSessionId || null;
-
-  // Preserve name and description verbatim
   const name = fm.name || '';
   const description = fm.description || '';
-
   const lastVerified = formatDate(fileMtime);
 
   const lines = ['---'];
@@ -127,35 +114,24 @@ function buildFrontmatter(parsed, fileMtime) {
   return lines.join('\n');
 }
 
-/**
- * Convert markdown links to wikilinks in MEMORY.md body.
- * [Display Text](file.md) — description → [[file|Display Text]] — description
- */
 function convertToWikilinks(content) {
-  // Match [Display Text](file.md) patterns
   return content.replace(
     /\[([^\]]+)\]\(([^)]+\.md)\)/g,
     (match, displayText, filePath) => {
-      // Strip .md extension from the file reference
       const fileRef = filePath.replace(/\.md$/, '');
       return `[[${fileRef}|${displayText}]]`;
     }
   );
 }
 
-/**
- * Process a single memory seed file and write it to the vault.
- */
-function processMemoryFile(filename, seedDir, vaultDir, today) {
-  const sourcePath = join(seedDir, filename);
+function processMemoryFile(filename, sourceDir, vaultDir, today) {
+  const sourcePath = join(sourceDir, filename);
   const content = readFileSync(sourcePath, 'utf8');
-  const fileStat = statSync(sourcePath);
-  const fileMtime = fileStat.mtime;
+  const fileMtime = statSync(sourcePath).mtime;
 
   const parsed = parseFrontmatter(content);
 
   if (!parsed.frontmatter) {
-    // No frontmatter — skip (MEMORY.md handled separately)
     return null;
   }
 
@@ -176,11 +152,8 @@ function processMemoryFile(filename, seedDir, vaultDir, today) {
   return { type, subfolder, filename };
 }
 
-/**
- * Process MEMORY.md — convert md links to wikilinks, add index frontmatter.
- */
-function processMemoryIndex(seedDir, vaultDir, today) {
-  const sourcePath = join(seedDir, 'MEMORY.md');
+function processMemoryIndex(sourceDir, vaultDir, today) {
+  const sourcePath = join(sourceDir, 'MEMORY.md');
   const content = readFileSync(sourcePath, 'utf8');
 
   const withWikilinks = convertToWikilinks(content);
@@ -200,17 +173,12 @@ function processMemoryIndex(seedDir, vaultDir, today) {
   console.log(`  Written: 00-index.md`);
 }
 
-/**
- * Ensure all type subfolders exist (with .gitkeep if empty).
- */
 function ensureSubfolders(vaultDir) {
   for (const subfolder of Object.values(TYPE_TO_SUBFOLDER)) {
     const dir = join(vaultDir, subfolder);
     mkdirSync(dir, { recursive: true });
-    // Create .gitkeep so git tracks the empty folder
     const gitkeepPath = join(dir, '.gitkeep');
     try {
-      // Only write if it doesn't exist (avoid overwriting)
       statSync(gitkeepPath);
     } catch {
       writeFileSync(gitkeepPath, '', 'utf8');
@@ -220,24 +188,26 @@ function ensureSubfolders(vaultDir) {
 
 async function main() {
   const today = formatDate(new Date());
-  console.log(`\nSyncing memory seed → vault (${today})`);
-  console.log(`  Source: ${SEED_DIR}`);
+  console.log(`\nSyncing live memory → vault (${today})`);
+  console.log(`  Source: ${LIVE_MEMORY_DIR}`);
   console.log(`  Target: ${VAULT_DIR}\n`);
 
-  // Ensure vault root and subfolders exist
+  if (!existsSync(LIVE_MEMORY_DIR)) {
+    console.log('  Live memory dir not found — run: node scripts/init-memory-from-vault.mjs');
+    process.exit(0);
+  }
+
   mkdirSync(VAULT_DIR, { recursive: true });
   ensureSubfolders(VAULT_DIR);
 
-  // Process MEMORY.md → 00-index.md
-  processMemoryIndex(SEED_DIR, VAULT_DIR, today);
+  processMemoryIndex(LIVE_MEMORY_DIR, VAULT_DIR, today);
 
-  // Process all other .md files in seed dir
-  const files = readdirSync(SEED_DIR).filter(
+  const files = readdirSync(LIVE_MEMORY_DIR).filter(
     (f) => f.endsWith('.md') && f !== 'MEMORY.md'
   );
 
   for (const filename of files) {
-    processMemoryFile(filename, SEED_DIR, VAULT_DIR, today);
+    processMemoryFile(filename, LIVE_MEMORY_DIR, VAULT_DIR, today);
   }
 
   console.log(`\nSync complete. ${files.length + 1} files processed.`);

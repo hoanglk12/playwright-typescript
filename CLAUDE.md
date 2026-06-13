@@ -630,13 +630,13 @@ Key constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPE
 
 ## Memory (New Machine Setup)
 
-Claude Code memory files are stored outside the repo at `~/.claude/projects/{encoded-path}/memory/`. On a new machine, seed them from the committed copies:
+Claude Code memory files are stored at `~/.claude/projects/{encoded-path}/memory/`. On a new machine, bootstrap from the committed vault:
 
 ```powershell
-.\.claude\memory-seed\init-memory.ps1
+node scripts/init-memory-from-vault.mjs
 ```
 
-To keep seeds in sync after updating memory: copy the updated files from `~/.claude/projects/.../memory/` back into `.claude/memory-seed/` and commit.
+Memory writes auto-sync to `memory-vault/` on every write via the PostToolUse hook — no manual copy-back needed.
 
 ## Agents
 

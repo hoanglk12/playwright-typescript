@@ -10,9 +10,9 @@ This vault is the curated knowledge layer for the **Playwright TypeScript automa
 
 ## Grounding rules
 
-- **Vault is a mirror, not the source.** Canonical memory lives in `.claude/memory-seed/` (git-tracked). This vault is a read-optimized view.
-- **Do not edit notes here and expect them to flow back.** Sync is one-way: seed → vault.
-- **Check `last_verified`** — notes are stamped with the seed sync date. Run `/sync-vault` to refresh.
+- **Vault is the committed source.** Live memory (`~/.claude/projects/.../memory/`) syncs here on every write via the PostToolUse hook.
+- **Do not edit vault notes directly** — they are overwritten on the next sync from live memory.
+- **Check `last_verified`** — notes are stamped with the last sync date. Run `/sync-vault` to refresh.
 - **`type: feedback` notes** encode patterns Claude should repeat or avoid. Read them before making framework suggestions.
 
 ## Syncing

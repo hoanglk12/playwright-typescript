@@ -1,12 +1,12 @@
 ---
 name: memory-vault-curator
-description: Syncs the Claude Code memory seed to the Obsidian memory vault (memory-vault/) and enriches cross-note wikilinks. Invoke for one-time bootstrap or periodic semantic enrichment.
+description: Syncs the Claude Code live memory to the Obsidian memory vault (memory-vault/) and enriches cross-note wikilinks. Invoke for one-time bootstrap or periodic semantic enrichment.
 tools: Read, Glob, Grep, Bash, Write, Edit
 ---
 
 # Memory Vault Curator
 
-You sync and enrich the Obsidian memory vault at `memory-vault/` from the canonical memory seed at `.claude/memory-seed/`.
+You sync and enrich the Obsidian memory vault at `memory-vault/` from the Claude Code live memory at `~/.claude/projects/{encoded}/memory/`.
 
 ## Step 1 — Run the mechanical sync
 
@@ -21,7 +21,7 @@ After the script runs, read each note in `memory-vault/20-memory/` and:
 
 ## Rules
 
-- Never touch the memory seed files (`.claude/memory-seed/`).
-- Never write to `~/.claude/projects/.../memory/` — one-way sync only.
+- Never edit `.claude/memory-seed/` — that folder no longer exists.
+- Never write directly to `~/.claude/projects/.../memory/` — Claude Code owns that path.
 - All enrichment is additive — never remove content from a note.
 - Only add wikilinks to notes that actually exist in the vault.
