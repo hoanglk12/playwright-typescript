@@ -13,7 +13,7 @@
 
 import { graTest as test, expect, softExpect } from './gra-test';
 import {
-  plaErrorMessages,
+  graErrorMessages,
 } from '../../src/data/api/gra-test-data';
 import { CartOperationsData } from '../../src/data/api/gra-cart-operations-data';
 import { signInAndStoreToken } from './api-test-helpers';
@@ -285,10 +285,10 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     expect(graphqlResponse.errors).toBeDefined();
     expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
-    softExpect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidCartId);
+    softExpect(graphqlResponse.errors![0].message).toContain(graErrorMessages.invalidCartId);
     softExpect(graphqlResponse.data?.cart).toBeNull();
 
-    logger.verify('Error message', plaErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
+    logger.verify('Error message', graErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
   });
 
   test('GRA_GetItemCount - should return data about cartId, quantity and shipping address', async ({
@@ -346,10 +346,10 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     expect(graphqlResponse.errors).toBeDefined();
     expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
-    softExpect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidCartId);
+    softExpect(graphqlResponse.errors![0].message).toContain(graErrorMessages.invalidCartId);
     softExpect(graphqlResponse.data?.cart).toBeNull();
 
-    logger.verify('Error message', plaErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
+    logger.verify('Error message', graErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
   });
 
   test('GRA_MiniCartQuery - return data about cartId, quantity, prices, rewards msg, and qff', async ({

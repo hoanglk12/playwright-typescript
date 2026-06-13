@@ -126,7 +126,7 @@ export interface UpdateCustomerInformation {
   loyalty_program_status: boolean;
 }
 
-export interface PlaTestData {
+export interface GraTestData {
   validCustomer: CustomerInput;
   invalidEmail: CustomerInput;
   invalidPassword: InvalidPassword;
@@ -140,7 +140,7 @@ export interface PlaTestData {
   expectedPaymentMethods: { codes: string[]; titles: string[] };
 }
 
-export interface PlaErrorMessages {
+export interface GraErrorMessages {
   invalidEmail: string;
   invalidCredentials: string;
   invalidCartId: string;
@@ -154,13 +154,13 @@ export interface ExpectedCustomerData {
 }
 
 /**
- * Generates a fresh, self-consistent PlaTestData instance for any brand.
+ * Generates a fresh, self-consistent GraTestData instance for any brand.
  * The emailPrefix is used as the email address prefix (e.g. 'pla', 'skx', 'drm', 'van').
  * All fields (email, name, address) share the same randomly-generated values,
  * so credentials and address data are always in sync within a single instance.
  * Call once per suite (e.g. at module load or in beforeAll) rather than per-test.
  */
-export function createBrandTestData(emailPrefix: string): PlaTestData {
+export function createBrandTestData(emailPrefix: string): GraTestData {
   const timestamp = Date.now();
   const randomId = generateRandomString(6);
   const email = `${emailPrefix}test${timestamp}${randomId}@mail.com`;
@@ -266,24 +266,24 @@ export function createBrandTestData(emailPrefix: string): PlaTestData {
   };
 }
 
-export function createPlaTestData(): PlaTestData {
+export function createGraTestData(): GraTestData {
   return createBrandTestData('pla');
 }
 
 // Module-load-time singleton — single source of truth for this run.
-export const plaTestData: PlaTestData = createPlaTestData();
+export const graTestData: GraTestData = createGraTestData();
 
-export const getTestEmail = (): string => plaTestData.validCredentials.email;
+export const getTestEmail = (): string => graTestData.validCredentials.email;
 
-export const plaErrorMessages: PlaErrorMessages = {
+export const graErrorMessages: GraErrorMessages = {
   invalidEmail: 'is not a valid email address.',
   invalidCredentials: 'The account sign-in was incorrect or your account is disabled temporarily. Please wait and try again later.',
   invalidCartId: 'Could not find a cart with ID "wbkTBuu2dxhmC6AVHT0YzUBIoOEs5M67ss"',
 };
 
 export const expectedCustomerData: ExpectedCustomerData = {
-  firstname: plaTestData.validCustomer.firstname,
-  lastname: plaTestData.validCustomer.lastname,
+  firstname: graTestData.validCustomer.firstname,
+  lastname: graTestData.validCustomer.lastname,
   isSubscribed: false,
-  gender: plaTestData.validCustomer.gender,
+  gender: graTestData.validCustomer.gender,
 };

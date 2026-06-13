@@ -1,6 +1,6 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { PlaSearchData } from '../../src/data/api/gra-search-data';
+import { GraSearchData } from '../../src/data/api/gra-search-data';
 
 const PRODUCT_SEARCH_QUERY = `
   query ProductSearch($search: String!, $pageSize: Int, $currentPage: Int) {
@@ -43,7 +43,7 @@ test.describe('GRA Search API @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_QUERY, {
       search: site.catalogSearchTerm,
-      pageSize: PlaSearchData.pagination.pageSize,
+      pageSize: GraSearchData.pagination.pageSize,
       currentPage: 1,
     });
 
@@ -68,7 +68,7 @@ test.describe('GRA Search API @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_QUERY, {
       search: site.catalogSearchTerm,
-      pageSize: PlaSearchData.pagination.pageSize,
+      pageSize: GraSearchData.pagination.pageSize,
       currentPage: 1,
     });
 
@@ -96,8 +96,8 @@ test.describe('GRA Search API @api @graphql @regression', () => {
     logger.step('Step 1 - Execute ProductSearch query with nonsense term');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_QUERY, {
-      search: PlaSearchData.searchTerms.noResults,
-      pageSize: PlaSearchData.pagination.pageSize,
+      search: GraSearchData.searchTerms.noResults,
+      pageSize: GraSearchData.pagination.pageSize,
       currentPage: 1,
     });
 
@@ -118,8 +118,8 @@ test.describe('GRA Search API @api @graphql @regression', () => {
     logger.step('Step 1 - Execute ProductSearch query with special characters');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_QUERY, {
-      search: PlaSearchData.searchTerms.specialChars,
-      pageSize: PlaSearchData.pagination.pageSize,
+      search: GraSearchData.searchTerms.specialChars,
+      pageSize: GraSearchData.pagination.pageSize,
       currentPage: 1,
     });
 
@@ -141,8 +141,8 @@ test.describe('GRA Search API @api @graphql @regression', () => {
     logger.step('Step 1 - Execute ProductSearch query with empty string');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_QUERY, {
-      search: PlaSearchData.searchTerms.emptyString,
-      pageSize: PlaSearchData.pagination.pageSize,
+      search: GraSearchData.searchTerms.emptyString,
+      pageSize: GraSearchData.pagination.pageSize,
       currentPage: 1,
     });
 
@@ -166,8 +166,8 @@ test.describe('GRA Search API @api @graphql @regression', () => {
     logger.step('Step 1 - Execute ProductSearchSuggestions query with short phrase');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_SUGGESTIONS_QUERY, {
-      phrase: PlaSearchData.searchTerms.autocomplete,
-      page_size: PlaSearchData.pagination.pageSize,
+      phrase: GraSearchData.searchTerms.autocomplete,
+      page_size: GraSearchData.pagination.pageSize,
     });
 
     logger.step('Step 2 - Handle: field supported (data returned) OR schema error (field not in this API version)');
@@ -199,8 +199,8 @@ test.describe('GRA Search API @api @graphql @regression', () => {
     logger.step('Step 1 - Execute ProductSearchSuggestions query with no-match phrase');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PRODUCT_SEARCH_SUGGESTIONS_QUERY, {
-      phrase: PlaSearchData.searchTerms.autocompleteNoMatch,
-      page_size: PlaSearchData.pagination.pageSize,
+      phrase: GraSearchData.searchTerms.autocompleteNoMatch,
+      page_size: GraSearchData.pagination.pageSize,
     });
 
     logger.step('Step 2 - Handle: field supported (data returned) OR schema error (field not in this API version)');

@@ -29,24 +29,24 @@ export interface WishlistShape {
   __typename: string;
 }
 
-export interface PlaWishlistDataShape {
+export interface GraWishlistDataShape {
   nonExistentSku: string;
   nonExistentWishlistItemId: string;
   productSearchTerm: string;
   wishlistItemQuantity: number;
 }
 
-export interface PlaWishlistErrorCategories {
+export interface GraWishlistErrorCategories {
   unauthorized: string;
 }
 
-export const plaWishlistData: PlaWishlistDataShape = {
+export const graWishlistData: GraWishlistDataShape = {
   nonExistentSku: 'INVALID-SKU-WISHLIST-TEST-99999',
   nonExistentWishlistItemId: '99999999',
   productSearchTerm: 'shoe',
   wishlistItemQuantity: 1,
 };
 
-export const plaWishlistErrorCategories: PlaWishlistErrorCategories = {
+export const graWishlistErrorCategories: GraWishlistErrorCategories = {
   unauthorized: 'graphql-authorization',
 };

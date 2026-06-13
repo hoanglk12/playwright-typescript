@@ -3,8 +3,8 @@ import { AuthType } from '../../src/api/ApiClient';
 import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 import {
-  plaCustomerProfileData,
-  plaCustomerProfileErrorMessages,
+  graCustomerProfileData,
+  graCustomerProfileErrorMessages,
 } from '../../src/data/api/gra-customer-profile-data';
 
 const CHANGE_PASSWORD_MUTATION = `
@@ -101,7 +101,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const changeResponse = await authClient.mutateWrapped(
       CHANGE_PASSWORD_MUTATION,
-      plaCustomerProfileData.validPasswordChange
+      graCustomerProfileData.validPasswordChange
     );
 
     await changeResponse.assertNoErrors();
@@ -116,7 +116,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     logger.step('Step 3 - Restore original password so other specs remain functional');
     const restoreResponse = await authClient.mutateWrapped(
       CHANGE_PASSWORD_MUTATION,
-      plaCustomerProfileData.restorePasswordChange
+      graCustomerProfileData.restorePasswordChange
     );
     await restoreResponse.assertNoErrors();
 
@@ -132,7 +132,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(
       CHANGE_PASSWORD_MUTATION,
-      plaCustomerProfileData.invalidCurrentPassword
+      graCustomerProfileData.invalidCurrentPassword
     );
 
     logger.step('Step 2 - Assert authentication error is returned');
@@ -140,7 +140,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     const gqlResponse = await response.getGraphQLResponse();
     const errorMsg = gqlResponse.errors?.length ? (gqlResponse.errors[0]?.message ?? '') : '';
     logger.verify('Error returned for wrong current password', true, gqlResponse.errors!.length > 0);
-    softExpect(errorMsg).toContain(plaCustomerProfileErrorMessages.wrongCurrentPassword.split('.')[0]);
+    softExpect(errorMsg).toContain(graCustomerProfileErrorMessages.wrongCurrentPassword.split('.')[0]);
   });
 
   test('TC_03 - changeCustomerPassword - weak new password should return validation error', async ({
@@ -152,7 +152,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(
       CHANGE_PASSWORD_MUTATION,
-      plaCustomerProfileData.weakNewPassword
+      graCustomerProfileData.weakNewPassword
     );
 
     logger.step('Step 2 - Assert validation error is returned');
@@ -171,7 +171,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     const publicClient = await createGraphQLClient();
     const response = await publicClient.mutateWrapped(
       CHANGE_PASSWORD_MUTATION,
-      plaCustomerProfileData.validPasswordChange
+      graCustomerProfileData.validPasswordChange
     );
 
     logger.step('Step 2 - Assert authorization error is returned');
@@ -191,8 +191,8 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     logger.step('Step 1 - Attempt to update firstname and lastname');
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(UPDATE_NAME_MUTATION, {
-      firstname: plaCustomerProfileData.updatedFirstname,
-      lastname: plaCustomerProfileData.updatedLastname,
+      firstname: graCustomerProfileData.updatedFirstname,
+      lastname: graCustomerProfileData.updatedLastname,
     });
 
     logger.step('Step 2 - Assert store returns password-required error (staging has Require Password for Account Changes enabled)');
@@ -212,7 +212,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     logger.step('Step 1 - Attempt to update date_of_birth');
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(UPDATE_DOB_MUTATION, {
-      date_of_birth: plaCustomerProfileData.updatedDateOfBirth,
+      date_of_birth: graCustomerProfileData.updatedDateOfBirth,
     });
 
     logger.step('Step 2 - Assert store returns password-required error');
@@ -231,7 +231,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     logger.step('Step 1 - Attempt to update phone_number');
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(UPDATE_PHONE_MUTATION, {
-      phone_number: plaCustomerProfileData.updatedPhone,
+      phone_number: graCustomerProfileData.updatedPhone,
     });
 
     logger.step('Step 2 - Assert store returns password-required error');
@@ -249,7 +249,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
     logger.step('Step 1 - Send updateCustomerV2 with new email but no password');
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(UPDATE_EMAIL_MUTATION, {
-      email: plaCustomerProfileData.emailChangeWithoutPassword.input.email,
+      email: graCustomerProfileData.emailChangeWithoutPassword.input.email,
     });
 
     logger.step('Step 2 - Assert error is returned for email change without password');

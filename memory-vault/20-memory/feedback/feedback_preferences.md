@@ -3,7 +3,7 @@ name: Feedback & Preferences
 description: Confirmed working patterns, corrections given, stylistic preferences
 type: feedback
 tags: [memory, feedback]
-last_verified: 2026-05-26
+last_verified: 2026-06-01
 ---
 **Keep responses short.** User gives terse commands and expects terse execution — no narration, no step summaries, no "Here's what I did" paragraphs at the end.
 

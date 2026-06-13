@@ -34,7 +34,7 @@ export interface CustomerProfileErrorMessages {
   unauthorized: string;
 }
 
-export const plaCustomerProfileData: CustomerProfileDataShape = {
+export const graCustomerProfileData: CustomerProfileDataShape = {
   validPasswordChange: {
     currentPassword: 'Johncena5',
     newPassword: 'TempPass99',
@@ -81,7 +81,7 @@ export const plaCustomerProfileData: CustomerProfileDataShape = {
   updatedPhone: '0412345678',
 };
 
-export const plaCustomerProfileErrorMessages: CustomerProfileErrorMessages = {
+export const graCustomerProfileErrorMessages: CustomerProfileErrorMessages = {
   wrongCurrentPassword: 'Invalid login or password.',
   unauthorized: "The current customer isn't authorized.",
 };

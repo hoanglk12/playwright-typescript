@@ -8,7 +8,7 @@ export interface RequestPasswordResetInput {
   email: string;
 }
 
-export interface PlaAuthDataShape {
+export interface GraAuthDataShape {
   invalidTokenReset: ResetPasswordInput;
   nonExistentEmailReset: ResetPasswordInput;
   weakPasswordReset: ResetPasswordInput;
@@ -16,14 +16,14 @@ export interface PlaAuthDataShape {
   invalidFormatEmailPasswordRequest: RequestPasswordResetInput;
 }
 
-export interface PlaAuthErrorMessages {
+export interface GraAuthErrorMessages {
   invalidResetToken: string;
   weakPassword: string;
   invalidEmailFormat: string;
   unauthorizedAccess: string;
 }
 
-export const plaAuthData: PlaAuthDataShape = {
+export const graAuthData: GraAuthDataShape = {
   invalidTokenReset: {
     email: 'platypus-staging-test@example.com',
     resetPasswordToken: 'invalid-token-abc123xyz987',
@@ -47,7 +47,7 @@ export const plaAuthData: PlaAuthDataShape = {
   },
 };
 
-export const plaAuthErrorMessages: PlaAuthErrorMessages = {
+export const graAuthErrorMessages: GraAuthErrorMessages = {
   invalidResetToken: 'The provided token is invalid',
   weakPassword: 'password',
   invalidEmailFormat: 'Invalid email address',

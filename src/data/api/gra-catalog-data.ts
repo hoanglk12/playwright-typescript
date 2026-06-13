@@ -1,42 +1,42 @@
-export interface PlaCatalogDiscoveryShape {
+export interface GraCatalogDiscoveryShape {
   searchTerm: string;
   pageSize: number;
   brandRetryTerm: string;
 }
 
-export interface PlaCatalogPlpShape {
+export interface GraCatalogPlpShape {
   pageSize: number;
   nonExistentSku: string;
 }
 
-export interface PlaCatalogPdpShape {
+export interface GraCatalogPdpShape {
   nonExistentUrlKey: string;
 }
 
-export interface PlaCatalogCategoriesShape {
+export interface GraCatalogCategoriesShape {
   nonExistentCategoryId: string;
 }
 
-export interface PlaCatalogStoreConfigShape {
+export interface GraCatalogStoreConfigShape {
   expectedLocalePattern: RegExp;
   expectedCurrencyCodePattern: RegExp;
 }
 
-export interface PlaCatalogUrlResolverShape {
+export interface GraCatalogUrlResolverShape {
   cmsPageUrl: string;
   nonExistentUrl: string;
 }
 
-export interface PlaCatalogDataShape {
-  discovery: PlaCatalogDiscoveryShape;
-  plp: PlaCatalogPlpShape;
-  pdp: PlaCatalogPdpShape;
-  categories: PlaCatalogCategoriesShape;
-  storeConfig: PlaCatalogStoreConfigShape;
-  urlResolver: PlaCatalogUrlResolverShape;
+export interface GraCatalogDataShape {
+  discovery: GraCatalogDiscoveryShape;
+  plp: GraCatalogPlpShape;
+  pdp: GraCatalogPdpShape;
+  categories: GraCatalogCategoriesShape;
+  storeConfig: GraCatalogStoreConfigShape;
+  urlResolver: GraCatalogUrlResolverShape;
 }
 
-export const PlaCatalogData: PlaCatalogDataShape = {
+export const GraCatalogData: GraCatalogDataShape = {
   discovery: {
     searchTerm: 'shoe',
     pageSize: 5,

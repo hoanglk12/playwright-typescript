@@ -6,7 +6,7 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { plaErrorMessages } from '../../src/data/api/gra-test-data';
+import { graErrorMessages } from '../../src/data/api/gra-test-data';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 
@@ -141,7 +141,7 @@ test.describe('GRA GraphQL API - Account Management', () => {
     expect(graphqlResponse.errors).toBeDefined();
     expect(graphqlResponse.errors).toHaveLength(1);
 
-    softExpect(graphqlResponse.errors![0].message).toContain(plaErrorMessages.invalidEmail);
+    softExpect(graphqlResponse.errors![0].message).toContain(graErrorMessages.invalidEmail);
     softExpect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-input');
     softExpect(graphqlResponse.data.createCustomer).toBeNull();
 
@@ -187,7 +187,7 @@ test.describe('GRA GraphQL API - Account Management', () => {
     expect(graphqlResponse.errors).toBeDefined();
     expect(graphqlResponse.errors).toHaveLength(1);
 
-    softExpect(graphqlResponse.errors![0].message).toBe(plaErrorMessages.invalidCredentials);
+    softExpect(graphqlResponse.errors![0].message).toBe(graErrorMessages.invalidCredentials);
     softExpect(graphqlResponse.errors![0].extensions?.category).toBe('graphql-authentication');
     softExpect(graphqlResponse.data.generateCustomerToken).toBeNull();
 

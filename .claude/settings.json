@@ -61,6 +61,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node .claude/hooks/sync-memory.js",
+            "timeout": 30,
+            "statusMessage": "Syncing memory to vault..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
             "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';if(f.endsWith('.ts')||f.endsWith('.tsx')){const {spawnSync}=require('child_process');spawnSync('npx',['prettier','--write',f],{stdio:'inherit'});}process.exit(0);})\" 2>/dev/null || true",
             "statusMessage": "Formatting code..."
           },
