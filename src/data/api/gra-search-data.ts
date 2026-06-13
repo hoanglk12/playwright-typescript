@@ -1,5 +1,5 @@
 /**
- * PLA (Platypus Shoes) GraphQL API — Search Test Data
+ * PLA (Gratypus Shoes) GraphQL API — Search Test Data
  * Used by pla-search.spec.ts
  */
 
@@ -16,12 +16,12 @@ export interface SearchPaginationShape {
   pageSize: number;
 }
 
-export interface PlaSearchDataShape {
+export interface GraSearchDataShape {
   searchTerms: SearchTermsShape;
   pagination: SearchPaginationShape;
 }
 
-export const PlaSearchData: PlaSearchDataShape = {
+export const GraSearchData: GraSearchDataShape = {
   searchTerms: {
     valid: 'nike',
     noResults: 'xyzzy12345qwerty',

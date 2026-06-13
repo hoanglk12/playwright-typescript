@@ -2,8 +2,8 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import {
-  plaWishlistData,
-  plaWishlistErrorCategories,
+  graWishlistData,
+  graWishlistErrorCategories,
   UserError,
   DiscoveredProduct,
   WishlistItemShape,
@@ -139,13 +139,13 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     // ── 2. Discover a SimpleProduct SKU ───────────────────────────────────────
     logger.step('Discover a SimpleProduct SKU for wishlist tests');
     const discoverResponse = await publicClient.queryWrapped(DISCOVER_PRODUCTS_QUERY, {
-      search: plaWishlistData.productSearchTerm,
+      search: graWishlistData.productSearchTerm,
       pageSize: 20,
     });
     const discoverGql = await discoverResponse.getGraphQLResponse();
     const allItems: DiscoveredProduct[] = discoverGql.data?.products?.items ?? [];
     if (allItems.length === 0) {
-      throw new Error(`No products found for search term "${plaWishlistData.productSearchTerm}"`);
+      throw new Error(`No products found for search term "${graWishlistData.productSearchTerm}"`);
     }
     // Prefer SimpleProduct; fall back to first item — Magento 2 accepts configurable SKUs in wishlist
     const pickedProduct = allItems.find((item) => item.__typename === 'SimpleProduct') ?? allItems[0];
@@ -217,7 +217,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
       wishlistId,
-      items: [{ sku: discoveredProductSku, quantity: plaWishlistData.wishlistItemQuantity }],
+      items: [{ sku: discoveredProductSku, quantity: graWishlistData.wishlistItemQuantity }],
     });
 
     logger.step('Step 2 - Assert no top-level errors');
@@ -238,7 +238,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     addedItemId = addedItem?.id ?? '';
     expect(addedItemId, 'addedItemId must be non-empty after add').toBeTruthy();
 
-    softExpect(addedItem?.quantity, 'Wishlist item quantity should match requested value').toBe(plaWishlistData.wishlistItemQuantity);
+    softExpect(addedItem?.quantity, 'Wishlist item quantity should match requested value').toBe(graWishlistData.wishlistItemQuantity);
     softExpect(addedItem?.__typename, 'Wishlist item __typename should include WishlistItem').toContain('WishlistItem');
   });
 
@@ -251,7 +251,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
       wishlistId,
-      items: [{ sku: plaWishlistData.nonExistentSku, quantity: plaWishlistData.wishlistItemQuantity }],
+      items: [{ sku: graWishlistData.nonExistentSku, quantity: graWishlistData.wishlistItemQuantity }],
     });
 
     logger.step('Step 2 - Assert error is returned');
@@ -270,15 +270,15 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     const publicClient = await createGraphQLClient();
     const response = await publicClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
       wishlistId,
-      items: [{ sku: discoveredProductSku, quantity: plaWishlistData.wishlistItemQuantity }],
+      items: [{ sku: discoveredProductSku, quantity: graWishlistData.wishlistItemQuantity }],
     });
 
     logger.step('Step 2 - Assert graphql-authorization error');
     await response.assertHasErrors();
     const gql = await response.getGraphQLResponse();
     const errorCategory = gql.errors?.[0]?.extensions?.category;
-    logger.verify('Authorization error category', plaWishlistErrorCategories.unauthorized, errorCategory);
-    expect(errorCategory).toBe(plaWishlistErrorCategories.unauthorized);
+    logger.verify('Authorization error category', graWishlistErrorCategories.unauthorized, errorCategory);
+    expect(errorCategory).toBe(graWishlistErrorCategories.unauthorized);
   });
 
   // ── TC_05: wishlists items_count and items after add ─────────────────────
@@ -351,7 +351,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const response = await authClient.mutateWrapped(REMOVE_FROM_WISHLIST_MUTATION, {
       wishlistId,
-      wishlistItemsIds: [plaWishlistData.nonExistentWishlistItemId],
+      wishlistItemsIds: [graWishlistData.nonExistentWishlistItemId],
     });
 
     logger.step('Step 2 - Assert error is returned');
@@ -374,8 +374,8 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     await response.assertHasErrors();
     const gql = await response.getGraphQLResponse();
     const errorCategory = gql.errors?.[0]?.extensions?.category;
-    logger.verify('Authorization error category', plaWishlistErrorCategories.unauthorized, errorCategory);
-    expect(errorCategory).toBe(plaWishlistErrorCategories.unauthorized);
+    logger.verify('Authorization error category', graWishlistErrorCategories.unauthorized, errorCategory);
+    expect(errorCategory).toBe(graWishlistErrorCategories.unauthorized);
   });
 
 });

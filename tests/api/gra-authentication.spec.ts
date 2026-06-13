@@ -1,7 +1,7 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { plaAuthData, plaAuthErrorMessages } from '../../src/data/api/gra-auth-data';
+import { graAuthData, graAuthErrorMessages } from '../../src/data/api/gra-auth-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 
@@ -162,7 +162,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
     const gqlResponse = await revokeResponse.getGraphQLResponse();
     logger.verify('graphql-authorization error returned', 'graphql-authorization', gqlResponse.errors![0].extensions?.category);
     softExpect(gqlResponse.errors![0].extensions?.category).toBe('graphql-authorization');
-    softExpect(gqlResponse.errors![0].message).toContain(plaAuthErrorMessages.unauthorizedAccess.split('.')[0]);
+    softExpect(gqlResponse.errors![0].message).toContain(graAuthErrorMessages.unauthorizedAccess.split('.')[0]);
   });
 
   // ─── requestPasswordResetEmail ─────────────────────────────────────────────
@@ -190,7 +190,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.mutateWrapped(
       REQUEST_PASSWORD_RESET_MUTATION,
-      { email: plaAuthData.nonExistentEmailPasswordRequest.email }
+      { email: graAuthData.nonExistentEmailPasswordRequest.email }
     );
 
     logger.step('Step 2 - Assert API returns an error (staging discloses non-existence via graphql-input)');
@@ -208,7 +208,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.mutateWrapped(
       REQUEST_PASSWORD_RESET_MUTATION,
-      { email: plaAuthData.invalidFormatEmailPasswordRequest.email }
+      { email: graAuthData.invalidFormatEmailPasswordRequest.email }
     );
 
     logger.step('Step 2 - Assert validation error');
@@ -216,7 +216,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
     const gqlResponse = await response.getGraphQLResponse();
     logger.verify('graphql-input error returned', 'graphql-input', gqlResponse.errors![0].extensions?.category);
     softExpect(gqlResponse.errors![0].extensions?.category).toBe('graphql-input');
-    softExpect(gqlResponse.errors![0].message).toContain(plaAuthErrorMessages.invalidEmailFormat);
+    softExpect(gqlResponse.errors![0].message).toContain(graAuthErrorMessages.invalidEmailFormat);
   });
 
   // ─── resetPassword ─────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
 
     logger.step('Step 1 - Call resetPassword with an invalid token');
     const client = await createGraphQLClient();
-    const response = await client.mutateWrapped(RESET_PASSWORD_MUTATION, plaAuthData.invalidTokenReset);
+    const response = await client.mutateWrapped(RESET_PASSWORD_MUTATION, graAuthData.invalidTokenReset);
 
     logger.step('Step 2 - Assert error is returned');
     await response.assertHasErrors();
@@ -242,7 +242,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
     logger.step('Step 1 - Call resetPassword with an invalid email format');
     const client = await createGraphQLClient();
     const input = {
-      email: plaAuthData.invalidFormatEmailPasswordRequest.email,
+      email: graAuthData.invalidFormatEmailPasswordRequest.email,
       resetPasswordToken: 'any-token-value',
       newPassword: 'ValidPass123!',
     };
@@ -260,7 +260,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
 
     logger.step('Step 1 - Call resetPassword with a weak new password');
     const client = await createGraphQLClient();
-    const response = await client.mutateWrapped(RESET_PASSWORD_MUTATION, plaAuthData.weakPasswordReset);
+    const response = await client.mutateWrapped(RESET_PASSWORD_MUTATION, graAuthData.weakPasswordReset);
 
     logger.step('Step 2 - Assert error is returned');
     await response.assertHasErrors();

@@ -1,9 +1,9 @@
-import { PlaTestData, createBrandTestData } from './gra-test-data';
+import { GraTestData, createBrandTestData } from './gra-test-data';
 
 export interface SiteContext {
   siteCode: string;
   baseURL: string;
-  testData: PlaTestData;
+  testData: GraTestData;
   // Phase 2: consumed by store-header injection (NZ sites) and brand-aware assertions
   brand: string;
   storeHeader?: string;

@@ -1,6 +1,6 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
-import { PlaCatalogData } from '../../src/data/api/gra-catalog-data';
+import { GraCatalogData } from '../../src/data/api/gra-catalog-data';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -256,8 +256,8 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
 
     logger.step('Discover product url_key and aggregation filter values');
     const searchGql = await (await client.queryWrapped(DISCOVER_PRODUCTS_QUERY, {
-      search: PlaCatalogData.discovery.searchTerm,
-      pageSize: PlaCatalogData.discovery.pageSize,
+      search: GraCatalogData.discovery.searchTerm,
+      pageSize: GraCatalogData.discovery.pageSize,
     })).getGraphQLResponse();
 
     if (!(searchGql.errors?.length) && (searchGql.data?.products?.items?.length ?? 0) > 0) {
@@ -289,7 +289,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       logger.step('Retry brand_id discovery via brand-specific search');
       const brandSearchGql = await (await client.queryWrapped(DISCOVER_PRODUCTS_QUERY, {
         search: site.catalogSearchTerm,
-        pageSize: PlaCatalogData.discovery.pageSize,
+        pageSize: GraCatalogData.discovery.pageSize,
       })).getGraphQLResponse();
       if (!(brandSearchGql.errors?.length)) {
         const retryBrandAgg = (brandSearchGql.data?.products?.aggregations ?? [] as AggregationItem[]).find(
@@ -326,7 +326,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PLP_QUERY, {
       filter: { [discoveredCategoryFilterField]: { eq: discoveredCategoryFilterValue } },
-      pageSize: PlaCatalogData.plp.pageSize,
+      pageSize: GraCatalogData.plp.pageSize,
       currentPage: 1,
     });
 
@@ -340,7 +340,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     softExpect(data.products.items.length).toBeGreaterThan(0);
     softExpect(data.products.page_info).toBeDefined();
     softExpect(data.products.page_info.current_page).toBe(1);
-    softExpect(data.products.page_info.page_size).toBe(PlaCatalogData.plp.pageSize);
+    softExpect(data.products.page_info.page_size).toBe(GraCatalogData.plp.pageSize);
   });
 
   test('TC_02 - products PLP - brand filter returns filtered product list', async ({ createGraphQLClient }) => {
@@ -356,7 +356,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PLP_QUERY, {
       filter: { apparel21_brand_id: { eq: discoveredBrandId } },
-      pageSize: PlaCatalogData.plp.pageSize,
+      pageSize: GraCatalogData.plp.pageSize,
       currentPage: 1,
     });
 
@@ -377,7 +377,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PLP_QUERY, {
       search: site.catalogSearchTerm,
-      pageSize: PlaCatalogData.plp.pageSize,
+      pageSize: GraCatalogData.plp.pageSize,
       currentPage: 1,
       sort: { price: 'ASC' },
     });
@@ -421,7 +421,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PLP_QUERY, {
       search: site.catalogSearchTerm,
-      pageSize: PlaCatalogData.plp.pageSize,
+      pageSize: GraCatalogData.plp.pageSize,
       currentPage: 1,
       sort: { price: 'DESC' },
     });
@@ -461,8 +461,8 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
 
     logger.step('Step 1 - Query page 1');
     const page1Response = await client.queryWrapped(PLP_QUERY, {
-      search: PlaCatalogData.discovery.searchTerm,
-      pageSize: PlaCatalogData.plp.pageSize,
+      search: GraCatalogData.discovery.searchTerm,
+      pageSize: GraCatalogData.plp.pageSize,
       currentPage: 1,
     });
     const page1Gql = await page1Response.getGraphQLResponse();
@@ -470,16 +470,16 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     logger.verify('page 1 products data present', true, page1Gql.data?.products != null);
     expect(page1Gql.data?.products, 'page 1 products data must be present').toBeDefined();
     const page1Data = page1Gql.data;
-    logger.verify('total_count exceeds pageSize (second page exists)', `> ${PlaCatalogData.plp.pageSize}`, page1Data.products.total_count);
+    logger.verify('total_count exceeds pageSize (second page exists)', `> ${GraCatalogData.plp.pageSize}`, page1Data.products.total_count);
     expect(
       page1Data.products.total_count,
       'total_count must exceed pageSize to have a second page',
-    ).toBeGreaterThan(PlaCatalogData.plp.pageSize);
+    ).toBeGreaterThan(GraCatalogData.plp.pageSize);
 
     logger.step('Step 2 - Query page 2');
     const page2Response = await client.queryWrapped(PLP_QUERY, {
-      search: PlaCatalogData.discovery.searchTerm,
-      pageSize: PlaCatalogData.plp.pageSize,
+      search: GraCatalogData.discovery.searchTerm,
+      pageSize: GraCatalogData.plp.pageSize,
       currentPage: 2,
     });
     const page2Gql = await page2Response.getGraphQLResponse();
@@ -500,8 +500,8 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     logger.step('Step 1 - Query products with a SKU filter that matches nothing');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PLP_QUERY, {
-      filter: { sku: { eq: PlaCatalogData.plp.nonExistentSku } },
-      pageSize: PlaCatalogData.plp.pageSize,
+      filter: { sku: { eq: GraCatalogData.plp.nonExistentSku } },
+      pageSize: GraCatalogData.plp.pageSize,
       currentPage: 1,
     });
 
@@ -609,7 +609,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     logger.step('Step 1 - Query product with non-existent url_key');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(PDP_QUERY, {
-      urlKey: PlaCatalogData.pdp.nonExistentUrlKey,
+      urlKey: GraCatalogData.pdp.nonExistentUrlKey,
     });
 
     logger.step('Step 2 - Assert no critical errors and empty items returned');
@@ -681,7 +681,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     logger.step('Step 1 - Query category with non-existent id');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(CATEGORIES_QUERY, {
-      filters: { ids: { eq: PlaCatalogData.categories.nonExistentCategoryId } },
+      filters: { ids: { eq: GraCatalogData.categories.nonExistentCategoryId } },
     });
 
     logger.step('Step 2 - Assert no server error and empty or error result');
@@ -755,9 +755,9 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     expect(data.storeConfig).toBeDefined();
 
     logger.step('Step 3 - Verify locale and currency code match expected patterns');
-    softExpect(data.storeConfig.locale).toMatch(PlaCatalogData.storeConfig.expectedLocalePattern);
+    softExpect(data.storeConfig.locale).toMatch(GraCatalogData.storeConfig.expectedLocalePattern);
     softExpect(data.storeConfig.base_currency_code).toMatch(
-      PlaCatalogData.storeConfig.expectedCurrencyCodePattern,
+      GraCatalogData.storeConfig.expectedCurrencyCodePattern,
     );
   });
 
@@ -826,7 +826,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     logger.step('Step 1 - Resolve known CMS page URL');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(URL_RESOLVER_QUERY, {
-      url: PlaCatalogData.urlResolver.cmsPageUrl,
+      url: GraCatalogData.urlResolver.cmsPageUrl,
     });
     await response.assertNoErrors();
     await response.assertHasData();
@@ -847,7 +847,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     logger.step('Step 1 - Resolve non-existent URL');
     const client = await createGraphQLClient();
     const response = await client.queryWrapped(URL_RESOLVER_QUERY, {
-      url: PlaCatalogData.urlResolver.nonExistentUrl,
+      url: GraCatalogData.urlResolver.nonExistentUrl,
     });
 
     logger.step('Step 2 - Assert no server error and not-found result returned');
