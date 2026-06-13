@@ -4,7 +4,7 @@ description: "Framework architecture decisions, CI shape, active initiatives, ke
 type: project
 tags: [memory, project]
 source_session: 551a0925-f8d8-4f42-bbe1-663d6c154edd
-last_verified: 2026-06-13
+last_verified: 2026-06-11
 ---
 
 Playwright TypeScript automation framework for Fieldfisher (law firm) web properties. Covers frontsite, admin, and ecommerce areas with a composition-based Page Object Model.
@@ -41,9 +41,9 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - `search-smoke.spec.ts`: E2E-SRCH-001/002 — 2 × 8 = 16 tests
 - `plp-smoke.spec.ts`: E2E-PLP-001/004/006/011/012 — 5 × 8 = 40 tests
 - `pdp-smoke.spec.ts`: E2E-PDP-001/002/004/005/006/007 — 6 × 8 = 48 tests
-- `cart-smoke.spec.ts`: E2E-CART-001 (empty mini cart) + E2E-CART-002 (ATC count) + E2E-CART-003 (mini cart overlay opens) + E2E-CART-004 (overlay shows product name, size, price) — 4 × 8 = 32 tests
+- `cart-smoke.spec.ts`: E2E-CART-001 (empty mini cart) + E2E-CART-002 (ATC count) + E2E-CART-003 (mini cart overlay opens) — 3 × 8 = 24 tests
 - **Shared helpers:** `tests/ecommerce/smoke/smoke-helpers.ts` exports `getPreferredNavLabel(site, preferMens)` and `navigateToPlp(navPage, plpPage, site, navLabel)` — used by cart, pdp, and plp smoke specs to reduce duplication
-- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-005 through E2E-CART-011 remain
+- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-004 through E2E-CART-011 remain
 - **Serial mode removed (2026-06-07):** All 6 smoke specs changed from `test.describe.serial` to `test.describe` — fixtures are test-scoped (each test gets its own browser context), so serial mode only added destructive cascade-skip behaviour with no benefit. See [[ecommerce-pdp-page-gotchas]] for PDP/cart patterns.
 
 **CAPTCHA solving integration (researched 2026-05-31, not yet implemented):**
@@ -62,10 +62,3 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - `isOverlayVisible()` uses three-part gate: `aside/[role="complementary"]/role="dialog"/class*drawer` + `position:fixed/absolute` + CTA regex — required because Platypus AU mini cart renders as `<aside>`, not `<dialog>`, and `[class*="cart"]` alone matches persistent header chrome
 - Test seeds cart (full ATC scan) before clicking cart icon; checks if overlay auto-opened first; soft-asserts final visibility
 - First run: 6/8 passed; Vans AU intermittently fails (Bloomreach popup may intercept `clickCartIcon()` after ATC)
-
-**E2E-CART-004 implementation (2026-06-13):**
-- Added `overlayContainsText(text)` to `EcommerceCartOverlayPage` — same `fixed/absolute + cart/bag` gate as `isOverlayVisible()` but WITHOUT the CTA requirement (CTA gate dropped: product-line-items panel and checkout footer can be siblings at the same selector level)
-- Added `overlayContainsSizeLabel(size)` — splits panel innerText by `\n`, filters `$`-bearing lines, token-matches size; prevents bare digit sizes ("4") from matching inside price strings ("$149.99")
-- Product name and price must be captured BEFORE the size-selection loop (not between `isAddToCartEnabled` and `addToCart`) — Vans AU SPA drops the ATC button within ~400ms of `selectSize()`; see [[ecommerce-pdp-page-gotchas]] gotcha #11
-- Overlay-open precondition is soft (not hard) + early return — consistent with CART-003 pattern for Vans AU Bloomreach blocking
-- Final result: 6/8 passed, 2 skipped (Platypus NZ, Dr. Martens NZ — consistent with prior CART tests)
