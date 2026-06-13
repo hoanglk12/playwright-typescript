@@ -1,5 +1,10 @@
+// Syncs vault notes to LightRAG.
+// For new files: inserts via POST /documents/text (bypasses file-tracker).
+// For changed files: deletes old doc then re-inserts.
+// Uses POST /documents/text with file_source — the only reliable insert path
+// (scan misses changed files; MCP insert_document omits required file_source field).
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, basename } from 'path';
 import { fileURLToPath } from 'url';
 
 const PROJECT_ROOT = join(fileURLToPath(import.meta.url), '..', '..');
@@ -15,10 +20,34 @@ function getVaultFiles(dir) {
       results.push(...getVaultFiles(full));
     } else if (entry.endsWith('.md')) {
       const content = readFileSync(full, 'utf8');
-      results.push({ name: entry, contentLength: content.length });
+      results.push({ name: entry, path: full, contentLength: content.length, content });
     }
   }
   return results;
+}
+
+async function insertDoc(text, fileSource) {
+  const res = await fetch(`${LIGHTRAG_URL}/documents/text`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, file_source: fileSource }),
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`${res.status} ${txt.slice(0, 120)}`);
+  }
+  return res.json();
+}
+
+async function deleteDoc(docId) {
+  // DELETE /documents/delete_document — the correct per-doc endpoint.
+  // Never use DELETE /documents (no body) — that wipes the entire doc store.
+  const res = await fetch(`${LIGHTRAG_URL}/documents/delete_document`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ doc_ids: [docId] }),
+  });
+  return res.ok;
 }
 
 async function main() {
@@ -28,13 +57,13 @@ async function main() {
     const h = await r.json();
     if (h.status !== 'healthy') throw new Error(`unhealthy: ${h.status}`);
   } catch (e) {
-    const silent =
+    const isDown =
       e.cause?.code === 'ECONNREFUSED' ||
       e.name === 'TimeoutError' ||
       e.message?.includes('fetch failed') ||
       e.message?.includes('ECONNREFUSED');
     console.log(
-      silent
+      isDown
         ? '[sync-vault-to-lightrag] LightRAG not running — skipping'
         : `[sync-vault-to-lightrag] Health check failed (${e.message}) — skipping`
     );
@@ -43,12 +72,10 @@ async function main() {
 
   console.log('[sync-vault-to-lightrag] LightRAG healthy — syncing...');
 
-  // Get current docs from LightRAG
+  // Get current docs
   const docsRes = await fetch(`${LIGHTRAG_URL}/documents`);
   const docsData = await docsRes.json();
   const processed = docsData.statuses?.processed ?? [];
-
-  // Build lookup: filename → { id, contentLength }
   const lrMap = new Map(
     processed.map((d) => [d.file_path, { id: d.id, contentLength: d.content_length }])
   );
@@ -62,42 +89,43 @@ async function main() {
     return;
   }
 
-  // Detect changed files: exists in LightRAG but content length differs
-  const toDelete = [];
-  for (const { name, contentLength } of vaultFiles) {
-    const existing = lrMap.get(name);
-    if (existing && existing.contentLength !== contentLength) {
-      toDelete.push(existing.id);
-      console.log(`  Changed: ${name} (${existing.contentLength} → ${contentLength} chars)`);
+  let inserted = 0;
+  let updated = 0;
+  let unchanged = 0;
+  let errors = 0;
+
+  for (const file of vaultFiles) {
+    const existing = lrMap.get(file.name);
+
+    if (existing && existing.contentLength === file.contentLength) {
+      unchanged++;
+      continue;
+    }
+
+    // Delete stale doc before re-inserting
+    if (existing) {
+      const deleted = await deleteDoc(existing.id);
+      if (!deleted) console.log(`  Delete warning: ${file.name} (${existing.id})`);
+    }
+
+    try {
+      await insertDoc(file.content, file.name);
+      if (existing) {
+        console.log(`  Updated: ${file.name}`);
+        updated++;
+      } else {
+        console.log(`  Inserted: ${file.name}`);
+        inserted++;
+      }
+    } catch (e) {
+      console.log(`  Error inserting ${file.name}: ${e.message}`);
+      errors++;
     }
   }
-
-  // Delete stale docs so scan re-ingests them as new
-  if (toDelete.length > 0) {
-    console.log(`  Deleting ${toDelete.length} stale doc(s)...`);
-    const delRes = await fetch(`${LIGHTRAG_URL}/documents`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doc_ids: toDelete }),
-    });
-    if (!delRes.ok) {
-      const txt = await delRes.text().catch(() => '');
-      console.log(`  Delete warning: ${delRes.status} — ${txt.slice(0, 200)}`);
-    }
-  }
-
-  // Trigger scan — picks up new files and re-deleted (now "new") ones
-  const scanRes = await fetch(`${LIGHTRAG_URL}/documents/scan`, { method: 'POST' });
-  const scanData = await scanRes.json();
-
-  const newCount = vaultFiles.filter((f) => !lrMap.has(f.name)).length;
-  const changedCount = toDelete.length;
-  const unchanged = vaultFiles.length - newCount - changedCount;
 
   console.log(
-    `  Result: ${newCount} new, ${changedCount} updated, ${unchanged} unchanged | scan: ${scanData.status ?? 'ok'}`
+    `[sync-vault-to-lightrag] Done — ${inserted} new, ${updated} updated, ${unchanged} unchanged${errors ? `, ${errors} errors` : ''}`
   );
-  console.log('[sync-vault-to-lightrag] Done');
 }
 
 main().catch((e) => {

@@ -1,7 +1,7 @@
 ---
 name: vault-updater
 description: Fetches a Jira issue or Confluence page and writes a formatted memory vault note to memory-vault/20-memory/{type}/. Invoke when the user says "update knowledge from Jira", "add this Confluence page to vault", "save this issue to memory", or gives a Jira key like PROJ-123.
-tools: Read, Glob, Grep, Write, Edit, Bash, mcp__atlassian__getJiraIssue, mcp__atlassian__getConfluencePage, mcp__atlassian__search, mcp__atlassian__getConfluenceSpaces
+tools: Read, Glob, Grep, Write, Edit, Bash, mcp__atlassian__getJiraIssue, mcp__atlassian__getConfluencePage, mcp__atlassian__search, mcp__atlassian__getConfluenceSpaces, mcp__lightrag__get_documents, mcp__lightrag__delete_by_doc_ids, mcp__lightrag__insert_file, mcp__lightrag__check_lightrag_health, mcp__lightrag__get_pipeline_status
 ---
 
 # Vault Updater Agent
@@ -74,14 +74,19 @@ Filename rules:
 - Kebab-case, no spaces or special characters
 - Must be unique across all subdirs (check with Glob before writing)
 
-## Step 6 — Trigger LightRAG sync
+## Step 6 — Sync to LightRAG via MCP
 
-After writing the note, run:
-```bash
-node scripts/sync-vault-to-lightrag.mjs
-```
+After writing the vault note, sync it to LightRAG using MCP tools directly (not the shell script — MCP tools bypass LightRAG's file-tracker and reliably handle both new and updated notes).
 
-If LightRAG is not running, this exits silently — that is non-fatal. Report the outcome to the user but do not treat it as an error.
+1. **Health check**: call `mcp__lightrag__check_lightrag_health`. If not healthy or if the call fails, skip LightRAG sync — it is non-fatal. Report it to the user.
+
+2. **Check if note already exists**: call `mcp__lightrag__get_documents`. Look for a doc with `file_path` matching the filename you just wrote (basename only, e.g. `jira-proj-123.md`).
+
+3. **If updating an existing note**: call `mcp__lightrag__delete_by_doc_ids` with the old doc's `id`. Then call `mcp__lightrag__insert_file` with the full absolute path to the vault note.
+
+4. **If adding a new note**: call `mcp__lightrag__insert_file` with the full absolute path to the vault note.
+
+5. **Confirm**: call `mcp__lightrag__get_pipeline_status` and report to the user whether the pipeline is processing.
 
 ## Rules
 

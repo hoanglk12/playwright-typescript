@@ -147,3 +147,7 @@ temp_healer.md
 .lightrag/
 .lightrag-venv/
 .lightrag.env
+
+# Obsidian local state (keep app.json, core-plugins.json, graph.json)
+memory-vault/.obsidian/workspace.json
+memory-vault/.obsidian/workspace-mobile.json
