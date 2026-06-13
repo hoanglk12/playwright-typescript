@@ -94,23 +94,50 @@ async function main() {
   let unchanged = 0;
   let errors = 0;
 
+  // Separate unchanged from files that need work
+  const toInsert = [];
+  const toUpdate = [];
+
   for (const file of vaultFiles) {
     const existing = lrMap.get(file.name);
-
     if (existing && existing.contentLength === file.contentLength) {
       unchanged++;
-      continue;
+    } else if (existing) {
+      toUpdate.push({ file, existing });
+    } else {
+      toInsert.push({ file });
     }
+  }
 
-    // Delete stale doc before re-inserting
-    if (existing) {
-      const deleted = await deleteDoc(existing.id);
-      if (!deleted) console.log(`  Delete warning: ${file.name} (${existing.id})`);
+  // Pass 1 — delete all stale docs before any inserts (LightRAG delete is async)
+  const deleteIds = toUpdate.map((u) => u.existing.id);
+  if (deleteIds.length > 0) {
+    const res = await fetch(`${LIGHTRAG_URL}/documents/delete_document`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc_ids: deleteIds }),
+    });
+    if (!res.ok) {
+      console.log(`  Batch delete warning (${res.status}) — proceeding anyway`);
     }
+    // Poll until LightRAG finishes the delete pipeline before re-inserting
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const hr = await fetch(`${LIGHTRAG_URL}/health`, { signal: AbortSignal.timeout(5000) });
+        const hj = await hr.json();
+        const busy = hj.pipeline_destructive_busy || hj.pipeline_busy;
+        if (!busy) break;
+      } catch { break; }
+    }
+  }
 
+  // Pass 2 — insert new + updated files
+  for (const { file } of [...toUpdate, ...toInsert]) {
+    const isUpdate = toUpdate.some((u) => u.file.name === file.name);
     try {
       await insertDoc(file.content, file.name);
-      if (existing) {
+      if (isUpdate) {
         console.log(`  Updated: ${file.name}`);
         updated++;
       } else {
