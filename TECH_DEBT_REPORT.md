@@ -2,7 +2,7 @@
 
 **Generated:** 2026-06-07
 **Audited by:** technical-debt-agent
-**Last Updated:** 2026-06-10 (Phases 1–3 resolved; only Suggestions remain)
+**Last Updated:** 2026-06-13 (Phases 1–4 resolved; all items closed)
 **Scope:** Full framework audit
 
 ---
@@ -14,7 +14,7 @@
 | **Overall Grade** | A |
 | **Critical Issues** | 0 (all resolved) |
 | **Warnings** | 0 (all resolved) |
-| **Suggestions** | 5 (backlog) |
+| **Suggestions** | 3 (closed); 1 residual (@lhci/cli advisory — unfixable without breaking change) |
 | **Estimated Remediation** | ~1 h (suggestions only) |
 | **Build Status** | ✅ Passing (0 tsc errors) |
 | **npm audit** | 0 critical, 3 high, 8 moderate, 2 low (13 total) |
@@ -75,9 +75,9 @@ The `preferMens` conditional chains in `pdp-smoke.spec.ts` / `cart-smoke.spec.ts
 
 ## 🟢 Suggestions (backlog / nice-to-have)
 
-- **DEBT-013** `package.json` — `typescript` is 1 major behind (5.9.3 → 6.0.3) and `@types/node` is 1 major behind (24 → 25); `@playwright/test` 1.59.1 → 1.60.0, `monocart-reporter` 2.10.1 → 2.11.2. None are >2 majors behind, so low urgency; schedule a routine bump.
+- ~~**DEBT-013**~~ ✅ Resolved (2026-06-13) — `@playwright/test` 1.59.1 → 1.60.0, `monocart-reporter` 2.10.1 → 2.11.2, `@types/node` 24.12.2 → 24.13.2. `typescript` 5.9.3 is already latest stable 5.x; TS 6.x skip intentional (breaking). Lint clean after bump.
 - ~~**DEBT-014**~~ ✅ Resolved (2026-06-11) — deleted `tests/api/graphql-examples.spec.ts` (692-line all-commented file) and removed from `misc-api` testMatch.
-- **DEBT-015** npm audit — 3 high (`fast-uri`, `systeminformation`, `tmp`) + 8 moderate are all transitive dev-dependency advisories with fixes available via `npm audit fix` (non-breaking). No production runtime exposure (test framework only), hence not Critical.
+- ~~**DEBT-015**~~ ✅ Resolved (2026-06-13) — `npm audit fix` reduced 13 → 5 vulnerabilities (8 fixed). Remaining 5 are all confined to `@lhci/cli` transitive tree (`tmp`, `uuid`, etc.); `--force` would downgrade `@lhci/cli` 0.15.1 → 0.1.0 (destructive). Watch for `@lhci/cli@0.16.x` upstream fix.
 - ~~**DEBT-016**~~ ✅ Resolved — `console.log` skip-notices in `pla-search.spec.ts` already routed through `logger.action`; no action needed.
 - **DEBT-017** Comment hygiene — page-object/spec comment density is well within the 50-line threshold and most comments document non-obvious WHYs (Firefox teardown, Bloomreach popup, staging quirks). No action needed; recorded as a healthy baseline to preserve.
 
@@ -94,10 +94,8 @@ The `preferMens` conditional chains in `pdp-smoke.spec.ts` / `cart-smoke.spec.ts
 ### ~~Phase 3 — Medium-term~~ ✅ COMPLETE (2026-06-09)
 ~~[DEBT-006]~~ Resolved.
 
-### Phase 4 — Backlog (low urgency)
-1. **[DEBT-013 — ~30 min]** Routine dependency bump: TypeScript, @types/node, @playwright/test, monocart-reporter.
-2. ~~**[DEBT-014, DEBT-016]**~~ ✅ Resolved (2026-06-11).
-3. **[DEBT-015 — ~15 min]** Run `npm audit fix` for transitive dev-dependency advisories.
+### ~~Phase 4 — Backlog~~ ✅ COMPLETE (2026-06-13)
+~~[DEBT-013, DEBT-015]~~ Resolved. DEBT-014/016 were already resolved. Residual: 5 `@lhci/cli` transitive advisories that require a destructive `--force` downgrade — deferred until upstream fix.
 
 ---
 
