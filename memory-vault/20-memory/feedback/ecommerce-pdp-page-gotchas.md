@@ -4,7 +4,7 @@ description: Known DOM/selector bugs and patterns in EcommercePDPPage — avoids
 type: feedback
 tags: [memory, feedback]
 source_session: 6c04fe97-fef3-464e-b927-fb15d4c54bee
-last_verified: 2026-06-13
+last_verified: 2026-06-10
 ---
 
 ## 1. Vans AU — Bloomreach acquisition popup blocks swatch click
@@ -121,54 +121,15 @@ The mini cart overlay on Platypus AU (and likely other storefronts) renders as a
 **`EcommerceCartOverlayPage` at `src/pages/ecommerce/cart-overlay-page.ts`:**
 - `clickCartIcon()` — `page.evaluate()` to find/click first visible `a[href*="/cart"]` or `[aria-label*="cart/bag"]` (same pattern as `getMiniCartCount()`)
 - `isOverlayVisible()` — three-part gate: (1) selector includes `aside, [role="complementary"]` alongside `role="dialog"`, `aria-modal`, `class*drawer/overlay/minicart`; (2) `position: fixed/absolute` (distinguishes overlay from persistent header chrome); (3) actionable CTA regex (`/checkout|view (cart|bag)|proceed|go to (cart|bag)/`)
-- `overlayContainsText(text)` — same `fixed/absolute` + `cart/bag` gate WITHOUT the CTA gate (CTA gate dropped because product-line-items panel and checkout footer can be sibling elements at the same selector level — see gotcha #11)
-- `overlayContainsSizeLabel(size)` — like `overlayContainsText` but splits panel innerText by `\n`, filters out lines containing `$` (price lines), then token-matches size via `(^|[^\w])${escaped}([^\w]|$)` — prevents size "4" matching inside "$149.99" (see gotcha #11)
 - `waitForOverlayVisible()` — polls `isOverlayVisible()` with `TIMEOUTS.ELEMENT_VISIBLE`, `.catch(() => {})` best-effort
 
 **Why three-part gate matters:** `[class*="cart"]` alone matches the persistent header cart icon (always in DOM), making the assertion vacuously true. The `position:fixed/absolute` + CTA gate prevents false-positives.
 
-**Overlay-open precondition pattern (E2E-CART-004):** Use `softAssert.toBeTruthy(overlayIsOpen, ...)` + `if (!overlayIsOpen) return;` before content checks. Soft (not hard) because Bloomreach on Vans AU can block `clickCartIcon()` — consistent with CART-003. The early `return` prevents 3 misleading "content missing" soft failures when the overlay simply didn't open.
-
-**E2E-CART-003 result:** 6/8 passed on first run. Vans AU fails intermittently (Bloomreach popup blocks `clickCartIcon()`). Soft assertion prevents cascade.
+**E2E-CART-003 result:** 6/8 passed on first run (Platypus AU+NZ, Skechers AU+NZ, Vans AU+NZ, and 2 of the DM sites). Subsequent runs show staging flakiness: Vans AU fails intermittently (overlay not detected — likely Bloomreach popup blocking `clickCartIcon()` or Vans-specific DOM structure not matching our selector). Dr. Martens AU/NZ and Skechers AU sometimes skip (no purchasable sizes). Soft assertion prevents suite crash — Vans AU overlay issue should be investigated via live browser inspection if consistent.
 
 ---
 
-## 11. Vans AU — ATC button disappears if DOM queries run between `isAddToCartEnabled` and `addToCart`
-
-Discovered 2026-06-13 during E2E-CART-004 implementation.
-
-On Vans AU, the SPA can lose the ATC button from the DOM within ~400ms of `selectSize()`. If `getProductName()` and `getPrice()` are called between `isAddToCartEnabled()` and `addToCart()` (two extra `page.evaluate()` calls ≈ 400ms total), `addToCart()` throws `"no Add to Cart / Add to Bag button found in DOM"`. CART-002/003 pass because they call `addToCart()` immediately after `isAddToCartEnabled()`.
-
-**Fix:** In any test that captures product details AND adds to cart, capture name/price BEFORE the size-selection loop, not between the loop and the ATC call. Keep `addToCart()` as the next statement after `isAddToCartEnabled()` in the loop body.
-
-```ts
-// CORRECT — capture before size selection loop
-const productName = await ecommercePDPPage.getProductName();
-const productPrice = await ecommercePDPPage.getPrice();
-for (const size of availableSizes.slice(0, 3)) {
-  await ecommercePDPPage.selectSize(size);
-  if (await ecommercePDPPage.isAddToCartEnabled()) {
-    targetSize = size;
-    await ecommercePDPPage.addToCart(); // immediately after isAddToCartEnabled
-    break;
-  }
-}
-
-// WRONG — DOM queries between isAddToCartEnabled and addToCart
-for (const size of ...) {
-  await selectSize(size);
-  if (await isAddToCartEnabled()) { targetSize = size; break; }
-}
-const productName = await getProductName(); // ~200ms gap
-const productPrice = await getPrice();       // ~200ms gap — ATC button may now be gone
-await addToCart(); // fails: no button in DOM
-```
-
-**Why `overlayContainsSizeLabel` not `overlayContainsText` for size:** Bare numeric sizes (e.g. "4") appear inside price strings ("$149.99"). `overlayContainsText("4")` would vacuously pass. `overlayContainsSizeLabel` filters out `$`-bearing lines and uses whole-token matching to confirm the size is a genuine line-item attribute.
-
----
-
-## 12. Dr. Martens AU — `getTotalProductCount()` returns 0 on PLP (open investigation)
+## 10. Dr. Martens AU — `getTotalProductCount()` returns 0 on PLP (open investigation)
 
 First observed: 2026-06-10 during E2E-PLP-004-007 and E2E-PLP-006-007.
 

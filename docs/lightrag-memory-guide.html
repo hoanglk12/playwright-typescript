@@ -436,7 +436,7 @@
       <div class="meta-pill">📦 <span>LightRAG v1.5.2</span></div>
       <div class="meta-pill">🔌 <span>OpenAI-compatible endpoint</span></div>
       <div class="meta-pill">🖥️ <span>Windows 11 / PowerShell</span></div>
-      <div class="meta-pill">🗓️ <span>Last updated: 2026-06-12</span></div>
+      <div class="meta-pill">🗓️ <span>Last updated: 2026-06-13</span></div>
     </div>
   </div>
 
@@ -587,9 +587,11 @@
     <div class="arch-diagram"><span class="label">┌─────────────────────────── MEMORY PIPELINE ────────────────────────────┐</span>
 <span class="dim">│                                                                        │</span>
 <span class="dim">│</span>  <span class="node">Claude session</span>               <span class="arrow">──writes──►</span>  <span class="node">~/.claude/projects/.../memory/</span>  <span class="dim">│</span>
-<span class="dim">│</span>      <span class="dim">(live memory)</span>                               <span class="dim">(seed files)</span>             <span class="dim">│</span>
-<span class="dim">│              │                                                          │</span>
-<span class="dim">│              │</span>  <span class="label">Stop hook</span>  <span class="arrow">──runs──►</span>  <span class="node">sync-memory-to-vault.mjs</span>          <span class="dim">│</span>
+<span class="dim">│</span>      <span class="dim">(live memory)</span>                           <span class="dim">(auto-memory files)</span>          <span class="dim">│</span>
+<span class="dim">│              │                                         │               │</span>
+<span class="dim">│              │</span>  <span class="label">PostToolUse hook</span>  <span class="arrow">────────────────►</span>  <span class="node">sync-memory-to-vault.mjs</span>  <span class="dim">│</span>
+<span class="dim">│              │</span>  <span class="dim">(Write/Edit *.md → live memory)</span>             <span class="dim">│</span>             <span class="dim">│</span>
+<span class="dim">│              │</span>  <span class="label">Stop hook</span>  <span class="arrow">──also runs──────────────────►</span>  <span class="dim">(same)</span>        <span class="dim">│</span>
 <span class="dim">│              │                                    │                     │</span>
 <span class="dim">│              │                                    ▼                     │</span>
 <span class="dim">│              │                        <span class="node">memory-vault/20-memory/</span>           │</span>
@@ -1115,7 +1117,8 @@ curl http://localhost:9621/documents</code><span class="lang-tag">PowerShell</sp
 
     <p>
       After cloning the repository on a new machine, run these steps in order.
-      The vault notes and LightRAG index are not committed to git — they are regenerated from the seed.
+      The vault notes are committed to git and serve as the source of truth for bootstrapping live memory.
+      Only the LightRAG index and the Python venv need to be regenerated.
     </p>
 
     <ul class="steps">
@@ -1132,23 +1135,16 @@ npm install</code><span class="lang-tag">PowerShell</span></pre>
       <li>
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">Seed Claude Code live memory</div>
-          <pre><code>.\.claude\memory-seed\init-memory.ps1</code><span class="lang-tag">PowerShell</span></pre>
-          <p>Copies seed files to <code class="inline">~/.claude/projects/.../memory/</code> so Claude reads prior context immediately.</p>
+          <div class="step-title">Bootstrap Claude Code live memory from the vault</div>
+          <pre><code>node scripts/init-memory-from-vault.mjs</code><span class="lang-tag">PowerShell</span></pre>
+          <p>Reads <code class="inline">memory-vault/20-memory/</code> (committed to git) and writes
+          flat copies into <code class="inline">~/.claude/projects/.../memory/</code> so Claude picks up
+          prior context immediately. The vault is the source of truth on a fresh clone.</p>
         </div>
       </li>
 
       <li>
         <div class="step-num">3</div>
-        <div class="step-body">
-          <div class="step-title">Regenerate the Obsidian vault</div>
-          <pre><code>node scripts/sync-memory-to-vault.mjs</code><span class="lang-tag">PowerShell</span></pre>
-          <p>Writes all notes to <code class="inline">memory-vault/20-memory/</code> from the seed.</p>
-        </div>
-      </li>
-
-      <li>
-        <div class="step-num">4</div>
         <div class="step-body">
           <div class="step-title">Install Python and create the venv</div>
           <pre><code>python -m venv .lightrag-venv
@@ -1158,7 +1154,7 @@ pip install "lightrag-hku[api]"</code><span class="lang-tag">PowerShell</span></
       </li>
 
       <li>
-        <div class="step-num">5</div>
+        <div class="step-num">4</div>
         <div class="step-body">
           <div class="step-title">Install uv (for MCP bridge)</div>
           <pre><code>winget install astral-sh.uv
@@ -1168,7 +1164,7 @@ pip install uv</code><span class="lang-tag">PowerShell</span></pre>
       </li>
 
       <li>
-        <div class="step-num">6</div>
+        <div class="step-num">5</div>
         <div class="step-body">
           <div class="step-title">Create <code class="inline">.lightrag.env</code> with your API key</div>
           <pre><code>Copy-Item .lightrag.env.example .lightrag.env
@@ -1178,7 +1174,7 @@ pip install uv</code><span class="lang-tag">PowerShell</span></pre>
       </li>
 
       <li>
-        <div class="step-num">7</div>
+        <div class="step-num">6</div>
         <div class="step-body">
           <div class="step-title">Start the server and ingest the vault</div>
           <pre><code><span class="cm"># Terminal 1 — keep running</span>
@@ -1190,7 +1186,7 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
       </li>
 
       <li>
-        <div class="step-num">8</div>
+        <div class="step-num">7</div>
         <div class="step-body">
           <div class="step-title">Restart Claude Code</div>
           <p>Claude Code picks up <code class="inline">.mcp.json</code> on startup. The <code class="inline">lightrag</code>
@@ -1203,10 +1199,10 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
     <table>
       <thead><tr><th>Item</th><th>In git?</th><th>How to restore</th></tr></thead>
       <tbody>
-        <tr><td><code class="inline">.claude/memory-seed/*.md</code></td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone</td></tr>
-        <tr><td><code class="inline">scripts/</code> (sync, start-rag)</td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone</td></tr>
+        <tr><td><code class="inline">memory-vault/20-memory/*.md</code></td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone — source of truth for bootstrap</td></tr>
+        <tr><td><code class="inline">scripts/</code> (sync, init, start-rag)</td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone</td></tr>
         <tr><td><code class="inline">.mcp.json</code></td><td><span class="badge badge-green">Yes</span></td><td>Always present after clone</td></tr>
-        <tr><td><code class="inline">memory-vault/20-memory/</code></td><td><span class="badge badge-orange">No</span></td><td>Run <code class="inline">sync-memory-to-vault.mjs</code></td></tr>
+        <tr><td><code class="inline">~/.claude/projects/.../memory/</code></td><td><span class="badge badge-orange">No (local)</span></td><td>Run <code class="inline">init-memory-from-vault.mjs</code></td></tr>
         <tr><td><code class="inline">.lightrag/</code> (graph+vectors)</td><td><span class="badge badge-orange">No</span></td><td>Run <code class="inline">sync-vault-to-lightrag.mjs</code></td></tr>
         <tr><td><code class="inline">.lightrag-venv/</code></td><td><span class="badge badge-orange">No</span></td><td>Run <code class="inline">python -m venv .lightrag-venv &amp;&amp; pip install lightrag-hku[api]</code></td></tr>
         <tr><td><code class="inline">.lightrag.env</code></td><td><span class="badge badge-orange">No (gitignored)</span></td><td>Create manually with your API key</td></tr>
@@ -1366,10 +1362,16 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
           <td>Manually, in a dedicated terminal before using LightRAG features</td>
         </tr>
         <tr>
+          <td><code class="inline">scripts/init-memory-from-vault.mjs</code></td>
+          <td>Node.js ESM</td>
+          <td>Reads <code class="inline">memory-vault/20-memory/</code>, writes flat copies to <code class="inline">~/.claude/projects/{encoded}/memory/</code> (live memory). New-machine bootstrap.</td>
+          <td>Once on a new machine after cloning</td>
+        </tr>
+        <tr>
           <td><code class="inline">scripts/sync-memory-to-vault.mjs</code></td>
           <td>Node.js ESM</td>
-          <td>Reads <code class="inline">.claude/memory-seed/</code>, normalises frontmatter, writes typed notes to <code class="inline">memory-vault/20-memory/{type}/</code></td>
-          <td>Automatically via Stop hook; manually via <code class="inline">/sync-vault</code></td>
+          <td>Reads <code class="inline">~/.claude/projects/{encoded}/memory/</code> (live memory), normalises frontmatter, writes typed notes to <code class="inline">memory-vault/20-memory/{type}/</code></td>
+          <td>Automatically via PostToolUse hook (on memory writes) and Stop hook; manually via <code class="inline">/sync-vault</code></td>
         </tr>
         <tr>
           <td><code class="inline">scripts/sync-vault-to-lightrag.mjs</code></td>
@@ -1385,6 +1387,21 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
         </tr>
       </tbody>
     </table>
+
+    <h3>PostToolUse hook (automatic, every memory write)</h3>
+    <p>
+      A <code class="inline">PostToolUse</code> hook fires on any <code class="inline">Write|Edit|MultiEdit</code>
+      that touches a <code class="inline">*.md</code> file inside
+      <code class="inline">~/.claude/projects/.../memory/</code> (live auto-memory). It immediately syncs
+      live memory → vault so the vault stays current within the session:
+    </p>
+    <pre><code>"PostToolUse": [
+  {
+    "matcher": "Write|Edit|MultiEdit",
+    "hooks": [{ "command": "node .claude/hooks/sync-memory.js", ... }]
+                                    <span class="cm">// checks file_path, runs sync-memory-to-vault.mjs</span>
+  }
+]</code><span class="lang-tag">JSON</span></pre>
 
     <h3>Stop hook chain (automatic, every session end)</h3>
     <p>These three hooks run in sequence at the end of every Claude Code session (<code class="inline">.claude/settings.json</code>):</p>
@@ -1485,8 +1502,8 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
         <div class="card-icon">🔄</div>
         <h4>Automatic sync</h4>
         <p>
-          The Stop hook chain means Claude's memory is always propagated to Obsidian and LightRAG
-          without any manual intervention. Memory is durable across machines.
+          A PostToolUse hook syncs live memory → vault on every write. The Stop hook chain then
+          pushes vault → LightRAG at session end. Memory stays current with zero manual steps.
         </p>
       </div>
       <div class="card accent-purple">
@@ -1557,7 +1574,7 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
   <!-- ── FOOTER ── -->
   <div class="footer">
     <div>LightRAG Graph+Vector Memory · Playwright TypeScript Framework</div>
-    <div>Last updated: 2026-06-12 · LightRAG v1.5.2 · gpt-4o-mini · text-embedding-3-large (dim 3072)</div>
+    <div>Last updated: 2026-06-13 · LightRAG v1.5.2 · gpt-4o-mini · text-embedding-3-large (dim 3072)</div>
   </div>
 
 </div>
