@@ -82,3 +82,11 @@ if (!isTopmost) {
 **Why:** `softExpect` is imported as a drop-in for `expect` with no logger integration (Pattern A). `softAssert` is the fixture (Pattern B) that calls `logger.verify()` internally. The root CLAUDE.md correctly scopes the "no duplicate logging" rule to `softAssert.*` only.
 
 **How to apply:** In API test files using `softExpect`, always call `logger.verify()` before the assertion. Do NOT remove logger.verify calls because the qa-code-reviewer flags them — check whether the code uses `softExpect` (bare) or `softAssert.*` (fixture) first.
+
+---
+
+**When writing a new test, ask the user for one example from an existing spec in the same area.** A single line like "follow the pattern in `tests/ecommerce/cart-smoke.spec.ts`" eliminates all pattern-discovery file reads. Without it, 3–4 files are read just to establish boilerplate.
+
+**Why:** The fixture names, import rules, logger pattern, and assertion style are already in memory. The only thing not known without reading is the local structural pattern of that specific spec suite. One existing spec example provides it instantly.
+
+**How to apply:** If the user hasn't referenced an existing spec and the task is writing a new test, ask: "Which existing spec in this area should I follow as a pattern?" before opening any files.
