@@ -124,4 +124,114 @@ export class EcommerceCartOverlayPage extends BasePage {
       })
       .catch(() => {});
   }
+
+  // Clicks the first remove control inside the visible mini cart overlay panel.
+  // Uses a two-pass strategy to avoid clicking a header close "×" before the line-item remove:
+  //   Pass 1 (preferred): button with aria-label matching /remove|delete/ — excludes close/dismiss.
+  //   Pass 2 (fallback): button whose visible text matches /^(remove|delete)$/ (symbol-only glyphs
+  //   are intentionally excluded here; bare × can be a header close button on many storefronts).
+  // Scoped to the same visible positioned overlay panel detected by isOverlayVisible(). Throws in
+  // TS-land (not inside evaluate) to give the healer a clean error on unsupported storefronts.
+  async removeFirstItem(): Promise<void> {
+    const sel = this.overlayPanelSelector;
+    const clicked = await this.page.evaluate((panelSelector) => {
+      const visiblePanels = Array.from(document.querySelectorAll(panelSelector)).filter((panel) => {
+        const r = (panel as Element).getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return false;
+        const style = getComputedStyle(panel as Element);
+        return style.position === 'fixed' || style.position === 'absolute';
+      });
+
+      if (visiblePanels.length === 0) return false;
+
+      for (const panel of visiblePanels) {
+        const buttons = Array.from(panel.querySelectorAll('button, a[role="button"], a'));
+
+        // Pass 1: aria-label matches "remove" or "delete" but NOT "close" or "dismiss".
+        // This is the most reliable discriminator across styled-component storefronts.
+        for (const btn of buttons) {
+          const br = (btn as Element).getBoundingClientRect();
+          if (br.width === 0 || br.height === 0) continue;
+          const ariaLabel = (btn.getAttribute('aria-label') ?? '').toLowerCase();
+          if (/remove|delete/.test(ariaLabel) && !/close|dismiss/.test(ariaLabel)) {
+            (btn as HTMLElement).click();
+            return true;
+          }
+        }
+
+        // Pass 2: visible text exactly matches "remove" or "delete" (word form only, not symbol
+        // glyphs — × and ✕ are skipped because they are ambiguous with header close buttons).
+        for (const btn of buttons) {
+          const br = (btn as Element).getBoundingClientRect();
+          if (br.width === 0 || br.height === 0) continue;
+          const ariaLabel = (btn.getAttribute('aria-label') ?? '').toLowerCase();
+          if (/close|dismiss/.test(ariaLabel)) continue;
+          const text = ((btn as HTMLElement).innerText ?? btn.textContent ?? '').trim().toLowerCase();
+          if (/^(remove|delete)$/.test(text)) {
+            (btn as HTMLElement).click();
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }, sel);
+
+    if (!clicked) {
+      throw new Error(
+        'removeFirstItem: no remove control found inside the visible mini cart overlay. ' +
+          'Neither aria-label*="remove|delete" (pass 1) nor text="remove|delete" (pass 2) ' +
+          'matched any visible button within the positioned overlay panel.',
+      );
+    }
+  }
+
+  // Reads the numeric cart count from the header cart icon — identical evaluate body to
+  // getMiniCartCount() on EcommercePDPPage. Duplicated here so that waitForMiniCartCountDecrement
+  // can poll independently without a cross-page-object dependency. The header cart link is the
+  // correct source: some storefronts auto-close the mini cart when it empties, so reading from
+  // the overlay would fail after removal.
+  private async getCartCountFromDOM(): Promise<number> {
+    const text = await this.page.evaluate(() => {
+      const cartLinks = Array.from(
+        document.querySelectorAll('a[href*="/cart"], [aria-label*="cart" i], [aria-label*="bag" i]'),
+      );
+      for (const link of cartLinks) {
+        const r = (link as Element).getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        // Path 1: parse count from aria-label — updates with React state on Vans/Platypus storefronts
+        // Pattern: "You have 1 item in your cart" / "You have 2 items in your cart"
+        const ariaLabel = link.getAttribute('aria-label') ?? '';
+        const ariaMatch = ariaLabel.match(/\byou have (\d+) items?\b/i);
+        if (ariaMatch && parseInt(ariaMatch[1], 10) > 0) return ariaMatch[1];
+        // Path 2: numeric leaf node added to the button subtree after ATC
+        const descendants = [link, ...Array.from(link.querySelectorAll('*'))];
+        for (const el of descendants) {
+          if ((el as Element).children.length > 0) continue;
+          const t = el.textContent?.trim() ?? '';
+          if (/^\d+$/.test(t)) return t;
+        }
+      }
+      return '0';
+    });
+    return parseInt(text, 10) || 0;
+  }
+
+  // Polls until the cart badge count drops below previousCount (i.e. a remove completed)
+  // or until NETWORK_IDLE_SLOW times out. Mirrors waitForMiniCartCountIncrement() on
+  // EcommercePDPPage. Wrapped in .catch(() => {}) — best-effort; the hard expect() in the
+  // spec is the source of truth for test failure.
+  async waitForMiniCartCountDecrement(previousCount: number): Promise<number> {
+    let currentCount = previousCount;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          currentCount = await this.getCartCountFromDOM();
+          return currentCount < previousCount;
+        },
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return currentCount;
+  }
 }

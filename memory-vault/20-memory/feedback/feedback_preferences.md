@@ -1,10 +1,12 @@
 ---
-name: Feedback & Preferences
-description: Confirmed working patterns, corrections given, stylistic preferences
+name: feedback-preferences
+description: "Confirmed working patterns, corrections given, stylistic preferences"
 type: feedback
 tags: [memory, feedback]
-last_verified: 2026-05-26
+source_session: da3c13e7-e43f-48e9-8c8e-a045c7cfd24c
+last_verified: 2026-06-14
 ---
+
 **Keep responses short.** User gives terse commands and expects terse execution — no narration, no step summaries, no "Here's what I did" paragraphs at the end.
 
 **Why:** User said "implement 1,2,3" with no additional context — expected Claude to infer from prior turn and execute. This is the consistent interaction style.
@@ -32,6 +34,46 @@ last_verified: 2026-05-26
 **`.claude/plans/` is the drop zone for spec documents.** The `user-prompt-submit.js` hook auto-routes prompts that reference files in this directory to `qa-orchestrator`. Drop acceptance criteria, user stories, or test plan docs here.
 
 **How to apply:** When user mentions a spec or requirement document, check `.claude/plans/` first before asking for a path.
+
+---
+
+**When debugging a click-not-registering failure: read error-context.md FIRST, not diagnostic scripts.**
+
+For any "element clicked but no effect" test failure, the test already produces a page snapshot in `test-results/.../error-context.md`. This snapshot reveals both the visible error message (e.g. "Size was not chosen") and the actual state of the DOM. Reading it first eliminates the need for most diagnostic scripts.
+
+**Why:** In the DM NZ CART-005-008 session, multiple diagnostic scripts were written before the error-context.md page snapshot was read. The snapshot would have confirmed the root cause (ATC button always-active, size not registered) in the very first run. The investigation took multiple sessions and advisor consultations that were avoidable.
+
+**How to apply:**
+1. Run failing test once.
+2. Read `test-results/.../error-context.md` — page snapshot shows what was visible at failure time.
+3. Read the screenshot if a visual check is needed.
+4. Only write a diagnostic script if the above doesn't reveal the cause (rare).
+5. When simulating a failing flow in a diagnostic script, always match the **actual test viewport** from `playwright.config.ts` — never assume the Playwright default (1280×720) is what the test uses.
+
+---
+
+**For React SPA click-coverage bugs: `dispatchEvent` over `force:true` when `elementFromPoint` shows another element.**
+
+`force:true` in Playwright dispatches `page.mouse.click(cx, cy)` at the element's centre coordinates. If another element (e.g. a nav megamenu container with `z-index:100, pointer-events:auto`) sits at those coordinates, the click goes to it — not the target. Pressing Escape to close the dropdown may not help if the container element stays in the DOM at the same position.
+
+**Fix pattern (confirmed on DM NZ):**
+```ts
+const isTopmost = await btn.evaluate((el) => {
+  const r = el.getBoundingClientRect();
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  return hit === el || el.contains(hit);
+}).catch(() => true);
+
+if (!isTopmost) {
+  await btn.evaluate((el: HTMLElement) => {
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, view: window }));
+  });
+} else {
+  await btn.click({ force: true });
+}
+```
+
+`dispatchEvent(new MouseEvent('click', {bubbles:true, composed:true}))` fires directly on the DOM node and bubbles to React's root listener — bypasses coordinate-based interception entirely. `el.click()` (native method) does NOT reliably reach React's delegation. `dispatchEvent` does.
 
 ---
 
