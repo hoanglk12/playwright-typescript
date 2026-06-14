@@ -354,15 +354,59 @@ export class EcommercePDPPage extends BasePage {
       .locator('button')
       .filter({ hasText: new RegExp(`^${escaped}$`) })
       .first();
-    // force: true bypasses sticky-header/overlay interception on second+ retry attempts.
-    // Safe for <button> elements (not React-router <a> links) — event still targets the button.
-    await sizeBtn.click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE, force: true });
+    // WHY: on DM NZ at 1920×1080, the L3L4Navigation-root container (z-index:100,
+    // pointer-events:auto) stays in the DOM at the size button's viewport coordinates even
+    // after the megamenu visually closes. force:true dispatches at element centre coordinates
+    // — if another element is topmost at those coords, the click goes there and React never
+    // registers the size selection. Use elementFromPoint to detect coverage; if covered,
+    // dispatchEvent bypasses coordinate-based dispatch entirely and fires directly on the
+    // button DOM element where it bubbles to React's root event listener.
+    const isSizeBtnTopmost = await sizeBtn
+      .evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return hit === el || el.contains(hit);
+      })
+      .catch(() => true);
+    if (!isSizeBtnTopmost) {
+      await sizeBtn.evaluate((el: HTMLElement) => {
+        el.dispatchEvent(
+          new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, view: window }),
+        );
+      });
+    } else {
+      // force: true bypasses sticky-header/overlay hit-test check on second+ size attempts.
+      await sizeBtn.click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE, force: true });
+    }
   }
 
   async isAddToCartEnabled(): Promise<boolean> {
+    // WHY: storefronts like DM NZ make an async stock-check AJAX call (~300-500ms) after size
+    // selection and change the ATC button text (Add to Cart → Notify Me) asynchronously. Without
+    // a stability wait, this method returns true in the brief pre-AJAX window for sold-out sizes,
+    // causing addToCart() to fire against a sold-out product that the server silently rejects.
+    // Poll until the ATC button count is the same on two consecutive reads before declaring state.
+    let prevCount = -1;
+    let stableCount = 0;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          const count = await this.addToCartBtnLocator.count();
+          if (count === prevCount) {
+            stableCount = count;
+            return true;
+          }
+          prevCount = count;
+          return false;
+        },
+        { timeout: TIMEOUTS.ELEMENT_CLICKABLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {
+        stableCount = prevCount >= 0 ? prevCount : 0;
+      });
+    if (stableCount === 0) return false;
     try {
-      const btn = this.addToCartBtnLocator.first();
-      return !(await btn.isDisabled({ timeout: TIMEOUTS.ELEMENT_VISIBLE }));
+      return !(await this.addToCartBtnLocator.first().isDisabled({ timeout: TIMEOUTS.ELEMENT_VISIBLE }));
     } catch {
       return false;
     }
@@ -381,13 +425,7 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async addToCart(): Promise<void> {
-    // Click the first visible ATC button. force: true bypasses sticky-header/overlay interception
-    // while still firing React synthetic events — same pattern as selectSize().
-    // Safe for <button type="submit"> elements: React event delegation handles force-dispatched events.
     const buttons = this.addToCartBtnLocator;
-    // Wait for the ATC button to stabilise after React re-renders triggered by size selection.
-    // Under batch load the reconciliation phase can transiently unmount the button, causing an
-    // immediate count() to see 0. ELEMENT_VISIBLE gives enough headroom; .catch keeps it best-effort.
     await buttons.first().waitFor({ state: 'attached', timeout: TIMEOUTS.ELEMENT_VISIBLE }).catch(() => {});
     const count = await buttons.count();
     if (count === 0) {
@@ -396,12 +434,12 @@ export class EcommercePDPPage extends BasePage {
     for (let i = 0; i < count; i++) {
       const btn = buttons.nth(i);
       if (await btn.isVisible().catch(() => false)) {
+        // force: true bypasses sticky-header/overlay interception while still firing React
+        // synthetic events — same pattern as selectSize().
         await btn.click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
         return;
       }
     }
-    // No visible button found — force-click the first anyway (triggers React validation even
-    // when the element is off-screen, as confirmed on Platypus AU: "Size was not chosen" appears).
     await buttons.first().click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
   }
 

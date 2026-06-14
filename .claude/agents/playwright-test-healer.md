@@ -122,6 +122,34 @@ Prefer semantic locators over CSS/XPath:
 
 ## Diagnostic Workflow
 
+### Step 0 — Read structured output first (never parse stdout)
+
+Before running anything, check if results already exist from CI or a previous run:
+
+```bash
+# UI tests
+node -e "const r=JSON.parse(require('fs').readFileSync('test-results/results.json','utf8')); console.log(JSON.stringify({stats:r.stats,failures:r.suites.flatMap(s=>s.suites??[]).flatMap(s=>s.specs??[]).filter(sp=>!sp.ok).map(sp=>({title:sp.title,error:sp.tests?.[0]?.results?.[0]?.errors?.[0]?.message?.slice(0,200)}))},null,2))"
+
+# API tests
+node -e "const r=JSON.parse(require('fs').readFileSync('api-results/results.json','utf8')); console.log(JSON.stringify({stats:r.stats,failures:r.suites.flatMap(s=>s.suites??[]).flatMap(s=>s.specs??[]).filter(sp=>!sp.ok).map(sp=>({title:sp.title,project:sp.tests?.[0]?.projectName,error:sp.tests?.[0]?.results?.[0]?.errors?.[0]?.message?.slice(0,200)}))},null,2))"
+```
+
+This returns structured failure data (test name, error message, project) in ~200 tokens.
+Skip to step 3 if failures are already classified from the JSON.
+
+### Step 0b — Classify failure type from the error message
+
+| Error signal | Type | Fix strategy |
+|---|---|---|
+| "resolved to 0 elements", "strict mode violation" | `SELECTOR_STALE` | Use dom-inspector → replace locator |
+| "Timeout", "waiting for", "exceeded" | `TIMEOUT` | Check waits, use `TIMEOUTS.*` constants |
+| "expect(received)", "toBe", "toEqual", "Expected:" | `ASSERTION` | Check expected value vs. app reality |
+| "net::ERR", "ECONNREFUSED", "fetch failed" | `NETWORK` | Check env URL, staging health |
+| "401", "403", "Unauthorized" | `AUTH` | Check auth setup / token expiry |
+| test shows multiple results with mixed pass/fail | `FLAKY` | Add explicit wait before the assertion |
+
+---
+
 1. **Initial Execution**: Run the failing test via Bash to confirm and capture the error:
    ```bash
    PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --project=chromium
@@ -135,14 +163,27 @@ Prefer semantic locators over CSS/XPath:
    playwright-cli attach tw-XXXX
    ```
    This pauses the test at the failure point.
-3. **Error Investigation**: Use `playwright-cli` commands to:
-   - `playwright-cli snapshot` — capture current DOM state and element refs
+3. **Error Investigation**:
+
+   **For `SELECTOR_STALE` failures — use dom-inspector instead of snapshot:**
+   ```bash
+   node scripts/dom-inspector.mjs --url <page-url> --description "<element description>"
+   # Example: node scripts/dom-inspector.mjs --url https://staging.example.com/cart --description "add to cart button"
+   # Load URL from .env.testing automatically:
+   node scripts/dom-inspector.mjs --env testing --description "add to cart button"
+   ```
+   This returns ranked locator candidates as JSON (score ≥ 0.90 = stable, role-based).
+   Pick the top stable candidate and hoist it to the page object class field.
+   **Do not call `playwright-cli snapshot`** for locator hunts — it dumps the full DOM tree
+   and costs 4,000–8,000 tokens per call.
+
+   **For other failure types — use playwright-cli targeted commands:**
    - `playwright-cli console` — check for JS errors on the page
    - `playwright-cli requests` — inspect network calls and responses
    - `playwright-cli eval "<func>" e5` — read element data / attributes
-   - `playwright-cli generate-locator e5` — get a stable Playwright locator for an element
+   - `playwright-cli generate-locator e5` — get a stable Playwright locator for a known element ref
 
-   For quick inline checks without parsing snapshot output:
+   **For targeted post-fix verification (not locator discovery):**
    - `mcp__playwright-test__browser_verify_element_visible` — confirm element is present after a fix
    - `mcp__playwright-test__browser_verify_text_visible` — confirm expected text appears
    - `mcp__playwright-test__browser_verify_value` — confirm input value matches expected

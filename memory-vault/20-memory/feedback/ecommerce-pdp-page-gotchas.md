@@ -4,7 +4,7 @@ description: Known DOM/selector bugs and patterns in EcommercePDPPage — avoids
 type: feedback
 tags: [memory, feedback]
 source_session: 6c04fe97-fef3-464e-b927-fb15d4c54bee
-last_verified: 2026-06-10
+last_verified: 2026-06-14
 ---
 
 ## 1. Vans AU — Bloomreach acquisition popup blocks swatch click
@@ -129,7 +129,43 @@ The mini cart overlay on Platypus AU (and likely other storefronts) renders as a
 
 ---
 
-## 10. Dr. Martens AU — `getTotalProductCount()` returns 0 on PLP (open investigation)
+## 10. Dr. Martens NZ — L3L4Navigation container blocks size button at 1920×1080 (resolved)
+
+Root cause identified 2026-06-14 for E2E-CART-005-008 ("Size was not chosen" after ATC).
+
+**Scenario:** After WOMEN PLP → multi-card goBack() loop → all 10 cards return `[]` sizes immediately → `waitForSizeButtonsToRender()` on last card (1461 SP). By this point the WOMEN megamenu is still "open" in React state (JS-click card navigation never fired `click()` on the nav link itself, so the megamenu's close handler never ran).
+
+**The covering element:** `DIV.sc-fnxdBY.kEwWPG.L3L4Navigation-root` — the WOMEN navigation megamenu content panel. At 1920×1080 viewport, this panel renders wide enough to cover the size button coordinates (`left=1203, top=527`). Its `position:relative, z-index:100, pointer-events:auto` persists in the DOM **even after the panel visually closes** — Escape closes the visible content but the container element stays in place intercepting pointer events.
+
+**Why `force:true` fails:** Playwright's `force:true` dispatches `page.mouse.click(cx, cy)` — a coordinate-based synthetic click. If another element is topmost at those coordinates, the click goes to that element (the nav container), not the size button. React never receives the size selection.
+
+**Why the fix works:** Use `elementFromPoint()` to detect coverage. If covered, use `el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, view: window }))` directly on the button DOM element. This bypasses coordinates entirely — the event fires on the button and bubbles up through the DOM to React's root event listener. React processes it as a normal size selection click.
+
+**Fix location:** `src/pages/ecommerce/pdp-page.ts` → `selectSize()`. The `dispatchEvent` branch fires only when `elementFromPoint()` returns a non-button element at the button's centre. For storefronts where the button is topmost (all others), the regular `force:true` path is used.
+
+**Critical distinction:** `el.click()` (native method via `page.evaluate`) does NOT reliably reach React's event delegation. `dispatchEvent(new MouseEvent('click', {bubbles:true, composed:true}))` DOES — it explicitly bubbles through the DOM tree to React's root container listener.
+
+**Diagnostic pitfalls that cost excessive time (2026-06-14 session):**
+
+1. **Wrote simulation scripts at wrong viewport.** Built `inspect-dm-atc.mjs` running at 1280×720 — the script showed SUCCESS. The actual test runs at **1920×1080** (set in `playwright.config.ts`). Always verify actual viewport from config before writing any simulation. Add `page.setViewportSize()` matching the config in any diagnostic script.
+
+2. **Didn't read `error-context.md` early enough.** The failing test already emits a page snapshot in `test-results/.../error-context.md`. That snapshot showed `generic: "Size was not chosen"` AND `button "Justify" [active]: Add to Cart` — proving size not registered AND ATC always-active. Reading this first would have revealed both facts in one step. **Always read the error-context.md page snapshot before writing diagnostic scripts.**
+
+3. **Escape approach was a wrong turn.** Pressed Escape to close the megamenu, but the `L3L4Navigation-root` container stays in the DOM at the same position with `pointer-events:auto` after animation. The dropdown content disappears but the container intercepts coordinates. Escape only helps if the element physically leaves the coordinate space. Test with `elementFromPoint()` after Escape — don't assume it cleared coverage.
+
+4. **`isAddToCartEnabled()` is vacuously true on DM NZ.** DM NZ keeps the ATC button in `[active]` state regardless of size selection. `isAddToCartEnabled()` returning `true` does NOT confirm size was registered — it just means the button text matches `/add to (cart|bag)/i` and isn't disabled. On DM NZ, "Add to Cart" is the default state before ANY size is chosen. Do not treat `isAddToCartEnabled()=true` as proof of size registration on this storefront.
+
+5. **Ran multiple test cycles with diagnostic `console.log` instead of reading existing artifacts.** The test already captures a screenshot and page snapshot on failure. One test run + reading `error-context.md` + reading the screenshot would have revealed the root cause. Diagnostic `console.log` injected into production code requires multiple edit→run→read cycles.
+
+**Faster approach for future "React click not registering" bugs:**
+1. Run test once. Read `test-results/.../error-context.md` page snapshot immediately.
+2. Check whether the page shows a validation error (confirms click fired but server/React rejected) vs no change at all (click missed entirely).
+3. Check `elementFromPoint()` at the button's center in `page.evaluate()` — one line, one run.
+4. If covered: use `dispatchEvent`. If not covered: look at timing (React handlers not yet attached).
+
+---
+
+## 11. Dr. Martens AU — `getTotalProductCount()` returns 0 on PLP (open investigation)
 
 First observed: 2026-06-10 during E2E-PLP-004-007 and E2E-PLP-006-007.
 
