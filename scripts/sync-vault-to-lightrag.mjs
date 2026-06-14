@@ -100,7 +100,11 @@ async function main() {
 
   for (const file of vaultFiles) {
     const existing = lrMap.get(file.name);
-    if (existing && existing.contentLength === file.contentLength) {
+    // WHY: LightRAG strips 1–2 chars (trailing newline/CRLF) when storing, so stored
+    // content_length is always 1–2 less than the raw file length. Tolerance prevents
+    // every file appearing as "changed" on every sync run, which causes batch-delete
+    // races and 409 errors on re-insert.
+    if (existing && Math.abs(existing.contentLength - file.contentLength) <= 2) {
       unchanged++;
     } else if (existing) {
       toUpdate.push({ file, existing });
