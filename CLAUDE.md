@@ -656,6 +656,7 @@ Specialised sub-agents live in `.claude/agents/` and are invoked automatically b
 | `technical-implementation-agent` | Implements approved technical changes from a Research Report (framework, config, deps, CI). Only runs after user approval. |
 | `technical-debt-agent` | Full codebase technical debt audit — architecture violations, TypeScript quality, dead code, API/ecommerce pattern drift. Produces TECH_DEBT_REPORT.md with A–F grade and remediation roadmap. |
 | `technical-debt-fixer` | Reads TECH_DEBT_REPORT.md and applies targeted fixes for a declared scope (DEBT-ID, phase, or severity). Re-verifies findings before editing, respects sanctioned exceptions, runs lint after every batch. |
+| `vault-updater` | Fetches a Jira issue or Confluence page and writes a formatted memory vault note to `memory-vault/20-memory/{type}/`. Invoke when saving external knowledge (Jira tickets, Confluence pages) to the vault. |
 
 Use `qa-orchestrator` as the default entry point for any end-to-end QA workflow (plan → build → review → fix).
 
@@ -782,3 +783,27 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+### 5. When to Call `advisor()` Immediately
+
+**Consult the advisor early — not after 5 minutes of iteration.**
+
+`advisor()` forwards your full conversation history to a stronger reviewer. It costs one round-trip; an unproductive debugging loop costs far more. The hook will nudge you after 3 repeated test runs or file edits, but several patterns warrant calling advisor **before** any iteration limit is hit:
+
+**Call advisor immediately when:**
+
+- **`force: true` fires but no UI state change occurs.** This is always a React event delegation or coordinate-coverage problem. The solution space is small and known (see `elementFromPoint` + `dispatchEvent` pattern in feedback memory). Do not try Escape / scroll / wait approaches first — call advisor after the first failed `force: true`.
+
+- **A test passes in isolation but fails in the suite.** `--grep "TC_01"` passes; `npm run test:simple` fails. This is order-dependency, shared state, or accumulated timing lag. These root causes are non-obvious and easy to chase incorrectly. Call advisor immediately; do not re-run variations.
+
+- **`error-context.md` + the screenshot do not explain the failure.** The page snapshot is the primary diagnostic artifact. If reading it does not reveal the root cause, the next step is advisor — not a diagnostic script. (Writing a diagnostic script is only warranted if the existing artifacts are insufficient AND advisor has already been consulted.)
+
+- **You are about to write a second diagnostic script.** One diagnostic script is the limit. If the first did not pinpoint the cause, call advisor before writing another. Diagnostic scripts in this codebase have a high false-negative rate (viewport mismatch, simulated state diverging from actual test runner state).
+
+- **A fix causes a regression in a previously passing storefront.** Cross-storefront regressions require system-level reasoning about shared page-object behavior, base-class interactions, or fixture side effects. Call advisor before reverting or patching — the regression often reveals a deeper issue the fix exposed.
+
+- **About to modify `BasePage` or `base-test.ts`.** These files affect all 14 fixtures and all tests. Call advisor before any change to understand downstream impact.
+
+- **A precondition check passes but the guarded step still fails.** The check is likely vacuously true (e.g., `isAddToCartEnabled()` on DM NZ is always `true` regardless of size selection). Do not continue iterating on the guarded step — call advisor to verify whether the precondition is a valid proxy.
+
+**The advisor counter resets automatically** after you call `advisor()`. The stuck-loop hook (`advisor-nudge.js`) is a backstop for general loops, not a replacement for this list.

@@ -4,9 +4,33 @@ const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+// ---------------------------------------------------------------------------
+// LightRAG recall — queries the local KG for memories relevant to the prompt
+// ---------------------------------------------------------------------------
+
+async function queryLightRAG(prompt, timeoutMs = 9000) {
+  if (typeof fetch === 'undefined') return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch('http://localhost:9621/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: prompt, mode: 'hybrid' }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.response === 'string' ? data.response.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 let raw = '';
 process.stdin.on('data', chunk => (raw += chunk));
-process.stdin.on('end', () => {
+process.stdin.on('end', async () => {
   let input;
   try {
     input = JSON.parse(raw);
@@ -16,6 +40,9 @@ process.stdin.on('end', () => {
 
   const prompt = (input.prompt || '').trim();
   const cwd = input.cwd || process.cwd();
+
+  // Fire LightRAG query immediately so it runs in parallel with git/section work below
+  const lrQueryPromise = prompt.length >= 10 ? queryLightRAG(prompt) : Promise.resolve(null);
 
   const codingIntentRe = /\b(write|create|add|implement|generate|fix)\b/i;
   const existingSpecRe = /[\w\-./]+\.spec\.ts/i;
@@ -58,6 +85,14 @@ process.stdin.on('end', () => {
     } catch {}
   }
   sections.push(liveState);
+
+  // Step 1b — LightRAG recall (await parallel query started above)
+  const recall = await lrQueryPromise;
+  const noInfoRe = /^(i (do not|don'?t) have|no information|there is no|unable to|cannot provide)/i;
+  if (recall && recall.length > 80 && !noInfoRe.test(recall)) {
+    const trimmed = recall.length > 1500 ? recall.slice(0, 1500) + '\n…[truncated]' : recall;
+    sections.push(`## Relevant Memory (LightRAG)\n${trimmed}`);
+  }
 
   // Step 2 — Coding intent: inject compact ruleset
   if (hasCodingIntent) {

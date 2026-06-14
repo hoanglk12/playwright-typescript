@@ -18,3 +18,4 @@ last_verified: 2026-06-14
 - [[test-conventions|Test Conventions]] — TC_XX vs E2E naming; no-rename rule; tag placement in describe(); serial mode rules per suite type; import rules
 - [[typescript-coding-rules|TypeScript Coding Rules]] — errors?.length guard; optional chaining inside length checks; module-level let initializers; GraphQL string hoisting; AuthType enum; named interfaces
 - [[execution-config|Execution Config]] — fullyParallel strategy; 4 API workers; Firefox testIgnore in CI; API_SUITE_SETUP timeout gotcha; retries; forbidOnly; OS matrix
+- [[advisor-nudge-mechanism|Advisor Nudge Mechanism]] — PostToolUse hook: ≥3 repeated test runs or file edits + 90s floor → injects additionalContext nudging advisor() call; resets on advisor() call; CLAUDE.md §5 lists 7 immediate-trigger patterns
