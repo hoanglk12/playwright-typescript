@@ -148,6 +148,9 @@ temp_healer.md
 .lightrag-venv/
 .lightrag.env
 
+# Advisor-nudge hook runtime state (per-session counters, not committed)
+.claude/.state/
+
 # Obsidian local state (keep app.json, core-plugins.json, graph.json)
 memory-vault/.obsidian/workspace.json
 memory-vault/.obsidian/workspace-mobile.json
