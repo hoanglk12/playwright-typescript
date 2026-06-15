@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playwright TypeScript Framework — Introduction</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; padding: 0; max-width: 1100px; }
+
+    /* ── Sidebar ── */
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: block; padding: 7px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(91,138,245,.15); color: var(--accent); }
+    .nav-num { display: inline-block; width: 20px; font-size: 11px; color: var(--muted); }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 80px 60px 60px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -80px; right: -80px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 48px; font-weight: 900; line-height: 1.1; margin-bottom: 22px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 18px; color: var(--muted); max-width: 620px; line-height: 1.65; margin-bottom: 32px; }
+    .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 40px; }
+    .badge-hero {
+      padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid;
+    }
+    .badge-hero.blue  { background: rgba(91,138,245,.1);  border-color: rgba(91,138,245,.4);  color: #5b8af5; }
+    .badge-hero.green { background: rgba(61,220,132,.1);  border-color: rgba(61,220,132,.4);  color: #3ddc84; }
+    .badge-hero.purple{ background: rgba(206,147,216,.1); border-color: rgba(206,147,216,.4); color: #ce93d8; }
+    .badge-hero.amber { background: rgba(255,179,0,.1);   border-color: rgba(255,179,0,.4);   color: #ffb300; }
+    .badge-hero.cyan  { background: rgba(0,188,212,.1);   border-color: rgba(0,188,212,.4);   color: #00bcd4; }
+
+    /* ── Stats ── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+      background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    }
+    .stat-item {
+      background: var(--surface); padding: 24px 20px; text-align: center;
+    }
+    .stat-num { font-size: 32px; font-weight: 900; line-height: 1; margin-bottom: 6px; }
+    .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .stat-num.blue   { color: var(--accent); }
+    .stat-num.green  { color: var(--green); }
+    .stat-num.purple { color: var(--purple); }
+    .stat-num.cyan   { color: var(--cyan); }
+
+    /* ── Content sections ── */
+    .content-section { padding: 60px 60px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    /* ── Section headers ── */
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 22px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* ── Architecture diagram ── */
+    .arch-diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px;
+    }
+    .arch-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 28px; text-align: center; }
+
+    /* Layer rows */
+    .arch-layer { margin-bottom: 12px; }
+    .arch-layer-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; padding-left: 4px; }
+    .arch-nodes { display: flex; gap: 8px; flex-wrap: wrap; }
+    .arch-node {
+      padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      border: 1px solid; text-align: center; flex: 1; min-width: 100px;
+    }
+    .arch-node.tier-test    { background: rgba(61,220,132,.08);  border-color: rgba(61,220,132,.3);  color: var(--green);  }
+    .arch-node.tier-config  { background: rgba(91,138,245,.1);   border-color: rgba(91,138,245,.3);  color: var(--accent); }
+    .arch-node.tier-page    { background: rgba(206,147,216,.08); border-color: rgba(206,147,216,.3); color: var(--purple); }
+    .arch-node.tier-helper  { background: rgba(0,188,212,.08);   border-color: rgba(0,188,212,.3);   color: var(--cyan);   }
+    .arch-node.tier-base    { background: rgba(255,179,0,.08);   border-color: rgba(255,179,0,.3);   color: var(--amber);  }
+    .arch-node.tier-api     { background: rgba(255,82,82,.08);   border-color: rgba(255,82,82,.3);   color: var(--red);    }
+    .arch-node sub { display: block; font-size: 10px; font-weight: 400; opacity: .75; margin-top: 3px; }
+    .arch-arrow { text-align: center; color: var(--muted); font-size: 20px; margin: 4px 0; line-height: 1; }
+
+    /* ── Feature cards ── */
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color .2s, transform .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .feature-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--card-accent, var(--accent));
+      border-radius: 12px 12px 0 0;
+    }
+    .feature-icon { font-size: 24px; margin-bottom: 12px; }
+    .feature-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .feature-body { font-size: 13px; color: var(--muted); line-height: 1.65; }
+    .feature-body strong { color: var(--text); }
+    .feature-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+    .feature-tag {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    }
+
+    /* ── Code blocks ── */
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 18px; overflow-x: auto; font-size: 12.5px; line-height: 1.65;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    }
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border); border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 14px;
+    }
+    .code-header + pre { border-radius: 0 0 8px 8px; }
+    .code-filename { font-size: 12px; color: var(--muted); font-family: 'Fira Code', Consolas, monospace; }
+    .code-lang { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type{ color: #ffcb6b; }
+    .num { color: #f78c6c; }
+    .prop{ color: #89ddff; }
+
+    /* ── Helper table ── */
+    .helper-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .helper-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px; display: flex; align-items: flex-start; gap: 14px;
+    }
+    .helper-icon {
+      width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 17px; flex-shrink: 0;
+    }
+    .helper-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .helper-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ── Stack pills ── */
+    .stack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .stack-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px; text-align: center;
+    }
+    .stack-logo { font-size: 26px; margin-bottom: 8px; }
+    .stack-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .stack-role { font-size: 11px; color: var(--muted); }
+
+    /* ── Comparison table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--surface2); color: var(--accent); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--muted); vertical-align: top; }
+    td strong { color: var(--text); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    code {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px;
+      font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    /* ── Callouts ── */
+    .callout {
+      border-radius: 8px; padding: 14px 18px; font-size: 13px;
+      display: flex; gap: 12px; align-items: flex-start; margin: 20px 0;
+    }
+    .callout-icon { font-size: 16px; flex-shrink: 0; }
+    .callout-blue   { background: rgba(91,138,245,.08);  border: 1px solid rgba(91,138,245,.25);  }
+    .callout-green  { background: rgba(61,220,132,.08);  border: 1px solid rgba(61,220,132,.25);  }
+    .callout-amber  { background: rgba(255,179,0,.08);   border: 1px solid rgba(255,179,0,.25);   }
+    .callout-body { color: var(--muted); }
+    .callout-body strong { color: var(--text); }
+
+    /* ── Flow ── */
+    .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .flow-node {
+      padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      background: var(--surface2); border: 1px solid var(--border); white-space: nowrap;
+    }
+    .flow-arrow { color: var(--muted); font-size: 18px; }
+    .flow-node.hl  { background: rgba(91,138,245,.15); border-color: rgba(91,138,245,.4); color: var(--accent); }
+    .flow-node.grn { background: rgba(61,220,132,.1);  border-color: rgba(61,220,132,.35); color: var(--green); }
+    .flow-node.amb { background: rgba(255,179,0,.1);   border-color: rgba(255,179,0,.35);  color: var(--amber); }
+    .flow-node.pur { background: rgba(206,147,216,.1); border-color: rgba(206,147,216,.35); color: var(--purple); }
+
+    /* ── Quick-start steps ── */
+    .steps { counter-reset: steps; display: flex; flex-direction: column; gap: 20px; }
+    .step { display: flex; gap: 20px; align-items: flex-start; }
+    .step-num {
+      counter-increment: steps;
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800;
+    }
+    .step-content { flex: 1; padding-top: 6px; }
+    .step-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .step-body { font-size: 13px; color: var(--muted); }
+
+    /* ── Two-col ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center; padding: 40px 60px 60px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) { .hero, .content-section, .footer { padding-left: 32px; padding-right: 32px; } }
+    @media (max-width: 800px) {
+      .sidebar { display: none; }
+      .two-col { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>PW TypeScript Framework</h2>
+      <p>Introduction &amp; Getting Started</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <a href="#hero" class="nav-item"><span class="nav-num">—</span>What is this Framework?</a>
+      <a href="#architecture" class="nav-item"><span class="nav-num">01</span>Architecture</a>
+      <a href="#features" class="nav-item"><span class="nav-num">02</span>Core Features</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Key Layers</div>
+      <a href="#helpers" class="nav-item"><span class="nav-num">03</span>Helper System</a>
+      <a href="#fixtures" class="nav-item"><span class="nav-num">04</span>Fixture Injection</a>
+      <a href="#api" class="nav-item"><span class="nav-num">05</span>API Testing</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Developer Experience</div>
+      <a href="#quickstart" class="nav-item"><span class="nav-num">06</span>Quick Start</a>
+      <a href="#anatomy" class="nav-item"><span class="nav-num">07</span>Test Anatomy</a>
+      <a href="#data" class="nav-item"><span class="nav-num">08</span>Test Data</a>
+      <a href="#assertions" class="nav-item"><span class="nav-num">09</span>Assertions</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Infrastructure</div>
+      <a href="#cicd" class="nav-item"><span class="nav-num">10</span>CI/CD &amp; Reporting</a>
+      <a href="#stack" class="nav-item"><span class="nav-num">11</span>Technology Stack</a>
+      <a href="#commands" class="nav-item"><span class="nav-num">12</span>Run Commands</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- Hero                                                     -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">Enterprise Playwright Automation Framework</div>
+      <h1>The Gold Standard for<br>E2E Test Automation</h1>
+      <p class="hero-sub">
+        A production-grade Playwright TypeScript framework built on a composition-based Page Object Model,
+        layered helper architecture, typed API clients, and a full CI/CD pipeline — designed to scale across
+        multiple brands, browsers, and environments without ceremony.
+      </p>
+      <div class="hero-badges">
+        <span class="badge-hero blue">Playwright v1.59</span>
+        <span class="badge-hero blue">TypeScript Strict</span>
+        <span class="badge-hero green">Composition POM</span>
+        <span class="badge-hero green">REST + GraphQL API</span>
+        <span class="badge-hero purple">GitHub Actions CI</span>
+        <span class="badge-hero amber">GRA Multi-Brand</span>
+        <span class="badge-hero cyan">Monocart + Slack</span>
+        <span class="badge-hero cyan">Percy Visual Tests</span>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-num blue">3</div>
+          <div class="stat-label">Test Areas<br><small>Frontsite · Admin · Ecommerce</small></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num green">4</div>
+          <div class="stat-label">API Brands<br><small>pla · skx · drm · van</small></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num purple">8</div>
+          <div class="stat-label">Helper Classes<br><small>One responsibility each</small></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num cyan">5</div>
+          <div class="stat-label">CI Reporters<br><small>HTML · JSON · JUnit · Monocart · Slack</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 01 — Architecture                                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="architecture">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Framework Architecture</h2>
+          <div class="section-desc">Composition-based layered design — every layer has a single, clear job</div>
+        </div>
+      </div>
+
+      <div class="arch-diagram">
+        <div class="arch-title">Framework Layer Diagram</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">Test Layer</div>
+          <div class="arch-nodes">
+            <div class="arch-node tier-test">UI Spec Files<sub>tests/frontsite/ tests/admin/</sub></div>
+            <div class="arch-node tier-test">Ecommerce Smoke<sub>tests/ecommerce/smoke/</sub></div>
+            <div class="arch-node tier-test">API Spec Files<sub>tests/api/ pla-*.spec.ts</sub></div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">↓</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">Config / Fixture Layer</div>
+          <div class="arch-nodes">
+            <div class="arch-node tier-config">base-test.ts<sub>test.extend() · 14 UI fixtures · softExpect</sub></div>
+            <div class="arch-node tier-config">ApiTest.ts<sub>apiClient · graphqlClient · graTest</sub></div>
+            <div class="arch-node tier-config">playwright.config.ts + api.config.ts<sub>projects · reporters · global setup</sub></div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">↓</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">Page Object Layer</div>
+          <div class="arch-nodes">
+            <div class="arch-node tier-page">Frontsite Pages<sub>HomePage · InsightsPage · etc.</sub></div>
+            <div class="arch-node tier-page">Admin Pages<sub>LoginPage</sub></div>
+            <div class="arch-node tier-page">Ecommerce Pages<sub>Home · Nav · Search · PLP · PDP · Cart</sub></div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">↓</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">BasePage + Helpers (Core)</div>
+          <div class="arch-nodes">
+            <div class="arch-node tier-base">BasePage<sub>Abstract root · owns 8 helper instances</sub></div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">↓</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">Helper Layer</div>
+          <div class="arch-nodes">
+            <div class="arch-node tier-helper">WaitHelper<sub>Sync / polls</sub></div>
+            <div class="arch-node tier-helper">ElementHelper<sub>Click / input / query</sub></div>
+            <div class="arch-node tier-helper">StyleHelper<sub>CSS / colours</sub></div>
+            <div class="arch-node tier-helper">FrameHelper<sub>iframes</sub></div>
+            <div class="arch-node tier-helper">FileHelper<sub>Upload / DnD</sub></div>
+            <div class="arch-node tier-helper">StorageHelper<sub>Cookies / LS</sub></div>
+            <div class="arch-node tier-helper">NetworkHelper<sub>Route mocking</sub></div>
+            <div class="arch-node tier-helper">TableHelper<sub>HTML tables</sub></div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">↓</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">API Client Layer</div>
+          <div class="arch-nodes">
+            <div class="arch-node tier-api">ApiClient<sub>Low-level HTTP · AuthType strategy</sub></div>
+            <div class="arch-node tier-api">ApiClientExt<sub>*WithWrapper fluent chain</sub></div>
+            <div class="arch-node tier-api">GraphQLClient<sub>queryWrapped · mutateWrapped · batch</sub></div>
+            <div class="arch-node tier-api">ApiResponseWrapper<sub>assertStatus · assertJsonPath · extract</sub></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-blue" style="margin-top:24px">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>The core rule:</strong> Every page class extends <code>BasePage</code> and delegates all browser interactions to helper fields (<code>this.elements.clickElement()</code>, not <code>this.page.click()</code> directly). This keeps interaction logic out of page semantics and makes helpers independently reusable across all page objects.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 02 — Core Features                                       -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="features">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Core Features</h2>
+          <div class="section-desc">What sets this framework apart from a vanilla Playwright setup</div>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+
+        <div class="feature-card" style="--card-accent: var(--accent)">
+          <div class="feature-icon">🏗️</div>
+          <div class="feature-title">Composition-Based POM</div>
+          <div class="feature-body">
+            <strong>8 specialised helper classes</strong> replace the god-object anti-pattern. Each helper owns one interaction domain. Page classes stay thin — they describe <em>what</em> the page is, not <em>how</em> to drive a browser.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">Architecture</span><span class="feature-tag">DRY</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--green)">
+          <div class="feature-icon">💉</div>
+          <div class="feature-title">Fixture-Based Dependency Injection</div>
+          <div class="feature-body">
+            All page objects and utilities are injected by Playwright's <code>test.extend()</code>. No <code>new PageObject(page)</code> in spec files — tests receive ready-to-use instances with <strong>automatic isolation per test</strong>.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">14 UI Fixtures</span><span class="feature-tag">API Fixtures</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--cyan)">
+          <div class="feature-icon">🌐</div>
+          <div class="feature-title">Dual API Client Stack</div>
+          <div class="feature-body">
+            <strong>REST</strong> via <code>ApiClientExt</code> (fluent <code>assertStatus / assertJsonPath / extract</code> chains) and <strong>GraphQL</strong> via <code>GraphQLClient</code> with typed wrapper assertions. Safe variable injection — no string interpolation.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">REST</span><span class="feature-tag">GraphQL</span><span class="feature-tag">Auth Enum</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--amber)">
+          <div class="feature-icon">🏷️</div>
+          <div class="feature-title">GRA Multi-Brand Engine</div>
+          <div class="feature-body">
+            One shared suite of 15 spec files runs across <strong>4 brand endpoints</strong> via Playwright projects. Each project injects its <code>SiteContext</code> (URL, credentials, feature flags) — zero code duplication between brands.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">pla-au</span><span class="feature-tag">skx-au</span><span class="feature-tag">drm-au</span><span class="feature-tag">van-au</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--purple)">
+          <div class="feature-icon">🔵</div>
+          <div class="feature-title">Dual Assertion Mode</div>
+          <div class="feature-body">
+            <strong>Hard assertions</strong> (fail-fast) for preconditions. <strong>Soft assertions</strong> (<code>softExpect</code> or the <code>softAssert</code> fixture) accumulate all failures and report them together — no blind spots in multi-check tests.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">Hard</span><span class="feature-tag">Soft</span><span class="feature-tag">Logger integrated</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--green)">
+          <div class="feature-icon">📋</div>
+          <div class="feature-title">Structured Test Logging</div>
+          <div class="feature-body">
+            <code>TestLogger</code> provides a <strong>step / action / verify triad</strong>. Logs write to <code>test-execution.log</code> and are attached as Playwright HTML report annotations — failure context lives inside the report, no external files needed.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">HTML report</span><span class="feature-tag">Annotations</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--red)">
+          <div class="feature-icon">⏱️</div>
+          <div class="feature-title">CI-Aware Timeout Constants</div>
+          <div class="feature-body">
+            All timeouts reference <strong>named constants</strong> from <code>TIMEOUTS</code> — never magic numbers. Values scale automatically: longer in CI, shorter locally. No more <code>30000</code> buried in 50 different files.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">src/constants/timeouts.ts</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--accent)">
+          <div class="feature-icon">🚀</div>
+          <div class="feature-title">Full CI/CD Pipeline</div>
+          <div class="feature-body">
+            <strong>GitHub Actions</strong> with OS matrix (Windows + macOS), browser caching, Cloudflare Pages report deployment, monocart trend history, GitHub Step Summary, and rich <strong>Slack Block Kit notifications</strong> — all wired up out of the box.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">Slack</span><span class="feature-tag">Cloudflare</span><span class="feature-tag">Matrix CI</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--purple)">
+          <div class="feature-icon">📸</div>
+          <div class="feature-title">Visual Regression Testing</div>
+          <div class="feature-body">
+            <strong>Percy</strong> integration via dedicated <code>percyHelper</code> fixture. Snapshots run only when <code>PERCY_TOKEN</code> is present — local runs skip silently. Visual tests live alongside functional tests in the same suite.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">Percy</span><span class="feature-tag">Conditional</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--cyan)">
+          <div class="feature-icon">🛡️</div>
+          <div class="feature-title">TypeScript Strict Mode</div>
+          <div class="feature-body">
+            <code>"strict": true</code>, explicit return types everywhere, named interfaces on all data shapes, <code>AuthType</code> enum instead of string literals. <code>npm run lint</code> runs <code>tsc --noEmit</code> — type errors fail the CI build.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">strictNullChecks</span><span class="feature-tag">noImplicitAny</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--amber)">
+          <div class="feature-icon">🐳</div>
+          <div class="feature-title">Docker Support</div>
+          <div class="feature-body">
+            Full Docker integration: build, run all browsers, API-only mode, parallel execution. <strong>15+ <code>docker:*</code> npm scripts</strong> allow any environment to reproduce a CI run without installing Playwright or Node.js locally.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">docker:test</span><span class="feature-tag">Chromium · Firefox · WebKit</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--green)">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">API Mocking Layer</div>
+          <div class="feature-body">
+            <code>ApiMockService</code> wraps Playwright's <code>page.route()</code> into <strong>named scenario methods</strong> — <code>mockSuccessfulLogin()</code>, <code>mockProductList()</code>, <code>mockGraphQLError('PlaceOrder')</code>. Tests call intent, not plumbing.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">NetworkHelper</span><span class="feature-tag">Centralised mocks</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 03 — Helper System                                       -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="helpers">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>The Helper System</h2>
+          <div class="section-desc">8 single-responsibility classes replacing direct <code>page.*</code> calls</div>
+        </div>
+      </div>
+
+      <div class="helper-grid">
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(91,138,245,.15); color:var(--accent)">⏳</div>
+          <div>
+            <div class="helper-name">WaitHelper <code>this.waits</code></div>
+            <div class="helper-desc">Page load, element visibility, network idle, custom poll conditions, spinner detection</div>
+          </div>
+        </div>
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(61,220,132,.15); color:var(--green)">🖱️</div>
+          <div>
+            <div class="helper-name">ElementHelper <code>this.elements</code></div>
+            <div class="helper-desc">Clicks, text input, getText, attributes, scroll, drag-and-drop, keyboard, dropdowns</div>
+          </div>
+        </div>
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(206,147,216,.15); color:var(--purple)">🎨</div>
+          <div>
+            <div class="helper-name">StyleHelper <code>this.style</code></div>
+            <div class="helper-desc">Computed colours (→ hex), CSS properties, element dimensions, image natural size</div>
+          </div>
+        </div>
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(0,188,212,.15); color:var(--cyan)">🪟</div>
+          <div>
+            <div class="helper-name">FrameHelper <code>this.frames</code></div>
+            <div class="helper-desc">iframe operations via <code>frameLocator()</code> API — all iframe scoped interactions</div>
+          </div>
+        </div>
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(255,179,0,.15); color:var(--amber)">📁</div>
+          <div>
+            <div class="helper-name">FileHelper <code>this.files</code></div>
+            <div class="helper-desc">File upload via input or drag-and-drop, multi-file handling, clear uploaded files</div>
+          </div>
+        </div>
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(255,82,82,.15); color:var(--red)">💾</div>
+          <div>
+            <div class="helper-name">StorageHelper <code>this.storage</code></div>
+            <div class="helper-desc">Cookies, localStorage, sessionStorage, clipboard read and write operations</div>
+          </div>
+        </div>
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(91,138,245,.15); color:var(--accent)">🌐</div>
+          <div>
+            <div class="helper-name">NetworkHelper <code>this.network</code></div>
+            <div class="helper-desc">Route mocking, request interception, HAR recording, performance timing capture</div>
+          </div>
+        </div>
+        <div class="helper-card">
+          <div class="helper-icon" style="background:rgba(61,220,132,.15); color:var(--green)">📊</div>
+          <div>
+            <div class="helper-name">TableHelper <code>this.tables</code></div>
+            <div class="helper-desc">HTML table row/cell access, column sorting, pagination handling, bulk data extraction</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-amber" style="margin-top:20px">
+        <span class="callout-icon">🚫</span>
+        <div class="callout-body">
+          <strong>Golden rule — never call <code>page.locator()</code> or <code>page.click()</code> directly inside a page class.</strong>
+          Use <code>this.elements.clickElement()</code>, <code>this.waits.waitForElement()</code>, etc.
+          All locators must be declared as <code>private readonly</code> class fields — never inline inside method bodies.
+        </div>
+      </div>
+
+      <div style="margin-top:24px">
+        <div class="two-col">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">✅ Correct</div>
+            <pre><span class="kw">class</span> <span class="type">ProductPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="cmt">// 1. Locators hoisted to class fields</span>
+  <span class="kw">private readonly</span> addToCartBtn =
+    <span class="kw">this</span>.page.<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: <span class="str">'Add to Cart'</span> });
+  <span class="kw">private readonly</span> priceSelector =
+    <span class="str">'[data-testid="product-price"]'</span>;
+
+  <span class="kw">async</span> <span class="fn">addToCart</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="cmt">// 2. Delegate to helper</span>
+    <span class="kw">await this</span>.elements.<span class="fn">clickLocator</span>(<span class="kw">this</span>.addToCartBtn);
+  }
+
+  <span class="kw">async</span> <span class="fn">getPrice</span>(): <span class="type">Promise&lt;string&gt;</span> {
+    <span class="kw">return</span> <span class="kw">this</span>.elements.<span class="fn">getText</span>(<span class="kw">this</span>.priceSelector);
+  }
+}</pre>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--red);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">❌ Banned</div>
+            <pre><span class="kw">class</span> <span class="type">ProductPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="kw">async</span> <span class="fn">addToCart</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="cmt">// WRONG — direct page.click()</span>
+    <span class="kw">await this</span>.page.<span class="fn">click</span>(<span class="str">'button:has-text("Add")'</span>);
+
+    <span class="cmt">// WRONG — inline selector in helper call</span>
+    <span class="kw">await this</span>.elements.<span class="fn">clickElement</span>(
+      <span class="str">'[data-testid="add-to-cart"]'</span>);
+
+    <span class="cmt">// WRONG — structural CSS selector</span>
+    <span class="kw">await this</span>.page.<span class="fn">locator</span>(
+      <span class="str">'div > section > ul > li:nth-child(2) > button'</span>)
+      .<span class="fn">click</span>();
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 04 — Fixture Injection                                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="fixtures">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Fixture-Based Dependency Injection</h2>
+          <div class="section-desc">Page objects arrive via destructuring — no <code>new</code> calls, no shared state</div>
+        </div>
+      </div>
+
+      <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">
+        <code>src/config/base-test.ts</code> wraps Playwright's <code>test.extend()</code> to register all page objects. Each fixture is lazily instantiated fresh per test. The <code>use()</code> boundary separates setup from teardown — code after <code>await use(...)</code> is guaranteed to run even if the test throws.
+      </p>
+
+      <table>
+        <thead><tr><th>Fixture</th><th>Type</th><th>Area</th></tr></thead>
+        <tbody>
+          <tr><td><code>homePage</code></td><td><strong>HomePage</strong></td><td>Frontsite</td></tr>
+          <tr><td><code>loginPage</code></td><td><strong>LoginPage</strong></td><td>Admin</td></tr>
+          <tr><td><code>insightsPage</code></td><td><strong>InsightsPage</strong></td><td>Frontsite</td></tr>
+          <tr><td><code>servicesAZPage</code></td><td><strong>ServicesAZPage</strong></td><td>Frontsite</td></tr>
+          <tr><td><code>profileListingPage</code></td><td><strong>ProfileListingPage</strong></td><td>Frontsite</td></tr>
+          <tr><td><code>formDragAndDropPage</code></td><td><strong>FormDragAndDropPage</strong></td><td>Frontsite</td></tr>
+          <tr><td><code>ecommerceHomePage</code></td><td><strong>EcommerceHomePage</strong></td><td>Ecommerce</td></tr>
+          <tr><td><code>ecommerceNavPage</code></td><td><strong>EcommerceNavPage</strong></td><td>Ecommerce</td></tr>
+          <tr><td><code>ecommerceSearchPage</code></td><td><strong>EcommerceSearchPage</strong></td><td>Ecommerce</td></tr>
+          <tr><td><code>ecommercePLPPage</code></td><td><strong>EcommercePLPPage</strong></td><td>Ecommerce</td></tr>
+          <tr><td><code>ecommercePDPPage</code></td><td><strong>EcommercePDPPage</strong></td><td>Ecommerce</td></tr>
+          <tr><td><code>ecommerceCartOverlayPage</code></td><td><strong>EcommerceCartOverlayPage</strong></td><td>Ecommerce (+ Firefox SPA teardown workaround)</td></tr>
+          <tr><td><code>percyHelper</code></td><td><strong>PercyHelper</strong></td><td>Visual regression</td></tr>
+          <tr><td><code>softAssert</code></td><td><strong>SoftAssertHelper</strong></td><td>Soft assertions + logger integration</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-green" style="margin-top:16px">
+        <span class="callout-icon">📁</span>
+        <div class="callout-body">
+          <strong>Import rule for UI tests:</strong> Always <code>import { test, expect } from '@config/base-test'</code>.
+          Importing directly from <code>@playwright/test</code> silently loses all custom fixtures — tests compile but every page object fixture is <code>undefined</code> at runtime.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 05 — API Testing                                         -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="api">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>API Testing Architecture</h2>
+          <div class="section-desc">Layered REST and GraphQL clients with fluent assertion wrappers</div>
+        </div>
+      </div>
+
+      <div class="flow">
+        <div class="flow-node hl">ApiClient<br><small>Low-level HTTP</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node grn">ApiClientExt<br><small>*WithWrapper methods</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node amb">ApiResponseWrapper<br><small>Fluent assertion chain</small></div>
+      </div>
+      <div class="flow" style="margin-top:8px">
+        <div class="flow-node hl">ApiClient</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node pur">GraphQLClient<br><small>queryWrapped · mutateWrapped · batch</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node amb">GraphQLResponseWrapper<br><small>assertNoErrors · assertDataField…</small></div>
+      </div>
+
+      <div style="margin-top:24px">
+        <div class="two-col">
+          <div>
+            <div class="code-header">
+              <span class="code-filename">REST test example</span>
+              <span class="code-lang">TypeScript</span>
+            </div>
+            <pre><span class="kw">import</span> { apiTest <span class="kw">as</span> test } <span class="kw">from</span>
+  <span class="str">'../../src/api/ApiTest'</span>;
+
+test(<span class="str">'TC_01 - Fetch product by ID'</span>,
+  <span class="kw">async</span> ({ apiClientExt }) =&gt; {
+
+  <span class="kw">const</span> res = <span class="kw">await</span> apiClientExt
+    .<span class="fn">getWithWrapper</span>(<span class="str">'/products/1'</span>);
+
+  <span class="kw">await</span> res.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+  <span class="kw">await</span> res.<span class="fn">assertJsonPath</span>(<span class="str">'id'</span>, <span class="num">1</span>);
+  <span class="kw">await</span> res.<span class="fn">assertHasHeader</span>(<span class="str">'content-type'</span>);
+  <span class="kw">const</span> name = <span class="kw">await</span> res.<span class="fn">extract</span>(<span class="str">'name'</span>);
+});</pre>
+          </div>
+          <div>
+            <div class="code-header">
+              <span class="code-filename">GraphQL test example</span>
+              <span class="code-lang">TypeScript</span>
+            </div>
+            <pre><span class="kw">const</span> GET_USER = <span class="str">`
+  query GetUser($id: ID!) {
+    user(id: $id) { id name email }
+  }
+`</span>;
+
+test(<span class="str">'TC_02 - Query user'</span>,
+  <span class="kw">async</span> ({ graphqlClient }) =&gt; {
+
+  <span class="kw">const</span> gql = <span class="kw">await</span> graphqlClient
+    .<span class="fn">queryWrapped</span>(GET_USER, { id: <span class="str">'1'</span> });
+
+  <span class="kw">await</span> gql.<span class="fn">assertNoErrors</span>(); <span class="cmt">// ← always first</span>
+  <span class="kw">await</span> gql.<span class="fn">assertDataField</span>(
+    <span class="str">'user.id'</span>, <span class="str">'1'</span>);
+});</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-amber" style="margin-top:20px">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">
+          <strong>Never interpolate variables into GraphQL strings.</strong> Use the variables argument: <code>queryWrapped(QUERY, { id })</code>.
+          String interpolation is an injection risk and breaks query caching.
+          Also: always use <code>errors?.length</code> guards, never bare truthy <code>if (errors)</code> — an empty array <code>[]</code> is truthy.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 06 — Quick Start                                         -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="quickstart">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Quick Start</h2>
+          <div class="section-desc">From clone to first test run in 5 steps</div>
+        </div>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Install dependencies and browsers</div>
+            <div class="step-body">
+              <pre><span class="prop">npm</span> install
+<span class="prop">npm</span> run install:browsers</pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Configure your environment</div>
+            <div class="step-body">
+              Copy <code>.env.example</code> to <code>.env.testing</code> and fill in the target URL(s). The framework loads <code>.env.{NODE_ENV}</code> automatically.
+              <pre><span class="prop">FRONT_SITE_URL</span>=https://your-app.example.com/en
+<span class="prop">ADMIN_URL</span>=https://your-app.example.com/admin
+<span class="prop">API_BASE_URL</span>=https://api.your-app.example.com</pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Run your first test</div>
+            <div class="step-body">
+              <pre><span class="prop">npm</span> test                          <span class="cmt"># all UI tests, headless</span>
+<span class="prop">npm</span> run test:headed               <span class="cmt"># watch tests in a real browser</span>
+<span class="prop">npx</span> playwright test --grep <span class="str">"TC_01"</span>  <span class="cmt"># run a specific test</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Open the interactive report</div>
+            <div class="step-body">
+              <pre><span class="prop">npm</span> run report          <span class="cmt"># Playwright HTML report</span>
+<span class="prop">npm</span> run report:monocart <span class="cmt"># monocart rich grid report</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Add a new test</div>
+            <div class="step-body">
+              Create a page object in <code>src/pages/{area}/my-page.ts</code>, register it as a fixture in <code>src/config/base-test.ts</code>, then write your spec in <code>tests/{area}/my-feature.spec.ts</code>. See §07 below for the exact template.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 07 — Test Anatomy                                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="anatomy">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Test Anatomy</h2>
+          <div class="section-desc">The complete shape of a well-formed spec file</div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">tests/frontsite/my-feature.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="cmt">// ① Always import from @config/base-test — never from @playwright/test</span>
+<span class="kw">import</span> { test, expect, softExpect } <span class="kw">from</span> <span class="str">'@config/base-test'</span>;
+<span class="kw">import</span> { <span class="type">MyFeatureData</span> } <span class="kw">from</span> <span class="str">'../../src/data/my-feature-data'</span>;
+<span class="kw">import</span> { <span class="fn">createTestLogger</span> } <span class="kw">from</span> <span class="str">'../../src/utils/test-logger'</span>;
+
+<span class="cmt">// ② Tags go in the describe() name — not in individual test() names</span>
+test.<span class="fn">describe</span>(<span class="str">'My Feature @frontsite @regression'</span>, () =&gt; {
+
+  <span class="cmt">// ③ TC_XX naming for new frontsite / admin / API tests</span>
+  test(<span class="str">'TC_01 - Verify page title and navigation links are visible'</span>,
+    <span class="kw">async</span> ({ myPage, softAssert }) =&gt; {
+
+    <span class="cmt">// ④ Logger: one per test, same name as the test</span>
+    <span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_01 page title and nav links'</span>);
+
+    <span class="cmt">// ⑤ Steps: numbered, action-oriented</span>
+    logger.<span class="fn">step</span>(<span class="str">'Step 1 - Navigate to the feature page'</span>);
+    <span class="kw">await</span> myPage.<span class="fn">navigateToPage</span>();
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 2 - Verify title'</span>);
+    <span class="kw">const</span> title = <span class="kw">await</span> myPage.<span class="fn">getPageTitle</span>();
+    <span class="cmt">// Hard assertion — precondition for all subsequent steps</span>
+    <span class="fn">expect</span>(title).<span class="fn">toContain</span>(<span class="type">MyFeatureData</span>.EXPECTED_TITLE);
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 3 - Soft-verify independent UI elements'</span>);
+    <span class="cmt">// Soft assertions accumulate — test continues past each failure</span>
+    softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> myPage.<span class="fn">isNavVisible</span>(), <span class="str">'Nav visible'</span>);
+    softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> myPage.<span class="fn">isFooterVisible</span>(), <span class="str">'Footer visible'</span>);
+  });
+
+  test(<span class="str">'TC_02 - Verify search returns results'</span>,
+    <span class="kw">async</span> ({ myPage }) =&gt; {
+    <span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_02 search results'</span>);
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 1 - Perform search'</span>);
+    <span class="kw">await</span> myPage.<span class="fn">search</span>(<span class="type">MyFeatureData</span>.SEARCH_TERM);
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 2 - Assert results visible'</span>);
+    <span class="kw">const</span> count = <span class="kw">await</span> myPage.<span class="fn">getResultCount</span>();
+    logger.<span class="fn">verify</span>(<span class="str">'Results returned'</span>, <span class="str">'&gt;0'</span>, count);
+    <span class="fn">expect</span>(count).<span class="fn">toBeGreaterThan</span>(<span class="num">0</span>);
+  });
+});</pre>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 08 — Test Data                                           -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="data">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Test Data Management</h2>
+          <div class="section-desc">Typed, never hardcoded — every data shape carries a named interface</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">
+            Static expected values live as <code>const</code> objects annotated with a named interface.
+            Dynamic / random data uses generator classes with explicit return types.
+            <strong>Never hardcode strings in spec files.</strong>
+          </p>
+          <table>
+            <thead><tr><th>Path</th><th>Content</th></tr></thead>
+            <tbody>
+              <tr><td><code>src/data/*.ts</code></td><td>UI general data modules</td></tr>
+              <tr><td><code>src/data/api/</code></td><td>API data — one file per domain</td></tr>
+              <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td>Ecommerce brand configs</td></tr>
+              <tr><td><code>src/data/api/sites.ts</code></td><td>GRA <code>SiteContext</code> per brand</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="code-header">
+            <span class="code-filename">src/data/my-feature-data.ts</span>
+            <span class="code-lang">TypeScript</span>
+          </div>
+          <pre><span class="cmt">// ✅ Named interface + annotated const</span>
+<span class="kw">export interface</span> <span class="type">MyFeatureShape</span> {
+  EXPECTED_TITLE: <span class="type">string</span>;
+  SEARCH_TERM: <span class="type">string</span>;
+}
+
+<span class="kw">export const</span> MyFeatureData: <span class="type">MyFeatureShape</span> = {
+  EXPECTED_TITLE: <span class="str">'Welcome'</span>,
+  SEARCH_TERM:    <span class="str">'automation'</span>,
+};
+
+<span class="cmt">// Dynamic data via generator</span>
+<span class="kw">export interface</span> <span class="type">UserRecord</span> {
+  name: <span class="type">string</span>; email: <span class="type">string</span>;
+}
+<span class="kw">export class</span> <span class="type">DataGenerator</span> {
+  <span class="kw">static</span> <span class="fn">newUser</span>(): <span class="type">UserRecord</span> {  <span class="cmt">// explicit return</span>
+    <span class="kw">const</span> ts = Date.<span class="fn">now</span>();
+    <span class="kw">return</span> { name: <span class="str">`User_${ts}`</span>,
+              email: <span class="str">`u${ts}@test.com`</span> };
+  }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 09 — Assertions                                          -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="assertions">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>Assertion Strategy</h2>
+          <div class="section-desc">Two modes — pick the right tool for each check</div>
+        </div>
+      </div>
+
+      <div class="feature-grid" style="grid-template-columns: 1fr 1fr; margin-bottom:20px">
+        <div class="feature-card" style="--card-accent: var(--red)">
+          <div class="feature-icon">🛑</div>
+          <div class="feature-title">Hard Assertions — <code>expect</code></div>
+          <div class="feature-body">
+            Fail immediately. Use for <strong>preconditions</strong> that guard subsequent steps. If a precondition fails, the rest of the test is meaningless — stop fast.
+            <br><br>Also use for: Playwright locator assertions (<code>expect(locator).toBeVisible()</code>), <code>expect.poll()</code>, and single-check tests.
+          </div>
+        </div>
+        <div class="feature-card" style="--card-accent: var(--accent)">
+          <div class="feature-icon">🔵</div>
+          <div class="feature-title">Soft Assertions — <code>softAssert</code> / <code>softExpect</code></div>
+          <div class="feature-body">
+            Continue past failure. Use for <strong>multiple independent checks</strong> on the same page state where all results matter.
+            <br><br><code>softAssert</code> (fixture) integrates with <code>TestLogger</code> — each call logs <code>🔵 [SOFT]</code>. Do NOT call <code>logger.verify()</code> before it — that duplicates the log entry.
+          </div>
+        </div>
+      </div>
+
+      <table>
+        <thead><tr><th>Scenario</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td>Multiple independent checks (title, count, visibility) on same state</td><td><strong>Soft</strong> — see all failures at once</td></tr>
+          <tr><td>Per-item assertions inside a loop</td><td><strong>Soft</strong> — all items reported</td></tr>
+          <tr><td>Precondition that guards subsequent steps</td><td><strong>Hard</strong> — following steps are meaningless if this fails</td></tr>
+          <tr><td>Playwright locator assertions (<code>expect(locator).toHaveText()</code>)</td><td><strong>Hard</strong> — SoftAssertHelper has no locator equivalent</td></tr>
+          <tr><td><code>expect.poll()</code> with retry logic</td><td><strong>Hard</strong> — poll has its own timeout/intervals</td></tr>
+          <tr><td>Single-assertion test</td><td><strong>Hard</strong> — soft provides no benefit</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 10 — CI/CD & Reporting                                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="cicd">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div>
+          <h2>CI/CD &amp; Reporting Pipeline</h2>
+          <div class="section-desc">End-to-end from commit to Slack notification</div>
+        </div>
+      </div>
+
+      <div class="flow" style="flex-wrap:wrap; gap:6px; margin-bottom:24px">
+        <div class="flow-node hl">Push / PR</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node">GitHub Actions<br><small>Windows + macOS matrix</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node grn">Tests Run<br><small>Chromium · Firefox · WebKit</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node amb">Reports Generated<br><small>HTML · JSON · JUnit · Monocart</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node pur">Cloudflare Pages<br><small>Live report URLs</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node hl">Slack Notification<br><small>Block Kit rich message</small></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Reporter</th><th>Output</th><th>Audience</th></tr></thead>
+        <tbody>
+          <tr><td><strong>html</strong></td><td><code>playwright-report/</code></td><td>Engineers — step traces, screenshots, video replay</td></tr>
+          <tr><td><strong>json</strong></td><td><code>test-results/results.json</code></td><td>CI tooling — programmatic parsing, shard merging</td></tr>
+          <tr><td><strong>junit</strong></td><td><code>test-results/results.xml</code></td><td>Test management tools — Jira Xray, Azure DevOps import</td></tr>
+          <tr><td><strong>list / line</strong></td><td>stdout</td><td>Console — live progress during local and CI runs</td></tr>
+          <tr><td><strong>monocart-reporter</strong></td><td><code>monocart-report/index.html</code></td><td>Stakeholders — grid view, trend chart, Step Summary, Slack counts</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-blue" style="margin-top:16px">
+        <span class="callout-icon">📊</span>
+        <div class="callout-body">
+          <strong>Monocart trend / history:</strong> The previous run's <code>index.json</code> is cached per branch via <code>actions/cache</code>. When <code>MONOCART_TREND_FILE</code> points to it, monocart renders a pass/fail trend chart across runs — visible directly in the interactive report.
+          <br><br>
+          <strong>GitHub Step Summary:</strong> The <code>onEnd</code> hook automatically appends a markdown results table to <code>$GITHUB_STEP_SUMMARY</code> — no separate URL needed for a quick pass/fail view in the Actions run.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 11 — Technology Stack                                    -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="stack">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div>
+          <h2>Technology Stack</h2>
+          <div class="section-desc">Every tool chosen for a specific, non-overlapping reason</div>
+        </div>
+      </div>
+
+      <div class="stack-grid">
+        <div class="stack-item">
+          <div class="stack-logo">🎭</div>
+          <div class="stack-name">Playwright v1.59</div>
+          <div class="stack-role">Browser automation engine</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">🟦</div>
+          <div class="stack-name">TypeScript Strict</div>
+          <div class="stack-role">Type safety across the board</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">⚙️</div>
+          <div class="stack-name">GitHub Actions</div>
+          <div class="stack-role">CI/CD orchestration</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">📊</div>
+          <div class="stack-name">Monocart Reporter</div>
+          <div class="stack-role">Rich interactive test reports</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">📸</div>
+          <div class="stack-name">Percy</div>
+          <div class="stack-role">Visual regression testing</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">🔔</div>
+          <div class="stack-name">Slack Block Kit</div>
+          <div class="stack-role">CI run notifications</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">☁️</div>
+          <div class="stack-name">Cloudflare Pages</div>
+          <div class="stack-role">Report hosting &amp; sharing</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">🐳</div>
+          <div class="stack-name">Docker</div>
+          <div class="stack-role">Reproducible test environments</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">🌐</div>
+          <div class="stack-name">GraphQL + REST</div>
+          <div class="stack-role">API test clients</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">🔦</div>
+          <div class="stack-name">Lighthouse CI</div>
+          <div class="stack-role">Performance assertions</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">🧪</div>
+          <div class="stack-name">dotenv</div>
+          <div class="stack-role">Multi-environment config</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-logo">📦</div>
+          <div class="stack-name">Node.js ESM</div>
+          <div class="stack-role">NodeNext module resolution</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 12 — Run Commands                                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="commands">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div>
+          <h2>Run Commands Reference</h2>
+          <div class="section-desc">The most frequently used commands — full list in CLAUDE.md</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <p style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;">UI Tests</p>
+          <pre><span class="cmt"># Core</span>
+npm test                    <span class="cmt"># headless, chromium + firefox</span>
+npm run test:headed         <span class="cmt"># visible browser</span>
+npm run test:debug          <span class="cmt"># Playwright Inspector</span>
+npm run test:ui             <span class="cmt"># interactive UI mode</span>
+
+<span class="cmt"># Scoped</span>
+npx playwright test --grep <span class="str">"TC_01"</span>
+npm run test:simple:frontsite
+npm run test:simple:admin
+
+<span class="cmt"># Environment</span>
+npm run test:testing
+npm run test:staging
+npm run test:production
+
+<span class="cmt"># Parallel</span>
+npm run test:parallel       <span class="cmt"># 50% workers</span>
+npm run test:parallel:max   <span class="cmt"># 100% workers</span>
+npm run test:parallel:all   <span class="cmt"># all 3 browsers</span></pre>
+        </div>
+        <div>
+          <p style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;">API Tests &amp; Utilities</p>
+          <pre><span class="cmt"># API</span>
+npm run test:api            <span class="cmt"># all API, 4 workers</span>
+npm run test:api:testing
+npm run test:api:staging
+npm run test:api:debug
+
+<span class="cmt"># Reports</span>
+npm run report              <span class="cmt"># open HTML report</span>
+npm run report:monocart     <span class="cmt"># open monocart report</span>
+npm run report:api          <span class="cmt"># open API report</span>
+
+<span class="cmt"># Docker</span>
+npm run docker:build
+npm run docker:test
+npm run docker:test:api
+
+<span class="cmt"># Utilities</span>
+npm run lint                <span class="cmt"># tsc type-check</span>
+npm run clean               <span class="cmt"># remove results &amp; reports</span>
+npm run codegen             <span class="cmt"># Playwright recorder</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Footer ── -->
+    <div class="footer">
+      <p>Playwright TypeScript Automation Framework &nbsp;|&nbsp; Introduction &amp; Getting Started</p>
+      <p style="margin-top:8px">
+        For design patterns and advanced conventions, see
+        <a href="../code-improvement/framework-patterns.html">framework-patterns.html</a>
+      </p>
+      <p style="margin-top:6px; color: #546e7a;">Generated 2026-06-15</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Highlight active nav item on scroll
+  const sections = document.querySelectorAll('section[id], .hero');
+  const navItems = document.querySelectorAll('.nav-item');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navItems.forEach(n => n.classList.remove('active'));
+        const link = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -65% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

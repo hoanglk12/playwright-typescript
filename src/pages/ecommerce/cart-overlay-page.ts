@@ -125,6 +125,120 @@ export class EcommerceCartOverlayPage extends BasePage {
       .catch(() => {});
   }
 
+  // Returns the subtotal amount from the visible mini cart overlay as a formatted price string
+  // (e.g. "$49.99" or "AUD$49.99"). The subtotal is the unit price × quantity before tax/shipping —
+  // for a single item with no shipping applied, it equals the unit price on the PDP.
+  //
+  // Label search is tiered (three staged passes across all visible elements in the overlay panel)
+  // to return the subtotal row, not the grand total:
+  //   Pass 1 — label text matches /subtotal/i (most specific: only the subtotal row)
+  //   Pass 2 — label text matches /order\s+total/i (order total before tax on some storefronts)
+  //   Pass 3 — label text matches /^total/i (fallback: "Total" heading, not a price-only line)
+  //
+  // A label element is the deepest element whose own textContent matches the label regex AND
+  // whose own textContent does NOT itself contain a price — this anchors extraction to the label
+  // cell rather than a parent container whose textContent merges label + price. Price extraction
+  // from that label element then tries: (1) label's own text for an embedded price, (2) next
+  // sibling's text, (3) parent's text — returning the first /[A-Z]{0,3}\$[\d,]+\.\d{2}/ match.
+  //
+  // Returns '' (empty string) if no subtotal row is found — never throws.
+  async getCartTotal(): Promise<string> {
+    const sel = this.overlayPanelSelector;
+    return this.page.evaluate((panelSelector) => {
+      const priceRe = /[A-Z]{0,3}\$[\d,]+\.\d{2}/;
+
+      // Collect ALL positioned (fixed/absolute) panels containing "cart" or "bag" text.
+      // Using filter + iteration (not .find) so that if a broad selector like `aside` or
+      // `[role="complementary"]` matches an earlier non-cart element, we still reach the
+      // actual mini cart panel. Mirrors removeFirstItem's multi-panel pattern.
+      const panels = Array.from(document.querySelectorAll(panelSelector)).filter((el) => {
+        const r = (el as Element).getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return false;
+        const style = getComputedStyle(el as Element);
+        if (style.position !== 'fixed' && style.position !== 'absolute') return false;
+        const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
+        return text.includes('cart') || text.includes('bag');
+      });
+
+      if (panels.length === 0) return '';
+
+      // Returns the visible text of any Element, preferring innerText for HTMLElements
+      // (which collapses whitespace and honours CSS display:none) and falling back to
+      // textContent for SVG and other non-HTML elements.
+      const getText = (el: Element): string =>
+        (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
+
+      /**
+       * Within `panel`, walk every element to find the deepest element whose own text matches
+       * `labelRe`. "Deepest" means: none of its direct children ALSO matches `labelRe` —
+       * this descends through broad ancestors (e.g. a totals-section container) until we
+       * reach the tightest element that carries the label text.
+       *
+       * The child check is label-only (NOT gated on the child containing a price). This is
+       * intentional: on Skechers AU, the tightest label element (e1008) has innerText
+       * "Subtotal 1 Item $219.99" — its children e1009 ("1 Item") and e1010 ("$219.99") do NOT
+       * match /subtotal/i, so e1008 is correctly identified as the deepest label element and
+       * its own text is used for price extraction. Adding a price guard here would incorrectly
+       * skip elements whose children carry a price alongside the label.
+       *
+       * From the label element, price extraction tries:
+       *   1. The label element's own text (subtotal row as a single element)
+       *   2. The next sibling's text (label cell | price cell layout)
+       *   3. The parent's text (row container whose innerText merges label + price)
+       * Returns the first /[A-Z]{0,3}\$[\d,]+\.\d{2}/ match or '' if none found.
+       */
+      const extractPriceNearInPanel = (panel: Element, labelRe: RegExp): string => {
+        const allEls = Array.from(panel.querySelectorAll('*'));
+        for (const el of allEls) {
+          const ownText = getText(el);
+          // Must match the label pattern and must not be a short pure-price string
+          // (avoids treating a "$49.99" price element as the label).
+          if (!labelRe.test(ownText)) continue;
+          if (priceRe.test(ownText) && ownText.length < 20) continue;
+
+          // Require deepest label match: descend until no child also matches labelRe.
+          // The price guard is intentionally absent — a child carrying a price AND the label
+          // text is still a "match", which would promote us to descend further. We only stop
+          // descending when NO child matches the label (price-only or other-text children).
+          const childMatchesLabel = Array.from(el.children).some((child) =>
+            labelRe.test(getText(child)),
+          );
+          if (childMatchesLabel) continue;
+
+          // Extraction pass 1: label element's own text (inline label+price)
+          const ownMatch = ownText.match(priceRe);
+          if (ownMatch) return ownMatch[0];
+
+          // Extraction pass 2: next sibling (label cell | price cell layout)
+          const nextSibling = el.nextElementSibling;
+          if (nextSibling) {
+            const sibMatch = getText(nextSibling).match(priceRe);
+            if (sibMatch) return sibMatch[0];
+          }
+
+          // Extraction pass 3: parent row container (merges label + price in innerText)
+          const parent = el.parentElement;
+          if (parent) {
+            const parentMatch = getText(parent).match(priceRe);
+            if (parentMatch) return parentMatch[0];
+          }
+        }
+        return '';
+      };
+
+      // Tiered label search across all matching panels. Stop as soon as any tier + panel
+      // returns a non-empty price. Tier order: Subtotal → Order Total → Total (generic).
+      const labelTiers: RegExp[] = [/subtotal/i, /order\s+total/i, /^total/i];
+      for (const labelRe of labelTiers) {
+        for (const panel of panels) {
+          const price = extractPriceNearInPanel(panel, labelRe);
+          if (price) return price;
+        }
+      }
+      return '';
+    }, sel);
+  }
+
   // Clicks the first remove control inside the visible mini cart overlay panel.
   // Uses a two-pass strategy to avoid clicking a header close "×" before the line-item remove:
   //   Pass 1 (preferred): button with aria-label matching /remove|delete/ — excludes close/dismiss.
@@ -233,5 +347,42 @@ export class EcommerceCartOverlayPage extends BasePage {
       )
       .catch(() => {});
     return currentCount;
+  }
+
+  // Returns the empty-cart message text from either:
+  //   (a) a visible positioned (fixed/absolute) panel containing "cart" or "bag" text — no
+  //       checkout CTA requirement because empty state has no checkout button, or
+  //   (b) the page body — covers storefronts that navigate to /cart page when cart icon is clicked.
+  // Regex deliberately tolerates filler words ("currently", "now") between "cart/bag" and "empty".
+  // Returns the matched message string (e.g. "Your Shopping Cart is empty") or '' if not found.
+  // Never throws.
+  async getEmptyCartMessage(): Promise<string> {
+    const sel = this.overlayPanelSelector;
+    return this.page.evaluate((selector) => {
+      const emptyRe =
+        /your (shopping )?(cart|bag) is (currently |now )?empty|(cart|bag) is (currently |now )?empty|no items in (your )?(cart|bag)/i;
+
+      // Check overlay panels first — no CTA requirement (empty state has no checkout button)
+      const panels = Array.from(document.querySelectorAll(selector));
+      for (const el of panels) {
+        const r = (el as Element).getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        const style = getComputedStyle(el as Element);
+        if (style.position !== 'fixed' && style.position !== 'absolute') continue;
+        const text = el instanceof HTMLElement ? el.innerText : (el.textContent ?? '');
+        const lower = text.toLowerCase();
+        if (!lower.includes('cart') && !lower.includes('bag')) continue;
+        const match = text.match(emptyRe);
+        if (match) return match[0];
+      }
+
+      // Fallback: page body — covers storefronts that navigate to /cart on empty-cart icon click
+      // document.body is always HTMLBodyElement (subtype of HTMLElement), so innerText is always available.
+      const bodyText = document.body.innerText ?? document.body.textContent ?? '';
+      const bodyMatch = bodyText.match(emptyRe);
+      if (bodyMatch) return bodyMatch[0];
+
+      return '';
+    }, sel);
   }
 }

@@ -537,4 +537,196 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       ).toBe(postAddCount - 1);
     });
   }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CART-008-${String(index + 1).padStart(3, '0')}`;
+    const preferMens =
+      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Cart total updates correctly`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Cart total updates correctly`);
+
+      if (!navLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
+        return;
+      }
+
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+
+      // Scan up to 10 products on the initial PLP for one with available (non-sold-out) sizes.
+      // Quick check per product (no extended wait in loop); sold-out and non-footwear products
+      // are both handled by the immediate getAvailableSizes() returning []. The final
+      // waitForSizeButtonsToRender() on the last product covers timing edge cases where sizes
+      // render asynchronously after the heading appears.
+      logger.step('Step 6 - Scan initial PLP for a product with available sizes (up to 10)');
+      const MAX_PRODUCTS_PER_NAV = 10;
+      let availableSizes: string[] = [];
+
+      for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
+        if (i > 0) {
+          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
+          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
+          await ecommercePDPPage.goBack();
+          await ecommercePLPPage.waitForPlpUrl();
+          await ecommercePLPPage.waitForProductGrid();
+        }
+        await ecommercePLPPage.clickProductCard(i);
+        await ecommercePDPPage.waitForPdpLoad();
+        await ecommercePDPPage.ensureNoOverlay();
+        availableSizes = await ecommercePDPPage.getAvailableSizes();
+        if (availableSizes.length > 0) break;
+      }
+
+      // If scan returned empty, give the current PDP a full wait — covers both timing lag
+      // (sizes render after heading) and sold-out products on last attempted product.
+      if (availableSizes.length === 0) {
+        await ecommercePDPPage.waitForSizeButtonsToRender();
+        availableSizes = await ecommercePDPPage.getAvailableSizes();
+      }
+
+      if (availableSizes.length === 0) {
+        test.skip(
+          true,
+          `${site.name}: no product with enabled sizes found in first ${MAX_PRODUCTS_PER_NAV} ${navLabel} PLP products`,
+        );
+        return;
+      }
+
+      // Capture product price BEFORE size selection and ATC.
+      // WHY: on Vans AU the SPA can lose the ATC button within ~400ms of selectSize. Capturing
+      // price here (sizes found, no size selected yet) mirrors the CART-004 pattern and keeps
+      // the hot path from selectSize → isAddToCartEnabled → addToCart uninterrupted below.
+      logger.step('Step 7 - Capture product price before size selection');
+      const productPrice = await ecommercePDPPage.getPrice();
+      logger.verify('Product price captured before ATC', 'non-empty string or empty', productPrice);
+
+      logger.step('Step 8 - Capture initial mini cart count before ATC');
+      const initialCartCount = await ecommercePDPPage.getMiniCartCount();
+      logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
+
+      // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
+      // addToCart is called immediately after isAddToCartEnabled to minimise the window in which
+      // the SPA can lose the button (observed on Vans AU with ~400ms gap).
+      logger.step('Step 9 - Select a size, then Add to Cart immediately (try up to 3 sizes)');
+      let targetSize: string | null = null;
+      for (const size of availableSizes.slice(0, 3)) {
+        await ecommercePDPPage.selectSize(size);
+        if (await ecommercePDPPage.isAddToCartEnabled()) {
+          targetSize = size;
+          await ecommercePDPPage.addToCart();
+          break;
+        }
+      }
+
+      if (targetSize === null) {
+        test.skip(
+          true,
+          `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
+        );
+        return;
+      }
+      logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
+
+      logger.step('Step 10 - Poll for mini cart count to increment after ATC');
+      await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
+
+      logger.step('Step 11 - Check if mini cart overlay auto-opened after ATC');
+      const autoOpened = await ecommerceCartOverlayPage.isOverlayVisible();
+
+      logger.step('Step 11b - If overlay not auto-opened, click cart icon to open it');
+      if (!autoOpened) {
+        await ecommerceCartOverlayPage.clickCartIcon();
+        await ecommerceCartOverlayPage.waitForOverlayVisible();
+      }
+
+      // Soft precondition: overlay must be open before total checks. Vans AU's Bloomreach popup
+      // can intercept clickCartIcon() and prevent the overlay from opening (known platform issue).
+      // A hard assertion here would hard-fail the test on every Bloomreach intercept. Early return
+      // prevents misleading "total empty" soft failures when the overlay simply didn't open.
+      logger.step('Step 12 - Assert mini cart overlay is open (precondition for total check)');
+      const overlayIsOpen = await ecommerceCartOverlayPage.isOverlayVisible();
+      softAssert.toBeTruthy(
+        overlayIsOpen,
+        `${site.name}: Mini cart overlay must be open before cart total can be read`,
+      );
+      if (!overlayIsOpen) return;
+
+      logger.step('Step 13 - Read cart total from overlay');
+      const cartTotal = await ecommerceCartOverlayPage.getCartTotal();
+
+      logger.step('Step 14 - Assert cart total is non-empty');
+      softAssert.toBeTruthy(
+        cartTotal !== '',
+        `${site.name}: Cart overlay subtotal row should display a non-empty price`,
+      );
+
+      // PRIMARY assertion: for a single-item cart with no tax/shipping added, the overlay
+      // subtotal must equal the unit price captured from the PDP. If these values differ,
+      // diagnose the DOM structure in getCartTotal() first (subtotal vs tax-inclusive total)
+      // before weakening or removing this assertion.
+      logger.step('Step 15 - Assert cart total matches PDP unit price (single-item cart)');
+      if (productPrice !== '' && cartTotal !== '') {
+        const numericTotal = cartTotal.replace(/[^0-9.]/g, '');
+        const numericPrice = productPrice.replace(/[^0-9.]/g, '');
+        softAssert.toBe(
+          numericTotal,
+          numericPrice,
+          `${site.name}: Cart total should equal product unit price for single item (overlay="${cartTotal}", PDP="${productPrice}")`,
+        );
+      } else {
+        logger.verify(
+          'Price comparison skipped',
+          'both values non-empty',
+          `cartTotal="${cartTotal}", productPrice="${productPrice}"`,
+        );
+      }
+    });
+  }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CART-011-${String(index + 1).padStart(3, '0')}`;
+
+    test(`${tcId} - ${site.name} Empty cart state renders empty message`, async ({
+      ecommerceNavPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Empty cart empty message`);
+
+      logger.step('Step 1 - Navigate to homepage (fresh session)');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for SPA nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step('Step 3 - Verify cart is empty before clicking icon (precondition)');
+      const initialCount = await ecommercePDPPage.getMiniCartCount();
+      logger.verify('Initial cart count (fresh session)', '0', String(initialCount));
+      expect(initialCount, `${site.name}: Cart must be 0 on fresh session for empty-state test`).toBe(0);
+
+      logger.step('Step 4 - Click cart icon to open mini cart');
+      await ecommerceCartOverlayPage.clickCartIcon();
+
+      logger.step('Step 5 - Wait for overlay (best-effort — empty state has no CTA, will time out gracefully)');
+      await ecommerceCartOverlayPage.waitForOverlayVisible();
+
+      logger.step('Step 6 - Read empty cart message from overlay or cart page');
+      const emptyMessage = await ecommerceCartOverlayPage.getEmptyCartMessage();
+      logger.verify('Empty cart message', 'non-empty string', emptyMessage);
+
+      logger.step('Step 7 - Assert empty cart message is visible');
+      expect(
+        emptyMessage,
+        `${site.name}: Opening an empty cart should show an empty-state message (e.g. "Your cart is empty")`,
+      ).not.toBe('');
+    });
+  }
 });
