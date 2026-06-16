@@ -628,15 +628,22 @@ await page.waitForSelector(sel, { timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
 Key constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`, `DRAG_DROP_OPERATION`, `API_RESPONSE`, `API_RESPONSE_SLOW`.
 
-## Memory (New Machine Setup)
+## Memory
 
-Claude Code memory files are stored at `~/.claude/projects/{encoded-path}/memory/`. On a new machine, bootstrap from the committed vault:
+**Write all memory notes directly to `memory-vault/20-memory/{type}/` — NOT to `~/.claude/projects/.../memory/` (seed is deprecated).**
 
+The vault at `memory-vault/20-memory/` is the authoritative source. Write files there using the `Write` tool with the correct subfolder:
+- `memory-vault/20-memory/user/` — user profile notes
+- `memory-vault/20-memory/feedback/` — corrections and confirmed patterns
+- `memory-vault/20-memory/project/` — project context and decisions
+- `memory-vault/20-memory/reference/` — pointers to external resources
+
+The PostToolUse hook auto-syncs vault writes to LightRAG. No manual step needed.
+
+**New machine setup:** bootstrap Claude Code memory index from the vault:
 ```powershell
 node scripts/init-memory-from-vault.mjs
 ```
-
-Memory writes auto-sync to `memory-vault/` on every write via the PostToolUse hook — no manual copy-back needed.
 
 ## Agents
 

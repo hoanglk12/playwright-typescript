@@ -1,6 +1,6 @@
 # CLAUDE.md — Memory Vault Retrieval Policy
 
-This vault is the curated knowledge layer for the **Playwright TypeScript automation framework** at `C:\Users\Lincoln.Pham\Documents\AccentGroupDocs\AutomationTest\playwright-typescript`. It mirrors the Claude Code memory files and provides an Obsidian graph view, backlinks, and search across all remembered context.
+This vault is the curated knowledge layer for the **Playwright TypeScript automation framework** at `C:\Users\Lincoln.Pham\Documents\AccentGroupDocs\AutomationTest\playwright-typescript`. It is the authoritative source for all memory notes and provides an Obsidian graph view, backlinks, and search across all remembered context.
 
 ## Read order
 
@@ -10,15 +10,30 @@ This vault is the curated knowledge layer for the **Playwright TypeScript automa
 
 ## Grounding rules
 
-- **Vault is the committed source.** Live memory (`~/.claude/projects/.../memory/`) syncs here on every write via the PostToolUse hook.
-- **Do not edit vault notes directly** — they are overwritten on the next sync from live memory.
-- **Check `last_verified`** — notes are stamped with the last sync date. Run `/sync-vault` to refresh.
+- **Vault is the authoritative source.** Claude writes memory notes directly here — no seed intermediary.
+- **Edit vault notes directly** — `memory-vault/20-memory/{type}/filename.md` is where all writes go.
+- **Check `last_verified`** — notes are stamped with the date they were last updated.
 - **`type: feedback` notes** encode patterns Claude should repeat or avoid. Read them before making framework suggestions.
 
-## Syncing
+## Writing memory notes
 
-Run `/sync-vault` in a Claude Code session, or wait for the automatic Stop-hook sync at session end.
-Manual: `node scripts/sync-memory-to-vault.mjs` from the project root.
+Claude writes new memory notes directly to `memory-vault/20-memory/{type}/` using the `Write` tool:
+
+| Type | Subfolder |
+|---|---|
+| `user` | `memory-vault/20-memory/user/` |
+| `feedback` | `memory-vault/20-memory/feedback/` |
+| `project` | `memory-vault/20-memory/project/` |
+| `reference` | `memory-vault/20-memory/reference/` |
+
+The PostToolUse hook auto-syncs any vault `.md` write to LightRAG immediately.
+
+## Syncing to LightRAG
+
+Automatic: happens on every vault write via the PostToolUse hook and at session end via the Stop hook.
+Manual: `node scripts/sync-vault-to-lightrag.mjs` from the project root.
+
+**Do NOT run** `node scripts/sync-memory-to-vault.mjs` — it is a no-op (deprecated).
 
 ## Searching the vault
 
