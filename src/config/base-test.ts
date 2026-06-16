@@ -13,6 +13,7 @@ import { EcommerceSearchPage } from '@pages/ecommerce/search-page';
 import { EcommercePLPPage } from '@pages/ecommerce/plp-page';
 import { EcommercePDPPage } from '@pages/ecommerce/pdp-page';
 import { EcommerceCartOverlayPage } from '@pages/ecommerce/cart-overlay-page';
+import { EcommerceAccountModalPage } from '@pages/ecommerce/account-modal';
 import { PercyHelper } from '../pages/helpers';
 
 type CustomFixtures = {
@@ -28,6 +29,7 @@ type CustomFixtures = {
   ecommercePLPPage: EcommercePLPPage;
   ecommercePDPPage: EcommercePDPPage;
   ecommerceCartOverlayPage: EcommerceCartOverlayPage;
+  ecommerceAccountModalPage: EcommerceAccountModalPage;
   percyHelper: PercyHelper;
   softAssert: SoftAssertHelper;
 };
@@ -112,6 +114,15 @@ export const test = base.extend<CustomFixtures>({
 
   ecommerceCartOverlayPage: async ({ page }, use) => {
     await use(new EcommerceCartOverlayPage(page));
+    // Firefox teardown workaround — prevents Juggler protocol hangs on SPA service workers
+    // and persistent WebSocket/analytics connections on staging storefronts.
+    if (page.context().browser()?.browserType().name() === 'firefox') {
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
+    }
+  },
+
+  ecommerceAccountModalPage: async ({ page }, use) => {
+    await use(new EcommerceAccountModalPage(page));
     // Firefox teardown workaround — prevents Juggler protocol hangs on SPA service workers
     // and persistent WebSocket/analytics connections on staging storefronts.
     if (page.context().browser()?.browserType().name() === 'firefox') {

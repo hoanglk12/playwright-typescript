@@ -3,7 +3,7 @@ name: fixture-registry
 description: "All registered test fixtures — UI base-test.ts and API ApiTest.ts — with Firefox teardown list and registration rules"
 type: project
 tags: [memory, project]
-last_verified: 2026-06-12
+last_verified: 2026-06-16
 ---
 
 ## UI Fixtures (src/config/base-test.ts)
@@ -24,6 +24,7 @@ Import: `import { test, expect } from '@config/base-test'`
 | `ecommercePLPPage` | `EcommercePLPPage` | ecommerce | ✅ |
 | `ecommercePDPPage` | `EcommercePDPPage` | ecommerce | ✅ |
 | `ecommerceCartOverlayPage` | `EcommerceCartOverlayPage` | ecommerce | ✅ |
+| `ecommerceAccountModalPage` | `EcommerceAccountModalPage` | ecommerce | ✅ |
 | `percyHelper` | `PercyHelper` | visual regression | — |
 | `softAssert` | `SoftAssertHelper` | soft assertions | — |
 

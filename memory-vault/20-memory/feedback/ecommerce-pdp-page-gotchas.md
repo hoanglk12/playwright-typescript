@@ -1,10 +1,10 @@
 ---
 name: ecommerce-pdp-page-gotchas
-description: Known DOM/selector bugs and patterns in EcommercePDPPage — avoids re-discovering root causes for Bloomreach popup, gallery selectors, dual-h1, swatch navigation, cart count, nav-label selection, and storefront nav URLs
+description: Known DOM/selector bugs and patterns in EcommercePDPPage and EcommerceAccountModalPage — Bloomreach popup (two contexts), gallery selectors, dual-h1, swatch navigation, cart count, nav-label selection, auth modal addLocatorHandler pattern
 type: feedback
 tags: [memory, feedback]
 source_session: 6c04fe97-fef3-464e-b927-fb15d4c54bee
-last_verified: 2026-06-14
+last_verified: 2026-06-16
 ---
 
 ## 1. Vans AU — Bloomreach acquisition popup blocks swatch click
@@ -177,3 +177,37 @@ First observed: 2026-06-10 during E2E-PLP-004-007 and E2E-PLP-006-007.
 3. The count element may render asynchronously and not yet be in DOM when `getTotalProductCount()` runs
 
 **Next step:** Open Dr. Martens AU PLP in a live browser, inspect the product count display, and update `getTotalProductCount()` to handle the site-specific format — or make the regex broader (e.g. `/(\d+)\s*(Products?|Results?|Items?)/i`) and scan more element types.
+
+---
+
+## 12. Vans AU — Bloomreach popup in auth modal context (`EcommerceAccountModalPage`)
+
+Discovered 2026-06-16 during E2E-AUTH-001. The Bloomreach acquisition popup also blocks the account icon button click (not just swatch interactions). It renders as `role="dialog"` — a SIBLING of the `.bloomreach-acquisition-popup-template` container, not a child. The `<div id="overlay" class="overlay visible">` is a child of the container and blocks pointer events across the entire viewport.
+
+**Correct fix: `page.addLocatorHandler()`**
+
+Register in `navigate()` BEFORE `page.goto()` so the handler is active for all subsequent actions:
+
+```ts
+await this.page.addLocatorHandler(
+  this.page.getByRole('dialog', { name: /join the crew|10% off/i }),
+  async () => {
+    await this.page.evaluate(() => {
+      document
+        .querySelectorAll('[class*="bloomreach-acquisition-popup"]')
+        .forEach((el) => el.remove());
+    });
+  },
+);
+```
+
+**Why `addLocatorHandler` + JS removal beats manual pre-click dismiss:**
+1. The handler fires during the actionability wait of ANY action — handles timing races where popup appears AFTER a pre-click check returns
+2. `page.evaluate()` DOM removal is instant and cannot be blocked by z-index
+3. Zero-cost on non-Vans storefronts (handler never fires)
+
+**Why scoping close button lookup to the container fails:** `popup.getByRole('button')` finds nothing because the dialog is a sibling of the container, not a child.
+
+**Confirmed result:** 8/8 Chromium for auth smoke suite after this fix. Firefox is excluded from ecommerce/smoke in CI (`testIgnore: ['**/ecommerce/smoke/**']` when `process.env.CI`).
+
+See also: [[ecommerce-auth-modal-gotchas]]

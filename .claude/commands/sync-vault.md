@@ -1,12 +1,14 @@
 ---
-description: Sync Claude memory seed to the Obsidian memory vault (memory-vault/) — runs the deterministic transform script to update all notes
+description: Sync memory vault notes to LightRAG — pushes all files under memory-vault/20-memory/ into the local LightRAG instance (vault is authoritative; never runs sync-memory-to-vault.mjs)
 ---
 
-Sync the memory vault from the latest seed files.
+Sync the memory vault to LightRAG.
 
-Run: `node scripts/sync-memory-to-vault.mjs`
+**Important:** `memory-vault/20-memory/` is the authoritative source. Never run `sync-memory-to-vault.mjs` — it goes the wrong direction (seed → vault) and overwrites enriched vault content with stale seed data.
+
+Run: `node scripts/sync-vault-to-lightrag.mjs`
 
 After the script completes:
-1. List the files written to `memory-vault/`
-2. Report how many notes were synced and which type subfolders received updates
-3. Note any notes where frontmatter was normalized
+1. Report how many notes were inserted or updated in LightRAG
+2. Note any files that were skipped or errored
+3. Confirm LightRAG is reachable at http://localhost:9621
