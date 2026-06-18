@@ -43,7 +43,7 @@ test.describe("GRA GraphQL API - Support Features @api @graphql @regression", ()
   });
 
   test("TC_01 - GRA_getCurrencyData - should get currency code with valid token", async ({
-    createGraphQLClient,
+    createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('TC_01 PLA_getCurrencyData - should get currency code with valid token');
     logger.step('Step 1 - Send getCurrencyData query with bearer token');
@@ -63,7 +63,7 @@ test.describe("GRA GraphQL API - Support Features @api @graphql @regression", ()
 
     expect(data.currency).toBeDefined();
     softExpect(data.currency.default_display_currency_code).toMatch(/^[A-Z]{3}$/);
-    softExpect(data.currency.available_currency_codes).toContain('AUD');
+    softExpect(data.currency.available_currency_codes).toContain(site.currency);
     softExpect(data.currency.__typename).toBe('Currency');
   });
 

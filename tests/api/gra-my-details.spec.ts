@@ -180,8 +180,8 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     softExpect(targetAddress!.street[0]).toBe(site.testData.addNewCustomerAddressForAddressBook.address.street);
     softExpect(targetAddress!.telephone).toBe(site.testData.addNewCustomerAddressForAddressBook.address.telephone);
     softExpect(data.customer.__typename).toBe('Customer');
-    softExpect(data.countries![0].id).toBe('AU');
-    softExpect(data.countries![0].full_name_locale).toBe('Australia');
+    softExpect(data.countries![0].id).toBe(site.countryCode);
+    softExpect(data.countries![0].full_name_locale).toBe(site.countryCode === 'AU' ? 'Australia' : 'New Zealand');
     softExpect(data.countries![0].__typename).toBe('Country');
   });
 

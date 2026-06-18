@@ -48,6 +48,24 @@ const generateCityPostcode = (): { city: string; postcode: string; region: strin
   return locations[Math.floor(Math.random() * locations.length)];
 };
 
+const generateNZCityPostcode = (): { city: string; postcode: string; region: string } => {
+  const locations = [
+    { city: 'AUCKLAND', postcode: '1010', region: 'Auckland' },
+    { city: 'WELLINGTON', postcode: '6011', region: 'Wellington' },
+    { city: 'CHRISTCHURCH', postcode: '8011', region: 'Canterbury' },
+    { city: 'HAMILTON', postcode: '3204', region: 'Waikato' },
+    { city: 'DUNEDIN', postcode: '9016', region: 'Otago' },
+  ];
+  return locations[Math.floor(Math.random() * locations.length)];
+};
+
+const generateNZPhoneNumber = (): string => {
+  const prefixes = ['021', '022', '027', '09', '04', '03'];
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const number = Math.floor(1000000 + Math.random() * 9000000);
+  return `${prefix}${number}`;
+};
+
 export interface CustomerInput {
   email: string;
   firstname: string;
@@ -166,9 +184,11 @@ export function createBrandTestData(emailPrefix: string): GraTestData {
   const email = `${emailPrefix}test${timestamp}${randomId}@mail.com`;
   const firstName = generateFirstName();
   const lastName = generateLastName();
-  const phoneNumber = generatePhoneNumber();
+  const isNZ = emailPrefix.endsWith('-nz');
+  const phoneNumber = isNZ ? generateNZPhoneNumber() : generatePhoneNumber();
   const streetAddress = generateStreetAddress();
-  const location = generateCityPostcode();
+  const location = isNZ ? generateNZCityPostcode() : generateCityPostcode();
+  const countryCode = isNZ ? 'NZ' : 'AU';
 
   return {
     validCustomer: {
@@ -226,7 +246,7 @@ export function createBrandTestData(emailPrefix: string): GraTestData {
           },
         },
         region: { region: location.region },
-        country_code: 'AU',
+        country_code: countryCode,
       },
     },
     updateCustomerAddressTemplate: {
@@ -245,7 +265,7 @@ export function createBrandTestData(emailPrefix: string): GraTestData {
           attribute_code: 'address_name',
         },
       },
-      country_code: 'AU',
+      country_code: countryCode,
     },
     updateCustomerInformationData: {
       email,

@@ -7,7 +7,7 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { CheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
+import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -42,6 +42,7 @@ let customerToken: string = '';
 let cartId: string = '';
 let shippingMethodSet: boolean = false;
 let availablePaymentMethods: string[] = [];
+let checkoutBillingData = createCheckoutBillingPaymentData('AU');
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
 
@@ -178,6 +179,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     // 7+ sequential staging calls; default 30s hook timeout is too tight on slow brands
     test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
+    checkoutBillingData = createCheckoutBillingPaymentData(site.countryCode);
     const logger = createTestLogger('beforeAll Checkout Billing & Payment setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
@@ -237,7 +239,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
 
     // ── 5. Set shipping address (required for same_as_shipping and payment) ─
     logger.step('Step 5 - Set shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutBillingPaymentData.shippingInlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
     const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_SETUP_MUTATION, {
       cartId,
       shippingAddresses: [{
@@ -311,7 +313,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
 
     expect(billingAddr, 'billing_address must be defined and not null — staging confirms same_as_shipping populates it').not.toBeNull();
 
-    const { firstname, postcode } = CheckoutBillingPaymentData.shippingInlineAddress;
+    const { firstname, postcode } = checkoutBillingData.shippingInlineAddress;
     logger.verify('firstname matches shipping', firstname, billingAddr?.firstname);
     logger.verify('postcode matches shipping', postcode, billingAddr?.postcode);
     softExpect(billingAddr?.firstname).toBe(firstname);
@@ -323,7 +325,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     const logger = createTestLogger('TC_02 setBillingAddressOnCart inline billing address');
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutBillingPaymentData.billingInlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.billingInlineAddress;
 
     logger.step('Step 1 - Execute setBillingAddressOnCart with inline billing address');
     logger.action('POST', `setBillingAddressOnCart (cartId=${cartId})`);
@@ -442,10 +444,10 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     logger.step('Step 1 - Execute setPaymentMethodOnCart with invalid code');
-    logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${CheckoutBillingPaymentData.invalidPaymentCode})`);
+    logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${checkoutBillingData.invalidPaymentCode})`);
     const response = await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
       cartId,
-      paymentMethodCode: CheckoutBillingPaymentData.invalidPaymentCode,
+      paymentMethodCode: checkoutBillingData.invalidPaymentCode,
     });
 
     logger.step('Step 2 - Assert error returned for invalid payment code');

@@ -26,7 +26,7 @@ import {
   CustomerOrderShape,
   CustomerOrdersShape,
 } from '../../src/data/api/gra-order-history-data';
-import { CheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
+import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { PlaceOrderData } from '../../src/data/api/gra-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
 
@@ -70,6 +70,7 @@ let placedOrderNumber: string = '';
 let checkoutCartId: string = '';
 let validSku: string = '';
 let shippingMethodSet: boolean = false;
+let checkoutBillingData = createCheckoutBillingPaymentData('AU');
 let checkoutReady: boolean = false;
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
@@ -269,6 +270,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
+    checkoutBillingData = createCheckoutBillingPaymentData(site.countryCode);
     const logger = createTestLogger('beforeAll Order History setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
@@ -330,7 +332,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
     // ── 5. Set shipping address ────────────────────────────────────────────
     logger.step('Step 5 - Set shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutBillingPaymentData.shippingInlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
     const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
       cartId: checkoutCartId,
       shippingAddresses: [{

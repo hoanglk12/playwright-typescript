@@ -394,14 +394,16 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
         data.cart.multiple_rewards_message === null || typeof data.cart.multiple_rewards_message === 'string'
       ).toBe(true);
     }
-    softExpect(data.cart.qff_reward.is_qff_member).toBe(false);
-    softExpect(data.cart.qff_reward.qff_points).toBe(0);
-    softExpect(data.cart.qff_reward.qff_reward_message).toBe(
-      'Earn 0 Qantas Points with this purchase'
-    );
-    softExpect(data.cart.qff_reward.__typename).toBe('QffReward');
+    if (site.countryCode === 'AU') {
+      softExpect(data.cart.qff_reward.is_qff_member).toBe(false);
+      softExpect(data.cart.qff_reward.qff_points).toBe(0);
+      softExpect(data.cart.qff_reward.qff_reward_message).toBe(
+        'Earn 0 Qantas Points with this purchase'
+      );
+      softExpect(data.cart.qff_reward.__typename).toBe('QffReward');
+      softExpect(data.cart.applied_qantas_points).toBeNull();
+    }
     softExpect(data.cart.__typename).toBe('Cart');
-    softExpect(data.cart.applied_qantas_points).toBeNull();
 
     logger.verify('Cart ID', cartId, data.cart.id);
     logger.verify('Cart typename', 'Cart', data.cart.__typename);

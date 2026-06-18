@@ -14,8 +14,8 @@ const COUNTRIES_QUERY = `
 
 test.describe('GRA GraphQL API - Address Book: countries @api @regression', () => {
 
-  test('TC_01 - Fetch all countries → AU present in list', async ({ graphqlClient }) => {
-    const logger = createTestLogger('TC_01 Fetch all countries → AU present in list');
+  test('TC_01 - Fetch all countries → store country present in list', async ({ graphqlClient, site }) => {
+    const logger = createTestLogger('TC_01 Fetch all countries → store country present in list');
 
     logger.step('Step 1 - Execute countries query');
     const response = await graphqlClient.queryWrapped(COUNTRIES_QUERY);
@@ -27,13 +27,14 @@ test.describe('GRA GraphQL API - Address Book: countries @api @regression', () =
     const data = await response.getData();
     const countries: CountryItem[] = data.countries;
 
-    logger.step('Step 3 - Assert AU is present in the list');
+    logger.step('Step 3 - Assert store country is present in the list');
     expect(countries.length, 'Expected at least one country in response').toBeGreaterThan(0);
 
-    const au = countries.find((c) => c.id === addressBookCountriesData.expectedAustralia.id);
-    logger.verify('AU found in countries list', addressBookCountriesData.expectedAustralia.id, au?.id);
-    expect(au, 'AU must be present in countries list').toBeDefined();
-    expect(au?.full_name_locale).toBe(addressBookCountriesData.expectedAustralia.full_name_locale);
+    const expectedCountryName = site.countryCode === 'AU' ? 'Australia' : 'New Zealand';
+    const country = countries.find((c) => c.id === site.countryCode);
+    logger.verify(`${site.countryCode} found in countries list`, site.countryCode, country?.id);
+    expect(country, `${site.countryCode} must be present in countries list`).toBeDefined();
+    expect(country?.full_name_locale).toBe(expectedCountryName);
   });
 
   test('TC_02 - Verify id and full_name_locale structure for every country', async ({ graphqlClient }) => {

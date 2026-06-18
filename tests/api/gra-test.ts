@@ -26,6 +26,7 @@ export const graTest = apiTest.extend<GraTestFixtures>({
     const client = new GraphQLClient({
       baseURL: site.baseURL,
       timeout: apiEnv.timeout,
+      ...(site.storeHeader ? { customHeaders: { Store: site.storeHeader } } : {}),
     });
     await client.init();
     await use(client);
@@ -36,10 +37,12 @@ export const graTest = apiTest.extend<GraTestFixtures>({
     const clients: GraphQLClient[] = [];
     const createClientFn = async (options: Partial<GraphQLClientOptions> = {}): Promise<GraphQLClient> => {
       const apiEnv = getApiEnvironment();
+      const storeHeaders: Record<string, string> = site.storeHeader ? { Store: site.storeHeader } : {};
       const client = new GraphQLClient({
         baseURL: site.baseURL,
         timeout: apiEnv.timeout,
         ...options,
+        customHeaders: { ...storeHeaders, ...options.customHeaders },
       });
       await client.init();
       clients.push(client);

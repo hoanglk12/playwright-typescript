@@ -489,7 +489,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     expect(page2Data.products.items.length).toBeGreaterThan(0);
 
     logger.step('Step 3 - Verify page 2 items differ from page 1 items');
-    const page1Skus = new Set<string>((page1Data.products.items as ProductPriceItem[]).map((i) => i.sku));
+    const page1Skus = new Set<string>((page1Data.products.items as ProductPriceItem[]).filter((i) => i?.sku).map((i) => i.sku));
     const page2FirstSku: string = page2Data.products.items[0]?.sku ?? '';
     softExpect(page1Skus.has(page2FirstSku)).toBe(false);
   });

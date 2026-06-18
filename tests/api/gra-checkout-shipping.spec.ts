@@ -7,7 +7,7 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { CheckoutShippingData } from '../../src/data/api/gra-checkout-shipping-data';
+import { createCheckoutShippingData } from '../../src/data/api/gra-checkout-shipping-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -49,6 +49,7 @@ let customerToken: string = '';
 let cartId: string = '';
 let validSku: string = '';
 let savedAddressId: number = 0;
+let checkoutData = createCheckoutShippingData('AU');
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
 
@@ -243,6 +244,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
     // 6+ sequential staging calls; default 30s hook timeout is too tight on slow brands
     test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
+    checkoutData = createCheckoutShippingData(site.countryCode);
     const logger = createTestLogger('beforeAll Checkout Shipping setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
@@ -309,7 +311,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
       logger.action('Using existing address', `id=${savedAddressId}`);
     } else {
       logger.action('No addresses found', 'attempting to create one');
-      const { firstname, lastname, street, city, region, postcode, country_code, telephone, default_shipping, default_billing } = CheckoutShippingData.createAddressInput;
+      const { firstname, lastname, street, city, region, postcode, country_code, telephone, default_shipping, default_billing } = checkoutData.createAddressInput;
       const createAddrGql = await (await authClient.mutateWrapped(CREATE_CUSTOMER_ADDRESS_MUTATION, {
         firstname, lastname, street, city,
         region: { region_code: region.region_code },
@@ -337,7 +339,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const logger = createTestLogger('TC_01 setShippingAddressesOnCart inline address');
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutShippingData.inlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
 
     logger.step('Step 1 - Execute setShippingAddressesOnCart with inline address');
     logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId})`);
@@ -409,10 +411,10 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     logger.step('Step 1 - Execute setShippingAddressesOnCart with invalid address id');
-    logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${CheckoutShippingData.invalidCustomerAddressId})`);
+    logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${checkoutData.invalidCustomerAddressId})`);
     const response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
       cartId,
-      shippingAddresses: [{ customer_address_id: CheckoutShippingData.invalidCustomerAddressId }],
+      shippingAddresses: [{ customer_address_id: checkoutData.invalidCustomerAddressId }],
     });
 
     logger.step('Step 2 - Assert error returned');
@@ -429,7 +431,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const logger = createTestLogger('TC_04 setShippingAddressesOnCart missing required fields');
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const { lastname, street, city, region, postcode, country_code, telephone } = CheckoutShippingData.inlineAddress;
+    const { lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
 
     logger.step('Step 1 - Execute setShippingAddressesOnCart with empty firstname');
     logger.action('POST', 'setShippingAddressesOnCart (firstname empty)');
@@ -461,7 +463,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     // Re-set inline address — TC_04's empty-firstname mutation may have cleared the cart's shipping address on some staging environments
     logger.step('Step 1 - Re-set inline shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutShippingData.inlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
     await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
       cartId,
       shippingAddresses: [{
@@ -517,7 +519,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     // Re-set inline address — defensive guard; TC_05 already sets it but re-query may see stale state
     logger.step('Step 1 - Re-set inline shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutShippingData.inlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
     await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
       cartId,
       shippingAddresses: [{
@@ -573,11 +575,11 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     logger.step('Step 1 - Execute setShippingMethodsOnCart with invalid codes');
-    logger.action('POST', `setShippingMethodsOnCart (carrier=${CheckoutShippingData.invalidCarrierCode}, method=${CheckoutShippingData.invalidMethodCode})`);
+    logger.action('POST', `setShippingMethodsOnCart (carrier=${checkoutData.invalidCarrierCode}, method=${checkoutData.invalidMethodCode})`);
     const response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
       cartId,
-      carrierCode: CheckoutShippingData.invalidCarrierCode,
-      methodCode: CheckoutShippingData.invalidMethodCode,
+      carrierCode: checkoutData.invalidCarrierCode,
+      methodCode: checkoutData.invalidMethodCode,
     });
 
     logger.step('Step 2 - Assert error returned');

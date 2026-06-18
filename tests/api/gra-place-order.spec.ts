@@ -12,7 +12,7 @@
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';
-import { CheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
+import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { PlaceOrderData, PlaceOrderTestDataGenerator } from '../../src/data/api/gra-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
@@ -57,6 +57,7 @@ let customerToken: string = '';
 let checkoutCartId: string = '';
 let validSku: string = '';
 let shippingMethodSet: boolean = false;
+let checkoutBillingData = createCheckoutBillingPaymentData('AU');
 let checkoutReady: boolean = false;
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
@@ -195,6 +196,7 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
     // Full checkout setup = 8 sequential staging API calls; the default 30s hook
     // timeout is too tight on slow brands (drm-au) and kills TC_02/TC_03 as "did not run"
     test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
+    checkoutBillingData = createCheckoutBillingPaymentData(site.countryCode);
     const logger = createTestLogger('beforeAll Place Order setup');
 
     // ── 1. Always-fresh auth ───────────────────────────────────────────────
@@ -258,7 +260,7 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
 
     // ── 5. Set shipping address ────────────────────────────────────────────
     logger.step('Step 5 - Set shipping address on checkout cart');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutBillingPaymentData.shippingInlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
     const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
       cartId: checkoutCartId,
       shippingAddresses: [{
@@ -463,7 +465,7 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
       email: PlaceOrderTestDataGenerator.generateGuestEmail(),
     });
 
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = CheckoutBillingPaymentData.shippingInlineAddress;
+    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
     const shippingGql = await (await guestClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
       cartId: errorCartId,
       shippingAddresses: [{

@@ -66,10 +66,12 @@ export class ApiClient {
         }
         break;
       case AuthType.CUSTOM:
-        if (this.clientOptions.customHeaders) {
-          Object.assign(headers, this.clientOptions.customHeaders);
-        }
         break;
+    }
+
+    // Additive merge — lets BEARER/BASIC/API_KEY auth coexist with customHeaders (e.g. Store: nz)
+    if (this.clientOptions.customHeaders) {
+      Object.assign(headers, this.clientOptions.customHeaders);
     }
 
     // Create the API request context

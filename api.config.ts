@@ -44,8 +44,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* 4 workers = one per GRA brand project (pla/skx/drm/van run concurrently, serial within each) */
-  workers: 4,
+  /* 8 workers = one per GRA brand+region (4 AU + 4 NZ run concurrently, serial within each) */
+  workers: 8,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html', { outputFolder: 'api-report' }],
@@ -125,29 +125,64 @@ export default defineConfig({
       name: 'pla-au',
       testDir: './tests/api',
       testMatch: ['**/tests/api/gra-*.spec.ts'],
+      // NZ loyalty spec targets NZ projects only — exclude from AU projects
+      testIgnore: ['**/gra-loyalty-rewards-nz.spec.ts'],
       metadata: { siteCode: 'pla-au' },
     },
     {
       name: 'skx-au',
       testDir: './tests/api',
       testMatch: ['**/tests/api/gra-*.spec.ts'],
+      testIgnore: ['**/gra-loyalty-rewards-nz.spec.ts'],
       metadata: { siteCode: 'skx-au' },
     },
     {
       name: 'drm-au',
       testDir: './tests/api',
       testMatch: ['**/tests/api/gra-*.spec.ts'],
-      // Loyalty feature not deployed on Dr. Martens — exclude entirely so tests don't appear in report
-      testIgnore: ['**/gra-loyalty-rewards.spec.ts'],
+      // Loyalty feature not deployed on Dr. Martens — exclude both loyalty specs
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts', '**/gra-loyalty-rewards-nz.spec.ts'],
       metadata: { siteCode: 'drm-au' },
     },
     {
       name: 'van-au',
       testDir: './tests/api',
       testMatch: ['**/tests/api/gra-*.spec.ts'],
-      // Loyalty feature not deployed on Vans — exclude entirely so tests don't appear in report
-      testIgnore: ['**/gra-loyalty-rewards.spec.ts'],
+      // Loyalty feature not deployed on Vans — exclude both loyalty specs
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts', '**/gra-loyalty-rewards-nz.spec.ts'],
       metadata: { siteCode: 'van-au' },
+    },
+    // NZ brand projects — same shared gra-*.spec.ts suite; Store: nz header injected by fixture
+    {
+      name: 'pla-nz',
+      testDir: './tests/api',
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
+      // AU loyalty spec contains Qantas QFF tests (AU-only) — use NZ loyalty spec instead
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts'],
+      metadata: { siteCode: 'pla-nz' },
+    },
+    {
+      name: 'skx-nz',
+      testDir: './tests/api',
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts'],
+      metadata: { siteCode: 'skx-nz' },
+    },
+    {
+      name: 'drm-nz',
+      testDir: './tests/api',
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
+      // No loyalty on Dr. Martens NZ — exclude both loyalty specs
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts', '**/gra-loyalty-rewards-nz.spec.ts'],
+      metadata: { siteCode: 'drm-nz' },
+    },
+    {
+      name: 'van-nz',
+      testDir: './tests/api',
+      testMatch: ['**/tests/api/gra-*.spec.ts'],
+      // No loyalty on Vans NZ — exclude both loyalty specs
+      testIgnore: ['**/gra-loyalty-rewards.spec.ts', '**/gra-loyalty-rewards-nz.spec.ts'],
+      metadata: { siteCode: 'van-nz' },
     },
     // Non-GRA specs (restful-booker, graphql-examples, objects-crud)
     {

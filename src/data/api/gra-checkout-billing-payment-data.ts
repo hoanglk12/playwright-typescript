@@ -15,26 +15,32 @@ export interface CheckoutBillingPaymentDataShape {
   invalidPaymentCode: string;
 }
 
-export const CheckoutBillingPaymentData: CheckoutBillingPaymentDataShape = {
-  shippingInlineAddress: {
-    firstname: 'Test',
-    lastname: 'Automation',
-    street: ['123 Test Street'],
-    city: 'SYDNEY',
-    region: 'NSW',
-    postcode: '2000',
-    country_code: 'AU',
-    telephone: '0412345678',
-  },
-  billingInlineAddress: {
-    firstname: 'Billing',
-    lastname: 'Test',
-    street: ['456 Billing Avenue'],
-    city: 'MELBOURNE',
-    region: 'VIC',
-    postcode: '3000',
-    country_code: 'AU',
-    telephone: '0498765432',
-  },
-  invalidPaymentCode: 'invalid_payment_99999',
-};
+export function createCheckoutBillingPaymentData(countryCode: string): CheckoutBillingPaymentDataShape {
+  const isNZ = countryCode === 'NZ';
+  return {
+    shippingInlineAddress: {
+      firstname: 'Test',
+      lastname: 'Automation',
+      street: ['123 Test Street'],
+      city: isNZ ? 'AUCKLAND' : 'SYDNEY',
+      region: isNZ ? 'Auckland' : 'NSW',
+      postcode: isNZ ? '1010' : '2000',
+      country_code: countryCode,
+      telephone: isNZ ? '0212345678' : '0412345678',
+    },
+    billingInlineAddress: {
+      firstname: 'Billing',
+      lastname: 'Test',
+      street: ['456 Billing Avenue'],
+      city: isNZ ? 'WELLINGTON' : 'MELBOURNE',
+      region: isNZ ? 'Wellington' : 'VIC',
+      postcode: isNZ ? '6011' : '3000',
+      country_code: countryCode,
+      telephone: isNZ ? '0498765432' : '0498765432',
+    },
+    invalidPaymentCode: 'invalid_payment_99999',
+  };
+}
+
+// Default AU instance — kept for any imports that haven't migrated to site-aware factory
+export const CheckoutBillingPaymentData: CheckoutBillingPaymentDataShape = createCheckoutBillingPaymentData('AU');
