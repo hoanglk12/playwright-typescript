@@ -589,6 +589,87 @@ test.<span class="fn">describe</span>(<span class="str">'Feature Name @tag1 @tag
           <tr><td><code>src/data/api/sites.ts</code></td><td>GRA brand registry — <code>SiteContext</code> per brand with baseURL, testData, hasLoyalty flag</td></tr>
         </tbody>
       </table>
+
+      <div class="pattern" style="margin-top:24px">
+        <div class="pattern-header">
+          <span class="pattern-title">Interface vs Factory — Two Separate Concepts</span>
+          <span class="badge badge-ts">Clarification</span>
+        </div>
+        <p class="pattern-body">
+          The pattern name <strong>"Factory + Typed Interface"</strong> is two distinct things working together — not one concept.
+          The <strong>interface</strong> is only a shape contract: it declares what fields exist and their types at compile time. It creates nothing.
+          The <strong>factory</strong> is the function or class method that generates dynamic values at runtime and returns a fully populated object that satisfies the interface.
+          Defining an interface with typed properties is <em>not</em> the factory — it is only the "Typed Interface" half.
+        </p>
+        <div class="two-col">
+          <div>
+            <div class="code-label">Interface — shape contract only (compile-time)</div>
+            <pre><span class="cmt">// Declares what fields must exist and their types</span>
+<span class="cmt">// Creates NOTHING — no values, no logic</span>
+<span class="kw">export interface</span> <span class="type">GraTestData</span> {
+  validCustomer:    <span class="type">CustomerInput</span>;
+  validCredentials: <span class="type">ValidCredentials</span>;
+  invalidCartId:    <span class="type">string</span>;
+}</pre>
+          </div>
+          <div>
+            <div class="code-label">Factory — generates values and builds the object (runtime)</div>
+            <pre><span class="cmt">// Generates dynamic values FIRST</span>
+<span class="kw">export function</span> <span class="fn">createBrandTestData</span>(prefix: <span class="type">string</span>): <span class="type">GraTestData</span> {
+  <span class="kw">const</span> email = <span class="str">`${prefix}test${Date.now()}@mail.com`</span>;
+  <span class="kw">const</span> name  = <span class="fn">generateFirstName</span>();
+  <span class="cmt">// Returns a REAL OBJECT — all fields use the same values</span>
+  <span class="kw">return</span> { validCustomer: { email, firstname: name, ... },
+           validCredentials: { email, ... } };
+}</pre>
+          </div>
+        </div>
+        <div class="callout callout-blue" style="margin-top:16px">
+          <span class="callout-icon">ℹ️</span>
+          <div class="callout-body">
+            <strong>Why the factory generates values before the return:</strong> all fields for the same logical entity (email, name, address) must share the same randomly-generated values.
+            If email were generated separately inside <code>validCustomer</code> and again inside <code>validCredentials</code>, two different <code>Date.now()</code> calls would produce two different emails — the credentials would no longer match the registered customer.
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">When to Use Factory vs Static Const</span>
+          <span class="badge badge-test">Decision Guide</span>
+        </div>
+        <p class="pattern-body">Not every data file needs a factory. The choice depends entirely on whether the data must change per test run.</p>
+        <table style="margin:0">
+          <thead><tr><th>Data type</th><th>Use</th><th>Reason</th></tr></thead>
+          <tbody>
+            <tr><td>Customer email, name, address</td><td><strong>Factory</strong></td><td>Must be unique per run — registering the same email twice fails on a live backend</td></tr>
+            <tr><td>Brand URLs, nav labels, country codes</td><td><strong>Static const</strong></td><td>Fixed — Australia's country code is always <code>'AU'</code>, no generation needed</td></tr>
+            <tr><td>Error messages, expected strings</td><td><strong>Static const</strong></td><td>Fixed expected values used for assertion — must not change between runs</td></tr>
+            <tr><td>Invalid/negative test inputs</td><td><strong>Static const</strong></td><td>Deliberate bad values — randomising them would make negative tests unpredictable</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory Presence by File</span>
+          <span class="badge badge-test">Reference</span>
+        </div>
+        <p class="pattern-body">Not all data files in <code>src/data/</code> contain a factory. The table below shows exactly which files have factory code and where.</p>
+        <table style="margin:0">
+          <thead><tr><th>File</th><th>Has Factory?</th><th>Factory location</th></tr></thead>
+          <tbody>
+            <tr><td><code>src/data/api/gra-test-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 163–267 — <code>createBrandTestData(prefix)</code> function; generates email, name, phone, address (all linked)</td></tr>
+            <tr><td><code>src/data/admin-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 113–162 — <code>AdminTestDataGenerator</code> class with 4 static <code>generate*()</code> methods</td></tr>
+            <tr><td><code>src/data/home-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 51–100 — <code>HomeTestDataGenerator</code> class with 4 static <code>generate*()</code> methods</td></tr>
+            <tr><td><code>src/data/profile-listing-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Class <code>ProfileListingTestDataGenerator</code> exists but contains only a static URL property — no generator methods</td></tr>
+            <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only <code>Storefront</code> interface + <code>storefronts</code> readonly array — all values are fixed per brand</td></tr>
+            <tr><td><code>src/data/api/gra-address-book-countries-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces + <code>addressBookCountriesData</code> const — country codes never change</td></tr>
+            <tr><td><code>src/data/api/gra-catalog-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces + <code>GraCatalogData</code> const — search terms and invalid SKUs are fixed</td></tr>
+            <tr><td><code>src/data/api/gra-auth-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces + const objects — deliberate bad tokens/emails must be fixed for predictable negative tests</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════ -->
@@ -762,6 +843,79 @@ logger.<span class="fn">error</span>(err, <span class="str">'Sign-in mutation fa
         <p class="pattern-body">
           <code>ApiClient.tokenStore</code> is a static <code>Record&lt;string, string&gt;</code>. Tokens persist across all tests within a single worker process. Use <code>ApiClient.storeToken(key, token)</code> after login; retrieve with <code>ApiClient.getToken(key)</code> in later tests.
         </p>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory Fixtures — Dynamic Client Creation at Test Time</span>
+          <span class="badge badge-api">Factory Pattern</span>
+        </div>
+        <p class="pattern-body">
+          <code>ApiTest.ts</code> exposes four <strong>factory fixtures</strong> alongside the standard singleton fixtures (<code>apiClient</code>, <code>graphqlClient</code>, etc.).
+          A factory fixture is not a pre-built client — it is a <strong>function</strong> the test calls to create one or more clients on demand, each with custom options merged on top of environment defaults.
+          The fixture itself manages the full lifecycle: it initialises every client the test creates and disposes them all after <code>use()</code> completes — the test body never calls <code>init()</code> or <code>dispose()</code>.
+        </p>
+        <table style="margin:0 0 16px">
+          <thead><tr><th>Factory fixture</th><th>Returns</th><th>When to use over the singleton</th></tr></thead>
+          <tbody>
+            <tr><td><code>createClient</code></td><td><code>ApiClient</code></td><td>Need a low-level client with non-default auth or headers</td></tr>
+            <tr><td><code>createClientExt</code></td><td><code>ApiClientExt</code></td><td>Need a wrapper-chain client with Bearer token or API key</td></tr>
+            <tr><td><code>createRestfulApiClient</code></td><td><code>RestfulApiClient</code></td><td>Need a device API client with custom timeout or auth</td></tr>
+            <tr><td><code>createGraphQLClient</code></td><td><code>GraphQLClient</code></td><td>Need a GraphQL client pointed at a different brand baseURL (GRA pattern)</td></tr>
+          </tbody>
+        </table>
+        <div class="two-col">
+          <div>
+            <div class="code-label">Factory fixture internals (createClientExt)</div>
+            <pre><span class="cmt">// src/api/ApiTest.ts:118–130</span>
+createClientExt: <span class="kw">async</span> ({ apiBaseUrl }, use) =&gt; {
+  <span class="kw">const</span> clients: <span class="type">ApiClientExt</span>[] = [];   <span class="cmt">// ① lifecycle tracker</span>
+
+  <span class="kw">const</span> factory = <span class="kw">async</span> (
+    options: <span class="type">Partial</span>&lt;<span class="type">ApiClientOptions</span>&gt;
+  ): <span class="type">Promise</span>&lt;<span class="type">ApiClientExt</span>&gt; =&gt; {
+    <span class="kw">const</span> client = <span class="kw">new</span> <span class="type">ApiClientExt</span>({
+      baseURL: apiBaseUrl, ...options  <span class="cmt">// ② merge defaults + overrides</span>
+    });
+    <span class="kw">await</span> client.<span class="fn">init</span>();               <span class="cmt">// ③ always initialised</span>
+    clients.<span class="fn">push</span>(client);              <span class="cmt">// ④ registered for teardown</span>
+    <span class="kw">return</span> client;
+  };
+
+  <span class="kw">await</span> <span class="fn">use</span>(factory);                 <span class="cmt">// ⑤ hand factory to the test</span>
+
+  <span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> clients)
+    <span class="kw">await</span> c.<span class="fn">dispose</span>();               <span class="cmt">// ⑥ dispose ALL created clients</span>
+},</pre>
+          </div>
+          <div>
+            <div class="code-label">Usage in a test</div>
+            <pre><span class="cmt">// Singleton — one client, default auth, no options</span>
+test(<span class="str">'TC_01'</span>, <span class="kw">async</span> ({ apiClientExt }) =&gt; {
+  <span class="kw">const</span> r = <span class="kw">await</span> apiClientExt.<span class="fn">getWithWrapper</span>(<span class="str">'/public'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+});
+
+<span class="cmt">// Factory — caller specifies only the delta</span>
+test(<span class="str">'TC_05'</span>, <span class="kw">async</span> ({ createClientExt }) =&gt; {
+  <span class="kw">const</span> authed = <span class="kw">await</span> <span class="fn">createClientExt</span>({
+    authType: <span class="type">AuthType</span>.BEARER,
+    token: storedToken,         <span class="cmt">// only override what differs</span>
+  });
+  <span class="kw">const</span> r = <span class="kw">await</span> authed.<span class="fn">getWithWrapper</span>(<span class="str">'/protected'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+  <span class="cmt">// no dispose() — factory fixture handles it</span>
+});</pre>
+          </div>
+        </div>
+        <div class="callout callout-amber" style="margin-top:16px">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <strong>Factory fixture vs singleton fixture:</strong> The standard fixtures (<code>apiClient</code>, <code>apiClientExt</code>, <code>graphqlClient</code>) are singletons — one instance per test, default auth, no custom options.
+            Use the factory fixtures when a test needs <strong>non-default auth</strong>, <strong>multiple independent clients</strong>, or a client pointed at a <strong>different base URL</strong> (e.g. GRA brand URL via <code>createGraphQLClient({ baseURL: site.baseURL })</code>).
+            Without factory fixtures, the test would need manual <code>new Client(...)</code> + <code>init()</code> + <code>try/finally dispose()</code> — the factory removes all three.
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1346,7 +1500,9 @@ skx.<span class="fn">setCartId</span>(cartId);         <span class="cmt">// only
           <tr><td><strong>Design</strong></td><td>Strategy pattern (AuthType enum)</td><td><code>ApiClient.ts</code></td></tr>
           <tr><td><strong>Design</strong></td><td>Builder / fluent wrapper (ApiResponseWrapper)</td><td><code>ApiClientExt</code>, <code>GraphQLClient</code></td></tr>
           <tr><td><strong>Design</strong></td><td>Singleton + Map-keyed state isolation</td><td><code>shared-state.ts</code></td></tr>
-          <tr><td><strong>Design</strong></td><td>Factory pattern (test data generators)</td><td><code>src/data/**/*.ts</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Factory pattern (test data generators — files with generate* methods only)</td><td><code>src/data/api/gra-test-data.ts</code>, <code>admin-data.ts</code>, <code>home-data.ts</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Factory fixtures (dynamic client creation + auto lifecycle)</td><td><code>src/api/ApiTest.ts</code> — <code>createClient</code>, <code>createClientExt</code>, <code>createGraphQLClient</code>, <code>createRestfulApiClient</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Typed Interface — named interface on every exported data shape</td><td>All <code>src/data/**/*.ts</code> files (both factory and const files)</td></tr>
           <tr><td><strong>Design</strong></td><td>Project-per-brand multi-brand injection</td><td><code>api.config.ts</code>, <code>gra-test.ts</code></td></tr>
           <tr><td><strong>Test</strong></td><td>TC_XX naming + tag-based filtering</td><td>All spec files</td></tr>
           <tr><td><strong>Test</strong></td><td>Dual assertion mode (hard vs soft)</td><td>All spec files</td></tr>
@@ -1387,7 +1543,7 @@ skx.<span class="fn">setCartId</span>(cartId);         <span class="cmt">// only
     </section>
 
     <div style="text-align:center; color:var(--muted); font-size:12px; padding: 40px 0 20px; border-top: 1px solid var(--border); margin-top: 20px;">
-      Playwright TypeScript Framework — Design Patterns Reference &nbsp;|&nbsp; Generated 2026-06-11
+      Playwright TypeScript Framework — Design Patterns Reference &nbsp;|&nbsp; Updated 2026-06-17
     </div>
 
   </main>
