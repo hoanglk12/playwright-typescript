@@ -91,6 +91,11 @@
           {
             "type": "command",
             "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const cmd=(j.tool_input||{}).command||'';const isTest=/npm (run )?test|npx playwright test/.test(cmd);if(isTest)console.log(JSON.stringify({systemMessage:'Tests complete. Open report: npm run report'}));process.exit(0);})\""
+          },
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const cmd=(j.tool_input||{}).command||'';if(!/git (add|stage|commit)/.test(cmd))return process.exit(0);const {spawnSync}=require('child_process');const r=spawnSync('git',['diff','--cached','--name-only'],{encoding:'utf8'});const files=(r.stdout||'').split('\\n').filter(f=>/\\.(ts|tsx|js|jsx)$/.test(f));if(files.length>0)process.stdout.write(JSON.stringify({systemMessage:files.length+' TS/JS file(s) staged \\u2014 re-index codebase-memory-mcp to keep the knowledge graph current.'}));process.exit(0);})\" 2>/dev/null || true",
+            "statusMessage": "Checking staged files..."
           }
         ]
       },

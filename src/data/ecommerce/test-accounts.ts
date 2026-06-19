@@ -36,3 +36,17 @@ export const invalidCredentials: SiteAuthMap = {
   'Dr. Martens AU': { email: testAccounts['Dr. Martens AU'].email, password: 'InvalidPass_00!' },
   'Dr. Martens NZ': { email: testAccounts['Dr. Martens NZ'].email, password: 'InvalidPass_00!' },
 };
+
+// Uses email addresses that do not exist on any GRA storefront (E2E-AUTH-004).
+// Magento returns the same generic sign-in error for non-existent emails as for
+// wrong passwords — by design, to prevent email enumeration attacks.
+export const nonExistentCredentials: SiteAuthMap = {
+  'Platypus AU': { email: 'qa.noexist.platypus.au@mailinator.com', password: 'AnyPass_99!' },
+  'Platypus NZ': { email: 'qa.noexist.platypus.nz@mailinator.com', password: 'AnyPass_99!' },
+  'Skechers AU': { email: 'qa.noexist.skechers.au@mailinator.com', password: 'AnyPass_99!' },
+  'Skechers NZ': { email: 'qa.noexist.skechers.nz@mailinator.com', password: 'AnyPass_99!' },
+  'Vans AU': { email: 'qa.noexist.vans.au@mailinator.com', password: 'AnyPass_99!' },
+  'Vans NZ': { email: 'qa.noexist.vans.nz@mailinator.com', password: 'AnyPass_99!' },
+  'Dr. Martens AU': { email: 'qa.noexist.drmartens.au@mailinator.com', password: 'AnyPass_99!' },
+  'Dr. Martens NZ': { email: 'qa.noexist.drmartens.nz@mailinator.com', password: 'AnyPass_99!' },
+};

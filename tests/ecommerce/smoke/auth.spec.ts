@@ -1,6 +1,6 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
-import { testAccounts, invalidCredentials } from '@data/ecommerce/test-accounts';
+import { testAccounts, invalidCredentials, nonExistentCredentials } from '@data/ecommerce/test-accounts';
 import { createTestLogger } from '@utils/test-logger';
 
 test.describe('Ecommerce Auth Smoke @ecommerce @smoke @auth', () => {
@@ -140,6 +140,54 @@ test.describe('Ecommerce Auth - Invalid Login @ecommerce @smoke @auth', () => {
 
       const stillLoggedOut = !(await ecommerceAccountModalPage.isLoggedIn());
       softAssert.toBeTruthy(stillLoggedOut, `User remains logged out after failed login on ${site.name}`);
+    });
+  }
+});
+
+test.describe('Ecommerce Auth - Non-existent Email Login @ecommerce @smoke @auth', () => {
+  test.slow();
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-AUTH-004-${String(index + 1).padStart(3, '0')}`;
+    test(`${tcId} - ${site.name} Failed login with non-existent email shows error`, async ({
+      ecommerceAccountModalPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Non-existent Email Login`);
+
+      logger.step('Step 1 - Navigate to storefront homepage');
+      await ecommerceAccountModalPage.navigate(site.url);
+
+      logger.step('Step 2 - Click account icon to open login modal');
+      await ecommerceAccountModalPage.openModal();
+
+      logger.step('Step 3 - Wait for modal to appear');
+      await ecommerceAccountModalPage.waitForModalVisible();
+
+      logger.step('Step 4 - Assert login modal is visible before submitting');
+      const modalVisible = await ecommerceAccountModalPage.isModalVisible();
+      logger.verify('Login modal visible', true, modalVisible);
+      expect(modalVisible).toBe(true);
+
+      logger.step('Step 5 - Capture baseline (no error before submit)');
+      const errorBeforeSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
+
+      logger.step('Step 6 - Fill non-existent email credentials and click Login');
+      const creds = nonExistentCredentials[site.name];
+      await ecommerceAccountModalPage.login(creds.email, creds.password);
+
+      logger.step('Step 7 - Wait for error message to appear');
+      await ecommerceAccountModalPage.waitForLoginError();
+
+      logger.step('Step 8 - Assert error appeared only after failed login attempt');
+      const errorAfterSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
+      softAssert.toBeTruthy(
+        errorBeforeSubmit.length === 0 && errorAfterSubmit.length > 0,
+        `Error message appeared only after failed login with non-existent email on ${site.name}`,
+      );
+
+      const stillLoggedOut = !(await ecommerceAccountModalPage.isLoggedIn());
+      softAssert.toBeTruthy(stillLoggedOut, `User remains logged out after non-existent email attempt on ${site.name}`);
     });
   }
 });
