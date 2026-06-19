@@ -166,6 +166,7 @@ jobs:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
           ADMIN_URL: ${{ secrets.ADMIN_URL }}
+          FRONTSITE_URL: ${{ secrets.FRONTSITE_URL }}
 
       - name: Run UI tests (Windows)
         if: runner.os == 'Windows'
@@ -175,6 +176,7 @@ jobs:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
           ADMIN_URL: ${{ secrets.ADMIN_URL }}
+          FRONTSITE_URL: ${{ secrets.FRONTSITE_URL }}
 
       - name: Save monocart trend data
         if: always()
