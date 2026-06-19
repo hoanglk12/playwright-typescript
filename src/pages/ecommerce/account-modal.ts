@@ -76,6 +76,14 @@ export class EcommerceAccountModalPage extends BasePage {
   // This fetch fires when the account button is clicked on GRA storefronts.
   private readonly loginCmsBlockPattern = /login_popup/;
 
+  // Text pattern that unambiguously identifies a logged-in panel state.
+  // Deliberately excludes "welcome" and "my account" — both appear in the
+  // pre-login panel ("Welcome Back", "Toggle My Account Menu" aria-label) and
+  // would produce false-positive logged-in signals on a failed login attempt.
+  // Only "logout", "sign out", and "dashboard" are exclusive to an authenticated
+  // session on GRA storefronts.
+  private readonly loggedInPanelTextPattern = /logout|sign.?out|dashboard/i;
+
   constructor(page: Page) {
     super(page);
   }
@@ -291,5 +299,90 @@ export class EcommerceAccountModalPage extends BasePage {
 
   getLoginButton(): Locator {
     return this.loginButtonLocator;
+  }
+
+  // Fill the email input inside the login panel.
+  async fillEmail(email: string): Promise<void> {
+    await this.emailInputLocator.fill(email);
+  }
+
+  // Fill the password input inside the login panel.
+  async fillPassword(password: string): Promise<void> {
+    await this.passwordInputLocator.fill(password);
+  }
+
+  // Click the Login button and wait for the GraphQL customer-token mutation
+  // response that follows a successful login attempt. The wait is best-effort
+  // (POST to /graphql with generateCustomerToken in the body): if the mutation
+  // is batched differently or renamed the catch silences the timeout and lets
+  // waitForLoginComplete() handle the post-login state check.
+  async clickLogin(): Promise<void> {
+    const tokenMutationPromise = this.page
+      .waitForResponse(
+        (resp) =>
+          resp.url().includes('graphql') &&
+          resp.request().method() === 'POST' &&
+          (resp.request().postData() ?? '').includes('generateCustomerToken'),
+        { timeout: TIMEOUTS.API_RESPONSE },
+      )
+      .catch(() => null);
+
+    await this.loginButtonLocator.click();
+    await tokenMutationPromise;
+  }
+
+  // Convenience method: fill email, fill password, then click Login.
+  async login(email: string, password: string): Promise<void> {
+    await this.fillEmail(email);
+    await this.fillPassword(password);
+    await this.clickLogin();
+  }
+
+  // Returns true when at least one unambiguous logged-in signal is detected.
+  // Signals ordered strongest → weakest (see method body for rationale).
+  async isLoggedIn(): Promise<boolean> {
+    // Strongest signal: Magento redirects to the customer dashboard on successful login
+    if (this.page.url().includes('/customer/account')) return true;
+
+    // Second signal: authenticated-only panel text visible in the account aside
+    const loggedInPattern = this.loggedInPanelTextPattern;
+    const sel = this.modalContainerSelector;
+    const foundLoggedInText = await this.page.evaluate(
+      ({ selector, pattern }) => {
+        const textRegex = new RegExp(pattern, 'i');
+        return Array.from(document.querySelectorAll(selector)).some((el) => {
+          const r = (el as Element).getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return false;
+          const style = getComputedStyle(el as Element);
+          const isPositioned =
+            style.position === 'fixed' ||
+            style.position === 'absolute' ||
+            parseInt(style.zIndex, 10) > 0;
+          if (!isPositioned) return false;
+          const text = (el instanceof HTMLElement ? el.innerText : el.textContent) ?? '';
+          return textRegex.test(text);
+        });
+      },
+      { selector: sel, pattern: loggedInPattern.source },
+    );
+    if (foundLoggedInText) return true;
+
+    // Weakest fallback: panel closed after a token mutation was awaited in clickLogin()
+    return !(await this.isModalVisible());
+  }
+
+  // Polls isLoggedIn() on the TypeScript side using a retry budget.
+  // Cannot use page.waitForFunction() because isLoggedIn() is composite async
+  // (it calls page.evaluate + page.url). Best-effort: catches timeout and lets
+  // the hard expect() in the spec be the definitive failure point.
+  async waitForLoginComplete(): Promise<void> {
+    const deadline = Date.now() + TIMEOUTS.ELEMENT_VISIBLE;
+    await (async () => {
+      while (Date.now() < deadline) {
+        const loggedIn = await this.isLoggedIn().catch(() => false);
+        if (loggedIn) return;
+        await this.page.waitForTimeout(TIMEOUTS.POLL_INTERVAL_NORMAL);
+      }
+    })().catch(() => {});
   }
 }

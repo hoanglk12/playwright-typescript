@@ -60,6 +60,7 @@ jobs:
     name: UI Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    environment: ${{ inputs.environment || 'testing' }}
     if: ${{ inputs.test_type != 'api' }}
     strategy:
       matrix:
@@ -150,6 +151,7 @@ jobs:
         run: ./run-ui-tests.sh ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }}
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
+          GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
 
       - name: Run UI tests (Windows)
         if: runner.os == 'Windows'
@@ -157,6 +159,7 @@ jobs:
         shell: cmd
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
+          GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
 
       - name: Upload UI Test Results
         uses: actions/upload-artifact@v7
