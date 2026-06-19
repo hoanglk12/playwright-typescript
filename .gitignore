@@ -128,6 +128,11 @@ debug.log*
 config.local.js
 *.local.json
 
+# Environment files — never commit secrets
+# Run `git rm --cached .env.*` if these were previously tracked
+.env*
+!.env.example
+
 # Miscellaneous
 .history/
 .temp/
