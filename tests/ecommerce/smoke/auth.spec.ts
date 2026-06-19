@@ -121,12 +121,12 @@ test.describe('Ecommerce Auth - Invalid Login @ecommerce @smoke @auth', () => {
       logger.verify('Login modal visible', true, modalVisible);
       expect(modalVisible).toBe(true);
 
-      logger.step('Step 5 - Fill invalid credentials and click Login');
+      logger.step('Step 5 - Capture baseline (no error before submit)');
+      const errorBeforeSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
+
+      logger.step('Step 6 - Fill invalid credentials and click Login');
       const creds = invalidCredentials[site.name];
       await ecommerceAccountModalPage.login(creds.email, creds.password);
-
-      logger.step('Step 6 - Capture baseline (no error before submit)');
-      const errorBeforeSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
 
       logger.step('Step 7 - Wait for error message to appear');
       await ecommerceAccountModalPage.waitForLoginError();

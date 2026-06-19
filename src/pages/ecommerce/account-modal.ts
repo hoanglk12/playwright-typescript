@@ -84,9 +84,18 @@ export class EcommerceAccountModalPage extends BasePage {
   // session on GRA storefronts.
   private readonly loggedInPanelTextPattern = /logout|sign.?out|dashboard/i;
 
+  // Error message locator for failed login attempts on GRA storefronts.
+  //
+  // The error renders as a plain <div> (generic in ARIA snapshot) — NOT as
+  // role="alert". getByRole('alert') matches nothing. Observed text on Platypus AU:
+  // "The email address and password entered doesn't match our records."
+  // GRA Magento also uses: "The account sign-in was incorrect or your account is
+  // disabled temporarily." Regex anchors on failure-only phrases — deliberately
+  // excludes "email", "password", "sign in", "log in" because those strings appear
+  // in the static panel labels (Email Address input, Password input, LOGIN button)
+  // BEFORE any submission, which would make errorBeforeSubmit non-empty.
   private readonly loginErrorLocator: Locator = this.accountPanel
-    .getByRole('alert')
-    .filter({ hasText: /incorrect|invalid|sign.?in|email|password|failed|wrong|error/i })
+    .getByText(/doesn't match|do not match|incorrect.*account|account.*incorrect|disabled temporarily|try again/i)
     .first();
 
   constructor(page: Page) {
