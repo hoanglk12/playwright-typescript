@@ -84,6 +84,11 @@ export class EcommerceAccountModalPage extends BasePage {
   // session on GRA storefronts.
   private readonly loggedInPanelTextPattern = /logout|sign.?out|dashboard/i;
 
+  private readonly loginErrorLocator: Locator = this.accountPanel
+    .getByRole('alert')
+    .filter({ hasText: /incorrect|invalid|sign.?in|email|password|failed|wrong|error/i })
+    .first();
+
   constructor(page: Page) {
     super(page);
   }
@@ -369,6 +374,16 @@ export class EcommerceAccountModalPage extends BasePage {
 
     // Weakest fallback: panel closed after a token mutation was awaited in clickLogin()
     return !(await this.isModalVisible());
+  }
+
+  async waitForLoginError(): Promise<void> {
+    await this.loginErrorLocator
+      .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE })
+      .catch(() => {});
+  }
+
+  async getLoginErrorMessage(): Promise<string> {
+    return this.loginErrorLocator.innerText().catch(() => '');
   }
 
   // Polls isLoggedIn() on the TypeScript side using a retry budget.

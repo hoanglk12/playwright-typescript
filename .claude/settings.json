@@ -25,7 +25,9 @@
       "mcp__playwright-test__browser_verify_text_visible",
       "mcp__playwright-test__browser_verify_list_visible",
       "mcp__playwright-test__browser_verify_value",
-      "mcp__playwright-test__browser_wait_for"
+      "mcp__playwright-test__browser_wait_for",
+      "mcp__lightrag__query_document",
+      "mcp__lightrag__get_documents"
     ],
     "defaultMode": "bypassPermissions"
   },
@@ -80,13 +82,6 @@
             "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';const isYml=f.endsWith('.yml')||f.endsWith('.yaml');if(!isYml)process.exit(1);const {spawnSync}=require('child_process');const r=spawnSync('npx',['js-yaml',f],{encoding:'utf8'});if(r.status!==0){process.stdout.write(JSON.stringify({systemMessage:'YAML syntax error in '+f+':\\n'+(r.stderr||r.stdout)}));process.exit(2);}process.exit(0);})\" 2>/dev/null || true",
             "timeout": 15,
             "statusMessage": "YAML syntax check..."
-          },
-          {
-            "type": "command",
-            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=(j.tool_input||{}).file_path||'';if(f.endsWith('.spec.ts')){const {spawnSync}=require('child_process');const r=spawnSync('npx',['playwright','test',f,'--reporter=list','--project=chromium'],{stdio:'inherit'});if(r.status!==0)process.exit(0);}process.exit(0);})\"",
-            "timeout": 300,
-            "asyncRewake": true,
-            "statusMessage": "Running related Playwright tests..."
           }
         ]
       },
@@ -120,6 +115,13 @@
             "timeout": 60,
             "statusMessage": "Final TypeScript check...",
             "asyncRewake": true
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const {spawnSync}=require('child_process');const s=spawnSync('git',['status','--porcelain'],{encoding:'utf8'});const all=(s.stdout||'').split('\\n').filter(l=>l.trim()).map(l=>l.slice(3).trim()).filter(f=>f.endsWith('.spec.ts'));const specs=all.filter(f=>{const isEcom=f.replace(/\\\\\\\\/g,'/').includes('/ecommerce/');return isEcom?!!process.env.GRA_TEST_PASSWORD:true;});if(!specs.length)process.exit(0);let failed=false;for(const f of specs.slice(0,3)){const r=spawnSync('npx',['playwright','test',f,'--reporter=list','--project=chromium'],{stdio:'inherit'});if(r.status!==0)failed=true;}process.exit(failed?2:0);\"",
+            "timeout": 300,
+            "asyncRewake": true,
+            "statusMessage": "Running changed spec tests..."
           },
           {
             "type": "command",

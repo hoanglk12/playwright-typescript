@@ -22,3 +22,17 @@ export const testAccounts: SiteAuthMap = {
   'Dr. Martens AU': { email: 'qa.drmartens.au.t1@mailinator.com', password },
   'Dr. Martens NZ': { email: 'qa.drmartens.nz.t1@mailinator.com', password },
 };
+
+// Uses each site's real email address with a known-wrong password.
+// Intentionally wrong password confirms "incorrect credentials" error path (E2E-AUTH-003).
+// The wrong password is hardcoded because it is intentionally invalid — it is NOT a real credential.
+export const invalidCredentials: SiteAuthMap = {
+  'Platypus AU': { email: testAccounts['Platypus AU'].email, password: 'InvalidPass_00!' },
+  'Platypus NZ': { email: testAccounts['Platypus NZ'].email, password: 'InvalidPass_00!' },
+  'Skechers AU': { email: testAccounts['Skechers AU'].email, password: 'InvalidPass_00!' },
+  'Skechers NZ': { email: testAccounts['Skechers NZ'].email, password: 'InvalidPass_00!' },
+  'Vans AU': { email: testAccounts['Vans AU'].email, password: 'InvalidPass_00!' },
+  'Vans NZ': { email: testAccounts['Vans NZ'].email, password: 'InvalidPass_00!' },
+  'Dr. Martens AU': { email: testAccounts['Dr. Martens AU'].email, password: 'InvalidPass_00!' },
+  'Dr. Martens NZ': { email: testAccounts['Dr. Martens NZ'].email, password: 'InvalidPass_00!' },
+};
