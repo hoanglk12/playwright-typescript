@@ -98,6 +98,41 @@ export class EcommerceAccountModalPage extends BasePage {
     .getByText(/doesn't match|do not match|incorrect.*account|account.*incorrect|disabled temporarily|try again/i)
     .first();
 
+  // Email input scoped to ANY overlay-positioned aside/complementary element.
+  //
+  // Unlike emailInputLocator (which is scoped to the text-filtered accountPanel),
+  // this locator is used ONLY in openModalPostLogout() where the panel may not
+  // yet contain the accountPanel filter text (e.g. immediately after React re-renders
+  // the aside after logout). Using a broader scope guarantees detection as soon as
+  // the email <input> is injected into any aside, regardless of surrounding text.
+  // Not used for fill/type — emailInputLocator (scoped to accountPanel) is always
+  // preferred for interactive steps because its filter prevents false-positives.
+  private readonly anyAsideEmailInputLocator: Locator = this.page
+    .getByRole('complementary')
+    .locator('input[name="email"], input[type="email"]')
+    .first();
+
+  // Logout button locator scoped to ANY complementary element (aside).
+  //
+  // Deliberately NOT scoped to this.accountPanel because accountPanel is filtered
+  // on login-state text (/log.?in|sign.?in|welcome back|my account/i). After a
+  // successful login the authenticated panel contains "Logout"/"Sign Out" but may
+  // no longer contain login-state text, so accountPanel would not match the open
+  // panel. Scoping to getByRole('complementary') works for both the login aside
+  // and the authenticated aside without relying on text content filtering.
+  //
+  // The logout control may be rendered as a <button> or <a> element across GRA
+  // storefronts — both are included. .first() collapses any duplicates.
+  private readonly logoutButtonLocator: Locator = this.page
+    .getByRole('complementary')
+    .getByRole('button', { name: /logout|sign.?out/i })
+    .or(
+      this.page
+        .getByRole('complementary')
+        .getByRole('link', { name: /logout|sign.?out/i }),
+    )
+    .first();
+
   constructor(page: Page) {
     super(page);
   }
@@ -303,6 +338,14 @@ export class EcommerceAccountModalPage extends BasePage {
     }
   }
 
+  // Returns the login panel Locator for web-first assertions (e.g. toContainText).
+  // Used in E2E-AUTH-011 to retry-poll for brand-specific heading text that loads
+  // lazily from the CMS block — a single innerText() snapshot may miss it if the
+  // CMS block has not yet rendered when the read fires.
+  getModalPanel(): Locator {
+    return this.accountPanel.first();
+  }
+
   getEmailInput(): Locator {
     return this.emailInputLocator;
   }
@@ -393,6 +436,127 @@ export class EcommerceAccountModalPage extends BasePage {
 
   async getLoginErrorMessage(): Promise<string> {
     return this.loginErrorLocator.innerText().catch(() => '');
+  }
+
+  // Opens the account panel after logout, when the session has been cleared.
+  //
+  // After a successful logout the GRA SPA may navigate to a logout-success URL and
+  // redirect back to the homepage, causing a full React re-hydration. Re-opening the
+  // panel in the same browser session does NOT trigger a new login_popup GraphQL
+  // request — that CMS block is cached by Apollo. Using openModal() here would time
+  // out on the login_popup wait and may also toggle the panel closed on even-numbered
+  // retries.
+  //
+  // Strategy:
+  //   1. Wait for <main> to be visible to ensure React has re-hydrated before clicking.
+  //   2. Retry the toggle click up to 3 times (same as openModal()), using the broader
+  //      anyAsideEmailInputLocator (not text-filtered through accountPanel) as the
+  //      "panel is open" signal. The broader locator detects the input as soon as it
+  //      is injected into any aside, regardless of panel heading text.
+  //   3. If the email input appears after any click → panel is open; stop retrying.
+  //   4. Best-effort catches on all waits; the hard assertion in the spec is the
+  //      definitive failure point.
+  async openModalPostLogout(): Promise<void> {
+    // Wait for React to re-hydrate after possible page navigation on logout.
+    await this.mainElement.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD }).catch(() => {});
+
+    const buttonVisible = await this.accountToggleButton.isVisible().catch(() => false);
+
+    if (buttonVisible) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt === 0) {
+          await this.accountToggleButton.hover();
+        }
+        await this.accountToggleButton.click();
+
+        // Use the broadly-scoped locator (not filtered through accountPanel text) so
+        // we detect the email input as soon as it appears, regardless of panel heading.
+        const appeared = await this.anyAsideEmailInputLocator
+          .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE })
+          .then(() => true)
+          .catch(() => false);
+
+        if (appeared) return;
+        // appeared === false → click may have toggled the panel closed → retry.
+      }
+    } else {
+      const linkVisible = await this.accountToggleLink.isVisible().catch(() => false);
+      if (linkVisible) {
+        await this.accountToggleLink.hover();
+        await this.elements.clickLocator(this.accountToggleLink);
+        await this.anyAsideEmailInputLocator
+          .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE })
+          .catch(() => {});
+      }
+    }
+  }
+
+  // Opens the account panel when the user is ALREADY LOGGED IN.
+  //
+  // Unlike openModal(), this method does NOT wait for a login_popup CMS response.
+  // That GraphQL request fires only when the panel is opened before authentication.
+  // After login the panel is pre-populated by authenticated CMS blocks — the
+  // login_popup request never fires, and waiting for it would always time out.
+  //
+  // Instead this method clicks the account toggle and waits for the logout control
+  // to become visible in the panel, which is the reliable "authenticated panel open"
+  // signal. Best-effort catch on the waiter so a hard assertion in the spec
+  // provides the definitive failure point.
+  async openModalWhenLoggedIn(): Promise<void> {
+    const buttonVisible = await this.accountToggleButton.isVisible().catch(() => false);
+
+    if (buttonVisible) {
+      await this.accountToggleButton.hover();
+      await this.accountToggleButton.click();
+    } else {
+      const linkVisible = await this.accountToggleLink.isVisible().catch(() => false);
+      if (linkVisible) {
+        await this.accountToggleLink.hover();
+        await this.elements.clickLocator(this.accountToggleLink);
+      }
+    }
+
+    // Wait for the logout control to appear — proof that the authenticated panel opened.
+    await this.logoutButtonLocator
+      .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE })
+      .catch(() => {});
+  }
+
+  // Clicks the logout button in the authenticated account panel.
+  //
+  // After clicking, waits for the logout control to disappear — this signals that
+  // Magento processed the logout (the panel either closes or transitions back to
+  // the login state). Best-effort catch: the spec's subsequent re-open + assertion
+  // is the definitive failure point.
+  async logout(): Promise<void> {
+    await this.logoutButtonLocator.click();
+    await this.logoutButtonLocator
+      .waitFor({ state: 'hidden', timeout: TIMEOUTS.ELEMENT_VISIBLE })
+      .catch(() => {});
+  }
+
+  // Returns true when the login form inputs (email + password) are both visible
+  // in the account panel. Used as the positive confirmation that a logout succeeded
+  // — after logout and re-opening the panel, the form returns to its pre-auth state.
+  //
+  // Deliberately avoids isModalVisible() / !isLoggedIn() as the logout confirmation
+  // signal: the latter has a vacuous-truth fallback that returns true when the panel
+  // is closed, making it useless as a post-logout check.
+  async isLoginFormVisible(): Promise<boolean> {
+    const emailVisible = await this.emailInputLocator.isVisible().catch(() => false);
+    const passwordVisible = await this.passwordInputLocator.isVisible().catch(() => false);
+    return emailVisible && passwordVisible;
+  }
+
+  // Waits until the login panel returns to its pre-authentication state.
+  //
+  // On GRA storefronts, logout transitions the panel in-place back to the login
+  // content (showing "Login to…", "Welcome Back", "Email Address", "Password").
+  // This method delegates to waitForModalVisible() which already uses the proven
+  // loginPanelTextPattern detection. Best-effort catch lets the hard assertion in
+  // the spec be the definitive failure point.
+  async waitForLoginFormVisible(): Promise<void> {
+    await this.waitForModalVisible();
   }
 
   // Polls isLoggedIn() on the TypeScript side using a retry budget.

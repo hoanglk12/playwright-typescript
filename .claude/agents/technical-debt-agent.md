@@ -10,7 +10,7 @@ description: >
   file:line references, and a prioritised remediation roadmap.
   Examples: "Run a tech debt audit", "How healthy is the codebase?",
   "What should I refactor next?", "Generate a TECH_DEBT_REPORT".
-tools: Glob, Grep, Read, LS, Bash, Write
+tools: Glob, Grep, Read, LS, Bash, Write, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__get_architecture, mcp__codebase-memory-mcp__search_code, mcp__codebase-memory-mcp__query_graph
 model: opus
 color: ivory
 ---
@@ -60,6 +60,19 @@ tests/
 ## Audit Workflow
 
 Work through each step below in order. Collect all findings before writing the report.
+
+---
+
+### Step 0 — Graph Overview (optional accelerator, non-blocking)
+
+Graph tools are available to accelerate structural navigation before the grep scripts run. They supplement, not replace, the textual checks in Steps 1–11.
+
+- `mcp__codebase-memory-mcp__get_architecture` — project layer overview before diving into greps
+- `mcp__codebase-memory-mcp__search_graph` with `label="Class", name_pattern="*Page"` — enumerate all page classes for Step 3e fixture registration check (faster than the bash grep)
+- `mcp__codebase-memory-mcp__get_code_snippet` — read exact source for a known class/method without loading the full file
+- `mcp__codebase-memory-mcp__query_graph` — Cypher-style structural queries for complex relationship checks (e.g. which classes extend BasePage)
+
+Graph tools do NOT detect textual violations (inline selectors, magic numbers, import patterns). The bash grep scripts in Steps 1–11 are the primary audit mechanism and must still run in full.
 
 ---
 

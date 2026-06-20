@@ -8,7 +8,7 @@ description: >
   test case to automation", "Create a page object for the checkout page", "Generate a
   test for this user story". For multi-step workflows (plan → build → review), prefer
   invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, Edit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value
+tools: Glob, Grep, Read, LS, Edit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__get_architecture, mcp__codebase-memory-mcp__search_code
 model: sonnet
 color: purple
 ---
@@ -444,7 +444,12 @@ export const MyApiData: MyApiDataShape = {
 ## Your Workflow
 
 1. **Understand the requirement** — read the manual test case, user story, or feature description
-2. **Explore the codebase** — use Glob/Grep/Read to check existing page objects, data files, fixtures in `src/config/base-test.ts`
+2. **Explore the codebase** — use graph tools first, then Glob/Grep/Read for configs, .env, and YAML files:
+   - `mcp__codebase-memory-mcp__search_graph` with `name_pattern="*Page"` to find all existing page objects (faster than globbing `src/pages/`)
+   - `mcp__codebase-memory-mcp__get_code_snippet` with a class qualified name to read exact source without loading entire files
+   - `mcp__codebase-memory-mcp__search_code` to find pattern matches across the TypeScript codebase
+   - `mcp__codebase-memory-mcp__get_architecture` when you need a structural overview of project layers
+   - Fall back to Glob/Grep/Read for non-TypeScript files (`.env.*`, `.yml`, `tsconfig.json`, `playwright.config.ts`)
 3. **Check if a page object already exists** — extend it rather than duplicating
 4. **If a new page object is needed:**
    - Create it under `src/pages/{area}/`

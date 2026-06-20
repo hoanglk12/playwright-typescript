@@ -2,6 +2,7 @@ import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { testAccounts, invalidCredentials, nonExistentCredentials } from '@data/ecommerce/test-accounts';
 import { createTestLogger } from '@utils/test-logger';
+import { TIMEOUTS } from '../../../src/constants/timeouts';
 
 test.describe('Ecommerce Auth Smoke @ecommerce @smoke @auth', () => {
   // SPA staging sites need extra time to hydrate, especially in Firefox
@@ -188,6 +189,138 @@ test.describe('Ecommerce Auth - Non-existent Email Login @ecommerce @smoke @auth
 
       const stillLoggedOut = !(await ecommerceAccountModalPage.isLoggedIn());
       softAssert.toBeTruthy(stillLoggedOut, `User remains logged out after non-existent email attempt on ${site.name}`);
+    });
+  }
+});
+
+test.describe('Ecommerce Auth - Brand Title @ecommerce @smoke @auth', () => {
+  // SPA staging sites need extra time to hydrate before the account panel loads
+  test.slow();
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-AUTH-011-${String(index + 1).padStart(3, '0')}`;
+    test(`${tcId} - ${site.name} Login modal title matches brand`, async ({
+      ecommerceAccountModalPage,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Login Modal Brand Title`);
+
+      logger.step('Step 1 - Navigate to storefront homepage');
+      await ecommerceAccountModalPage.navigate(site.url);
+
+      logger.step('Step 2 - Click account icon to open login modal');
+      await ecommerceAccountModalPage.openModal();
+
+      logger.step('Step 3 - Wait for modal to appear');
+      await ecommerceAccountModalPage.waitForModalVisible();
+
+      logger.step('Step 4 - Assert login modal is visible (precondition guard)');
+      const modalVisible = await ecommerceAccountModalPage.isModalVisible();
+      logger.verify('Login modal visible', true, modalVisible);
+      expect(modalVisible).toBe(true);
+
+      logger.step('Step 5 - Assert login panel contains the brand name (retrying until CMS block renders)');
+
+      // Derive the brand token from site.name by stripping the market suffix (" AU" / " NZ").
+      // Use only the last word of the brand token so that multi-word brands like
+      // "Dr. Martens" also match panel headings that show only the last word
+      // (e.g. "LOGIN TO MARTENS"). Single-word brands are unaffected.
+      // toContainText with a timeout retries until the lazily-loaded CMS block
+      // injects the branded heading — avoids the race where a single innerText()
+      // snapshot reads "Email Address" before "LOGIN TO {BRAND}" renders.
+      const brandToken = site.name.replace(/\s+(AU|NZ)$/i, '').trim();
+      const brandLastWord = brandToken.split(/\s+/).pop() ?? brandToken;
+      const escapedToken = brandLastWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const brandRegex = new RegExp(escapedToken, 'i');
+
+      logger.verify(
+        `Login panel contains brand identifier "${brandLastWord}"`,
+        brandRegex.toString(),
+        `(retrying via expect(locator).toContainText until ${TIMEOUTS.ELEMENT_VISIBLE}ms)`,
+      );
+      await expect(ecommerceAccountModalPage.getModalPanel()).toContainText(brandRegex, {
+        timeout: TIMEOUTS.ELEMENT_VISIBLE,
+      });
+    });
+  }
+});
+
+test.describe('Ecommerce Auth - Logout @ecommerce @smoke @auth', () => {
+  // SPA staging sites need extra time for login + logout round-trips
+  test.slow();
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-AUTH-010-${String(index + 1).padStart(3, '0')}`;
+    test(`${tcId} - ${site.name} Logout clears session and redirects`, async ({
+      ecommerceAccountModalPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Logout`);
+
+      logger.step('Step 1 - Look up test credentials for this site');
+      const creds = testAccounts[site.name];
+      if (!creds) {
+        test.skip(true, `No test account configured for ${site.name}`);
+        return;
+      }
+      if (!creds.password) {
+        test.skip(true, `GRA_TEST_PASSWORD env var is not set — skipping logout test for ${site.name}`);
+        return;
+      }
+
+      logger.step('Step 2 - Navigate to storefront homepage');
+      await ecommerceAccountModalPage.navigate(site.url);
+
+      logger.step('Step 3 - Click account icon to open login modal');
+      await ecommerceAccountModalPage.openModal();
+
+      logger.step('Step 4 - Wait for modal to appear');
+      await ecommerceAccountModalPage.waitForModalVisible();
+
+      logger.step('Step 5 - Assert login modal is visible before submitting credentials');
+      const modalVisibleBeforeLogin = await ecommerceAccountModalPage.isModalVisible();
+      logger.verify('Login modal visible before login', true, modalVisibleBeforeLogin);
+      expect(modalVisibleBeforeLogin).toBe(true);
+
+      logger.step('Step 6 - Fill credentials and click Login');
+      await ecommerceAccountModalPage.login(creds.email, creds.password);
+
+      logger.step('Step 7 - Wait for login to complete');
+      await ecommerceAccountModalPage.waitForLoginComplete();
+
+      logger.step('Step 8 - Assert login success signal (precondition for logout test)');
+      const isLoggedIn = await ecommerceAccountModalPage.isLoggedIn();
+      logger.verify('User is logged in before logout attempt', true, isLoggedIn);
+      expect(isLoggedIn).toBe(true);
+
+      logger.step('Step 9 - Open account panel while authenticated');
+      await ecommerceAccountModalPage.openModalWhenLoggedIn();
+
+      logger.step('Step 10 - Click logout button');
+      await ecommerceAccountModalPage.logout();
+
+      logger.step('Step 11 - Wait for login form — panel transitions in place on most storefronts');
+      await ecommerceAccountModalPage.waitForLoginFormVisible();
+
+      logger.step('Step 12 - Re-open account panel only if it closed post-logout');
+      if (!(await ecommerceAccountModalPage.isLoginFormVisible())) {
+        await ecommerceAccountModalPage.openModalPostLogout();
+        await ecommerceAccountModalPage.waitForLoginFormVisible();
+      }
+
+      logger.step('Step 13 - Assert login form is visible (positive logout confirmation)');
+      const loginFormVisible = await ecommerceAccountModalPage.isLoginFormVisible();
+      logger.verify('Login form visible after logout', true, loginFormVisible);
+      expect(loginFormVisible).toBe(true);
+
+      logger.step('Step 14 - Soft-assert individual login form inputs are visible');
+      await softAssert.toBeVisible(
+        ecommerceAccountModalPage.getEmailInput(),
+        `Email input visible after logout on ${site.name}`,
+      );
+      await softAssert.toBeVisible(
+        ecommerceAccountModalPage.getPasswordInput(),
+        `Password input visible after logout on ${site.name}`,
+      );
     });
   }
 });

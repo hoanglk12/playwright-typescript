@@ -1,9 +1,9 @@
 ---
 name: ecommerce-auth-modal-gotchas
-description: EcommerceAccountModalPage patterns — addLocatorHandler for Bloomreach popup, CMS block discriminator for click verification, Firefox CI exclusion, locator strategy for account toggle button
+description: EcommerceAccountModalPage patterns — addLocatorHandler for Bloomreach popup, CMS block discriminator for click verification, Firefox CI exclusion, locator strategy for account toggle button, modal title race condition fix
 type: feedback
 tags: [memory, feedback]
-last_verified: 2026-06-16
+last_verified: 2026-06-20
 ---
 
 ## 1. Page object location and fixture
@@ -80,6 +80,59 @@ testIgnore: process.env.CI ? ['**/api/**', '**/ecommerce/smoke/**'] : ['**/api/*
 
 Firefox never runs auth.spec.ts (or any ecommerce/smoke) in CI. Chromium 8/8 is the CI bar.
 Local Firefox failures on ecommerce smoke are pre-existing and out of scope for CI fixes.
+
+---
+
+## 7. Modal branded title — CMS lazy-injection race condition
+
+**Symptom:** `getModalTitle()` returns "Email Address" or "Welcome Back" instead of the brand-specific heading (e.g. "Sign In to Platypus") on 3–5 of 8 storefronts. Happens specifically when the spec calls `getModalTitle()` immediately after the panel opens.
+
+**Root cause:** GRA storefronts inject the branded heading via a GraphQL CMS block request (`login_popup`) that is lazily loaded after the panel DOM appears. A one-time `innerText()` snapshot races against this injection and loses on slower storefronts (Skechers NZ, Vans AU, Dr. Martens NZ observed failing in E2E-AUTH-011, 2026-06-20).
+
+**Fix:** Use a retrying web-first assertion against the panel locator instead of a one-time text snapshot:
+
+```ts
+// WRONG — snapshot races against CMS lazy-load
+const title = await ecommerceAccountModalPage.getModalTitle(); // innerText()
+expect(title).toContain('Platypus');
+
+// CORRECT — polls until CMS heading renders
+expect(ecommerceAccountModalPage.getModalPanel()).toContainText(/platypus/i, {
+  timeout: TIMEOUTS.ELEMENT_VISIBLE,
+});
+```
+
+`getModalPanel()` was added to `EcommerceAccountModalPage` (`src/pages/ecommerce/account-modal.ts`) returning `this.accountPanel.first()` as a `Locator`. The retrying `expect(locator).toContainText()` assertion polls automatically — no explicit wait needed.
+
+**Pattern:** Whenever asserting CMS-injected text content in a GRA modal, always use `expect(locator).toContainText()` (web-first, retrying) — never `expect(await locator.innerText()).toContain()` (one-shot snapshot).
+
+See also: [[ecommerce-pdp-page-gotchas]] §3 (CMS block discriminator for click verification).
+
+---
+
+## 8. GRA login panel branded heading format + dynamic brand token derivation
+
+**DOM fact:** GRA login panels inject a heading of the form `"LOGIN TO {BRAND}"` or `"SIGN IN TO {BRAND}"`. For multi-word brands, only the last word appears — e.g. `"Dr. Martens"` → `"LOGIN TO MARTENS"`, not `"LOGIN TO DR. MARTENS"`.
+
+**Consequence for assertions:** Never assert against the full `site.name` string (e.g. `"Dr. Martens AU"`). Strip the market suffix AND take only the last word.
+
+**Reusable derivation pattern** (from E2E-AUTH-011, spec line 230–233):
+
+```ts
+// Derive brand token from site.name — handles multi-word brands and regex-special chars
+const brandToken = site.name.replace(/\s+(AU|NZ)$/i, '').trim();       // "Dr. Martens"
+const brandLastWord = brandToken.split(/\s+/).pop() ?? brandToken;      // "Martens"
+const escapedToken = brandLastWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // "Martens" (dot in "Dr." escaped if it appears)
+const brandRegex = new RegExp(escapedToken, 'i');
+
+await expect(ecommerceAccountModalPage.getModalPanel()).toContainText(brandRegex, {
+  timeout: TIMEOUTS.ELEMENT_VISIBLE,
+});
+```
+
+Single-word brands (Platypus, Skechers, Vans) are unaffected — `split().pop()` returns the only word.
+
+**No `storefronts.ts` change needed** — the derivation is fully algorithmic from `site.name`. Do not add a `brandTitleRegex` field to `storefronts.ts` unless a brand's actual panel heading diverges from this pattern.
 
 ---
 

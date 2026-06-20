@@ -9,7 +9,7 @@ description: >
   code based on project standards", "Audit my new page object", "Check if this test
   follows our conventions", "Find issues in my spec file". For multi-step workflows
   ending in review, prefer invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, Edit
+tools: Glob, Grep, Read, LS, Edit, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__search_code
 model: opus
 color: orange
 ---
@@ -473,6 +473,21 @@ const navLabel = getPreferredNavLabel(site, preferMens);  // caller controls pre
 ```
 
 - [ ] **[WARNING]** `getPreferredNavLabel` is imported but not used — **either use it for all nav label derivations in the spec or remove the import**. Mixing helper calls and inline fallback chains in the same file is inconsistent.
+
+---
+
+---
+
+### Graph Tools (optional supplement)
+
+When reviewing code that references symbols across multiple files, use these to navigate efficiently instead of sequential Grep calls:
+
+- `mcp__codebase-memory-mcp__get_code_snippet` — read exact source for a known class or method by qualified name; use when verifying a referenced helper, base class, or fixture without reading the whole file
+- `mcp__codebase-memory-mcp__search_graph` — find where a symbol is defined when you know its name but not the file (e.g. locating `EcommerceNavPage` or `BasePage` methods)
+- `mcp__codebase-memory-mcp__search_code` — text-pattern search across TypeScript; use in place of Grep for symbol/string searches
+- `mcp__codebase-memory-mcp__index_status` — call to verify the project is indexed if graph tools return empty results
+
+These do not replace checklist items above — they accelerate cross-file lookups. All checklist checks still apply.
 
 ---
 

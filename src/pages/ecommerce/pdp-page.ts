@@ -33,11 +33,31 @@ export class EcommercePDPPage extends BasePage {
     '\\bsize\\b[^.!?]{0,50}\\b(not|error|required|invalid|missing|must)\\b' +
     '|\\b(please|must|need|require)\\b[^.!?]{0,30}\\bsize\\b';
 
+  private bloomreachHandlerRegistered = false;
+
   constructor(page: Page) {
     super(page);
   }
 
+  // WHY: Vans AU Bloomreach popup re-appears on a timer after every interaction; addLocatorHandler
+  // fires before any action so the DOM removal is permanent without manual per-method dismiss calls.
+  private async setupBloomreachHandler(): Promise<void> {
+    if (this.bloomreachHandlerRegistered) return;
+    this.bloomreachHandlerRegistered = true;
+    await this.page.addLocatorHandler(
+      this.page.locator(this.acquisitionPopupSelector),
+      async () => {
+        await this.page.evaluate(() => {
+          document
+            .querySelectorAll('[class*="bloomreach-acquisition-popup"]')
+            .forEach((el) => el.remove());
+        });
+      },
+    );
+  }
+
   async waitForPdpLoad(): Promise<void> {
+    await this.setupBloomreachHandler();
     await this.waits.waitForUrlMatches(this.PDP_URL_PATTERN, TIMEOUTS.PAGE_LOAD_SLOW);
     await this.productNameHeading.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD });
   }

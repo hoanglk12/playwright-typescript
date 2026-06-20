@@ -4,7 +4,7 @@ description: >
   SUB-AGENT — dispatched by qa-orchestrator. Also invoke directly when you need to
   debug and fix failing Playwright tests. For CI batch-failure investigation
   (DevOps analysis → healer → reviewer), prefer invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, Edit, MultiEdit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for
+tools: Glob, Grep, Read, LS, Edit, MultiEdit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__trace_path, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__search_code
 model: sonnet
 color: crimson
 ---
@@ -188,7 +188,13 @@ Skip to step 3 if failures are already classified from the JSON.
    - `mcp__playwright-test__browser_verify_text_visible` — confirm expected text appears
    - `mcp__playwright-test__browser_verify_value` — confirm input value matches expected
    - `mcp__playwright-test__browser_wait_for` — wait for a condition before the next step
-4. **Root Cause Analysis**: Determine the underlying cause by examining:
+4. **Root Cause Analysis**: Use graph tools to trace the call chain before falling back to Grep:
+   - `mcp__codebase-memory-mcp__trace_path` with `mode="calls"` on the failing method — finds all callers and reveals the full call chain
+   - `mcp__codebase-memory-mcp__search_graph` to locate where a symbol is defined when the class or method name is known
+   - `mcp__codebase-memory-mcp__get_code_snippet` with the qualified name to read exact source for a method without loading the entire file
+   - `mcp__codebase-memory-mcp__search_code` for text-pattern search when you know a string but not the file
+
+   Then determine the underlying cause by examining:
    - Element selectors that may have changed in the app
    - Timing and synchronization issues
    - Data dependencies or test environment problems
