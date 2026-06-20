@@ -640,6 +640,20 @@ The vault at `memory-vault/20-memory/` is the authoritative source. Write files 
 
 The PostToolUse hook auto-syncs vault writes to LightRAG. No manual step needed.
 
+### Searching the vault
+
+| Goal | Tool |
+|------|------|
+| Exact keyword or tag lookup | `Grep` over `memory-vault/20-memory/` |
+| Read a specific note | `Read` the file directly |
+| Multi-note synthesis / relationship queries | `mcp__lightrag__query_document` |
+
+**LightRAG query rule:** use `mcp__lightrag__query_document` (mode: `"hybrid"`) when a question spans multiple vault notes or requires relationship reasoning ("what are all constraints for X?", "list everything that affects Y"). For simple lookups, Grep is faster and more reliable.
+
+**LightRAG does NOT index source code** — only vault notes in `memory-vault/20-memory/`. Never use it as a substitute for reading `.ts` files directly.
+
+**Health-check first:** call `mcp__lightrag__check_lightrag_health` before querying. If the server is not running, fall back to Grep.
+
 **New machine setup:** bootstrap Claude Code memory index from the vault:
 ```powershell
 node scripts/init-memory-from-vault.mjs

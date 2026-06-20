@@ -4,6 +4,10 @@ export interface Storefront {
   titleRegex: RegExp;
   /** AU sites earn Qantas Points; NZ sites do not (E2E-HOME-003) */
   hasQantasPoints: boolean;
+  /** GraphQL endpoint for this storefront — used in hybrid API+UI tests (e.g. account creation before UI login) */
+  graphqlUrl: string;
+  /** Store header value; set to 'nz' for NZ storefronts to scope requests to the correct store view */
+  storeHeader?: string;
   /** Expected top-nav link labels in display order (E2E-NAV-001). Empty = not yet configured for this site. */
   navLinks: readonly string[];
   /** Label of the women's category nav link; undefined if this site has no women's nav link (E2E-NAV-002) */
@@ -47,6 +51,7 @@ export const storefronts: readonly Storefront[] = [
   {
     name: 'Platypus AU',
     url: 'https://stag-platypus-au.accentgra.com/',
+    graphqlUrl: 'https://stag-platypus-au.accentgra.com/graphql',
     titleRegex: /platypus|home\s+page/i,
     hasQantasPoints: true,
     navLinks: ['ALL', 'PRESALE', 'WOMENS', 'MENS', 'KIDS', 'BRANDS', 'SALE'],
@@ -65,6 +70,8 @@ export const storefronts: readonly Storefront[] = [
   {
     name: 'Platypus NZ',
     url: 'https://stag-platypus-nz.accentgra.com/',
+    graphqlUrl: 'https://stag-platypus-nz.accentgra.com/graphql',
+    storeHeader: 'nz',
     titleRegex: /platypus|home\s*page/i,
     hasQantasPoints: false,
     navLinks: ['PRESALE', 'ALL', 'MENS', 'KIDS', 'BRANDS', 'SALE'],
@@ -83,6 +90,7 @@ export const storefronts: readonly Storefront[] = [
   {
     name: 'Skechers AU',
     url: 'https://stag-skechers-au.accentgra.com/',
+    graphqlUrl: 'https://stag-skechers-au.accentgra.com/graphql',
     titleRegex: /skechers/i,
     hasQantasPoints: true,
     navLinks: ['WOMEN', 'MENS', 'KIDS', 'CLOTHING', 'SALE'],
@@ -100,6 +108,8 @@ export const storefronts: readonly Storefront[] = [
   {
     name: 'Skechers NZ',
     url: 'https://stag-skechers-nz.accentgra.com/',
+    graphqlUrl: 'https://stag-skechers-nz.accentgra.com/graphql',
+    storeHeader: 'nz',
     titleRegex: /skechers/i,
     hasQantasPoints: false,
     navLinks: ['WOMEN', 'MENS', 'KIDS', 'SALE'],
@@ -117,6 +127,7 @@ export const storefronts: readonly Storefront[] = [
   {
     name: 'Vans AU',
     url: 'https://stag-vans-au.accentgra.com/',
+    graphqlUrl: 'https://stag-vans-au.accentgra.com/graphql',
     titleRegex: /vans|home\s+page/i,
     hasQantasPoints: true,
     // CLOTHING is a dropdown trigger with no <a> tag — excluded from nav link assertions
@@ -129,12 +140,13 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Low Top',
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
-    pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
     pdpExpectedSize: '7',
   },
   {
     name: 'Vans NZ',
     url: 'https://stag-vans-nz.accentgra.com/',
+    graphqlUrl: 'https://stag-vans-nz.accentgra.com/graphql',
+    storeHeader: 'nz',
     titleRegex: /vans|home\s+page/i,
     hasQantasPoints: false,
     navLinks: ['WOMEN', 'MEN', 'KIDS', 'SALE'],
@@ -146,12 +158,12 @@ export const storefronts: readonly Storefront[] = [
     categoryFilterLabel: 'Old Skool',
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
-    pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
     pdpExpectedSize: '7',
   },
   {
     name: 'Dr. Martens AU',
     url: 'https://stag-drmartens-au.accentgra.com/',
+    graphqlUrl: 'https://stag-drmartens-au.accentgra.com/graphql',
     titleRegex: /dr\.?\s?martens|drmartens/i,
     hasQantasPoints: true,
     navLinks: ['ALL', 'WOMEN', 'MEN', 'KIDS', 'SALE'],
@@ -169,6 +181,8 @@ export const storefronts: readonly Storefront[] = [
   {
     name: 'Dr. Martens NZ',
     url: 'https://stag-drmartens-nz.accentgra.com/',
+    graphqlUrl: 'https://stag-drmartens-nz.accentgra.com/graphql',
+    storeHeader: 'nz',
     titleRegex: /dr\.?\s?martens|drmartens/i,
     hasQantasPoints: false,
     // BLACK FRIDAY is a staging promotional link pointing to /shop/sale

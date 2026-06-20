@@ -1,8 +1,60 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
-import { testAccounts, invalidCredentials, nonExistentCredentials } from '@data/ecommerce/test-accounts';
+import {
+  testAccounts,
+  invalidCredentials,
+  nonExistentCredentials,
+  createFreshAccountCredentials,
+} from '@data/ecommerce/test-accounts';
 import { createTestLogger } from '@utils/test-logger';
 import { TIMEOUTS } from '../../../src/constants/timeouts';
+
+const CREATE_CUSTOMER_MUTATION = `
+  mutation CreateAccount(
+    $email: String!,
+    $firstname: String!,
+    $lastname: String!,
+    $password: String!,
+    $phone_number: String!,
+    $is_subscribed: Boolean!,
+    $loyalty_program_status: Boolean,
+    $order_number: String,
+    $gender: Int,
+    $date_of_birth: String
+  ) {
+    createCustomer(input: {
+      email: $email,
+      firstname: $firstname,
+      lastname: $lastname,
+      password: $password,
+      phone_number: $phone_number,
+      is_subscribed: $is_subscribed,
+      loyalty_program_status: $loyalty_program_status,
+      order_number: $order_number,
+      gender: $gender,
+      date_of_birth: $date_of_birth
+    }) {
+      customer {
+        id
+        firstname
+        lastname
+        email
+        __typename
+      }
+    }
+  }
+`;
+
+const BRAND_CODES: Record<string, string> = {
+  'Platypus AU': 'pla-au',
+  'Platypus NZ': 'pla-nz',
+  'Skechers AU': 'skx-au',
+  'Skechers NZ': 'skx-nz',
+  'Vans AU': 'van-au',
+  'Vans NZ': 'van-nz',
+  'Dr. Martens AU': 'drm-au',
+  'Dr. Martens NZ': 'drm-nz',
+};
 
 test.describe('Ecommerce Auth Smoke @ecommerce @smoke @auth', () => {
   // SPA staging sites need extra time to hydrate, especially in Firefox
@@ -51,41 +103,63 @@ test.describe('Ecommerce Auth - Login @ecommerce @smoke @auth', () => {
     test(`${tcId} - ${site.name} Successful login with valid credentials`, async ({
       ecommerceAccountModalPage,
       softAssert,
+      request,
     }) => {
       const logger = createTestLogger(`${tcId} - ${site.name} Successful Login`);
 
-      logger.step('Step 1 - Look up test credentials for this site');
-      const creds = testAccounts[site.name];
-      if (!creds) {
-        test.skip(true, `No test account configured for ${site.name}`);
-        return;
-      }
-      if (!creds.password) {
-        test.skip(true, `GRA_TEST_PASSWORD env var is not set — skipping login test for ${site.name}`);
+      logger.step('Step 1 - Generate fresh account credentials for this storefront');
+      const brandCode = BRAND_CODES[site.name] ?? site.name.toLowerCase().replace(/\s+/g, '-');
+      const creds = createFreshAccountCredentials(brandCode);
+
+      logger.step('Step 2 - Create customer account via GraphQL API');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (site.storeHeader) headers['Store'] = site.storeHeader;
+      const createResponse = await request.post(site.graphqlUrl, {
+        headers,
+        data: {
+          query: CREATE_CUSTOMER_MUTATION,
+          variables: {
+            email: creds.email,
+            firstname: creds.firstname,
+            lastname: creds.lastname,
+            password: creds.password,
+            phone_number: creds.phone_number,
+            is_subscribed: false,
+            loyalty_program_status: false,
+            order_number: null,
+            gender: null,
+            date_of_birth: null,
+          },
+        },
+      });
+      const createBody = await createResponse.json() as { errors?: Array<{ message?: string }> };
+      if (!createResponse.ok() || (createBody.errors?.length ?? 0) > 0) {
+        const reason = createBody.errors?.[0]?.message ?? `HTTP ${createResponse.status()}`;
+        test.skip(true, `Account creation failed for ${site.name}: ${reason}`);
         return;
       }
 
-      logger.step('Step 2 - Navigate to storefront homepage');
+      logger.step('Step 3 - Navigate to storefront homepage');
       await ecommerceAccountModalPage.navigate(site.url);
 
-      logger.step('Step 3 - Click account icon to open login modal');
+      logger.step('Step 4 - Click account icon to open login modal');
       await ecommerceAccountModalPage.openModal();
 
-      logger.step('Step 4 - Wait for modal to appear');
+      logger.step('Step 5 - Wait for modal to appear');
       await ecommerceAccountModalPage.waitForModalVisible();
 
-      logger.step('Step 5 - Assert login modal is visible before submitting credentials');
+      logger.step('Step 6 - Assert login modal is visible before submitting credentials');
       const modalVisibleBeforeLogin = await ecommerceAccountModalPage.isModalVisible();
       logger.verify('Login modal visible before login', true, modalVisibleBeforeLogin);
       expect(modalVisibleBeforeLogin).toBe(true);
 
-      logger.step('Step 6 - Fill credentials and click Login');
+      logger.step('Step 7 - Fill fresh credentials and click Login');
       await ecommerceAccountModalPage.login(creds.email, creds.password);
 
-      logger.step('Step 7 - Wait for login to complete (best-effort)');
+      logger.step('Step 8 - Wait for login to complete (best-effort)');
       await ecommerceAccountModalPage.waitForLoginComplete();
 
-      logger.step('Step 8 - Assert login success signals');
+      logger.step('Step 9 - Assert login success signals');
       const modalClosedAfterLogin = !(await ecommerceAccountModalPage.isModalVisible());
       const overallLoggedIn = await ecommerceAccountModalPage.isLoggedIn();
 

@@ -271,6 +271,8 @@ export class EcommercePDPPage extends BasePage {
         if (genderBtns.length > 0) {
           return [...new Set(genderBtns.map((btn) => btn.textContent?.trim() ?? ''))];
         }
+        // Stop at the product form — breadcrumbs and nav live outside it as siblings
+        if (container.tagName === 'FORM') break;
         container = container.parentElement;
       }
       return [];
@@ -308,6 +310,8 @@ export class EcommercePDPPage extends BasePage {
             (match as HTMLButtonElement).click();
             return true;
           }
+          // Stop at the product form — breadcrumbs and nav live outside it as siblings
+          if (container.tagName === 'FORM') break;
           container = container.parentElement;
         }
         return false;
