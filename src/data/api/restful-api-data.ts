@@ -1,67 +1,50 @@
 import { DeviceData, ApiObject } from '../../api/services/restful-device/restful-api-models';
+import { faker } from '../faker';
 
 export class RestfulApiDataGenerator {
-  
-  /**
-   * Generate test data for mobile devices
-   */
   static generateMobileDevice(): DeviceData {
-    const timestamp = Date.now();
     return {
-      name: `Iphone 16 ${timestamp}`,
+      name: faker.commerce.productName(),
       data: {
-        color: 'Black',
-        capacity: '256 GB',
-        price: 1200,
+        color: faker.color.human(),
+        capacity: `${faker.helpers.arrayElement([128, 256, 512])} GB`,
+        price: faker.number.float({ min: 10, max: 999, fractionDigits: 2 }),
         generation: '5G',
-        year: 2024
-      }
+        year: faker.number.int({ min: 2015, max: 2025 }),
+      },
     };
   }
 
-  /**
-   * Generate test data for laptop/computer
-   */
   static generateLaptopDevice(): DeviceData {
-    const timestamp = Date.now();
     return {
-      name: `Test Laptop ${timestamp}`,
+      name: faker.commerce.productName(),
       data: {
-        color: 'Silver',
+        color: faker.color.human(),
         'CPU model': 'Intel Core i7',
         'Hard disk size': '1 TB',
-        price: 2500,
-        year: 2024
-      }
+        price: faker.number.float({ min: 10, max: 999, fractionDigits: 2 }),
+        year: faker.number.int({ min: 2015, max: 2025 }),
+      },
     };
   }
 
-  /**
-   * Generate test data for tablet
-   */
   static generateTabletDevice(): DeviceData {
-    const timestamp = Date.now();
     return {
-      name: `Test Tablet ${timestamp}`,
+      name: faker.commerce.productName(),
       data: {
-        color: 'White',
-        'capacity GB': 128,
-        price: 800,
+        color: faker.color.human(),
+        'capacity GB': faker.helpers.arrayElement([64, 128, 256]),
+        price: faker.number.float({ min: 10, max: 999, fractionDigits: 2 }),
         generation: 'Wi-Fi + Cellular',
-        year: 2024
-      }
+        year: faker.number.int({ min: 2015, max: 2025 }),
+      },
     };
   }
 
-  /**
-   * Generate multiple test devices
-   */
   static generateMultipleDevices(count: number): DeviceData[] {
     const devices: DeviceData[] = [];
     for (let i = 0; i < count; i++) {
-      const deviceTypes = ['mobile', 'laptop', 'tablet'];
-      const randomType = deviceTypes[Math.floor(Math.random() * deviceTypes.length)];
-      
+      const randomType = faker.helpers.arrayElement(['mobile', 'laptop', 'tablet']);
       switch (randomType) {
         case 'mobile':
           devices.push(this.generateMobileDevice());
@@ -77,17 +60,14 @@ export class RestfulApiDataGenerator {
     return devices;
   }
 
-  /**
-   * Generate update payload for existing device
-   */
   static generateUpdatePayload(): Partial<DeviceData> {
     return {
-      name: `Updated Device ${Date.now()}`,
+      name: faker.commerce.productName(),
       data: {
-        color: 'Updated Color',
-        price: 1500,
-        year: 2024
-      }
+        color: faker.color.human(),
+        price: faker.number.float({ min: 10, max: 999, fractionDigits: 2 }),
+        year: faker.number.int({ min: 2015, max: 2025 }),
+      },
     };
   }
 }

@@ -1,3 +1,5 @@
+import { faker } from './faker';
+
 export interface ValidCredentials {
   userId: string;
   password: string;
@@ -107,56 +109,38 @@ export const AdminTestData: AdminTestDataShape = {
   },
 };
 
-/**
- * Generate random test data
- */
 export class AdminTestDataGenerator {
-  
-  /**
-   * Generate random email
-   */
   static generateRandomEmail(): string {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    return `test_${timestamp}_${random}@automation.com`;
+    const [local, domain] = faker.internet.email().toLowerCase().split('@');
+    return `${local}_${Date.now()}@${domain}`;
   }
 
-  /**
-   * Generate random customer data
-   */
   static generateCustomerData(): CustomerData {
-    const timestamp = Date.now();
     return {
-      customerName: `Test Customer ${timestamp}`,
-      gender: Math.random() > 0.5 ? 'male' : 'female',
-      dateOfBirth: '01/01/1990',
-      address: `${Math.floor(Math.random() * 999)} Test Street`,
-      city: 'Test City',
-      state: 'Test State',
-      pinCode: Math.floor(100000 + Math.random() * 900000).toString(),
-      mobileNumber: `98765${Math.floor(10000 + Math.random() * 90000)}`,
+      customerName: faker.person.fullName(),
+      gender: faker.person.sexType(),
+      dateOfBirth: faker.date.birthdate().toLocaleDateString('en-US'),
+      address: faker.location.streetAddress(),
+      city: faker.location.city(),
+      state: faker.location.state(),
+      pinCode: faker.location.zipCode('######'),
+      mobileNumber: faker.string.numeric(10),
       email: this.generateRandomEmail(),
     };
   }
 
-  /**
-   * Generate random account data
-   */
   static generateAccountData(): AccountData {
     return {
-      accountType: Math.random() > 0.5 ? 'Savings' : 'Current',
-      initialDeposit: (Math.floor(Math.random() * 10000) + 1000).toString(),
+      accountType: faker.helpers.arrayElement(['Savings', 'Current'] as const),
+      initialDeposit: faker.number.int({ min: 1000, max: 10000 }).toString(),
     };
   }
 
-  /**
-   * Generate random transaction amounts
-   */
   static generateTransactionData(): TransactionData {
     return {
-      depositAmount: (Math.floor(Math.random() * 1000) + 100).toString(),
-      withdrawalAmount: (Math.floor(Math.random() * 500) + 50).toString(),
-      transferAmount: (Math.floor(Math.random() * 200) + 10).toString(),
+      depositAmount: faker.number.int({ min: 100, max: 1000 }).toString(),
+      withdrawalAmount: faker.number.int({ min: 50, max: 500 }).toString(),
+      transferAmount: faker.number.int({ min: 10, max: 200 }).toString(),
     };
   }
 }

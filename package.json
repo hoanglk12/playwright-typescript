@@ -85,6 +85,7 @@
     "automation"
   ],
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "@lhci/cli": "^0.15.0",
     "@percy/cli": "^1.31.11",
     "@percy/playwright": "^1.1.0",

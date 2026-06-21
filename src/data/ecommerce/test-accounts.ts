@@ -1,3 +1,5 @@
+import { faker } from '../faker';
+
 export interface AuthCredentials {
   email: string;
   password: string;
@@ -45,23 +47,16 @@ export interface FreshAccountCredentials {
   phone_number: string;
 }
 
-const FIRST_NAMES = ['Alex', 'Jordan', 'Taylor', 'Casey', 'Morgan', 'Riley', 'Avery', 'Cameron'];
-const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'];
-
-// Fresh throwaway accounts are created per-run so GRA_TEST_PASSWORD is not required.
-// Fall back to the established GRA staging password used across src/data/api/gra-* when unset.
 const FRESH_ACCOUNT_PASSWORD = process.env.GRA_TEST_PASSWORD || 'Johncena5';
 
 export function createFreshAccountCredentials(brandCode: string): FreshAccountCredentials {
   const ts = Date.now();
-  const rand = Math.random().toString(36).substring(2, 8);
-  const firstname = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
-  const lastname = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+  const rand = faker.string.alphanumeric(8).toLowerCase();
   return {
     email: `qa.${brandCode}.e2e${ts}${rand}@mailinator.com`,
     password: FRESH_ACCOUNT_PASSWORD,
-    firstname,
-    lastname,
+    firstname: faker.person.firstName(),
+    lastname: faker.person.lastName(),
     phone_number: '0412345678',
   };
 }
