@@ -417,32 +417,6 @@ test.describe('Resource API @api @regression', () => {
 });
 ```
 
-### GraphQL Test Template
-
-```ts
-import { apiTest as test, expect } from '../../src/api/ApiTest';
-import { createTestLogger } from '../../src/utils/test-logger';
-
-test.describe.configure({ mode: 'serial' });
-
-test.describe('User GraphQL API @api @graphql', () => {
-  test('TC_01 - Should query user', async ({ graphqlClient }) => {
-    const logger = createTestLogger('TC_01 Should query user');
-
-    logger.step('Step 1 - Execute GetUser query');
-    const response = await graphqlClient.queryWrapped(
-      `query GetUser($id: ID!) { user(id: $id) { id name email } }`,
-      { id: '1' }
-    );
-
-    logger.step('Step 2 - Assert response');
-    await response.assertNoErrors();
-    await response.assertDataField('user.id', '1');
-    logger.verify('User found', '1', (await response.getData()).user?.id);
-  });
-});
-```
-
 ### Cross-Test Token Sharing
 
 `ApiClient.tokenStore` is static — tokens persist across tests within a single worker:
@@ -479,90 +453,22 @@ const client = await ApiClient.withStoredToken(
 
 ## Run Commands
 
+See `package.json` for the full script list. Key commands:
+
 ```bash
-# Core
 npm test                          # headless, chromium + firefox, 50% workers
-npm run test:headed               # visible browser
-npm run test:headless             # force headless
-npm run test:debug                # Playwright inspector
-npm run test:serial               # 1 worker (flaky investigation)
-npm run test:ui                   # interactive UI mode
-npm run test:ui:headless          # UI mode without browser window
-
-# Single test file or folder
-npx playwright test tests/frontsite/home-page.spec.ts
-npx playwright test tests/frontsite/home-page.spec.ts --headed
-npx playwright test --grep "TC_01"    # run by test name pattern
-
-# Faster one-browser runs
+npm run test:api                  # all API tests (4 workers, sequential)
 npm run test:simple               # chromium only, 1 worker
-npm run test:simple:admin         # admin area only
-npm run test:simple:frontsite     # frontsite area only
-npm run test:simple:login         # login tests only
-npm run test:simple:headed        # chromium, 1 worker, visible browser
-npm run test:simple:debug         # chromium, 1 worker, headed + debug
-
-# Parallel runs
-npm run test:parallel             # 50% workers
-npm run test:parallel:max         # 100% workers
-npm run test:parallel:all         # all browsers (chromium + firefox + webkit)
-
-# Environments
+npm run test:serial               # 1 worker (flaky investigation)
+npm run test:headed               # visible browser
+npm run test:debug                # Playwright inspector
 npm run test:testing              # against testing environment
 npm run test:staging              # against staging environment
-npm run test:production           # against production environment
-
-# API
-npm run test:api                  # all API tests (serial, 1 worker)
-npm run test:api:testing          # API tests in testing environment
-npm run test:api:serial           # API tests explicit 1 worker
-npm run test:api:headed           # API tests with visible browser
-npm run test:api:debug            # API tests with Playwright inspector
-npm run test:api:ui               # API tests in UI mode
-npm run test:api:booker           # restful-booker tests only
-npm run test:api:device-booker    # device API CRUD tests
-
-# Visual regression (Percy)
-npm run test:percy                # full Percy run (testing env)
-npm run test:percy:testing        # Percy against testing
-npm run test:percy:staging        # Percy against staging
-npm run test:percy:smoke          # smoke subset with Percy
-npm run test:percy:admin          # admin pages with Percy
-npm run test:percy:login          # login flow with Percy
-
-# Lighthouse CI
-npm run lhci:run                  # collect + upload + assert
-npm run lhci:collect              # collect Lighthouse data only
-npm run lhci:upload               # upload results to LHCI server
-npm run lhci:assert               # assert performance thresholds
-
-# Docker
-npm run docker:build              # build playwright-framework image
-npm run docker:test               # run full suite in Docker
-npm run docker:test:chromium      # Docker chromium only
-npm run docker:test:firefox       # Docker firefox only
-npm run docker:test:webkit        # Docker webkit only
-npm run docker:test:api           # Docker API tests
-npm run docker:test:parallel      # parallel tests in Docker
-npm run docker:dev                # start dev container
-npm run docker:dev:shell          # shell into dev container
-npm run docker:dev:stop           # stop dev container
-npm run docker:clean              # remove volumes and containers
-npm run docker:logs               # follow docker logs
-npm run docker:rebuild            # rebuild image without cache
-
-# Utilities
-npm run report                    # open HTML report
-npm run report:open               # open report on port 9323
-npm run report:api                # open API report on port 9324
-npm run report:monocart           # open monocart UI report (interactive grid)
-npm run report:monocart:api       # open monocart API report
+npx playwright test --grep "TC_01"    # run by test name pattern
 npm run lint                      # tsc type-check (no emit)
+npm run report                    # open HTML report
+npm run report:monocart           # open monocart UI report
 npm run clean                     # remove test results, reports, auth, Lighthouse
-npm run clean:api                 # remove API test results only
-npm run clean:install             # clean + npm install + install browsers
-npm run install:browsers          # install Playwright browsers
-npm run install:browsers:deps     # install browsers + system dependencies
 npm run codegen                   # Playwright codegen recorder
 ```
 
@@ -661,23 +567,7 @@ node scripts/init-memory-from-vault.mjs
 
 ## Agents
 
-Specialised sub-agents live in `.claude/agents/` and are invoked automatically by Claude Code for multi-step QA workflows:
-
-| Agent | Purpose |
-|---|---|
-| `automation-test-architect` | Converts specs/requirements into production-ready Playwright tests |
-| `playwright-test-generator` | Records real browser interactions to produce raw spec files |
-| `playwright-test-healer` | Debugs and fixes failing/flaky tests |
-| `playwright-test-planner` | Creates structured test plans by navigating the live app |
-| `devops-cicd-specialist` | Analyses CI build results, classifies failures, fetches workflow logs |
-| `qa-code-reviewer` | Audits test code for quality, correctness, and framework adherence |
-| `qa-orchestrator` | Single entry point for any multi-step QA automation request |
-| `security-reviewer` | Scans for secrets, vulnerable deps, unsafe patterns, and CI permission issues |
-| `technical-research-agent` | Researches SDKs, integrations, upgrades, scalability — produces a structured Technical Research Report. No code edits. |
-| `technical-implementation-agent` | Implements approved technical changes from a Research Report (framework, config, deps, CI). Only runs after user approval. |
-| `technical-debt-agent` | Full codebase technical debt audit — architecture violations, TypeScript quality, dead code, API/ecommerce pattern drift. Produces TECH_DEBT_REPORT.md with A–F grade and remediation roadmap. |
-| `technical-debt-fixer` | Reads TECH_DEBT_REPORT.md and applies targeted fixes for a declared scope (DEBT-ID, phase, or severity). Re-verifies findings before editing, respects sanctioned exceptions, runs lint after every batch. |
-| `vault-updater` | Fetches a Jira issue or Confluence page and writes a formatted memory vault note to `memory-vault/20-memory/{type}/`. Invoke when saving external knowledge (Jira tickets, Confluence pages) to the vault. |
+Specialised sub-agents live in `.claude/agents/` — the full catalog is injected into every session automatically.
 
 Use `qa-orchestrator` as the default entry point for any end-to-end QA workflow (plan → build → review → fix).
 
@@ -685,65 +575,7 @@ For framework/infra/integration changes (new SDK, Playwright upgrade, CI rework,
 
 ## Skills Available
 
-Invoke with `/skill-name` in conversation:
-
-**QA & Framework**
-
-| Skill | Purpose |
-|---|---|
-| `/playwright-expert` | Playwright API guidance |
-| `/playwright-best-practices` | Architecture and pattern review |
-| `/qa-code-reviewer` | Test code review |
-| `/test-case-generator` | Generate test cases from specs |
-| `/discover-e2e-flows` | Map user journeys to test flows |
-| `/error-debugger` | Debug failing tests |
-| `/api-mocking` | API mock and intercept patterns |
-| `/graphql-testing` | GraphQL API testing patterns |
-| `/accessibility` | A11Y testing (WCAG) |
-| `/ts-strict-mode` | TypeScript strict mode patterns |
-| `/typescript-advanced-types` | Advanced TypeScript type patterns |
-| `/cicd-pipeline` | CI/CD and GitHub Actions |
-| `/documentation-writer` | Generate test documentation |
-| `/seo` | SEO testing patterns |
-| `/nodejs-best-practices` | Node.js best practices |
-| `/nodejs-backend-patterns` | Node.js backend patterns |
-| `/frontend-design` | Frontend design patterns |
-| `/pull-latest` | Sync local branch with remote |
-| `/playwright-cli` | Interactive browser automation via playwright-cli shell tool |
-| `/llm-council` | Multi-model council review for complex decisions |
-
-**Workflow & Productivity**
-
-| Skill | Purpose |
-|---|---|
-| `/write-tests` | Write tests from a requirement or user story (full pipeline) |
-| `/new-ui-test` | Scaffold a new UI test spec with all framework boilerplate |
-| `/new-api-test` | Scaffold a new API test file with all framework boilerplate |
-| `/new-page-object` | Scaffold a new page object following the composition-based POM |
-| `/review` | Code review changed files on current branch |
-| `/fix-test` | Fix a failing or flaky test |
-| `/check-ci` | Investigate a CI pipeline failure |
-| `/run-ui` | Run UI tests locally — smart command selection |
-| `/run-api` | Run API tests locally — smart command selection |
-| `/verify` | Verify a change works by running the app and observing behavior |
-| `/research` | Research a technical topic — produces a Technical Research Report |
-| `/implement` | Implement an approved Technical Research Report |
-| `/security-audit` | Run a security audit (severity-rated report) |
-| `/tech-debt` | Run a full technical debt audit — produces TECH_DEBT_REPORT.md |
-| `/fix-debt` | Fix technical debt items from TECH_DEBT_REPORT.md by scope: DEBT-ID, `phase:N`, `critical`, or `warning` |
-| `/security-review` | Security review of pending branch changes |
-| `/code-review` | Review changed code for reuse, quality, and efficiency |
-| `/run` | Launch and drive the project's app |
-| `/loop` | Run a prompt on a recurring interval |
-| `/schedule` | Create or manage scheduled remote agents |
-| `/remember` | Save session state for clean continuation next session |
-| `/update-config` | Configure settings.json (hooks, permissions, env vars) |
-| `/keybindings-help` | Customize keyboard shortcuts |
-| `/fewer-permission-prompts` | Add allowlist to reduce permission prompts |
-| `/init` | Initialize a new CLAUDE.md file |
-| `/claude-md-management:claude-md-improver` | Audit and improve CLAUDE.md files |
-| `/claude-md-management:revise-claude-md` | Update CLAUDE.md with learnings from this session |
-| `/claude-api` | Build, debug, and optimize Claude API / Anthropic SDK apps |
+Invoke with `/skill-name` in conversation. The full skill catalog is injected into every session automatically — type `/` to browse available skills.
 
 ## Behavioral Guidelines
 
