@@ -1,5 +1,6 @@
-import { Page, Request, Response } from "@playwright/test";
+import { Request, Response } from "@playwright/test";
 import { TIMEOUTS } from "../../constants/timeouts";
+import { PageRef } from "./page-ref";
 
 /**
  * Centralises all page-readiness and synchronisation strategies.
@@ -10,11 +11,11 @@ import { TIMEOUTS } from "../../constants/timeouts";
  *   4. waitForCompletePageLoad()  – heavy-weight with images/fonts/AJAX options
  */
 export class WaitHelper {
-  constructor(private readonly page: Page) {}
+  constructor(private readonly pageRef: PageRef) {}
 
   private getPageContext(): string {
     try {
-      return this.page.url() || "(no URL yet)";
+      return this.pageRef.current.url() || "(no URL yet)";
     } catch {
       return "(page context unavailable)";
     }
@@ -23,10 +24,10 @@ export class WaitHelper {
   // ── Page-level waits ────────────────────────────────────────────────────────
 
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState("domcontentloaded", { timeout: TIMEOUTS.PAGE_LOAD });
-    await this.page.waitForLoadState("load", { timeout: TIMEOUTS.PAGE_LOAD });
+    await this.pageRef.current.waitForLoadState("domcontentloaded", { timeout: TIMEOUTS.PAGE_LOAD });
+    await this.pageRef.current.waitForLoadState("load", { timeout: TIMEOUTS.PAGE_LOAD });
     try {
-      await this.page.waitForLoadState("networkidle", { timeout: TIMEOUTS.PAGE_LOAD_FAST });
+      await this.pageRef.current.waitForLoadState("networkidle", { timeout: TIMEOUTS.PAGE_LOAD_FAST });
     } catch {
       // WHY: helper layer has no test context; console is the only available channel here
       console.warn(
@@ -39,12 +40,12 @@ export class WaitHelper {
     state: "load" | "domcontentloaded" | "networkidle" = "networkidle",
     timeout: number = TIMEOUTS.PAGE_LOAD_SLOW
   ): Promise<void> {
-    await this.page.waitForLoadState(state, { timeout });
+    await this.pageRef.current.waitForLoadState(state, { timeout });
   }
 
   async waitForNetworkIdle(timeout: number = TIMEOUTS.NETWORK_IDLE, throwOnTimeout: boolean = false): Promise<void> {
     try {
-      await this.page.waitForLoadState("networkidle", { timeout });
+      await this.pageRef.current.waitForLoadState("networkidle", { timeout });
     } catch {
       const msg = `⚠️  Network idle timeout after ${timeout}ms. URL: ${this.getPageContext()}`;
       // WHY: helper layer has no test context; console is the only available channel here
@@ -79,7 +80,7 @@ export class WaitHelper {
       await this.waitForAllImagesLoaded();
     }
     if (waitForFonts) {
-      await this.page.waitForFunction(() => document.fonts.ready, { timeout: TIMEOUTS.TIMEOUT_MEDIUM });
+      await this.pageRef.current.waitForFunction(() => document.fonts.ready, { timeout: TIMEOUTS.TIMEOUT_MEDIUM });
     }
     if (waitForAjax) {
       await this.waitForAjaxRequestsComplete(timeout);
@@ -90,11 +91,11 @@ export class WaitHelper {
   // ── Element-level waits ─────────────────────────────────────────────────────
 
   async waitForElement(selector: string, timeout: number = TIMEOUTS.ELEMENT_VISIBLE): Promise<void> {
-    await this.page.waitForSelector(selector, { state: "visible", timeout });
+    await this.pageRef.current.waitForSelector(selector, { state: "visible", timeout });
   }
 
   async waitForElementClickable(selector: string, timeout: number = TIMEOUTS.ELEMENT_CLICKABLE): Promise<void> {
-    await this.page.waitForSelector(selector, { state: "attached", timeout });
+    await this.pageRef.current.waitForSelector(selector, { state: "attached", timeout });
   }
 
   async waitForElementText(
@@ -102,7 +103,7 @@ export class WaitHelper {
     expectedText: string,
     timeout: number = TIMEOUTS.TIMEOUT_MEDIUM
   ): Promise<void> {
-    await this.page.waitForFunction(
+    await this.pageRef.current.waitForFunction(
       ({ selector, expectedText }) =>
         document.querySelector(selector)?.textContent?.includes(expectedText) ?? false,
       { selector, expectedText },
@@ -116,7 +117,7 @@ export class WaitHelper {
     expectedValue: string,
     timeout: number = TIMEOUTS.TIMEOUT_MEDIUM
   ): Promise<void> {
-    await this.page.waitForFunction(
+    await this.pageRef.current.waitForFunction(
       ({ selector, attribute, expectedValue }) =>
         document.querySelector(selector)?.getAttribute(attribute) === expectedValue,
       { selector, attribute, expectedValue },
@@ -127,11 +128,17 @@ export class WaitHelper {
   // ── URL waits ───────────────────────────────────────────────────────────────
 
   async waitForUrlContains(text: string, timeout: number = TIMEOUTS.TIMEOUT_MEDIUM): Promise<void> {
-    await this.page.waitForURL((url) => url.toString().includes(text), { timeout });
+    await this.pageRef.current.waitForURL((url) => url.toString().includes(text), { timeout });
   }
 
   async waitForUrlMatches(pattern: RegExp, timeout: number = TIMEOUTS.TIMEOUT_MEDIUM): Promise<void> {
-    await this.page.waitForURL(pattern, { timeout });
+    await this.pageRef.current.waitForURL(pattern, { timeout });
+  }
+
+  /** Waits until the current page URL satisfies the given predicate function. */
+  async waitForUrlPredicate(predicate: (url: string) => boolean, timeout?: number): Promise<void> {
+    const t = timeout ?? TIMEOUTS.PAGE_LOAD;
+    await this.pageRef.current.waitForURL((url) => predicate(url.toString()), { timeout: t });
   }
 
   // ── Network / AJAX waits ────────────────────────────────────────────────────
@@ -141,7 +148,7 @@ export class WaitHelper {
     timeout: number = TIMEOUTS.TIMEOUT_LONG
   ): Promise<void> {
     try {
-      await this.page.waitForResponse(
+      await this.pageRef.current.waitForResponse(
         (response) => {
           const url = response.url();
           return typeof urlPattern === "string"
@@ -165,6 +172,8 @@ export class WaitHelper {
   ): Promise<void> {
     const startTime = Date.now();
     const pending = new Set<string>();
+    // Capture the page at call time so on/off target the same object even if tabs switch later.
+    const targetPage = this.pageRef.current;
 
     const onRequest = (req: Request) => {
       const url = req.url();
@@ -176,9 +185,9 @@ export class WaitHelper {
     const onResponse = (res: Response) => pending.delete(res.url());
     const onFailed = (req: Request) => pending.delete(req.url());
 
-    this.page.on("request", onRequest);
-    this.page.on("response", onResponse);
-    this.page.on("requestfailed", onFailed);
+    targetPage.on("request", onRequest);
+    targetPage.on("response", onResponse);
+    targetPage.on("requestfailed", onFailed);
 
     try {
       while (pending.size > 0) {
@@ -192,18 +201,18 @@ export class WaitHelper {
         }
         await this.sleep(100);
       }
-      await this.page.waitForLoadState("networkidle", { timeout: TIMEOUTS.TIMEOUT_SHORT }).catch(() => {});
+      await targetPage.waitForLoadState("networkidle", { timeout: TIMEOUTS.TIMEOUT_SHORT }).catch(() => {});
     } finally {
-      this.page.off("request", onRequest);
-      this.page.off("response", onResponse);
-      this.page.off("requestfailed", onFailed);
+      targetPage.off("request", onRequest);
+      targetPage.off("response", onResponse);
+      targetPage.off("requestfailed", onFailed);
     }
   }
 
   // ── Asset waits ─────────────────────────────────────────────────────────────
 
   async waitForAllImagesLoaded(): Promise<void> {
-    await this.page.waitForFunction(
+    await this.pageRef.current.waitForFunction(
       () => Array.from(document.images).every((img) => img.complete && img.naturalHeight !== 0),
       { timeout: TIMEOUTS.TIMEOUT_LONG }
     );
@@ -220,7 +229,7 @@ export class WaitHelper {
       let visible = false;
       for (const selector of selectors) {
         try {
-          const spinner = this.page.locator(selector);
+          const spinner = this.pageRef.current.locator(selector);
           const count = await spinner.count();
           for (let i = 0; i < count; i++) {
             if (await spinner.nth(i).isVisible()) {
@@ -261,7 +270,7 @@ export class WaitHelper {
   // ── Console waits ───────────────────────────────────────────────────────────
 
   async waitForConsoleMessage(messageText: string, timeout: number = TIMEOUTS.TIMEOUT_MEDIUM): Promise<void> {
-    await this.page.waitForEvent("console", {
+    await this.pageRef.current.waitForEvent("console", {
       predicate: (msg) => msg.text().includes(messageText),
       timeout,
     });
@@ -271,6 +280,6 @@ export class WaitHelper {
 
   /** @internal Intentional pause — only use inside WaitHelper polling loops, never directly in tests or page objects. */
   async sleep(milliseconds: number): Promise<void> {
-    await this.page.waitForTimeout(milliseconds);
+    await this.pageRef.current.waitForTimeout(milliseconds);
   }
 }

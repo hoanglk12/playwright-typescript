@@ -21,18 +21,8 @@ export class EcommerceNavPage extends BasePage {
 
   // Polls until React SPA hydration populates nav links in <main> (no <header>/<nav> exists).
   async waitForNavHydration(): Promise<void> {
-    const selector = this.navLinksHydrationSelector;
     await this.waits.waitForCustomCondition(
-      async () => {
-        try {
-          return await this.page.evaluate(
-            (sel) => document.querySelectorAll(sel).length > 0,
-            selector,
-          );
-        } catch {
-          return false;
-        }
-      },
+      async () => (await this.dom.count(this.navLinksHydrationSelector)) > 0,
       { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST }
     );
   }
@@ -72,7 +62,11 @@ export class EcommerceNavPage extends BasePage {
       const popup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await popup.count()) === 0) return;
       const closeBtn = popup.getByRole('button').first();
-      if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
+      const btnVisible = await closeBtn
+        .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+        .then(() => true)
+        .catch(() => false);
+      if (btnVisible) {
         await closeBtn.click({ force: true });
       } else {
         await this.page.keyboard.press('Escape');

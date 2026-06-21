@@ -1,55 +1,56 @@
-import { Page, Cookie } from "@playwright/test";
+import { Cookie } from "@playwright/test";
+import { PageRef } from "./page-ref";
 
 /** Browser storage: cookies, localStorage, sessionStorage, and cache clearing. */
 export class StorageHelper {
-  constructor(private readonly page: Page) {}
+  constructor(private readonly pageRef: PageRef) {}
 
   // ── Cookies ─────────────────────────────────────────────────────────────────
 
   async getAllCookies(): Promise<Cookie[]> {
-    return await this.page.context().cookies();
+    return await this.pageRef.current.context().cookies();
   }
 
   async addCookie(name: string, value: string, domain?: string): Promise<void> {
-    await this.page.context().addCookies([
+    await this.pageRef.current.context().addCookies([
       {
         name,
         value,
-        domain: domain ?? new URL(this.page.url()).hostname,
+        domain: domain ?? new URL(this.pageRef.current.url()).hostname,
         path: "/",
       },
     ]);
   }
 
   async deleteAllCookies(): Promise<void> {
-    await this.page.context().clearCookies();
+    await this.pageRef.current.context().clearCookies();
   }
 
   // ── localStorage ────────────────────────────────────────────────────────────
 
   async getLocalStorageItem(key: string): Promise<string | null> {
-    return await this.page.evaluate((k) => localStorage.getItem(k), key);
+    return await this.pageRef.current.evaluate((k) => localStorage.getItem(k), key);
   }
 
   async setLocalStorageItem(key: string, value: string): Promise<void> {
-    await this.page.evaluate(
+    await this.pageRef.current.evaluate(
       ({ k, v }) => localStorage.setItem(k, v),
       { k: key, v: value }
     );
   }
 
   async clearLocalStorage(): Promise<void> {
-    await this.page.evaluate(() => localStorage.clear());
+    await this.pageRef.current.evaluate(() => localStorage.clear());
   }
 
   // ── sessionStorage ──────────────────────────────────────────────────────────
 
   async getSessionStorageItem(key: string): Promise<string | null> {
-    return await this.page.evaluate((k) => sessionStorage.getItem(k), key);
+    return await this.pageRef.current.evaluate((k) => sessionStorage.getItem(k), key);
   }
 
   async setSessionStorageItem(key: string, value: string): Promise<void> {
-    await this.page.evaluate(
+    await this.pageRef.current.evaluate(
       ({ k, v }) => sessionStorage.setItem(k, v),
       { k: key, v: value }
     );
@@ -58,8 +59,8 @@ export class StorageHelper {
   // ── Cache ───────────────────────────────────────────────────────────────────
 
   async clearBrowserCache(): Promise<void> {
-    await this.page.context().clearCookies();
-    await this.page.evaluate(() => {
+    await this.pageRef.current.context().clearCookies();
+    await this.pageRef.current.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
     });
@@ -68,10 +69,10 @@ export class StorageHelper {
   // ── Clipboard ───────────────────────────────────────────────────────────────
 
   async copyToClipboard(text: string): Promise<void> {
-    await this.page.evaluate((t) => navigator.clipboard.writeText(t), text);
+    await this.pageRef.current.evaluate((t) => navigator.clipboard.writeText(t), text);
   }
 
   async getClipboardText(): Promise<string> {
-    return await this.page.evaluate(() => navigator.clipboard.readText());
+    return await this.pageRef.current.evaluate(() => navigator.clipboard.readText());
   }
 }

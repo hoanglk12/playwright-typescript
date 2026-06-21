@@ -15,6 +15,7 @@ import { EcommercePDPPage } from '@pages/ecommerce/pdp-page';
 import { EcommerceCartOverlayPage } from '@pages/ecommerce/cart-overlay-page';
 import { EcommerceAccountModalPage } from '@pages/ecommerce/account-modal';
 import { PercyHelper } from '../pages/helpers';
+import { ConsoleHelper } from '@pages/helpers/console-helper';
 
 type CustomFixtures = {
   homePage: HomePage;
@@ -32,6 +33,7 @@ type CustomFixtures = {
   ecommerceAccountModalPage: EcommerceAccountModalPage;
   percyHelper: PercyHelper;
   softAssert: SoftAssertHelper;
+  consoleHelper: ConsoleHelper;
 };
 
 export const test = base.extend<CustomFixtures>({
@@ -92,6 +94,12 @@ export const test = base.extend<CustomFixtures>({
 
   softAssert: async ({}, use) => {
     await use(new SoftAssertHelper(new TestLogger(base.info().title)));
+  },
+
+  consoleHelper: async ({ page }, use, testInfo) => {
+    const helper = new ConsoleHelper(page);
+    await use(helper);
+    await helper.summarize(testInfo.title);
   },
 
   ecommercePLPPage: async ({ page }, use) => {

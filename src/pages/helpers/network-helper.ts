@@ -1,8 +1,9 @@
-import { Page, Route, Request } from "@playwright/test";
+import { Route, Request } from "@playwright/test";
+import { PageRef } from "./page-ref";
 
 /** Network interception, API mocking, monitoring, and performance metrics. */
 export class NetworkHelper {
-  constructor(private readonly page: Page) {}
+  constructor(private readonly pageRef: PageRef) {}
 
   /**
    * Start collecting matching request URLs. Returns the live array and a stop function.
@@ -16,6 +17,8 @@ export class NetworkHelper {
    */
   monitorNetworkRequests(urlPattern?: string | RegExp): { requests: string[]; stop: () => void } {
     const requests: string[] = [];
+    // Capture the page at call time so stop() removes from the same object the listener was added to.
+    const targetPage = this.pageRef.current;
     const handler = (request: Request) => {
       const url = request.url();
       if (!urlPattern) {
@@ -26,13 +29,13 @@ export class NetworkHelper {
         requests.push(url);
       }
     };
-    this.page.on("request", handler);
-    return { requests, stop: () => this.page.off("request", handler) };
+    targetPage.on("request", handler);
+    return { requests, stop: () => targetPage.off("request", handler) };
   }
 
   async blockResources(resourceTypes: string[]): Promise<void> {
     try {
-      await this.page.route("**/*", (route) => {
+      await this.pageRef.current.route("**/*", (route) => {
         if (resourceTypes.includes(route.request().resourceType())) {
           route.abort();
         } else {
@@ -48,7 +51,7 @@ export class NetworkHelper {
 
   async mockApiResponse(urlPattern: string | RegExp, responseData: unknown): Promise<void> {
     try {
-      await this.page.route(urlPattern, (route) => {
+      await this.pageRef.current.route(urlPattern, (route) => {
         route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -67,7 +70,7 @@ export class NetworkHelper {
     modifier: (route: Route) => void
   ): Promise<void> {
     try {
-      await this.page.route(urlPattern, (route) => {
+      await this.pageRef.current.route(urlPattern, (route) => {
         modifier(route);
         route.continue();
       });
@@ -84,7 +87,7 @@ export class NetworkHelper {
     firstPaint: number;
   }> {
     try {
-      return await this.page.evaluate(() => {
+      return await this.pageRef.current.evaluate(() => {
         if (typeof performance === "undefined" || typeof performance.getEntriesByType !== "function") {
           return { loadTime: 0, domReady: 0, firstPaint: 0 };
         }
@@ -105,10 +108,10 @@ export class NetworkHelper {
   }
 
   async takeElementScreenshot(selector: string, path: string): Promise<void> {
-    await this.page.locator(selector).screenshot({ path });
+    await this.pageRef.current.locator(selector).screenshot({ path });
   }
 
   async takeFullPageScreenshot(path: string): Promise<void> {
-    await this.page.screenshot({ path, fullPage: true });
+    await this.pageRef.current.screenshot({ path, fullPage: true });
   }
 }

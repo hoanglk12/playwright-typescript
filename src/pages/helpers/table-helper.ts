@@ -1,11 +1,11 @@
-import { Page } from "@playwright/test";
 import { WaitHelper } from "./wait-helper";
 import { ElementHelper } from "./element-helper";
+import { PageRef } from "./page-ref";
 
 /** HTML table queries and interactions using 1-based row/column indexing. */
 export class TableHelper {
   constructor(
-    private readonly page: Page,
+    private readonly pageRef: PageRef,
     private readonly waits: WaitHelper,
     private readonly elements: ElementHelper
   ) {}
@@ -93,7 +93,7 @@ export class TableHelper {
   ): Promise<void> {
     await this.waits.waitForElement(tableSelector);
     const startRow = includeHeader ? 1 : 2;
-    const rows = await this.page.locator(`${tableSelector} tr`).count();
+    const rows = await this.pageRef.current.locator(`${tableSelector} tr`).count();
 
     for (let row = startRow; row <= rows; row++) {
       const logicalRow = row - (includeHeader ? 0 : 1);
@@ -119,7 +119,7 @@ export class TableHelper {
     includeHeader = true
   ): Promise<Array<Record<string, string>>> {
     await this.waits.waitForElement(tableSelector);
-    return await this.page.evaluate(
+    return await this.pageRef.current.evaluate(
       (selector) => {
         const table = document.querySelector(selector) as HTMLTableElement | null;
         if (!table) return [];
@@ -141,8 +141,8 @@ export class TableHelper {
     includeHeader = true
   ): Promise<{ rows: number; columns: number }> {
     await this.waits.waitForElement(tableSelector);
-    const totalRows = await this.page.locator(`${tableSelector} tr`).count();
-    const columns = await this.page
+    const totalRows = await this.pageRef.current.locator(`${tableSelector} tr`).count();
+    const columns = await this.pageRef.current
       .locator(
         `${tableSelector} tr:first-child td, ${tableSelector} tr:first-child th`
       )

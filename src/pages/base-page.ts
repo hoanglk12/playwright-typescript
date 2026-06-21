@@ -8,6 +8,10 @@ import {
   StorageHelper,
   NetworkHelper,
   TableHelper,
+  TabHelper,
+  DomScanHelper,
+  OverlayHelper,
+  PageRef,
 } from "./helpers/index";
 
 /**
@@ -26,7 +30,12 @@ import {
  * The delegated methods below keep the existing page-object call-sites working.
  */
 export abstract class BasePage {
-  protected page: Page;
+  protected readonly pageRef: PageRef;
+
+  /** Read-only view of the active page. Updated automatically by TabHelper on tab switches. */
+  protected get page(): Page {
+    return this.pageRef.current;
+  }
 
   // ── Helpers (use these in subclasses for new code) ──────────────────────────
   protected readonly waits: WaitHelper;
@@ -37,17 +46,23 @@ export abstract class BasePage {
   protected readonly storage: StorageHelper;
   protected readonly network: NetworkHelper;
   protected readonly tables: TableHelper;
+  protected readonly tabs: TabHelper;
+  protected readonly dom: DomScanHelper;
+  protected readonly overlays: OverlayHelper;
 
   constructor(page: Page) {
-    this.page = page;
-    this.waits = new WaitHelper(page);
-    this.elements = new ElementHelper(page, this.waits);
-    this.style = new StyleHelper(page, this.waits);
-    this.frames = new FrameHelper(page);
-    this.files = new FileHelper(page, this.waits);
-    this.storage = new StorageHelper(page);
-    this.network = new NetworkHelper(page);
-    this.tables = new TableHelper(page, this.waits, this.elements);
+    this.pageRef = { current: page };
+    this.waits = new WaitHelper(this.pageRef);
+    this.elements = new ElementHelper(this.pageRef, this.waits);
+    this.style = new StyleHelper(this.pageRef, this.waits);
+    this.frames = new FrameHelper(this.pageRef);
+    this.files = new FileHelper(this.pageRef, this.waits);
+    this.storage = new StorageHelper(this.pageRef);
+    this.network = new NetworkHelper(this.pageRef);
+    this.tables = new TableHelper(this.pageRef, this.waits, this.elements);
+    this.tabs = new TabHelper(this.pageRef);
+    this.dom = new DomScanHelper(this.pageRef);
+    this.overlays = new OverlayHelper(this.pageRef, this.elements);
   }
 
   // ── Navigation ──────────────────────────────────────────────────────────────
@@ -81,114 +96,23 @@ export abstract class BasePage {
   }
 
   // ── Window / tab management ─────────────────────────────────────────────────
-  // Kept here because these methods mutate this.page.
+  // Delegated to TabHelper. Tab switches update pageRef.current so all helpers
+  // and navigation methods automatically operate on the newly active tab.
 
-  async acceptAlert(): Promise<void> {
-    this.page.once("dialog", (dialog) => dialog.accept());
-  }
-
-  async dismissAlert(): Promise<void> {
-    this.page.once("dialog", (dialog) => dialog.dismiss());
-  }
-
-  async switchToWindowByTitle(expectedTitle: string): Promise<void> {
-    for (const pg of this.page.context().pages()) {
-      if ((await pg.title()) === expectedTitle) {
-        this.page = pg;
-        await pg.bringToFront();
-        break;
-      }
-    }
-  }
-
-  async switchToWindowById(parentPage: Page): Promise<void> {
-    for (const pg of this.page.context().pages()) {
-      if (pg !== parentPage) {
-        this.page = pg;
-        await pg.bringToFront();
-        break;
-      }
-    }
-  }
-
-  async switchToWindowByIndex(index: number): Promise<void> {
-    const allPages = this.page.context().pages();
-    if (index < 0 || index >= allPages.length) {
-      throw new Error(`Window index ${index} out of range. Available: ${allPages.length}`);
-    }
-    this.page = allPages[index];
-    await this.page.bringToFront();
-  }
-
-  async switchToWindowByUrl(urlPattern: string | RegExp): Promise<boolean> {
-    for (const pg of this.page.context().pages()) {
-      const url = pg.url();
-      const match =
-        typeof urlPattern === "string" ? url.includes(urlPattern) : urlPattern.test(url);
-      if (match) {
-        this.page = pg;
-        await pg.bringToFront();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  async switchToLatestWindow(): Promise<void> {
-    const allPages = this.page.context().pages();
-    if (allPages.length > 0) {
-      this.page = allPages[allPages.length - 1];
-      await this.page.bringToFront();
-    }
-  }
-
-  async closeAllWindowsWithoutParent(parentPage: Page): Promise<void> {
-    for (const pg of this.page.context().pages()) {
-      if (pg !== parentPage) await pg.close();
-    }
-    (this as unknown as { page: Page }).page = parentPage;
-    await parentPage.bringToFront();
-  }
-
-  async closeCurrentWindowAndSwitchToParent(parentPage: Page): Promise<void> {
-    const current = this.page;
-    (this as unknown as { page: Page }).page = parentPage;
-    await parentPage.bringToFront();
-    await current.close();
-  }
-
-  async closeAllTabsExceptCurrent(): Promise<void> {
-    const current = this.page;
-    for (const pg of this.page.context().pages()) {
-      if (pg !== current) await pg.close();
-    }
-  }
-
-  async waitForNewWindowAndSwitch(timeout = 10000): Promise<void> {
-    const newPage = await this.page.context().waitForEvent("page", { timeout });
-    this.page = newPage;
-    await newPage.bringToFront();
-    await newPage.waitForLoadState("domcontentloaded");
-  }
-
-  async openNewTab(url?: string): Promise<void> {
-    const newPage = await this.page.context().newPage();
-    if (url) await newPage.goto(url);
-    this.page = newPage;
-    await newPage.bringToFront();
-  }
-
-  async getWindowCount(): Promise<number> {
-    return this.page.context().pages().length;
-  }
-
-  async getAllWindowTitles(): Promise<string[]> {
-    const titles: string[] = [];
-    for (const pg of this.page.context().pages()) {
-      titles.push(await pg.title());
-    }
-    return titles;
-  }
+  async acceptAlert(): Promise<void> { return this.tabs.acceptAlert(); }
+  async dismissAlert(): Promise<void> { return this.tabs.dismissAlert(); }
+  async switchToWindowByTitle(expectedTitle: string): Promise<void> { return this.tabs.switchToWindowByTitle(expectedTitle); }
+  async switchToWindowById(parentPage: Page): Promise<void> { return this.tabs.switchToWindowById(parentPage); }
+  async switchToWindowByIndex(index: number): Promise<void> { return this.tabs.switchToWindowByIndex(index); }
+  async switchToWindowByUrl(urlPattern: string | RegExp): Promise<boolean> { return this.tabs.switchToWindowByUrl(urlPattern); }
+  async switchToLatestWindow(): Promise<void> { return this.tabs.switchToLatestWindow(); }
+  async closeAllWindowsWithoutParent(parentPage: Page): Promise<void> { return this.tabs.closeAllWindowsWithoutParent(parentPage); }
+  async closeCurrentWindowAndSwitchToParent(parentPage: Page): Promise<void> { return this.tabs.closeCurrentWindowAndSwitchToParent(parentPage); }
+  async closeAllTabsExceptCurrent(): Promise<void> { return this.tabs.closeAllTabsExceptCurrent(); }
+  async waitForNewWindowAndSwitch(timeout = 10000): Promise<void> { return this.tabs.waitForNewWindowAndSwitch(timeout); }
+  async openNewTab(url?: string): Promise<void> { return this.tabs.openNewTab(url); }
+  async getWindowCount(): Promise<number> { return this.tabs.getWindowCount(); }
+  async getAllWindowTitles(): Promise<string[]> { return this.tabs.getAllWindowTitles(); }
 
   // ── Utilities ───────────────────────────────────────────────────────────────
 
@@ -264,6 +188,7 @@ export abstract class BasePage {
   async waitForElementClickable(selector: string, timeout?: number): Promise<void> { return this.waits.waitForElementClickable(selector, timeout); }
   async waitForUrlContains(text: string, timeout?: number): Promise<void> { return this.waits.waitForUrlContains(text, timeout); }
   async waitForUrlMatches(pattern: RegExp, timeout?: number): Promise<void> { return this.waits.waitForUrlMatches(pattern, timeout); }
+  async waitForUrlPredicate(predicate: (url: string) => boolean, timeout?: number): Promise<void> { return this.waits.waitForUrlPredicate(predicate, timeout); }
   async waitForElementText(selector: string, expectedText: string, timeout?: number): Promise<void> { return this.waits.waitForElementText(selector, expectedText, timeout); }
   async waitForElementAttribute(selector: string, attribute: string, expectedValue: string, timeout?: number): Promise<void> { return this.waits.waitForElementAttribute(selector, attribute, expectedValue, timeout); }
   async waitForCustomCondition(condition: () => Promise<boolean> | boolean, options?: { timeout?: number; interval?: number }): Promise<void> { return this.waits.waitForCustomCondition(condition, options); }
@@ -328,4 +253,20 @@ export abstract class BasePage {
   async uploadMultipleFiles(selector: string, filePaths: string[]): Promise<void> { return this.files.uploadMultipleFiles(selector, filePaths); }
   async clearUploadedFiles(selector: string): Promise<void> { return this.files.clearUploadedFiles(selector); }
   async dragAndDropFile(filePath: string, uploadFileSelector: string): Promise<void> { return this.files.dragAndDropFile(filePath, uploadFileSelector); }
+
+  // dom
+  async hasAnyVisible(selectors: string[]): Promise<boolean> { return this.dom.hasAnyVisible(selectors); }
+  async firstVisible(selectors: string[]): Promise<string | null> { return this.dom.firstVisible(selectors); }
+  async getAllTextContents(selector: string): Promise<string[]> { return this.dom.getAllTextContents(selector); }
+  async getAllAttributes(selector: string, attribute: string): Promise<string[]> { return this.dom.getAllAttributes(selector, attribute); }
+  async hasAriaLabel(selector: string, expected: string, exact?: boolean): Promise<boolean> { return this.dom.hasAriaLabel(selector, expected, exact); }
+  async safeGetText(selector: string): Promise<string> { return this.dom.safeGetText(selector); }
+  async domCount(selector: string): Promise<number> { return this.dom.count(selector); }
+
+  // overlays
+  async dismissCookieBanner(): Promise<boolean> { return this.overlays.dismissCookieBanner(); }
+  async dismissPopup(closeSelectors?: string[]): Promise<boolean> { return this.overlays.dismissPopup(closeSelectors); }
+  async waitForOverlayGone(overlaySelectors: string[], timeout?: number): Promise<void> { return this.overlays.waitForOverlayGone(overlaySelectors, timeout); }
+  async isAnyOverlayVisible(overlaySelectors: string[]): Promise<boolean> { return this.overlays.isAnyOverlayVisible(overlaySelectors); }
+  async dismissAll(): Promise<boolean> { return this.overlays.dismissAll(); }
 }

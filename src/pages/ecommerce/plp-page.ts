@@ -39,7 +39,11 @@ export class EcommercePLPPage extends BasePage {
       const bloomreachPopup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await bloomreachPopup.count()) > 0) {
         const closeBtn = bloomreachPopup.getByRole('button').first();
-        if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
+        const bloomreachBtnVisible = await closeBtn
+          .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+          .then(() => true)
+          .catch(() => false);
+        if (bloomreachBtnVisible) {
           await closeBtn.click({ force: true });
         } else {
           await this.page.keyboard.press('Escape');
@@ -55,11 +59,19 @@ export class EcommercePLPPage extends BasePage {
 
       // Generic overlay fallback (non-Bloomreach modals)
       const overlay = this.elements.locator(this.overlaySelector).first();
-      if (!(await overlay.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false))) return;
+      const overlayVisible = await overlay
+        .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+        .then(() => true)
+        .catch(() => false);
+      if (!overlayVisible) return;
 
       const dialog = this.page.getByRole('dialog').first();
       const closeBtn = dialog.getByRole('button', { name: /close/i });
-      if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
+      const closeBtnVisible = await closeBtn
+        .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+        .then(() => true)
+        .catch(() => false);
+      if (closeBtnVisible) {
         await closeBtn.click();
         await this.waits
           .waitForCustomCondition(
@@ -72,7 +84,7 @@ export class EcommercePLPPage extends BasePage {
 
       await this.page.keyboard.press('Escape');
       await this.waits
-        .waitForCustomCondition(async () => !(await overlay.isVisible({ timeout: 200 }).catch(() => true)), {
+        .waitForCustomCondition(async () => !(await overlay.isVisible().catch(() => false)), {
           timeout: TIMEOUTS.DIALOG_DISMISS,
           interval: TIMEOUTS.POLL_INTERVAL_FAST,
         })
@@ -87,18 +99,8 @@ export class EcommercePLPPage extends BasePage {
   }
 
   async waitForProductGrid(): Promise<void> {
-    const selector = this.productCardSelector;
     await this.waits.waitForCustomCondition(
-      async () => {
-        try {
-          return await this.page.evaluate(
-            (sel) => document.querySelectorAll(sel).length > 0,
-            selector,
-          );
-        } catch {
-          return false;
-        }
-      },
+      async () => (await this.dom.count(this.productCardSelector)) > 0,
       { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST }
     );
   }
@@ -133,10 +135,7 @@ export class EcommercePLPPage extends BasePage {
   }
 
   async getProductCount(): Promise<number> {
-    return this.page.evaluate(
-      (selector) => document.querySelectorAll(selector).length,
-      this.productCardSelector,
-    );
+    return this.dom.count(this.productCardSelector);
   }
 
   async applyCategoryFilter(filterLabel: string): Promise<void> {

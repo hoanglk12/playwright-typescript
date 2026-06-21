@@ -1,10 +1,10 @@
-import { Page } from "@playwright/test";
 import { WaitHelper } from "./wait-helper";
+import { PageRef } from "./page-ref";
 
 /** Computed-style helpers: color conversion, dimensions, CSS property reads. */
 export class StyleHelper {
   constructor(
-    private readonly page: Page,
+    private readonly pageRef: PageRef,
     private readonly waits: WaitHelper
   ) {}
 
@@ -39,14 +39,14 @@ export class StyleHelper {
 
   async getElementBackgroundColorHex(selector: string): Promise<string> {
     await this.waits.waitForElement(selector);
-    const color = await this.page
+    const color = await this.pageRef.current
       .locator(selector)
-      .evaluate((el) => window.getComputedStyle(el).backgroundColor);
+      .evaluate((el: Element) => window.getComputedStyle(el as HTMLElement).backgroundColor);
     return this.convertColorToHex(color);
   }
 
   async getAllElementsBackgroundColorHex(selector: string): Promise<string[]> {
-    const elements = await this.page.locator(selector).all();
+    const elements = await this.pageRef.current.locator(selector).all();
     const colors: string[] = [];
     for (const el of elements) {
       const color = await el.evaluate((e) => window.getComputedStyle(e).backgroundColor);
@@ -57,32 +57,32 @@ export class StyleHelper {
 
   async getElementTextColorHex(selector: string): Promise<string> {
     await this.waits.waitForElement(selector);
-    const color = await this.page
+    const color = await this.pageRef.current
       .locator(selector)
-      .evaluate((el) => window.getComputedStyle(el).color);
+      .evaluate((el: Element) => window.getComputedStyle(el as HTMLElement).color);
     return this.convertColorToHex(color);
   }
 
   async getElementBorderColorHex(selector: string): Promise<string> {
     await this.waits.waitForElement(selector);
-    const color = await this.page
+    const color = await this.pageRef.current
       .locator(selector)
-      .evaluate((el) => window.getComputedStyle(el).borderColor);
+      .evaluate((el: Element) => window.getComputedStyle(el as HTMLElement).borderColor);
     return this.convertColorToHex(color);
   }
 
   async getCSSProperty(selector: string, property: string): Promise<string> {
     await this.waits.waitForElement(selector);
-    return await this.page
+    return await this.pageRef.current
       .locator(selector)
-      .evaluate((el, prop) => window.getComputedStyle(el).getPropertyValue(prop), property);
+      .evaluate((el: Element, prop: string) => window.getComputedStyle(el as HTMLElement).getPropertyValue(prop), property);
   }
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
 
   async getElementDimensions(selector: string): Promise<string> {
     await this.waits.waitForElement(selector);
-    return await this.page.locator(selector).evaluate((el) => {
+    return await this.pageRef.current.locator(selector).evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return `${Math.round(rect.width)}x${Math.round(rect.height)}`;
     });
@@ -90,7 +90,7 @@ export class StyleHelper {
 
   async getElementDimensionsObject(selector: string): Promise<{ width: number; height: number }> {
     await this.waits.waitForElement(selector);
-    return await this.page.locator(selector).evaluate((el) => {
+    return await this.pageRef.current.locator(selector).evaluate((el) => {
       const rect = el.getBoundingClientRect();
       return { width: Math.round(rect.width), height: Math.round(rect.height) };
     });
@@ -98,7 +98,7 @@ export class StyleHelper {
 
   async getImageNaturalDimensions(selector: string): Promise<string> {
     await this.waits.waitForElement(selector);
-    return await this.page.locator(selector).evaluate((el) => {
+    return await this.pageRef.current.locator(selector).evaluate((el) => {
       if (el.tagName.toLowerCase() !== "img") throw new Error("Element is not an image");
       const img = el as HTMLImageElement;
       return `${img.naturalWidth}x${img.naturalHeight}`;

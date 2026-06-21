@@ -89,7 +89,7 @@
     "@lhci/cli": "^0.15.0",
     "@percy/cli": "^1.31.11",
     "@percy/playwright": "^1.1.0",
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.0",
     "@types/node": "^24.13.2",
     "cross-env": "^10.1.0",
     "dotenv-cli": "^11.0.0",

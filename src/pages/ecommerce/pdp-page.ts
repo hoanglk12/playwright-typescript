@@ -110,7 +110,11 @@ export class EcommercePDPPage extends BasePage {
       const popup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await popup.count()) === 0) return;
       const closeBtn = popup.getByRole('button').first();
-      if (await closeBtn.isVisible({ timeout: TIMEOUTS.ELEMENT_CLICKABLE }).catch(() => false)) {
+      const btnVisible = await closeBtn
+        .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+        .then(() => true)
+        .catch(() => false);
+      if (btnVisible) {
         await closeBtn.click({ force: true });
       } else {
         await this.page.keyboard.press('Escape');
@@ -154,10 +158,10 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async waitForVariantNavigation(previousUrl: string): Promise<void> {
-    // WHY: no WaitHelper equivalent for function-predicate URL matching
-    await this.page.waitForURL((url) => url.toString() !== previousUrl, {
-      timeout: TIMEOUTS.PAGE_LOAD_SLOW,
-    });
+    await this.waits.waitForUrlPredicate(
+      (url) => url !== previousUrl,
+      TIMEOUTS.PAGE_LOAD_SLOW,
+    );
     await this.waitForPdpLoad();
     const selector = this.galleryImageSelector;
     // WHY: no WaitHelper equivalent for arbitrary JS polling

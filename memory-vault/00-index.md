@@ -8,7 +8,7 @@ last_verified: 2026-06-15
 - [[user_profile|User Profile]] — QA engineer building Playwright TypeScript framework; prefers terse interactions; Windows 11 Pro; path C:\Users\Lincoln.Pham\...\playwright-typescript
 - [[project_context|Project Context]] — Composition-based POM; GitHub Actions CI; monocart + Slack; Cloudflare Pages; GRA 4-brand API projects (pla-au/skx-au/drm-au/van-au); Ecommerce UI smoke (6 specs, ~200 tests, smoke-helpers.ts)
 - [[feedback_preferences|Feedback & Preferences]] — Preferred patterns, corrections, confirmed approaches
-- [[project_architecture|Project Architecture]] — BasePage with 9 helpers; dual configs; import rules; fixture system
+- [[project_architecture|Project Architecture]] — BasePage with 10 helpers (added this.dom + this.overlays 2026-06-22); ConsoleHelper is fixture-only; dual configs; import rules; fixture system
 - [[project_context_engineering|Context Engineering Setup]] — CLAUDE.md, skills, settings.json state as of 2026-04-22
 - [[gra-api-testing|GRA API Testing]] — GRA multi-brand Phase 1 (4 AU projects); graTest fixture; signInAndStoreToken(client,logger,site,siteState); 15 gra-*.spec.ts shared suite; staging API quirks
 - [[ecommerce-pdp-page-gotchas|Ecommerce PDP Page Gotchas]] — 9 patterns: Bloomreach popup (Vans AU), Dr. Martens gallery, dual-h1, swatch goto(), gallery wait, cart count (aria-label fast path + NETWORK_IDLE_SLOW + addToCart stabilisation), preferMens nav-label, Platypus AU nav pitfalls (MENS=socks), mini cart overlay detection (aside/complementary + fixed/absolute + CTA gate)
@@ -21,3 +21,4 @@ last_verified: 2026-06-15
 - [[advisor-nudge-mechanism|Advisor Nudge Mechanism]] — PostToolUse hook: ≥3 repeated test runs or file edits + 90s floor → injects additionalContext nudging advisor() call; resets on advisor() call; CLAUDE.md §5 lists 7 immediate-trigger patterns
 - [[gra-storefront-tech-notes|GRA Storefront Tech Notes]] — Live browser investigation (2026-06-15): Magento PWA Studio 9/GRA 10, GraphQL-GET only, styled-components hashed classes, no SW, no nav landmark, no data-testid, Skechers empty h1 bug, Vans Bloomreach popup (#popup-close), dataLayer patterns, route-block list, cart button [aria-label*="cart" i]
 - [[gra-integration-test-report|GRA Integration Test Report]] — INT-001–010 canonical scenarios for 8 GRA storefronts; ROI matrix; system boundaries; per-brand gotchas; report at docs/gra-integration-test-scenarios.html
+- [[playwright-161-and-helper-migration|Playwright 1.61 + Helper Migration]] — isVisible({timeout}) deprecation fix; this.dom.count() replaces page.evaluate querySelectorAll; waitForUrlPredicate replaces page.waitForURL(fn); OverlayHelper API gap

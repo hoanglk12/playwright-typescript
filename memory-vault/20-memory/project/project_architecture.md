@@ -8,7 +8,9 @@ last_verified: 2026-06-02
 
 Playwright TypeScript framework. Key facts:
 
-- **Composition not inheritance**: `BasePage` delegates to 8 helper instances (`this.waits`, `this.elements`, `this.style`, `this.frames`, `this.files`, `this.storage`, `this.network`, `this.tables`). `PercyHelper` is **not** a BasePage field — it is available only as the `percyHelper` fixture in tests. New browser interactions go in the helpers, not `BasePage` directly.
+- **Composition not inheritance**: `BasePage` delegates to 10 helper instances (`this.waits`, `this.elements`, `this.style`, `this.frames`, `this.files`, `this.storage`, `this.network`, `this.tables`, `this.dom`, `this.overlays`). `PercyHelper` is **not** a BasePage field — it is available only as the `percyHelper` fixture in tests. `ConsoleHelper` is also **not** a BasePage field — it is available only as the `consoleHelper` fixture in tests. New browser interactions go in the helpers, not `BasePage` directly.
+  - `this.dom` (`DomScanHelper`): selector-based DOM queries — `count(selector)`, `hasAnyVisible(selectors[])`, `firstVisible(selectors[])`, `getAllTextContents(selector)`, `getAllAttributes(selector, attr)`, `hasAriaLabel(selector, label)`, `safeGetText(selector)`.
+  - `this.overlays` (`OverlayHelper`): overlay/modal dismissal via a fixed close-selector list. **Gap**: no Escape-key fallback, no container-scoped button targeting — the 3 Bloomreach inline dismissal methods in ecommerce page objects cannot migrate yet without extending the helper.
 - **Import rule**: Always `import { test, expect } from '@config/base-test'` in test files — never `@playwright/test` directly. The base-test extends with all page fixtures.
 - **Two configs**: `playwright.config.ts` (UI, all tests except `**/api/**`) and `api.config.ts` (API only, 1 worker serial).
 - **Firefox teardown**: `ecommerceHomePage` fixture navigates to `about:blank` before teardown on Firefox — intentional workaround for Juggler/service-worker hang. Do not remove.

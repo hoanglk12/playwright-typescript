@@ -1,11 +1,12 @@
-import { type Locator, Page } from "@playwright/test";
+import { type Locator } from "@playwright/test";
 import { TIMEOUTS } from "../../constants/timeouts";
 import { WaitHelper } from "./wait-helper";
+import { PageRef } from "./page-ref";
 
 /** Element queries, interactions, scroll, and keyboard operations. */
 export class ElementHelper {
   constructor(
-    private readonly page: Page,
+    private readonly pageRef: PageRef,
     private readonly waits: WaitHelper
   ) {}
 
@@ -13,7 +14,7 @@ export class ElementHelper {
 
   async isElementDisplayed(selector: string): Promise<boolean> {
     try {
-      return await this.page.isVisible(selector);
+      return await this.pageRef.current.isVisible(selector);
     } catch {
       return false;
     }
@@ -24,9 +25,9 @@ export class ElementHelper {
     shortTimeout: number = TIMEOUTS.TIMEOUT_SHORT
   ): Promise<boolean> {
     try {
-      const elements = await this.page.locator(selector).all();
+      const elements = await this.pageRef.current.locator(selector).all();
       if (elements.length === 0) return true;
-      const isVisible = await elements[0].isVisible({ timeout: shortTimeout });
+      const isVisible = await elements[0].isVisible();
       return !isVisible;
     } catch {
       return true;
@@ -36,7 +37,7 @@ export class ElementHelper {
   async isElementEnabled(selector: string): Promise<boolean> {
     try {
       await this.waits.waitForElement(selector);
-      return await this.page.locator(selector).isEnabled();
+      return await this.pageRef.current.locator(selector).isEnabled();
     } catch {
       return false;
     }
@@ -50,42 +51,42 @@ export class ElementHelper {
 
   async clickElement(selector: string): Promise<void> {
     await this.waits.waitForElementClickable(selector);
-    await this.page.click(selector);
+    await this.pageRef.current.click(selector);
   }
 
   async doubleClickElement(selector: string): Promise<void> {
     await this.waits.waitForElementClickable(selector);
-    await this.page.dblclick(selector);
+    await this.pageRef.current.dblclick(selector);
   }
 
   async rightClickElement(selector: string): Promise<void> {
     await this.waits.waitForElementClickable(selector);
-    await this.page.click(selector, { button: "right" });
+    await this.pageRef.current.click(selector, { button: "right" });
   }
 
   // ── Text input ──────────────────────────────────────────────────────────────
 
   async enterText(selector: string, text: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.fill(selector, text);
+    await this.pageRef.current.fill(selector, text);
   }
 
   async clearAndEnterText(selector: string, text: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.fill(selector, "");
-    await this.page.fill(selector, text);
+    await this.pageRef.current.fill(selector, "");
+    await this.pageRef.current.fill(selector, text);
   }
 
   // ── Queries ─────────────────────────────────────────────────────────────────
 
   async getText(selector: string): Promise<string> {
     await this.waits.waitForElement(selector);
-    return (await this.page.textContent(selector)) ?? "";
+    return (await this.pageRef.current.textContent(selector)) ?? "";
   }
 
   async getAllTexts(selector: string): Promise<string[]> {
-    await this.page.waitForSelector(selector, { state: "attached" });
-    const elements = await this.page.locator(selector).all();
+    await this.pageRef.current.waitForSelector(selector, { state: "attached" });
+    const elements = await this.pageRef.current.locator(selector).all();
     const texts: string[] = [];
     for (const el of elements) {
       texts.push((await el.textContent())?.trim() ?? "");
@@ -95,12 +96,12 @@ export class ElementHelper {
 
   async getAttribute(selector: string, attribute: string): Promise<string | null> {
     await this.waits.waitForElement(selector);
-    return await this.page.getAttribute(selector, attribute);
+    return await this.pageRef.current.getAttribute(selector, attribute);
   }
 
   async getElementCount(selector: string): Promise<number> {
     try {
-      return await this.page.locator(selector).count();
+      return await this.pageRef.current.locator(selector).count();
     } catch {
       return 0;
     }
@@ -108,28 +109,28 @@ export class ElementHelper {
 
   async hasClass(selector: string, className: string): Promise<boolean> {
     await this.waits.waitForElement(selector);
-    return await this.page
+    return await this.pageRef.current
       .locator(selector)
-      .evaluate((el, cls) => el.classList.contains(cls), className);
+      .evaluate((el: Element, cls: string) => el.classList.contains(cls), className);
   }
 
   async getAllClasses(selector: string): Promise<string[]> {
     await this.waits.waitForElement(selector);
-    return await this.page
+    return await this.pageRef.current
       .locator(selector)
-      .evaluate((el) => Array.from(el.classList));
+      .evaluate((el: Element) => Array.from(el.classList));
   }
 
   // ── Form controls ───────────────────────────────────────────────────────────
 
   async selectDropdownByValue(selector: string, value: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.selectOption(selector, { value });
+    await this.pageRef.current.selectOption(selector, { value });
   }
 
   async selectDropdownByText(selector: string, text: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.selectOption(selector, { label: text });
+    await this.pageRef.current.selectOption(selector, { label: text });
   }
 
   async selectItemInCustomDropdown(
@@ -138,8 +139,8 @@ export class ElementHelper {
     expectedItem: string
   ): Promise<void> {
     await this.clickElement(parentLocator);
-    await this.page.waitForSelector(childLocator, { state: "attached" });
-    const allItems = await this.page.locator(childLocator).all();
+    await this.pageRef.current.waitForSelector(childLocator, { state: "attached" });
+    const allItems = await this.pageRef.current.locator(childLocator).all();
     for (const item of allItems) {
       const itemText = await item.textContent();
       if (itemText?.trim() === expectedItem) {
@@ -152,29 +153,29 @@ export class ElementHelper {
 
   async isChecked(selector: string): Promise<boolean> {
     await this.waits.waitForElement(selector);
-    return await this.page.isChecked(selector);
+    return await this.pageRef.current.isChecked(selector);
   }
 
   async check(selector: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.check(selector);
+    await this.pageRef.current.check(selector);
   }
 
   async uncheck(selector: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.uncheck(selector);
+    await this.pageRef.current.uncheck(selector);
   }
 
   // ── Hover / focus ───────────────────────────────────────────────────────────
 
   async hoverElement(selector: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.hover(selector);
+    await this.pageRef.current.hover(selector);
   }
 
   async focusElement(selector: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.focus(selector);
+    await this.pageRef.current.focus(selector);
   }
 
   async hoverAndGetTooltipAdvanced(
@@ -198,7 +199,7 @@ export class ElementHelper {
     } = options;
 
     await this.waits.waitForElement(selector);
-    await this.page.hover(selector);
+    await this.pageRef.current.hover(selector);
     await this.waits.sleep(waitAfterHover);
 
     if (tooltipSelector) {
@@ -248,38 +249,38 @@ export class ElementHelper {
   // ── Keyboard ────────────────────────────────────────────────────────────────
 
   async pressKey(key: string): Promise<void> {
-    await this.page.keyboard.press(key);
+    await this.pageRef.current.keyboard.press(key);
   }
 
   async pressKeys(keys: string[]): Promise<void> {
     for (const key of keys) {
-      await this.page.keyboard.press(key);
+      await this.pageRef.current.keyboard.press(key);
     }
   }
 
   async selectAllText(selector: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.focus(selector);
-    await this.page.keyboard.press("Control+A");
+    await this.pageRef.current.focus(selector);
+    await this.pageRef.current.keyboard.press("Control+A");
   }
 
   // ── Scroll ──────────────────────────────────────────────────────────────────
 
   async scrollToElement(selector: string): Promise<void> {
     await this.waits.waitForElement(selector);
-    await this.page.locator(selector).scrollIntoViewIfNeeded();
+    await this.pageRef.current.locator(selector).scrollIntoViewIfNeeded();
   }
 
   async scrollToTop(): Promise<void> {
-    await this.page.evaluate(() => window.scrollTo(0, 0));
+    await this.pageRef.current.evaluate(() => window.scrollTo(0, 0));
   }
 
   async scrollToBottom(): Promise<void> {
-    await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await this.pageRef.current.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   }
 
   async scrollByPixels(x: number, y: number): Promise<void> {
-    await this.page.evaluate(({ x, y }) => window.scrollBy(x, y), { x, y });
+    await this.pageRef.current.evaluate(({ x, y }) => window.scrollBy(x, y), { x, y });
   }
 
   // ── Drag and drop ───────────────────────────────────────────────────────────
@@ -287,14 +288,14 @@ export class ElementHelper {
   async dragAndDrop(sourceSelector: string, targetSelector: string): Promise<void> {
     await this.waits.waitForElement(sourceSelector);
     await this.waits.waitForElement(targetSelector);
-    await this.page.dragAndDrop(sourceSelector, targetSelector);
+    await this.pageRef.current.dragAndDrop(sourceSelector, targetSelector);
   }
 
   // ── Locator-based operations ─────────────────────────────────────────────────
   // Use these when a dynamic or chained Locator cannot be expressed as a plain CSS/text selector.
 
   locator(selector: string): Locator {
-    return this.page.locator(selector);
+    return this.pageRef.current.locator(selector);
   }
 
   async clickLocator(locator: Locator): Promise<void> {

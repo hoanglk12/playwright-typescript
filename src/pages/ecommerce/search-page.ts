@@ -37,24 +37,12 @@ export class EcommerceSearchPage extends BasePage {
 
   async waitForSearchResults(): Promise<void> {
     await this.waits.waitForCustomCondition(
-      async () => {
-        try {
-          return await this.page.evaluate(
-            (selector) => document.querySelectorAll(selector).length > 0,
-            this.productCardSelector,
-          );
-        } catch {
-          return false;
-        }
-      },
+      async () => (await this.dom.count(this.productCardSelector)) > 0,
       { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST }
     );
   }
 
   async getResultCount(): Promise<number> {
-    return this.page.evaluate(
-      (selector) => document.querySelectorAll(selector).length,
-      this.productCardSelector,
-    );
+    return this.dom.count(this.productCardSelector);
   }
 }
