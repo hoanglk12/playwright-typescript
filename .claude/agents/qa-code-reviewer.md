@@ -127,6 +127,7 @@ test('TC_01 - Should login with valid credentials', async ({ loginPage }) => {
 - [ ] Named interfaces are declared and exported from the data module (not inlined as anonymous object types)
 - [ ] No hardcoded URLs in page objects or tests — use environment config
 - [ ] No credentials, tokens, or secrets committed in data files
+- [ ] **[WARNING]** Generator methods use `faker` from `src/data/faker.ts` for dynamic fields (names, emails, addresses, phone numbers, random numbers) — never `Date.now()` timestamp concatenation or static dummy strings like `'Test User'` / `'test123@example.com'`
 
 ```ts
 // CRITICAL — hardcoded data in spec
@@ -148,6 +149,23 @@ export const LoginData: LoginDataShape = { adminUser: { email: 'a@b.com', passwo
 
 export interface GeneratedUser { name: string; email: string; }
 static generateUser(): GeneratedUser { return { name: 'Test', email: 'test@example.com' }; }
+```
+
+```ts
+// WARNING — Date.now() hack for uniqueness in generator
+static generateCustomer(): CustomerData {
+  const ts = Date.now();
+  return { name: `Test User ${ts}`, email: `test${ts}@example.com` };  // WRONG
+}
+
+// Correct — use faker for realistic, unique generated values
+import { faker } from './faker';
+static generateCustomer(): CustomerData {
+  return {
+    name: faker.person.fullName(),
+    email: faker.internet.email().toLowerCase(),
+  };
+}
 ```
 
 ---

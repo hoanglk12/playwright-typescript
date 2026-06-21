@@ -208,6 +208,7 @@ Prefer `softAssert` fixture when the test already uses a logger (it logs each ch
 
 ```ts
 // src/data/my-feature-data.ts
+import { faker } from './faker';   // always from src/data/faker.ts
 
 // 1. Declare interfaces first
 export interface MyFeatureCredentials {
@@ -234,23 +235,29 @@ export const MyFeatureData: MyFeatureDataShape = {
   expectedTitle: 'Welcome back',
 };
 
-// 3. Declare explicit return types on generator methods
+// 3. Use faker for generated/dynamic data — never Date.now() hacks
 export class MyFeatureDataGenerator {
   static generateFormData(): MyFeatureFormData {
-    const ts = Date.now();
-    return { firstName: `Test`, lastName: `User${ts}`, email: `test${ts}@example.com` };
+    return {
+      firstName: faker.person.firstName(),
+      lastName: faker.person.lastName(),
+      email: faker.internet.email().toLowerCase(),
+    };
   }
 }
 ```
 
 ```ts
-// WRONG — untyped const, inferred generator return
+// WRONG — untyped const, inferred generator return, Date.now() timestamp hack
 export const MyFeatureData = { validEmail: 'test@example.com' } as const;
-static generateFormData() { return { firstName: 'Test' }; }
+static generateFormData() { const ts = Date.now(); return { email: `test${ts}@example.com` }; }
+
+// CORRECT — interface declared, const annotated, faker for generated fields
 ```
 
 - **Static expected values** → `const` objects annotated with a named interface type
-- **Generated/dynamic data** → generator classes/functions with explicit return types
+- **Generated/dynamic data** → generator classes/functions with explicit return types; use `faker` from `src/data/faker.ts` for names, emails, addresses, numbers — never `Date.now()` concatenation
+- `src/data/faker.ts` exports `faker` (default locale), `fakerAU`, and `fakerNZ` — pick the locale that matches the storefront under test
 - Reference `src/data/admin-data.ts` as the canonical pattern
 
 ---

@@ -52,6 +52,7 @@ logger.verify('Title matches expected', expectedTitle, actualTitle);
 ### Test data
 Never hardcode test data in spec files. Reference `src/data/{feature}-data.ts` modules.
 If no data module exists yet, add a `// TODO: move to src/data/` comment.
+When the data module needs generated values (names, emails, addresses, random numbers), use `faker` imported from `src/data/faker.ts` — never `Date.now()` concatenation or static dummy strings.
 
 ### Timeouts
 Never use magic numbers. Use `TIMEOUTS.*` constants:

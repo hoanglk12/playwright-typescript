@@ -47,6 +47,23 @@ export class EcommerceNavPage extends BasePage {
 
   async clickNavLink(label: string): Promise<void> {
     await this.dismissBloomreachPopup();
+
+    // On Magento PWA Studio SPAs, top-level nav links are also megamenu triggers.
+    // Playwright's synthetic click fires the browser event but React's delegated
+    // router handler can be outpaced by async hydration or staging load lag —
+    // the megamenu opens while the SPA router stays on the homepage.
+    // Guard: if the link carries a real PLP href, navigate directly via goto()
+    // (same strategy as swatch navigation — gotcha #4 in ecommerce-pdp-page-gotchas).
+    // Fallback: click for links with no href or anchor-only hrefs (e.g. dropdown triggers).
+    const href = await this.getNavLinkHref(label);
+    if (href && href !== '#' && !href.startsWith('#') && !href.startsWith('javascript:')) {
+      const current = new URL(this.page.url());
+      const target = new URL(href, current);
+      if (target.origin === current.origin) {
+        await this.gotoWithOptions(target.href, { waitUntil: 'commit' });
+        return;
+      }
+    }
     await this.elements.clickLocator(this.navLink(label));
   }
 

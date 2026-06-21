@@ -25,6 +25,10 @@ export class EcommercePLPPage extends BasePage {
   // Broad PDP URL pattern covering all 8 storefronts (Magento uses .html extension for PDPs; other sites use /product/, /p/, /pdp/)
   private readonly PDP_URL_PATTERN = /(\/product\/|\/p\/|\/pdp\/|\.html)/i;
 
+  // Price pattern scoped to $X.XX format (decimals required) — used for LOC-001 currency assertion.
+  // Matches AUD/NZD price leaf nodes that carry the two-decimal cent portion.
+  private readonly priceTextPattern = '^\\$[\\d,]+\\.\\d{2}$';
+
   constructor(page: Page) {
     super(page);
   }
@@ -230,5 +234,44 @@ export class EcommercePLPPage extends BasePage {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Returns the first visible price text in `$X.XX` format found within product cards.
+   * Scoped to `[data-product-id]` elements to avoid matching non-product prices
+   * (e.g. free-shipping banners). Returns an empty string if no matching price is found.
+   * Used by E2E-LOC-001 to assert AUD price format on PLP product grids.
+   */
+  async getPriceText(): Promise<string> {
+    const cardSelector = this.productCardSelector;
+    const pricePattern = this.priceTextPattern;
+    let result = '';
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          result = await this.page.evaluate(
+            ({ cardSel, pat }: { cardSel: string; pat: string }) => {
+              const re = new RegExp(pat);
+              const cards = Array.from(document.querySelectorAll(cardSel));
+              for (const card of cards) {
+                const leaves = Array.from(card.querySelectorAll('*'));
+                for (const el of leaves) {
+                  if ((el as Element).children.length > 0) continue;
+                  const text = el.textContent?.trim() ?? '';
+                  if (!re.test(text)) continue;
+                  const r = (el as Element).getBoundingClientRect();
+                  if (r.width > 0 && r.height > 0) return text;
+                }
+              }
+              return '';
+            },
+            { cardSel: cardSelector, pat: pricePattern },
+          );
+          return result.length > 0;
+        },
+        { timeout: TIMEOUTS.ELEMENT_VISIBLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return result;
   }
 }
