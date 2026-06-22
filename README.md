@@ -125,6 +125,7 @@ playwright-typescript/
 │       └── gra-address-book-countries.spec.ts
 │
 ├── scripts/
+│   ├── bulk-ingest-jira.mjs        # Bulk-ingest GRA Jira Stories + Epics → vault
 │   ├── sync-memory-to-vault.mjs    # Syncs live memory → memory-vault/
 │   ├── sync-vault-to-lightrag.mjs # Syncs vault notes to LightRAG knowledge graph
 │   └── init-memory-from-vault.mjs # Bootstrap live memory from vault (new machine)
@@ -292,6 +293,54 @@ npm run clean                     # Remove all test output dirs
 npm run clean:install             # Clean + npm ci + install browsers
 npm run sync-memory               # Sync live memory → vault → LightRAG
 npm run codegen                   # Playwright recording tool
+```
+
+### Knowledge Base — Jira Ingestion
+
+Bulk-ingest GRA Jira Stories and Epics into the memory vault so requirements are queryable via LightRAG semantic search inside Claude Code.
+
+**Step 1 — Create a Jira API token**
+
+Go to `https://id.atlassian.com/manage-profile/security/api-tokens` and generate a token.
+
+**Step 2 — Export credentials and run**
+
+```powershell
+$env:JIRA_EMAIL = "your-email@accentgroup.com.au"
+$env:JIRA_API_TOKEN = "your-api-token"
+
+# Quick probe — fetch and preview 5 issues without writing (API connectivity check)
+npm run ingest:jira:probe
+
+# Full dry run — preview all matching issues without writing files
+npm run ingest:jira:dry
+
+# Incremental ingestion — writes new issues, skips existing
+npm run ingest:jira
+
+# Force refresh — overwrites all existing vault notes
+npm run ingest:jira:force
+```
+
+**Step 3 — Sync to LightRAG**
+
+```bash
+npm run sync:vault
+```
+
+Each issue is written to `memory-vault/20-memory/project/jira/jira-GRA-NNN.md` with frontmatter (key, status, priority, assignee, labels) and the full description including Acceptance Criteria.
+
+Re-run `npm run ingest:jira` at any time to pick up newly created or updated issues — existing files are skipped unless `--force` is passed.
+
+**Querying requirements from Claude Code**
+
+After syncing, ask Claude Code natural-language questions against the vault:
+
+```
+What are the acceptance criteria for the PayPal checkout story?
+Which GRA stories cover cart behaviour?
+List all In Progress epics.
+What does GRA-148 require?
 ```
 
 ---

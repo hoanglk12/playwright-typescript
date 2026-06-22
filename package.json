@@ -74,7 +74,12 @@
     "lhci:collect:mobile": "lhci collect --config=lighthouserc.mobile.js",
     "lhci:upload:mobile": "lhci upload --config=lighthouserc.mobile.js",
     "lhci:assert:mobile": "lhci assert --config=lighthouserc.mobile.js",
-    "lhci:index": "node scripts/generate-lhci-index.js"
+    "lhci:index": "node scripts/generate-lhci-index.js",
+    "ingest:jira": "node scripts/bulk-ingest-jira.mjs",
+    "ingest:jira:dry": "node scripts/bulk-ingest-jira.mjs --dry-run",
+    "ingest:jira:probe": "node scripts/bulk-ingest-jira.mjs --dry-run --limit=5",
+    "ingest:jira:force": "node scripts/bulk-ingest-jira.mjs --force",
+    "sync:vault": "node scripts/sync-vault-to-lightrag.mjs"
   },
   "keywords": [
     "playwright",
