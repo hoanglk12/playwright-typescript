@@ -1,7 +1,14 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
-import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
+import {
+  getPreferredNavLabel,
+  navigateToPlp,
+  shouldPreferMens,
+  ensureCartOverlayOpen,
+  findProductWithAvailableSizes,
+  selectFirstPurchasableSize,
+} from './smoke-helpers';
 
 test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
   test.slow();
@@ -32,7 +39,7 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CART-002-${String(index + 1).padStart(3, '0')}`;
-    const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Mini cart shows item count after Add to Cart`, async ({
@@ -50,42 +57,10 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      // Scan up to 5 products on the initial PLP for one with available (non-sold-out) sizes.
-      // Quick check per product (no extended wait in loop); sold-out and non-footwear products are
-      // both handled by the immediate getAvailableSizes() returning []. The final
-      // waitForSizeButtonsToRender() on the last product covers timing edge cases where sizes render
-      // asynchronously after the heading appears (observed on Skechers AU under batch load).
-      logger.step('Step 6 - Scan initial PLP for a product with available sizes (up to 10)');
-      const MAX_PRODUCTS_PER_NAV = 10;
-      let availableSizes: string[] = [];
-
-      for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
-        if (i > 0) {
-          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
-          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
-          await ecommercePDPPage.goBack();
-          await ecommercePLPPage.waitForPlpUrl();
-          await ecommercePLPPage.waitForProductGrid();
-        }
-        await ecommercePLPPage.clickProductCard(i);
-        await ecommercePDPPage.waitForPdpLoad();
-        await ecommercePDPPage.ensureNoOverlay();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0) break;
-      }
-
-      // If scan returned empty, give the current PDP a full wait — covers both timing lag
-      // (sizes render after heading) and sold-out products on last attempted product.
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
       if (availableSizes.length === 0) {
-        await ecommercePDPPage.waitForSizeButtonsToRender();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-      }
-
-      if (availableSizes.length === 0) {
-        test.skip(
-          true,
-          `${site.name}: no product with enabled sizes found in first ${MAX_PRODUCTS_PER_NAV} ${navLabel} PLP products`,
-        );
+        test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
         return;
       }
 
@@ -94,23 +69,11 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // Try up to 3 sizes and stop at the first that actually enables Add to Cart.
+      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       logger.step('Step 12 - Select a size that enables Add to Cart (try up to 3)');
-      let targetSize: string | null = null;
-      let atcEnabled = false;
-      for (const size of availableSizes.slice(0, 3)) {
-        await ecommercePDPPage.selectSize(size);
-        atcEnabled = await ecommercePDPPage.isAddToCartEnabled();
-        if (atcEnabled) {
-          targetSize = size;
-          break;
-        }
-      }
+      const targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
       if (targetSize === null) {
-        test.skip(
-          true,
-          `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
-        );
+        test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
         return;
       }
       logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
@@ -131,8 +94,7 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CART-003-${String(index + 1).padStart(3, '0')}`;
-    const preferMens =
-      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Mini cart overlay opens on cart icon click`, async ({
@@ -152,42 +114,10 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      // Scan up to 5 products on the initial PLP for one with available (non-sold-out) sizes.
-      // Quick check per product (no extended wait in loop); sold-out and non-footwear products
-      // are both handled by the immediate getAvailableSizes() returning []. The final
-      // waitForSizeButtonsToRender() on the last product covers timing edge cases where sizes
-      // render asynchronously after the heading appears.
-      logger.step('Step 6 - Scan initial PLP for a product with available sizes (up to 10)');
-      const MAX_PRODUCTS_PER_NAV = 10;
-      let availableSizes: string[] = [];
-
-      for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
-        if (i > 0) {
-          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
-          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
-          await ecommercePDPPage.goBack();
-          await ecommercePLPPage.waitForPlpUrl();
-          await ecommercePLPPage.waitForProductGrid();
-        }
-        await ecommercePLPPage.clickProductCard(i);
-        await ecommercePDPPage.waitForPdpLoad();
-        await ecommercePDPPage.ensureNoOverlay();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0) break;
-      }
-
-      // If scan returned empty, give the current PDP a full wait — covers both timing lag
-      // (sizes render after heading) and sold-out products on last attempted product.
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
       if (availableSizes.length === 0) {
-        await ecommercePDPPage.waitForSizeButtonsToRender();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-      }
-
-      if (availableSizes.length === 0) {
-        test.skip(
-          true,
-          `${site.name}: no product with enabled sizes found in first ${MAX_PRODUCTS_PER_NAV} ${navLabel} PLP products`,
-        );
+        test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
         return;
       }
 
@@ -196,23 +126,11 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // Try up to 3 sizes and stop at the first that actually enables Add to Cart.
+      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       logger.step('Step 12 - Select a size that enables Add to Cart (try up to 3)');
-      let targetSize: string | null = null;
-      let atcEnabled = false;
-      for (const size of availableSizes.slice(0, 3)) {
-        await ecommercePDPPage.selectSize(size);
-        atcEnabled = await ecommercePDPPage.isAddToCartEnabled();
-        if (atcEnabled) {
-          targetSize = size;
-          break;
-        }
-      }
+      const targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
       if (targetSize === null) {
-        test.skip(
-          true,
-          `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
-        );
+        test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
         return;
       }
       logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
@@ -223,14 +141,8 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Step 14 - Poll for mini cart count to increment');
       await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
 
-      logger.step('Step 15 - Check if mini cart overlay auto-opened after ATC');
-      const autoOpened = await ecommerceCartOverlayPage.isOverlayVisible();
-
-      logger.step('Step 16 - If overlay not auto-opened, click cart icon to open it');
-      if (!autoOpened) {
-        await ecommerceCartOverlayPage.clickCartIcon();
-        await ecommerceCartOverlayPage.waitForOverlayVisible();
-      }
+      logger.step('Step 15 - Open mini cart overlay (auto or manual)');
+      await ensureCartOverlayOpen(ecommerceCartOverlayPage);
 
       logger.step('Step 17 - Assert mini cart overlay is visible');
       const overlayVisible = await ecommerceCartOverlayPage.isOverlayVisible();
@@ -240,8 +152,7 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CART-004-${String(index + 1).padStart(3, '0')}`;
-    const preferMens =
-      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Mini cart overlay shows product name, size, and price`, async ({
@@ -261,42 +172,10 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      // Scan up to 5 products on the initial PLP for one with available (non-sold-out) sizes.
-      // Quick check per product (no extended wait in loop); sold-out and non-footwear products
-      // are both handled by the immediate getAvailableSizes() returning []. The final
-      // waitForSizeButtonsToRender() on the last product covers timing edge cases where sizes
-      // render asynchronously after the heading appears.
-      logger.step('Step 6 - Scan initial PLP for a product with available sizes (up to 10)');
-      const MAX_PRODUCTS_PER_NAV = 10;
-      let availableSizes: string[] = [];
-
-      for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
-        if (i > 0) {
-          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
-          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
-          await ecommercePDPPage.goBack();
-          await ecommercePLPPage.waitForPlpUrl();
-          await ecommercePLPPage.waitForProductGrid();
-        }
-        await ecommercePLPPage.clickProductCard(i);
-        await ecommercePDPPage.waitForPdpLoad();
-        await ecommercePDPPage.ensureNoOverlay();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0) break;
-      }
-
-      // If scan returned empty, give the current PDP a full wait — covers both timing lag
-      // (sizes render after heading) and sold-out products on last attempted product.
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
       if (availableSizes.length === 0) {
-        await ecommercePDPPage.waitForSizeButtonsToRender();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-      }
-
-      if (availableSizes.length === 0) {
-        test.skip(
-          true,
-          `${site.name}: no product with enabled sizes found in first ${MAX_PRODUCTS_PER_NAV} ${navLabel} PLP products`,
-        );
+        test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
         return;
       }
 
@@ -350,14 +229,8 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Step 15 - Poll for mini cart count to increment');
       await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
 
-      logger.step('Step 16 - Check if mini cart overlay auto-opened after ATC');
-      const autoOpened = await ecommerceCartOverlayPage.isOverlayVisible();
-
-      logger.step('Step 17 - If overlay not auto-opened, click cart icon to open it');
-      if (!autoOpened) {
-        await ecommerceCartOverlayPage.clickCartIcon();
-        await ecommerceCartOverlayPage.waitForOverlayVisible();
-      }
+      logger.step('Step 16 - Open mini cart overlay (auto or manual)');
+      await ensureCartOverlayOpen(ecommerceCartOverlayPage);
 
       // Soft precondition: overlay must be open before content checks. This mirrors the CART-003
       // pattern — Vans AU's Bloomreach popup can intercept clickCartIcon() and prevent the overlay
@@ -402,8 +275,7 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CART-005-${String(index + 1).padStart(3, '0')}`;
-    const preferMens =
-      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Removing item from mini cart decrements count`, async ({
@@ -423,42 +295,10 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      // Scan up to 5 products on the initial PLP for one with available (non-sold-out) sizes.
-      // Quick check per product (no extended wait in loop); sold-out and non-footwear products
-      // are both handled by the immediate getAvailableSizes() returning []. The final
-      // waitForSizeButtonsToRender() on the last product covers timing edge cases where sizes
-      // render asynchronously after the heading appears.
-      logger.step('Step 6 - Scan initial PLP for a product with available sizes (up to 10)');
-      const MAX_PRODUCTS_PER_NAV = 10;
-      let availableSizes: string[] = [];
-
-      for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
-        if (i > 0) {
-          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
-          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
-          await ecommercePDPPage.goBack();
-          await ecommercePLPPage.waitForPlpUrl();
-          await ecommercePLPPage.waitForProductGrid();
-        }
-        await ecommercePLPPage.clickProductCard(i);
-        await ecommercePDPPage.waitForPdpLoad();
-        await ecommercePDPPage.ensureNoOverlay();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0) break;
-      }
-
-      // If scan returned empty, give the current PDP a full wait — covers both timing lag
-      // (sizes render after heading) and sold-out products on last attempted product.
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
       if (availableSizes.length === 0) {
-        await ecommercePDPPage.waitForSizeButtonsToRender();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-      }
-
-      if (availableSizes.length === 0) {
-        test.skip(
-          true,
-          `${site.name}: no product with enabled sizes found in first ${MAX_PRODUCTS_PER_NAV} ${navLabel} PLP products`,
-        );
+        test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
         return;
       }
 
@@ -498,14 +338,8 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
         `${site.name}: Cart count must increment by 1 after ATC before remove can be tested (was ${initialCartCount}, expected ${initialCartCount + 1}, got ${postAddCount})`,
       ).toBe(initialCartCount + 1);
 
-      logger.step('Step 13 - Check if mini cart overlay auto-opened after ATC');
-      const autoOpened = await ecommerceCartOverlayPage.isOverlayVisible();
-
-      logger.step('Step 13b - If overlay not auto-opened, click cart icon to open it');
-      if (!autoOpened) {
-        await ecommerceCartOverlayPage.clickCartIcon();
-        await ecommerceCartOverlayPage.waitForOverlayVisible();
-      }
+      logger.step('Step 13 - Open mini cart overlay (auto or manual)');
+      await ensureCartOverlayOpen(ecommerceCartOverlayPage);
 
       // Soft precondition: overlay must be open before remove. Vans AU's Bloomreach popup can
       // intercept clickCartIcon() and prevent the overlay from opening (known platform issue).
@@ -540,8 +374,7 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CART-008-${String(index + 1).padStart(3, '0')}`;
-    const preferMens =
-      site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Cart total updates correctly`, async ({
@@ -561,42 +394,10 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      // Scan up to 10 products on the initial PLP for one with available (non-sold-out) sizes.
-      // Quick check per product (no extended wait in loop); sold-out and non-footwear products
-      // are both handled by the immediate getAvailableSizes() returning []. The final
-      // waitForSizeButtonsToRender() on the last product covers timing edge cases where sizes
-      // render asynchronously after the heading appears.
-      logger.step('Step 6 - Scan initial PLP for a product with available sizes (up to 10)');
-      const MAX_PRODUCTS_PER_NAV = 10;
-      let availableSizes: string[] = [];
-
-      for (let i = 0; i < MAX_PRODUCTS_PER_NAV; i++) {
-        if (i > 0) {
-          // WHY: this is a return-to-PLP after goBack(), not an initial nav from homepage.
-          // navigateToPlp() would re-navigate from the homepage and break the product scan loop.
-          await ecommercePDPPage.goBack();
-          await ecommercePLPPage.waitForPlpUrl();
-          await ecommercePLPPage.waitForProductGrid();
-        }
-        await ecommercePLPPage.clickProductCard(i);
-        await ecommercePDPPage.waitForPdpLoad();
-        await ecommercePDPPage.ensureNoOverlay();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0) break;
-      }
-
-      // If scan returned empty, give the current PDP a full wait — covers both timing lag
-      // (sizes render after heading) and sold-out products on last attempted product.
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
       if (availableSizes.length === 0) {
-        await ecommercePDPPage.waitForSizeButtonsToRender();
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-      }
-
-      if (availableSizes.length === 0) {
-        test.skip(
-          true,
-          `${site.name}: no product with enabled sizes found in first ${MAX_PRODUCTS_PER_NAV} ${navLabel} PLP products`,
-        );
+        test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
         return;
       }
 
@@ -638,14 +439,8 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       logger.step('Step 10 - Poll for mini cart count to increment after ATC');
       await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
 
-      logger.step('Step 11 - Check if mini cart overlay auto-opened after ATC');
-      const autoOpened = await ecommerceCartOverlayPage.isOverlayVisible();
-
-      logger.step('Step 11b - If overlay not auto-opened, click cart icon to open it');
-      if (!autoOpened) {
-        await ecommerceCartOverlayPage.clickCartIcon();
-        await ecommerceCartOverlayPage.waitForOverlayVisible();
-      }
+      logger.step('Step 11 - Open mini cart overlay (auto or manual)');
+      await ensureCartOverlayOpen(ecommerceCartOverlayPage);
 
       // Soft precondition: overlay must be open before total checks. Vans AU's Bloomreach popup
       // can intercept clickCartIcon() and prevent the overlay from opening (known platform issue).

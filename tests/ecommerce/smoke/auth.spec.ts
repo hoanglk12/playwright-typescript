@@ -3,57 +3,10 @@ import { storefronts } from '@data/ecommerce/storefronts';
 import {
   invalidCredentials,
   nonExistentCredentials,
-  createFreshAccountCredentials,
 } from '@data/ecommerce/test-accounts';
+import { createFreshAccountViaGraphQL } from './smoke-helpers';
 import { createTestLogger } from '@utils/test-logger';
 import { TIMEOUTS } from '../../../src/constants/timeouts';
-
-const CREATE_CUSTOMER_MUTATION = `
-  mutation CreateAccount(
-    $email: String!,
-    $firstname: String!,
-    $lastname: String!,
-    $password: String!,
-    $phone_number: String!,
-    $is_subscribed: Boolean!,
-    $loyalty_program_status: Boolean,
-    $order_number: String,
-    $gender: Int,
-    $date_of_birth: String
-  ) {
-    createCustomer(input: {
-      email: $email,
-      firstname: $firstname,
-      lastname: $lastname,
-      password: $password,
-      phone_number: $phone_number,
-      is_subscribed: $is_subscribed,
-      loyalty_program_status: $loyalty_program_status,
-      order_number: $order_number,
-      gender: $gender,
-      date_of_birth: $date_of_birth
-    }) {
-      customer {
-        id
-        firstname
-        lastname
-        email
-        __typename
-      }
-    }
-  }
-`;
-
-const BRAND_CODES: Record<string, string> = {
-  'Platypus AU': 'pla-au',
-  'Platypus NZ': 'pla-nz',
-  'Skechers AU': 'skx-au',
-  'Skechers NZ': 'skx-nz',
-  'Vans AU': 'van-au',
-  'Vans NZ': 'van-nz',
-  'Dr. Martens AU': 'drm-au',
-  'Dr. Martens NZ': 'drm-nz',
-};
 
 test.describe('Ecommerce Auth Smoke @ecommerce @smoke @auth', () => {
   // SPA staging sites need extra time to hydrate, especially in Firefox
@@ -106,35 +59,10 @@ test.describe('Ecommerce Auth - Login @ecommerce @smoke @auth', () => {
     }) => {
       const logger = createTestLogger(`${tcId} - ${site.name} Successful Login`);
 
-      logger.step('Step 1 - Generate fresh account credentials for this storefront');
-      const brandCode = BRAND_CODES[site.name] ?? site.name.toLowerCase().replace(/\s+/g, '-');
-      const creds = createFreshAccountCredentials(brandCode);
-
-      logger.step('Step 2 - Create customer account via GraphQL API');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (site.storeHeader) headers['Store'] = site.storeHeader;
-      const createResponse = await request.post(site.graphqlUrl, {
-        headers,
-        data: {
-          query: CREATE_CUSTOMER_MUTATION,
-          variables: {
-            email: creds.email,
-            firstname: creds.firstname,
-            lastname: creds.lastname,
-            password: creds.password,
-            phone_number: creds.phone_number,
-            is_subscribed: false,
-            loyalty_program_status: false,
-            order_number: null,
-            gender: null,
-            date_of_birth: null,
-          },
-        },
-      });
-      const createBody = await createResponse.json() as { errors?: Array<{ message?: string }> };
-      if (!createResponse.ok() || (createBody.errors?.length ?? 0) > 0) {
-        const reason = createBody.errors?.[0]?.message ?? `HTTP ${createResponse.status()}`;
-        test.skip(true, `Account creation failed for ${site.name}: ${reason}`);
+      logger.step('Steps 1-2 - Create fresh account via GraphQL API');
+      const { creds, created, skipReason } = await createFreshAccountViaGraphQL(request, site);
+      if (!created) {
+        test.skip(true, `Account creation failed for ${site.name}: ${skipReason}`);
         return;
       }
 
@@ -330,35 +258,10 @@ test.describe('Ecommerce Auth - Logout @ecommerce @smoke @auth', () => {
     }) => {
       const logger = createTestLogger(`${tcId} - ${site.name} Logout`);
 
-      logger.step('Step 1 - Generate fresh account credentials for this storefront');
-      const brandCode = BRAND_CODES[site.name] ?? site.name.toLowerCase().replace(/\s+/g, '-');
-      const creds = createFreshAccountCredentials(brandCode);
-
-      logger.step('Step 2 - Create customer account via GraphQL API');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (site.storeHeader) headers['Store'] = site.storeHeader;
-      const createResponse = await request.post(site.graphqlUrl, {
-        headers,
-        data: {
-          query: CREATE_CUSTOMER_MUTATION,
-          variables: {
-            email: creds.email,
-            firstname: creds.firstname,
-            lastname: creds.lastname,
-            password: creds.password,
-            phone_number: creds.phone_number,
-            is_subscribed: false,
-            loyalty_program_status: false,
-            order_number: null,
-            gender: null,
-            date_of_birth: null,
-          },
-        },
-      });
-      const createBody = await createResponse.json() as { errors?: Array<{ message?: string }> };
-      if (!createResponse.ok() || (createBody.errors?.length ?? 0) > 0) {
-        const reason = createBody.errors?.[0]?.message ?? `HTTP ${createResponse.status()}`;
-        test.skip(true, `Account creation failed for ${site.name}: ${reason}`);
+      logger.step('Steps 1-2 - Create fresh account via GraphQL API');
+      const { creds, created, skipReason } = await createFreshAccountViaGraphQL(request, site);
+      if (!created) {
+        test.skip(true, `Account creation failed for ${site.name}: ${skipReason}`);
         return;
       }
 

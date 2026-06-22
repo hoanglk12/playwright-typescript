@@ -1,7 +1,12 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
-import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
+import {
+  getPreferredNavLabel,
+  navigateToPlp,
+  shouldPreferMens,
+  selectFirstPurchasableSize,
+} from './smoke-helpers';
 
 test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
   test.slow();
@@ -288,28 +293,17 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       }
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // Try up to 3 sizes and stop at the first that actually enables Add to Cart.
+      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       logger.step('Step 11 - Select a size that enables Add to Cart (try up to 3)');
-      let targetSize: string | null = null;
-      let atcEnabled = false;
-      for (const size of availableSizes.slice(0, 3)) {
-        await ecommercePDPPage.selectSize(size);
-        atcEnabled = await ecommercePDPPage.isAddToCartEnabled();
-        if (atcEnabled) {
-          targetSize = size;
-          break;
-        }
-      }
+      const targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
       if (targetSize === null) {
-        test.skip(
-          true,
-          `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
-        );
+        test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
         return;
       }
       logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
 
       logger.step('Step 12 - Assert Add to Cart button is enabled after size selection');
+      const atcEnabled = await ecommercePDPPage.isAddToCartEnabled();
       softAssert.toBe(
         atcEnabled,
         true,
@@ -320,9 +314,7 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-PDP-006-${String(index + 1).padStart(3, '0')}`;
-    // Skechers and Vans NZ: MENS PLP leads to footwear with consistent size selectors.
-    // Vans NZ WOMENS lands on a sub-category PLP (Classics) rather than a product PDP.
-    const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Add to Cart without size shows validation`, async ({
@@ -402,9 +394,7 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
 
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-PDP-007-${String(index + 1).padStart(3, '0')}`;
-    // Skechers and Vans NZ: MENS PLP leads to footwear with consistent size selectors.
-    // Vans NZ WOMENS lands on a sub-category PLP (Classics) rather than a product PDP.
-    const preferMens = site.name.toLowerCase().includes('skechers') || site.name.toLowerCase().includes('vans nz');
+    const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Add to Cart adds item and updates mini cart count`, async ({
@@ -464,23 +454,11 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // Try up to 3 sizes and stop at the first that actually enables Add to Cart.
+      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       logger.step('Step 12 - Select a size that enables Add to Cart (try up to 3)');
-      let targetSize: string | null = null;
-      let atcEnabled = false;
-      for (const size of availableSizes.slice(0, 3)) {
-        await ecommercePDPPage.selectSize(size);
-        atcEnabled = await ecommercePDPPage.isAddToCartEnabled();
-        if (atcEnabled) {
-          targetSize = size;
-          break;
-        }
-      }
+      const targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
       if (targetSize === null) {
-        test.skip(
-          true,
-          `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
-        );
+        test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
         return;
       }
       logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
