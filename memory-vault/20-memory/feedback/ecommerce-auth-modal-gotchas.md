@@ -3,7 +3,7 @@ name: ecommerce-auth-modal-gotchas
 description: EcommerceAccountModalPage patterns — addLocatorHandler for Bloomreach popup, CMS block discriminator for click verification, Firefox CI exclusion, locator strategy for account toggle button, modal title race condition fix
 type: feedback
 tags: [memory, feedback]
-last_verified: 2026-06-20
+last_verified: 2026-06-22
 ---
 
 ## 1. Page object location and fixture
@@ -146,3 +146,19 @@ Detection in `isModalVisible()` / `waitForModalVisible()`: three-part gate:
 3. Text content: matches `/log.?in|sign.?in|welcome back|email address|password/i`
 
 Deliberately excludes `role="dialog"` to avoid false-positives from the Vans AU Bloomreach popup.
+
+---
+
+## 9. E2E-AUTH-010 (Logout) uses fresh-account creation — NOT static testAccounts
+
+**Fact (confirmed 2026-06-22):** Static `testAccounts` credentials for Vans AU/NZ and Dr. Martens AU/NZ do not authenticate on staging. Platypus AU/NZ and Skechers AU/NZ static accounts work; Vans/Dr. Martens do not.
+
+**Fix applied:** `tests/ecommerce/smoke/auth.spec.ts` — E2E-AUTH-010 describe block now creates fresh accounts via GraphQL (identical pattern to E2E-AUTH-002) instead of looking up `testAccounts[site.name]`. The `testAccounts` import was removed from `auth.spec.ts` entirely.
+
+**Diagnostic shortcut for future AUTH failures:** Before rewriting any AUTH test to use fresh accounts, check whether E2E-AUTH-002 passed for the same storefront in the same CI run:
+- AUTH-002 **passed** → fresh-account creation works → root cause is static credential data → rewrite AUTH test to use fresh accounts
+- AUTH-002 **skipped** (creation-failed guard) → GraphQL account creation itself is broken → root cause is ENV_CONFIG → report infra issue, do not rewrite test
+
+**Why the skip guard exists in E2E-AUTH-010:** Account creation is test setup, not the SUT (logout behaviour). A `test.skip` on creation failure correctly labels an environment problem rather than a product defect.
+
+See also: [[ecommerce-storefronts]] for brand codes (BRAND_CODES map in auth.spec.ts), [[gra-api-testing]] for GraphQL staging quirks.

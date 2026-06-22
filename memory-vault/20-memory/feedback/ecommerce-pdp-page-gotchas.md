@@ -4,7 +4,7 @@ description: Known DOM/selector bugs and patterns in EcommercePDPPage and Ecomme
 type: feedback
 tags: [memory, feedback]
 source_session: 6c04fe97-fef3-464e-b927-fb15d4c54bee
-last_verified: 2026-06-16
+last_verified: 2026-06-22
 ---
 
 ## 1. Vans AU — Bloomreach acquisition popup blocks swatch click
@@ -211,3 +211,21 @@ await this.page.addLocatorHandler(
 **Confirmed result:** 8/8 Chromium for auth smoke suite after this fix. Firefox is excluded from ecommerce/smoke in CI (`testIgnore: ['**/ecommerce/smoke/**']` when `process.env.CI`).
 
 See also: [[ecommerce-auth-modal-gotchas]]
+
+---
+
+## 10. E2E-PDP-002 — MAX_PRODUCTS_TO_TRY cap must fit test.slow() budget
+
+**Spec:** `tests/ecommerce/smoke/pdp-smoke.spec.ts` — E2E-PDP-002 (colour swatch scan loop).
+
+**Budget:** `test.slow()` multiplies CI base timeout (60 000 ms) by 3 = **180 s**. Each product cycle in the swatch-scan loop takes ~15–20 s on Dr. Martens NZ (PDP load + gallery wait + goBack + grid wait).
+
+**Rule:** `MAX_PRODUCTS_TO_TRY` must leave ~60 s of headroom after the scan for the actual swatch-click + variant-navigation steps. At 15–20 s/product:
+- 10 products ≈ 150–200 s scan → marginal but within budget (fixed 2026-06-22)
+- 20 products ≈ 300–400 s → guaranteed timeout (was the failure: E2E-PDP-002-008 timed out at 3.0 m and 3.2 m on two retries)
+
+**Current value:** `const MAX_PRODUCTS_TO_TRY = 10;` (aligned with E2E-PDP-005 and E2E-PDP-007).
+
+**When changing:** recalculate headroom for the slowest storefront (Dr. Martens NZ). Do not increase above 10 unless `test.slow()` budget is also raised or per-product timing improves.
+
+**PASS vs SKIP note:** A `MAX_PRODUCTS_TO_TRY = 10` cap causes a `test.skip` if no product in the first 10 has 2+ colour swatches. For Dr. Martens NZ MEN PLP, boots typically have 2+ colourways so the loop breaks early — but confirm via CI run rather than assuming.

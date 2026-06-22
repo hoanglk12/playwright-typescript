@@ -1,7 +1,6 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import {
-  testAccounts,
   invalidCredentials,
   nonExistentCredentials,
   createFreshAccountCredentials,
@@ -327,66 +326,88 @@ test.describe('Ecommerce Auth - Logout @ecommerce @smoke @auth', () => {
     test(`${tcId} - ${site.name} Logout clears session and redirects`, async ({
       ecommerceAccountModalPage,
       softAssert,
+      request,
     }) => {
       const logger = createTestLogger(`${tcId} - ${site.name} Logout`);
 
-      logger.step('Step 1 - Look up test credentials for this site');
-      const creds = testAccounts[site.name];
-      if (!creds) {
-        test.skip(true, `No test account configured for ${site.name}`);
-        return;
-      }
-      if (!creds.password) {
-        test.skip(true, `GRA_TEST_PASSWORD env var is not set — skipping logout test for ${site.name}`);
+      logger.step('Step 1 - Generate fresh account credentials for this storefront');
+      const brandCode = BRAND_CODES[site.name] ?? site.name.toLowerCase().replace(/\s+/g, '-');
+      const creds = createFreshAccountCredentials(brandCode);
+
+      logger.step('Step 2 - Create customer account via GraphQL API');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (site.storeHeader) headers['Store'] = site.storeHeader;
+      const createResponse = await request.post(site.graphqlUrl, {
+        headers,
+        data: {
+          query: CREATE_CUSTOMER_MUTATION,
+          variables: {
+            email: creds.email,
+            firstname: creds.firstname,
+            lastname: creds.lastname,
+            password: creds.password,
+            phone_number: creds.phone_number,
+            is_subscribed: false,
+            loyalty_program_status: false,
+            order_number: null,
+            gender: null,
+            date_of_birth: null,
+          },
+        },
+      });
+      const createBody = await createResponse.json() as { errors?: Array<{ message?: string }> };
+      if (!createResponse.ok() || (createBody.errors?.length ?? 0) > 0) {
+        const reason = createBody.errors?.[0]?.message ?? `HTTP ${createResponse.status()}`;
+        test.skip(true, `Account creation failed for ${site.name}: ${reason}`);
         return;
       }
 
-      logger.step('Step 2 - Navigate to storefront homepage');
+      logger.step('Step 3 - Navigate to storefront homepage');
       await ecommerceAccountModalPage.navigate(site.url);
 
-      logger.step('Step 3 - Click account icon to open login modal');
+      logger.step('Step 4 - Click account icon to open login modal');
       await ecommerceAccountModalPage.openModal();
 
-      logger.step('Step 4 - Wait for modal to appear');
+      logger.step('Step 5 - Wait for modal to appear');
       await ecommerceAccountModalPage.waitForModalVisible();
 
-      logger.step('Step 5 - Assert login modal is visible before submitting credentials');
+      logger.step('Step 6 - Assert login modal is visible before submitting credentials');
       const modalVisibleBeforeLogin = await ecommerceAccountModalPage.isModalVisible();
       logger.verify('Login modal visible before login', true, modalVisibleBeforeLogin);
       expect(modalVisibleBeforeLogin).toBe(true);
 
-      logger.step('Step 6 - Fill credentials and click Login');
+      logger.step('Step 7 - Fill fresh credentials and click Login');
       await ecommerceAccountModalPage.login(creds.email, creds.password);
 
-      logger.step('Step 7 - Wait for login to complete');
+      logger.step('Step 8 - Wait for login to complete');
       await ecommerceAccountModalPage.waitForLoginComplete();
 
-      logger.step('Step 8 - Assert login success signal (precondition for logout test)');
+      logger.step('Step 9 - Assert login success signal (precondition for logout test)');
       const isLoggedIn = await ecommerceAccountModalPage.isLoggedIn();
       logger.verify('User is logged in before logout attempt', true, isLoggedIn);
       expect(isLoggedIn).toBe(true);
 
-      logger.step('Step 9 - Open account panel while authenticated');
+      logger.step('Step 10 - Open account panel while authenticated');
       await ecommerceAccountModalPage.openModalWhenLoggedIn();
 
-      logger.step('Step 10 - Click logout button');
+      logger.step('Step 11 - Click logout button');
       await ecommerceAccountModalPage.logout();
 
-      logger.step('Step 11 - Wait for login form — panel transitions in place on most storefronts');
+      logger.step('Step 12 - Wait for login form — panel transitions in place on most storefronts');
       await ecommerceAccountModalPage.waitForLoginFormVisible();
 
-      logger.step('Step 12 - Re-open account panel only if it closed post-logout');
+      logger.step('Step 13 - Re-open account panel only if it closed post-logout');
       if (!(await ecommerceAccountModalPage.isLoginFormVisible())) {
         await ecommerceAccountModalPage.openModalPostLogout();
         await ecommerceAccountModalPage.waitForLoginFormVisible();
       }
 
-      logger.step('Step 13 - Assert login form is visible (positive logout confirmation)');
+      logger.step('Step 14 - Assert login form is visible (positive logout confirmation)');
       const loginFormVisible = await ecommerceAccountModalPage.isLoginFormVisible();
       logger.verify('Login form visible after logout', true, loginFormVisible);
       expect(loginFormVisible).toBe(true);
 
-      logger.step('Step 14 - Soft-assert individual login form inputs are visible');
+      logger.step('Step 15 - Soft-assert individual login form inputs are visible');
       await softAssert.toBeVisible(
         ecommerceAccountModalPage.getEmailInput(),
         `Email input visible after logout on ${site.name}`,

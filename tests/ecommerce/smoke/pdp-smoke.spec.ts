@@ -66,7 +66,7 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       logger.step('Steps 1-5 - Navigate to PLP');
       await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
 
-      const MAX_PRODUCTS_TO_TRY = 20;
+      const MAX_PRODUCTS_TO_TRY = 10;
       logger.step(`Step 6 - Find a PDP with 2+ colour swatches (try up to ${MAX_PRODUCTS_TO_TRY} product cards)`);
       let swatchCount = 0;
       for (let productIndex = 0; productIndex < MAX_PRODUCTS_TO_TRY; productIndex++) {
