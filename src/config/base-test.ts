@@ -16,6 +16,7 @@ import { EcommerceCartOverlayPage } from '@pages/ecommerce/cart-overlay-page';
 import { EcommerceAccountModalPage } from '@pages/ecommerce/account-modal';
 import { PercyHelper } from '../pages/helpers';
 import { ConsoleHelper } from '@pages/helpers/console-helper';
+import AxeBuilder from '@axe-core/playwright';
 
 type CustomFixtures = {
   homePage: HomePage;
@@ -34,6 +35,7 @@ type CustomFixtures = {
   percyHelper: PercyHelper;
   softAssert: SoftAssertHelper;
   consoleHelper: ConsoleHelper;
+  makeAxeBuilder: () => AxeBuilder;
 };
 
 export const test = base.extend<CustomFixtures>({
@@ -63,6 +65,10 @@ export const test = base.extend<CustomFixtures>({
 
   percyHelper: async ({ page }, use) => {
     await use(new PercyHelper(page));
+  },
+
+  makeAxeBuilder: async ({ page }, use) => {
+    await use(() => new AxeBuilder({ page }));
   },
 
   ecommerceHomePage: async ({ page }, use) => {

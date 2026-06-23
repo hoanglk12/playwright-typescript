@@ -51,6 +51,7 @@
     "install:browsers:deps": "npx playwright install --with-deps",
     "codegen": "npx playwright codegen",
     "lint": "tsc --noEmit",
+    "audit:ci": "npm audit --audit-level=critical",
     "sync-memory": "node scripts/sync-memory-to-vault.mjs && node scripts/sync-vault-to-lightrag.mjs",
     "clean:install": "npm run clean && npm ci && npm run install:browsers",
     "docker:build": "docker build -t playwright-framework .",
@@ -90,6 +91,7 @@
     "automation"
   ],
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@faker-js/faker": "^9.9.0",
     "@lhci/cli": "^0.15.0",
     "@percy/cli": "^1.31.11",

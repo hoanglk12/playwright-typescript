@@ -141,7 +141,7 @@ export default defineConfig({
       // Always skip API tests (global testIgnore is replaced by project-level).
       // In CI, also skip ecommerce/smoke — those run on Chromium only.
       testIgnore: process.env.CI
-        ? ["**/api/**", "**/ecommerce/smoke/**"]
+        ? ["**/api/**", "**/ecommerce/smoke/**", "**/ecommerce/accessibility/**"]
         : ["**/api/**"],
       use: {
         ...devices["Desktop Firefox"],

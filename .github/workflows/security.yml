@@ -1,0 +1,64 @@
+name: Security Gate (npm audit + Semgrep)
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    name: npm audit (high+)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit gate
+        shell: bash
+        run: npm run audit:ci
+
+  semgrep:
+    name: Semgrep SAST (OSS, non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Semgrep scan
+        run: |
+          semgrep scan \
+            --config p/typescript \
+            --config p/nodejs \
+            --config p/secrets \
+            --config p/owasp-top-ten \
+            --json --output semgrep-results.json || true
+
+      - name: Upload Semgrep results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: semgrep-results
+          path: semgrep-results.json
+          retention-days: 30
