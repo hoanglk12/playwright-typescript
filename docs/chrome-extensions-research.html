@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technical Research Report — Chrome Extension Support in Playwright</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2d3148;
+      --accent: #6c8fff;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --orange: #fb923c;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --code-bg: #0d1117;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    /* Layout */
+    .layout { display: flex; min-height: 100vh; }
+    nav {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    nav .nav-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 20px 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    nav a {
+      display: block;
+      padding: 7px 20px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    nav a:hover, nav a.active {
+      color: var(--text);
+      background: var(--surface2);
+      border-left-color: var(--accent);
+    }
+    main {
+      flex: 1;
+      max-width: 900px;
+      padding: 48px 40px;
+      overflow-x: hidden;
+    }
+    /* Header */
+    .report-header {
+      background: linear-gradient(135deg, #1a1d27 0%, #22263a 100%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 40px;
+      margin-bottom: 40px;
+    }
+    .report-header .tag {
+      display: inline-block;
+      background: #6c8fff22;
+      color: var(--accent);
+      border: 1px solid #6c8fff44;
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .report-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .report-header .meta {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .report-header .meta span { display: flex; align-items: center; gap: 6px; }
+    /* Sections */
+    section { margin-bottom: 48px; scroll-margin-top: 24px; }
+    h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 .num {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    h3 { font-size: 15px; font-weight: 700; color: var(--accent2); margin: 20px 0 10px; }
+    p { color: var(--text); margin-bottom: 12px; }
+    /* Callout */
+    .callout {
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid;
+      font-size: 14px;
+    }
+    .callout.info { background: #6c8fff11; border-color: var(--accent); }
+    .callout.warning { background: #fbbf2411; border-color: var(--yellow); }
+    .callout.success { background: #34d39911; border-color: var(--green); }
+    .callout.danger { background: #f8717111; border-color: var(--red); }
+    .callout strong { display: block; margin-bottom: 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+    .callout.info strong { color: var(--accent); }
+    .callout.warning strong { color: var(--yellow); }
+    .callout.success strong { color: var(--green); }
+    .callout.danger strong { color: var(--red); }
+    /* Tables */
+    .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead tr { background: var(--surface2); }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+    /* Pills */
+    .pill {
+      display: inline-block;
+      border-radius: 12px;
+      padding: 2px 9px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .pill.high { background: #f8717122; color: var(--red); }
+    .pill.medium { background: #fbbf2422; color: var(--yellow); }
+    .pill.low { background: #34d39922; color: var(--green); }
+    .pill.chromium { background: #6c8fff22; color: var(--accent); }
+    .pill.recommended { background: #34d39922; color: var(--green); border: 1px solid #34d39955; }
+    .pill.not-rec { background: #f8717122; color: var(--red); border: 1px solid #f8717155; }
+    /* Code */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    }
+    code {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 12.5px;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      color: #c9d1d9;
+    }
+    pre code { background: none; border: none; padding: 0; font-size: inherit; }
+    /* Steps */
+    .steps { list-style: none; counter-reset: step; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step);
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .steps li .step-body { flex: 1; }
+    .steps li .step-verify {
+      font-size: 13px;
+      color: var(--green);
+      margin-top: 4px;
+    }
+    .steps li .step-verify::before { content: '✓ verify: '; font-weight: 600; }
+    /* Open questions */
+    .questions { list-style: none; }
+    .questions li {
+      display: flex;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      background: var(--surface);
+      font-size: 14px;
+      align-items: flex-start;
+    }
+    .questions li::before {
+      content: '?';
+      background: #fbbf2422;
+      color: var(--yellow);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+    /* Constraints grid */
+    .constraints {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .constraint-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .constraint-card .icon { font-size: 22px; margin-bottom: 8px; }
+    .constraint-card .label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 4px; }
+    .constraint-card .value { font-size: 14px; color: var(--text); }
+    .constraint-card.ok { border-color: #34d39955; }
+    .constraint-card.warn { border-color: #fbbf2455; }
+    .constraint-card.bad { border-color: #f8717155; }
+    /* Sources */
+    .sources { list-style: none; }
+    .sources li {
+      display: flex;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13.5px;
+      align-items: flex-start;
+    }
+    .sources li:last-child { border-bottom: none; }
+    .sources li .src-type {
+      flex-shrink: 0;
+      background: var(--surface2);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .sources li a { color: var(--accent); text-decoration: none; }
+    .sources li a:hover { text-decoration: underline; }
+    /* Footer */
+    footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12.5px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar nav -->
+  <nav>
+    <div class="nav-title">Contents</div>
+    <a href="#summary">Executive Summary</a>
+    <a href="#constraints">Key Constraints</a>
+    <a href="#options">Options Compared</a>
+    <a href="#recommendation">Recommendation</a>
+    <a href="#risks">Risk Assessment</a>
+    <a href="#implementation">Implementation Steps</a>
+    <a href="#open-questions">Open Questions</a>
+    <a href="#sources">Sources</a>
+    <a href="#files-reviewed">Files Reviewed</a>
+  </nav>
+
+  <!-- Main content -->
+  <main>
+
+    <!-- Header -->
+    <div class="report-header">
+      <div class="tag">Technical Research Report</div>
+      <h1>Chrome Extension Support in Playwright</h1>
+      <p style="color:var(--muted);font-size:14px;">
+        Feasibility study for integrating <code>chromium.launchPersistentContext</code>-based extension testing into the automation framework.
+      </p>
+      <div class="meta">
+        <span>📅 2026-06-23</span>
+        <span>🔬 Research only — no files modified</span>
+        <span>🎯 Playwright v1.61</span>
+        <span>📁 playwright-typescript</span>
+      </div>
+    </div>
+
+    <!-- 1. Executive Summary -->
+    <section id="summary">
+      <h2><span class="num">1</span> Executive Summary</h2>
+      <p>
+        Chrome Extension support in Playwright is <strong>technically feasible but architecturally invasive</strong>.
+        Playwright loads extensions only via <code>chromium.launchPersistentContext(userDataDir, {...})</code> —
+        a fundamentally different context-creation path than what this framework relies on.
+      </p>
+      <p>
+        The framework's entire fixture system (<code>base-test.ts</code>) is built on Playwright's standard,
+        config-managed <code>page</code>/<code>context</code>/<code>browser</code> fixtures. A persistent context
+        is created <em>manually</em> in test/fixture code, bypassing <code>playwright.config.ts</code> projects,
+        launch options, viewport, trace/video/screenshot wiring, and per-project headless logic.
+      </p>
+      <div class="callout success">
+        <strong>Bottom line</strong>
+        The capability exists and can be added cleanly with <strong>zero risk</strong> to the existing 200+ tests —
+        by using an opt-in, isolated fixture and a dedicated Chromium-only project.
+        However, there is currently no concrete extension or use case driving this work.
+        Recommend treating it as an experimental, opt-in capability and revisiting when a real driver exists.
+      </div>
+    </section>
+
+    <!-- 2. Key Constraints -->
+    <section id="constraints">
+      <h2><span class="num">2</span> Key Constraints</h2>
+      <div class="constraints">
+        <div class="constraint-card bad">
+          <div class="icon">🌐</div>
+          <div class="label">Browser Support</div>
+          <div class="value">Chromium only — no Firefox or WebKit</div>
+        </div>
+        <div class="constraint-card warn">
+          <div class="icon">🔒</div>
+          <div class="label">Context Type</div>
+          <div class="value">Persistent context required — cannot use standard <code>page</code> fixture</div>
+        </div>
+        <div class="constraint-card ok">
+          <div class="icon">🖥️</div>
+          <div class="label">Headless in CI</div>
+          <div class="value">Works via <code>channel: 'chromium'</code> (new headless, v1.49+)</div>
+        </div>
+        <div class="constraint-card warn">
+          <div class="icon">⚡</div>
+          <div class="label">MV3 Service Workers</div>
+          <div class="value">Auto-suspend after ~30s — requires retry/re-acquire logic</div>
+        </div>
+        <div class="constraint-card warn">
+          <div class="icon">🎬</div>
+          <div class="label">Trace / Video</div>
+          <div class="value">Artifacts not auto-applied under persistent context</div>
+        </div>
+        <div class="constraint-card ok">
+          <div class="icon">📦</div>
+          <div class="label">Framework Version</div>
+          <div class="value">Playwright 1.61 — headless extension mode fully available</div>
+        </div>
+      </div>
+
+      <h3>How Extension Loading Works</h3>
+      <pre><code>import { chromium } from '@playwright/test';
+import path from 'path';
+
+const pathToExtension = path.join(__dirname, 'my-extension');
+const context = await chromium.launchPersistentContext('', {
+  channel: 'chromium',       // required for headless extension support
+  headless: true,
+  args: [
+    `--disable-extensions-except=${pathToExtension}`,
+    `--load-extension=${pathToExtension}`,
+  ],
+});
+
+// MV3: acquire service worker and extract extension ID
+const [background] = context.serviceWorkers();
+const extensionId = background.url().split('/')[2];
+
+// Navigate to extension popup
+const page = await context.newPage();
+await page.goto(`chrome-extension://${extensionId}/popup.html`);</code></pre>
+
+      <div class="callout warning">
+        <strong>Important — Headless Validation Needed</strong>
+        Headless extension loading was reported as intermittently flaky in some 1.49.x patches
+        (GitHub issue #34673). Validate on Playwright 1.61 in CI before committing the extensions
+        project to the pipeline.
+      </div>
+    </section>
+
+    <!-- 3. Options Compared -->
+    <section id="options">
+      <h2><span class="num">3</span> Options Compared</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Approach</th>
+              <th>Pros</th>
+              <th>Cons</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>A — Opt-in fixture + dedicated project</strong></td>
+              <td>New <code>extension-test.ts</code>, <code>tests/extensions/</code> dir, chromium-only project, <code>workers: 1</code></td>
+              <td>Zero impact on existing 200+ tests; mirrors <code>ApiTest.ts</code> separation; clean rollback; CI-safe</td>
+              <td>New surface to maintain; trace/video not auto-applied; extension tests don't share standard fixture ergonomics</td>
+              <td><span class="pill recommended">Recommended</span></td>
+            </tr>
+            <tr>
+              <td><strong>B — Global config change</strong></td>
+              <td>Add <code>launchPersistentContext</code> + extension args to all projects</td>
+              <td>Single config touchpoint</td>
+              <td>Breaks Firefox project; converts all tests to persistent context; high regression risk to 200+ tests</td>
+              <td><span class="pill not-rec">Not recommended</span></td>
+            </tr>
+            <tr>
+              <td><strong>C — Override <code>context</code> in <code>base-test.ts</code></strong></td>
+              <td>Reuse existing fixtures; override context creation</td>
+              <td>Reuses existing page-object fixtures</td>
+              <td>Still Chromium-only; persistent context for all UI tests; couples extension concern into shared chain — highest blast radius</td>
+              <td><span class="pill not-rec">Not recommended</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. Recommendation -->
+    <section id="recommendation">
+      <h2><span class="num">4</span> Recommendation</h2>
+      <div class="callout success">
+        <strong>Option A — Opt-in fixture + dedicated Chromium-only project</strong>
+        It is the only approach consistent with the framework's existing separation pattern
+        (<code>ApiTest.ts</code> vs <code>base-test.ts</code>), keeps the chromium+firefox dual-browser model intact,
+        and isolates persistent-context overhead and CI risk. Rollback is trivial because nothing in the
+        existing fixture chain is modified.
+      </div>
+
+      <h3>Architectural Pattern (mirrors ApiTest.ts)</h3>
+      <pre><code>// src/config/extension-test.ts
+import { test as base, chromium } from '@playwright/test';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+
+type ExtensionFixtures = {
+  context: import('@playwright/test').BrowserContext;
+  extensionId: string;
+  serviceWorker: import('@playwright/test').Worker;
+};
+
+export const extensionTest = base.extend&lt;ExtensionFixtures&gt;({
+  context: async ({}, use) => {
+    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-ext-'));
+    const pathToExtension = path.join(__dirname, '../../fixtures/extensions/my-extension');
+    const context = await chromium.launchPersistentContext(userDataDir, {
+      channel: 'chromium',
+      headless: true,
+      args: [
+        `--disable-extensions-except=${pathToExtension}`,
+        `--load-extension=${pathToExtension}`,
+      ],
+    });
+    await use(context);
+    await context.close();
+    fs.rmSync(userDataDir, { recursive: true, force: true });
+  },
+  extensionId: async ({ context }, use) => {
+    let [background] = context.serviceWorkers();
+    if (!background)
+      background = await context.waitForEvent('serviceworker');
+    const extensionId = background.url().split('/')[2];
+    await use(extensionId);
+  },
+  serviceWorker: async ({ context }, use) => {
+    let [sw] = context.serviceWorkers();
+    if (!sw) sw = await context.waitForEvent('serviceworker');
+    await use(sw);
+  },
+});</code></pre>
+
+      <h3>playwright.config.ts addition</h3>
+      <pre><code>// Inside projects array — add this project:
+{
+  name: 'extensions',
+  testDir: './tests/extensions',
+  use: { channel: 'chromium' },
+  workers: 1,
+},
+
+// And in existing chromium + firefox projects, add testIgnore:
+{
+  name: 'chromium',
+  testIgnore: ['**/api/**', '**/extensions/**'],
+  // ...
+},
+{
+  name: 'firefox',
+  testIgnore: ['**/api/**', '**/extensions/**'],
+  // ...
+},</code></pre>
+
+      <h3>Conditions for this recommendation</h3>
+      <ol style="padding-left:20px;margin-bottom:12px;">
+        <li style="margin-bottom:8px;">A concrete extension + use case must exist before building — otherwise this is speculative complexity (explicitly discouraged by framework guidelines).</li>
+        <li style="margin-bottom:8px;">Validate headless extension loading on Playwright 1.61 in CI before committing the project to the pipeline.</li>
+        <li style="margin-bottom:8px;">Run at <code>workers: 1</code> until per-worker <code>userDataDir</code> isolation is proven stable.</li>
+      </ol>
+    </section>
+
+    <!-- 5. Risk Assessment -->
+    <section id="risks">
+      <h2><span class="num">5</span> Risk Assessment</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Risk</th>
+              <th>Impact</th>
+              <th>Likelihood</th>
+              <th>Mitigation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Touching shared fixtures breaks all 14 fixtures and 200+ tests</td>
+              <td><span class="pill high">High</span></td>
+              <td><span class="pill low">Low (if isolated)</span></td>
+              <td>Use a separate <code>extensionTest</code> base; never modify shared fixtures in <code>base-test.ts</code></td>
+            </tr>
+            <tr>
+              <td>Firefox/WebKit incompatibility breaks dual-browser model</td>
+              <td><span class="pill high">High</span></td>
+              <td><span class="pill high">High (if forced into main projects)</span></td>
+              <td>Confine to a dedicated chromium-only project; add <code>testIgnore: ['**/extensions/**']</code> to chromium + firefox projects</td>
+            </tr>
+            <tr>
+              <td>Headless extension load fails in CI (issue #34673)</td>
+              <td><span class="pill medium">Medium</span></td>
+              <td><span class="pill medium">Medium</span></td>
+              <td>Validate on 1.61 locally + CI early; fall back to headed-in-xvfb only if needed</td>
+            </tr>
+            <tr>
+              <td>Parallel workers corrupt shared <code>userDataDir</code></td>
+              <td><span class="pill medium">Medium</span></td>
+              <td><span class="pill medium">Medium</span></td>
+              <td>Per-worker isolated temp dir via <code>fs.mkdtempSync</code>; run extension project at <code>workers: 1</code> initially</td>
+            </tr>
+            <tr>
+              <td>MV3 service-worker auto-suspend causes flaky <code>evaluate()</code></td>
+              <td><span class="pill medium">Medium</span></td>
+              <td><span class="pill medium">Medium</span></td>
+              <td>Re-acquire worker via <code>context.waitForEvent('serviceworker')</code>; wrap with retry helper</td>
+            </tr>
+            <tr>
+              <td>Trace/video artifacts lost under persistent context (issue #33792)</td>
+              <td><span class="pill low">Low</span></td>
+              <td><span class="pill medium">Medium</span></td>
+              <td>Accept reduced artifacts for extension tests; document; capture screenshots manually in fixture teardown</td>
+            </tr>
+            <tr>
+              <td>Bundled extension is executable supply-chain surface in CI</td>
+              <td><span class="pill medium">Medium</span></td>
+              <td><span class="pill low">Low</span></td>
+              <td>Pin/checksum extension source; review manifest permissions before committing; never load extensions requiring secrets</td>
+            </tr>
+            <tr>
+              <td>Persistent profile leftover dirs bloat disk</td>
+              <td><span class="pill low">Low</span></td>
+              <td><span class="pill medium">Medium</span></td>
+              <td>Clean temp <code>userDataDir</code> in fixture teardown; extend <code>clean</code> npm script</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info">
+        <strong>Rollback Plan</strong>
+        Because the recommended approach is entirely additive (new fixture file, new project entry,
+        new test directory, new data/fixtures directory), rollback is simply deleting those additions
+        and removing the <code>extensions</code> project + <code>testIgnore</code> entries from
+        <code>playwright.config.ts</code>. No existing file logic is altered, so rollback cannot
+        regress current suites.
+      </div>
+    </section>
+
+    <!-- 6. Implementation Steps -->
+    <section id="implementation">
+      <h2><span class="num">6</span> Implementation Steps</h2>
+      <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">
+        These steps are for the <code>technical-implementation-agent</code> after user approval.
+        Do not begin implementation until a concrete use case is confirmed.
+      </p>
+      <ol class="steps">
+        <li>
+          <div class="step-body">
+            <strong>Confirm the concrete extension and use case.</strong> Acquire the unpacked extension directory
+            (<code>manifest.json</code> + assets). Review manifest permissions before any CI commit.
+            <div class="step-verify"><code>manifest.json</code> present and reviewed; permissions documented</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Spike — standalone validation script.</strong> Write a throwaway script (not a spec) using
+            <code>chromium.launchPersistentContext</code> with <code>channel: 'chromium'</code>, <code>headless: true</code>,
+            and the extension. Validate: service worker acquired, extension ID extracted, popup page loads — headless, on CI runner.
+            <div class="step-verify">Service worker URL logged; popup page title is correct; exits 0 headless in CI</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Add <code>src/config/extension-test.ts</code></strong> exporting <code>extensionTest</code> with
+            <code>context</code>, <code>extensionId</code>, and <code>serviceWorker</code> fixtures. Include clean teardown
+            (close context, remove temp <code>userDataDir</code>). Mirror the structure of <code>ApiTest.ts</code>.
+            <div class="step-verify">A trivial test importing <code>extensionTest</code> passes locally headed + headless</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Add the <code>extensions</code> project to <code>playwright.config.ts</code></strong>
+            (<code>channel: 'chromium'</code>, <code>testDir: './tests/extensions'</code>, <code>workers: 1</code>).
+            Add <code>testIgnore: ['**/extensions/**']</code> to the chromium and firefox projects.
+            <div class="step-verify"><code>npm test</code> excludes extensions dir; <code>npx playwright test --project=extensions</code> runs them only</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Write the first real extension spec</strong> under <code>tests/extensions/</code>. Import from
+            <code>extension-test.ts</code>, not <code>base-test.ts</code>.
+            <div class="step-verify">Spec passes in isolation locally and headless in CI</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Add a CI job (or matrix entry)</strong> running <code>--project=extensions</code> on the GitHub Actions
+            chromium runner. Add to the Slack/monocart report if desired.
+            <div class="step-verify">Green in GitHub Actions; appears in monocart grid (optional)</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Add MV3 service-worker re-acquire helper.</strong> Document the ~30s auto-suspend caveat in a
+            <code>// WHY:</code> comment. Wrap long-running extension interactions with re-acquire logic.
+            <div class="step-verify">A test that idles &gt;30s then calls the worker still passes</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Extend the <code>clean</code> npm script</strong> to remove extension temp profile dirs
+            (e.g., <code>pw-ext-*</code> under <code>os.tmpdir()</code>).
+            <div class="step-verify">No leftover dirs after <code>npm run clean</code></div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- 7. Open Questions -->
+    <section id="open-questions">
+      <h2><span class="num">7</span> Open Questions</h2>
+      <ul class="questions">
+        <li>What is the actual extension and use case? No concrete driver has been identified yet.</li>
+        <li>Is the extension a local unpacked build checked into the repo, or does it need to be fetched/built as part of CI?</li>
+        <li>Does the use case require interacting with the extension <strong>popup/options UI</strong>, the injected <strong>content script behavior</strong> on storefronts, or the <strong>background service worker</strong>?</li>
+        <li>Are reduced trace/video artifacts (a known persistent-context limitation) acceptable for these tests?</li>
+        <li>Is single-worker execution acceptable initially, given the per-worker profile isolation work not yet done?</li>
+      </ul>
+    </section>
+
+    <!-- 8. Sources -->
+    <section id="sources">
+      <h2><span class="num">8</span> Sources</h2>
+      <ul class="sources">
+        <li>
+          <span class="src-type">Official Docs</span>
+          <div>
+            <a href="https://playwright.dev/docs/chrome-extensions" target="_blank">Chrome extensions | Playwright</a>
+            <div style="color:var(--muted);font-size:12.5px;margin-top:2px;">Primary: persistent-context requirement, service worker access, extension ID extraction</div>
+          </div>
+        </li>
+        <li>
+          <span class="src-type">GitHub Issue</span>
+          <div>
+            <a href="https://github.com/microsoft/playwright/issues/33566" target="_blank">Changes in Chromium headless in Playwright v1.49 (#33566)</a>
+            <div style="color:var(--muted);font-size:12.5px;margin-top:2px;">New headless implementation in v1.49 enables headless extensions via <code>channel: 'chromium'</code></div>
+          </div>
+        </li>
+        <li>
+          <span class="src-type">GitHub Issue</span>
+          <div>
+            <a href="https://github.com/microsoft/playwright/issues/34673" target="_blank">Extension Stopped Working with Headless=True (#34673)</a>
+            <div style="color:var(--muted);font-size:12.5px;margin-top:2px;">Reported headless extension load failures in some 1.49.x patches — validate on 1.61 before committing to CI</div>
+          </div>
+        </li>
+        <li>
+          <span class="src-type">GitHub Issue</span>
+          <div>
+            <a href="https://github.com/microsoft/playwright/issues/33792" target="_blank">Video missing with persistent context extension (#33792)</a>
+            <div style="color:var(--muted);font-size:12.5px;margin-top:2px;">Persistent-context extension runs can lose trace/video artifacts</div>
+          </div>
+        </li>
+        <li>
+          <span class="src-type">Official Docs</span>
+          <div>
+            <a href="https://playwright.dev/docs/api/class-browsertype" target="_blank">BrowserType API | Playwright</a>
+            <div style="color:var(--muted);font-size:12.5px;margin-top:2px;"><code>launchPersistentContext</code> full signature and options</div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 9. Files Reviewed -->
+    <section id="files-reviewed">
+      <h2><span class="num">9</span> Files Reviewed</h2>
+      <ul style="list-style:none;font-size:13.5px;">
+        <li style="padding:6px 0;border-bottom:1px solid var(--border);"><code>playwright.config.ts</code> — current projects, reporters, headless/trace/video/screenshot config</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--border);"><code>api.config.ts</code> — API project config; confirms separate base-test pattern</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--border);"><code>package.json</code> — confirmed <code>@playwright/test ^1.61.0</code></li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--border);"><code>src/config/base-test.ts</code> — 14 UI fixtures, Firefox teardown list, standard <code>page</code> fixture usage</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--border);"><code>src/pages/base-page.ts</code> — 11 helpers; <code>BasePage</code> takes <code>Page</code> (context-agnostic, can accept extension page)</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--border);"><code>src/pages/helpers/</code> — helper inventory; all operate on <code>PageRef</code>/<code>Page</code> — no changes needed</li>
+        <li style="padding:6px 0;"><code>.github/workflows/playwright.yml</code> — CI matrix (windows/macos, headless, firefox testIgnore)</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>Generated 2026-06-23 · playwright-typescript · Research only — no files modified</span>
+      <span>Playwright v1.61 · Framework: composition-based POM</span>
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

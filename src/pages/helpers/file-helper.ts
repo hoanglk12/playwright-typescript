@@ -1,3 +1,4 @@
+import { Download } from "@playwright/test";
 import { WaitHelper } from "./wait-helper";
 import { PageRef } from "./page-ref";
 
@@ -60,5 +61,29 @@ export class FileHelper {
   async dragAndDropFile(filePath: string, uploadFileSelector: string): Promise<void> {
     await this.waits.waitForElementClickable(uploadFileSelector);
     await this.pageRef.current.locator(uploadFileSelector).setInputFiles(filePath);
+  }
+
+  async triggerDownload(triggerFn: () => Promise<void>): Promise<Download> {
+    const downloadPromise = this.pageRef.current.waitForEvent("download");
+    await triggerFn();
+    return downloadPromise;
+  }
+
+  async saveDownload(triggerFn: () => Promise<void>, savePath: string): Promise<Download> {
+    const download = await this.triggerDownload(triggerFn);
+    await download.saveAs(savePath);
+    return download;
+  }
+
+  async getDownloadFilename(triggerFn: () => Promise<void>): Promise<string> {
+    const download = await this.triggerDownload(triggerFn);
+    return download.suggestedFilename();
+  }
+
+  async assertDownloadSucceeded(download: Download): Promise<void> {
+    const failure = await download.failure();
+    if (failure !== null) {
+      throw new Error(`Download failed: ${failure}`);
+    }
   }
 }
