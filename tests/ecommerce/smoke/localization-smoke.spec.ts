@@ -8,6 +8,10 @@ import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
 const LOC_001_SITES = ['Platypus AU', 'Skechers AU'];
 const auSites = storefronts.filter((s) => LOC_001_SITES.includes(s.name));
 
+// E2E-LOC-004 scope: Skechers AU and Skechers NZ only
+const LOC_004_SITES = ['Skechers AU', 'Skechers NZ'];
+const loc004Sites = storefronts.filter((s) => LOC_004_SITES.includes(s.name));
+
 // E2E-LOC-002 scope: Platypus NZ and Skechers NZ only
 const LOC_002_SITES = ['Platypus NZ', 'Skechers NZ'];
 const nzSites = storefronts.filter((s) => LOC_002_SITES.includes(s.name));
@@ -101,6 +105,38 @@ test.describe('Ecommerce Localization Smoke @ecommerce @smoke @localization', ()
       }
 
       logger.step(`Step 3 - ${site.name} hasQantasPoints=${site.hasQantasPoints} assertion passed`);
+    });
+  }
+
+  for (const site of loc004Sites) {
+    test(`E2E-LOC-004 - ${site.name} CLOTHING nav presence matches regional config`, async ({ ecommerceNavPage }) => {
+      const logger = createTestLogger(`E2E-LOC-004 - ${site.name} CLOTHING nav presence matches regional config`);
+      const shouldHaveClothing = site.navLinks.includes('CLOTHING');
+
+      logger.step('Step 1 - Navigate to storefront homepage');
+      await ecommerceNavPage.navigate(site.url);
+
+      logger.step('Step 2 - Wait for SPA nav hydration');
+      await ecommerceNavPage.waitForNavHydration();
+
+      logger.step('Step 3 - Assert WOMEN nav link is visible (proves nav rendered)');
+      const womenVisible = await ecommerceNavPage.isNavLinkVisible('WOMEN');
+      logger.verify(`${site.name} WOMEN nav link is visible after hydration`, true, womenVisible);
+      expect(womenVisible, `${site.name} nav did not render — WOMEN link not found after hydration`).toBe(true);
+
+      logger.step('Step 4 - Assert CLOTHING nav link is present or absent based on regional config');
+      const clothingVisible = await ecommerceNavPage.isNavLinkVisible('CLOTHING');
+      logger.verify(
+        `${site.name} CLOTHING nav link visibility matches navLinks config (expected: ${shouldHaveClothing})`,
+        shouldHaveClothing,
+        clothingVisible,
+      );
+      expect(
+        clothingVisible,
+        `${site.name} CLOTHING nav link visibility was ${clothingVisible} but expected ${shouldHaveClothing} based on navLinks config`,
+      ).toBe(shouldHaveClothing);
+
+      logger.step(`Step 5 - ${site.name} CLOTHING nav shouldHaveClothing=${shouldHaveClothing} assertion passed`);
     });
   }
 });

@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technical Research Report — KitchenWare House (kitchenwarehouse.com.au)</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #6c8eff;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --orange: #fb923c;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #131624;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12162b 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 40px 36px;
+    }
+
+    header .meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    header .badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid;
+    }
+
+    .badge-research  { color: var(--accent);  border-color: var(--accent);  background: rgba(108,142,255,.08); }
+    .badge-nextjs    { color: #fff;            border-color: #555;           background: #111; }
+    .badge-risk      { color: var(--yellow);   border-color: var(--yellow);  background: rgba(251,191,36,.08); }
+    .badge-date      { color: var(--muted);    border-color: var(--border);  background: transparent; }
+
+    header h1 {
+      font-size: 30px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.02em;
+      margin-bottom: 8px;
+    }
+
+    header .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ── Layout ── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 32px 80px;
+    }
+
+    /* ── Section ── */
+    section {
+      margin-bottom: 48px;
+    }
+
+    h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2 .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent2);
+      margin: 20px 0 10px;
+    }
+
+    p { margin-bottom: 12px; color: var(--text); }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    li { margin-bottom: 6px; }
+
+    strong { color: #fff; }
+
+    /* ── Summary boxes ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+
+    .summary-card .label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .summary-card .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .summary-card .value.ok   { color: var(--green); }
+    .summary-card .value.warn { color: var(--yellow); }
+    .summary-card .value.err  { color: var(--red); }
+
+    /* ── Tables ── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+
+    tbody tr:hover { background: var(--surface2); }
+
+    tbody td {
+      padding: 10px 14px;
+      vertical-align: top;
+      color: var(--text);
+    }
+
+    tbody td:first-child { font-weight: 500; color: #fff; }
+
+    /* ── Callout boxes ── */
+    .callout {
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      border-left: 3px solid;
+    }
+
+    .callout-danger  { background: rgba(248,113,113,.07);  border-color: var(--red);    }
+    .callout-warn    { background: rgba(251,191,36,.07);   border-color: var(--yellow); }
+    .callout-info    { background: rgba(108,142,255,.07);  border-color: var(--accent); }
+    .callout-success { background: rgba(52,211,153,.07);   border-color: var(--green);  }
+
+    .callout-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 6px;
+    }
+
+    .callout-danger  .callout-title { color: var(--red);    }
+    .callout-warn    .callout-title { color: var(--yellow); }
+    .callout-info    .callout-title { color: var(--accent); }
+    .callout-success .callout-title { color: var(--green);  }
+
+    /* ── Code ── */
+    code {
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12.5px;
+      background: var(--code-bg);
+      color: #a5f3c8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 13px;
+      color: #cdd6f4;
+    }
+
+    /* ── Step list ── */
+    .step-list { list-style: none; padding: 0; }
+
+    .step-list li {
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step-list li:last-child { border-bottom: none; }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-num.gate { background: rgba(248,113,113,.15); border-color: var(--red); color: var(--red); }
+
+    .step-content strong { display: block; margin-bottom: 3px; font-size: 14px; }
+    .step-content p { margin: 0; font-size: 13.5px; color: var(--muted); }
+
+    /* ── Options comparison ── */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .option-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .option-card.recommended {
+      border-color: var(--green);
+      background: rgba(52,211,153,.04);
+    }
+
+    .option-card.not-viable {
+      border-color: var(--red);
+      background: rgba(248,113,113,.04);
+      opacity: .8;
+    }
+
+    .option-card h4 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .verdict {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .verdict-ok  { background: rgba(52,211,153,.15);  color: var(--green); }
+    .verdict-bad { background: rgba(248,113,113,.15);  color: var(--red); }
+    .verdict-mid { background: rgba(251,191,36,.15);  color: var(--yellow); }
+
+    /* ── Risk rows ── */
+    .risk-high   { color: var(--red); }
+    .risk-medium { color: var(--yellow); }
+    .risk-low    { color: var(--green); }
+
+    /* ── Q list ── */
+    .q-list { list-style: none; padding: 0; counter-reset: q; }
+    .q-list li {
+      counter-increment: q;
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .q-list li::before {
+      content: "Q" counter(q);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(108,142,255,.1);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+      height: fit-content;
+      margin-top: 2px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 32px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── Probe table colours ── */
+    .probe-ok  { color: var(--green); font-weight: 600; }
+    .probe-bad { color: var(--red);   font-weight: 600; }
+    .probe-unk { color: var(--yellow); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header>
+  <div class="meta">
+    <span class="badge badge-research">Technical Research Report</span>
+    <span class="badge badge-nextjs">Next.js · Frontastic</span>
+    <span class="badge badge-risk">Cloudflare Anti-bot Risk</span>
+    <span class="badge badge-date">Generated: 2026-06-24</span>
+  </div>
+  <h1>KitchenWare House — Framework Integration Research</h1>
+  <p class="subtitle">kitchenwarehouse.com.au &nbsp;·&nbsp; Playwright TypeScript Automation Framework &nbsp;·&nbsp; Deep Investigation</p>
+</header>
+
+<div class="page-wrap">
+
+  <!-- ══════════════ 1. EXECUTIVE SUMMARY ══════════════ -->
+  <section>
+    <h2><span class="num">1</span> Executive Summary</h2>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="label">Framework</div>
+        <div class="value">Next.js (Pages Router)</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Commerce Platform</div>
+        <div class="value">commercetools Frontend (Frontastic)</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">CDN / Edge</div>
+        <div class="value warn">Cloudflare + Netlify Edge</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Anti-bot Status</div>
+        <div class="value err">Managed Challenge Active</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Automation Viable Locally</div>
+        <div class="value ok">Confirmed (UA override)</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">CI Viability</div>
+        <div class="value warn">Unverified — Gate Risk</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Reuse Existing POM</div>
+        <div class="value err">No — different platform</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Effort Estimate</div>
+        <div class="value">Medium (~6–9 page objects)</div>
+      </div>
+    </div>
+
+    <div class="callout callout-danger">
+      <div class="callout-title">⛔ Top Gating Risk</div>
+      Default headless Playwright Chromium receives HTTP 403 from Cloudflare. A spoofed Chrome user-agent returns HTTP 200 from a residential IP. Whether GitHub Actions datacenter IPs pass the same challenge is <strong>unverified and is the #1 blocker</strong>. Run a 1-test CI smoke <em>before</em> building the full suite.
+    </div>
+
+    <div class="callout callout-danger">
+      <div class="callout-title">⛔ Do Not Add KWH to <code>storefronts[]</code></div>
+      Every existing smoke spec iterates <code>storefronts[]</code>. Adding a Frontastic site to this Magento-shaped array will break all 8 GRA storefront specs. KWH must use its own isolated data module.
+    </div>
+
+    <div class="callout callout-success">
+      <div class="callout-title">✅ Key Advantage</div>
+      The site is richly instrumented with <code>data-testid</code> attributes (<code>cart-icon-button</code>, <code>search-input</code>, <code>pdp-product-tag</code>, etc.), making selectors far more stable than the CSS-class selectors used for GRA Magento storefronts.
+    </div>
+  </section>
+
+  <!-- ══════════════ 2. SITE TECHNOLOGY ANALYSIS ══════════════ -->
+  <section>
+    <h2><span class="num">2</span> Site Technology Analysis</h2>
+
+    <h3>Confirmed Tech Stack</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>Finding</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Framework</td><td>Next.js</td><td><code>x-powered-by: Next.js</code>, <code>/_next/static/</code>, <code>__NEXT_DATA__</code> script tag</td></tr>
+          <tr><td>Router Mode</td><td>Pages Router (not App Router)</td><td><code>"gssp":true</code> in <code>__NEXT_DATA__</code>; no <code>self.__next_f</code> RSC markers</td></tr>
+          <tr><td>Rendering</td><td>SSR via <code>getServerSideProps</code></td><td><code>"isFallback":false</code> in <code>__NEXT_DATA__</code></td></tr>
+          <tr><td>Commerce Platform</td><td>commercetools Frontend / Frontastic</td><td><code>tasticId</code>, <code>tasticType</code>, <code>"tastics"</code>, <code>frontastic</code> in payload</td></tr>
+          <tr><td>Hosting</td><td>Netlify</td><td><code>cache-status: Netlify Edge</code>, <code>netlify-vary</code> header</td></tr>
+          <tr><td>CDN</td><td>Cloudflare</td><td><code>Server: cloudflare</code>, <code>CF-RAY</code>, <code>cf-cache-status</code></td></tr>
+          <tr><td>Media CDN</td><td>Cloudinary</td><td><code>media.kitchenwarehouse.com.au</code>, <code>res.cloudinary.com</code></td></tr>
+          <tr><td>CMS</td><td>Strapi + Builder.io</td><td>DNS prefetch to S3 bucket + <code>cdn.builder.io</code></td></tr>
+          <tr><td>Anti-bot</td><td>Cloudflare Managed Challenge / Turnstile</td><td>HTTP 403 "Just a moment…" without browser UA</td></tr>
+          <tr><td>Personalisation</td><td>Insider, AB Tasty, Optimizely/Zaius, GTM</td><td>Third-party scripts that delay <code>networkidle</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Anti-bot Live Probe Results</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Scenario</th><th>HTTP Status</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Default headless Playwright Chromium UA</td>
+            <td class="probe-bad">403</td>
+            <td class="probe-bad">"Just a moment…" challenge — <code>data-testid="cart-icon-button"</code> count = 0</td>
+          </tr>
+          <tr>
+            <td>Spoofed normal Chrome UA (residential IP)</td>
+            <td class="probe-ok">200</td>
+            <td class="probe-ok">Full render — <code>data-testid="cart-icon-button"</code> count = 2</td>
+          </tr>
+          <tr>
+            <td>GitHub Actions datacenter IPs + UA override</td>
+            <td class="probe-unk">UNKNOWN</td>
+            <td class="probe-unk">Unverified — highest priority gate</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>URL Patterns (probed — all HTTP 200 with browser UA)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Flow</th><th>URL Pattern</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Homepage</td><td><code>/</code></td><td>—</td></tr>
+          <tr><td>Search</td><td><code>/search?q={term}</code></td><td>Query-param based; disallowed in robots.txt for crawlers</td></tr>
+          <tr><td>Category PLP</td><td><code>/{category-slug}</code> e.g. <code>/knives</code></td><td>Faceted filter params also robots-disallowed</td></tr>
+          <tr><td>Login</td><td><code>/login</code></td><td><strong>Returns 404</strong> — auth is modal or SSO gated</td></tr>
+          <tr><td>Account</td><td><code>/account</code></td><td>Redirects to <code>/</code> when unauthenticated</td></tr>
+          <tr><td>Cart</td><td><code>/cart</code></td><td>Robots-disallowed; dynamic</td></tr>
+          <tr><td>Checkout</td><td><code>/checkout</code></td><td>Robots-disallowed; confirm env scope before automating</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ Third-party Scripts &amp; networkidle</div>
+      Insider, AB Tasty, Optimizely/Zaius, and GTM are all present. These scripts cause <code>networkidle</code> to hang. Use <code>waitUntil: 'commit'</code> + a hydration anchor assertion — the same pattern already used in <code>EcommerceHomePage.navigate</code>.
+    </div>
+  </section>
+
+  <!-- ══════════════ 3. FRAMEWORK GAP ANALYSIS ══════════════ -->
+  <section>
+    <h2><span class="num">3</span> Framework Gap Analysis</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>Exists in Framework</th><th>Works for KWH?</th><th>Gap</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Composition BasePage + helpers</td>
+            <td class="probe-ok">Yes</td>
+            <td class="probe-ok">Yes — platform-agnostic</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td>Ecommerce page objects (Home/Nav/Search/PLP/PDP/Cart/AccountModal)</td>
+            <td class="probe-ok">Yes</td>
+            <td class="probe-bad">No</td>
+            <td>New KWH-specific page objects required (Magento DOM ≠ Frontastic DOM)</td>
+          </tr>
+          <tr>
+            <td><code>Storefront</code> data interface + <code>storefronts[]</code></td>
+            <td class="probe-ok">Yes</td>
+            <td class="probe-bad">No</td>
+            <td>New <code>KwhSiteConfig</code> data module required — <strong>never add KWH to storefronts[]</strong></td>
+          </tr>
+          <tr>
+            <td><code>WaitHelper</code> (commit + hydration anchor)</td>
+            <td class="probe-ok">Yes</td>
+            <td class="probe-ok">Yes</td>
+            <td>None — same SSR hydration strategy applies</td>
+          </tr>
+          <tr>
+            <td>User-agent override per Playwright project</td>
+            <td class="probe-bad">No</td>
+            <td>—</td>
+            <td><strong>New: required</strong> to pass Cloudflare managed challenge</td>
+          </tr>
+          <tr>
+            <td><code>KWH_URL</code> env var</td>
+            <td class="probe-bad">No</td>
+            <td>—</td>
+            <td>New env var in <code>environment.ts</code> + <code>.env.*</code> files</td>
+          </tr>
+          <tr>
+            <td>CI job for KWH</td>
+            <td class="probe-bad">No</td>
+            <td>—</td>
+            <td>New Chromium-only CI job</td>
+          </tr>
+          <tr>
+            <td>GraphQL API client</td>
+            <td class="probe-ok">Yes (Magento)</td>
+            <td class="probe-bad">No</td>
+            <td>Frontastic uses internal Next.js API routes — API automation not in scope initially</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ 4. REQUIRED CHANGES ══════════════ -->
+  <section>
+    <h2><span class="num">4</span> Required Changes</h2>
+
+    <h3>4a. New Page Objects — <code>src/pages/kitchenwarehouse/</code></h3>
+    <p>All extend <code>BasePage</code>. Constructor takes only <code>page: Page</code>. Locators hoisted to <code>private readonly</code> class fields. Prefer <code>getByTestId()</code> / <code>getByRole()</code>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Page Object</th><th>Key <code>data-testid</code> Anchors</th><th>Purpose</th><th>Phase</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>KwhHomePage</code></td><td><code>cart-icon-button</code> (hydration anchor)</td><td>Navigate, dismiss overlays, hero/promo assertions</td><td>1</td></tr>
+          <tr><td><code>KwhNavPage</code></td><td><code>mobile-hamburger-button</code>, <code>find-a-store-button</code></td><td>Mega-menu, category links, store finder</td><td>1</td></tr>
+          <tr><td><code>KwhSearchPage</code></td><td><code>search-icon-button</code>, <code>search-input</code>, <code>quick-search-overlay</code></td><td>Search input, autocomplete, results page</td><td>1</td></tr>
+          <tr><td><code>KwhPLPPage</code></td><td>Product grid, facet filters, sort, pagination</td><td>Category browsing, filter by brand/price/capacity</td><td>1</td></tr>
+          <tr><td><code>KwhPDPPage</code></td><td><code>pdp-product-tag</code>, variant selectors</td><td>Product detail, variant selection, add-to-cart</td><td>1</td></tr>
+          <tr><td><code>KwhCartPage</code></td><td><code>cart-icon-button</code>, cart overlay / <code>/cart</code> page</td><td>Mini-cart, quantity, subtotal</td><td>1</td></tr>
+          <tr><td><code>KwhCheckoutPage</code></td><td>Checkout route fields</td><td>Guest / account checkout — <em>confirm environment first</em></td><td>2</td></tr>
+          <tr><td><code>KwhAccountModalPage</code></td><td>Auth modal</td><td>Login / register — <em>auth mechanism unconfirmed</em></td><td>2</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4b. New Fixtures — <code>src/config/base-test.ts</code></h3>
+    <p>Register <code>kwhHomePage</code>, <code>kwhNavPage</code>, <code>kwhSearchPage</code>, <code>kwhPLPPage</code>, <code>kwhPDPPage</code>, <code>kwhCartPage</code> as additive fixtures. Chromium-only — <strong>no Firefox teardown block needed</strong> for these.</p>
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠️ High-Impact File</div>
+      <code>base-test.ts</code> affects all 14 existing fixtures. Per CLAUDE.md behavioral guidelines, call <code>advisor()</code> before editing this file.
+    </div>
+
+    <h3>4c. Configuration Changes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>Change Required</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>src/config/environment.ts</code></td>
+            <td>Add <code>kwhUrl: process.env.KWH_URL || 'https://www.kitchenwarehouse.com.au/'</code> to the <code>Environment</code> interface and loader</td>
+          </tr>
+          <tr>
+            <td><code>.env.testing</code> / <code>.env.staging</code> / <code>.env.production</code></td>
+            <td>Add <code>KWH_URL=...</code> (production URL until a staging env is confirmed)</td>
+          </tr>
+          <tr>
+            <td><code>playwright.config.ts</code></td>
+            <td>Add a <code>kitchenwarehouse</code> project with <code>use.userAgent</code> = normal Chrome UA string (required for Cloudflare), Chromium device, <code>testMatch</code> scoped to new spec dir</td>
+          </tr>
+          <tr>
+            <td><code>src/data/kitchenwarehouse/kwh-data.ts</code> <em>(new)</em></td>
+            <td>New <code>KwhSiteConfig</code> interface + typed data — <strong>never reuse <code>Storefront</code> interface</strong></td>
+          </tr>
+          <tr>
+            <td><code>src/config/global-setup.ts</code></td>
+            <td>Add KWH URL connectivity check — <strong>must use browser-UA fetch</strong>, not bare curl (bare curl gets 403)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4d. Helper Extensions</h3>
+    <p>No new helper class is required. The existing composition pattern covers the interaction surface.</p>
+    <ul>
+      <li><code>OverlayHelper</code> may need additional dismiss selectors for KWH newsletter / cookie-consent overlays (additive, low risk — verify against a live render).</li>
+      <li>The UA override is a config-level concern, not a helper concern.</li>
+    </ul>
+
+    <h3>4e. CI/CD Changes</h3>
+    <ul>
+      <li>Add a new Chromium-only CI job in <code>.github/workflows/playwright.yml</code> (or a dedicated <code>playwright-kwh.yml</code>).</li>
+      <li>No new secrets required for unauthenticated browsing; add KWH test-account credentials later if auth flows are in scope.</li>
+      <li>Do <strong>not</strong> add KWH to the existing "Warm up staging storefronts" step — KWH is production CDN-fronted, not Azure cold-start.</li>
+    </ul>
+
+    <div class="callout callout-danger">
+      <div class="callout-title">⛔ CI Gate — Run This First</div>
+      Before building the full suite, run a single 1-test Chromium smoke in CI with the UA override. If it returns HTTP 200, the integration is viable. If Cloudflare still challenges from datacenter IPs, the entire CI strategy needs revisiting (IP allowlisting or a non-Cloudflare lower environment).
+    </div>
+  </section>
+
+  <!-- ══════════════ 5. OPTIONS ══════════════ -->
+  <section>
+    <h2><span class="num">5</span> Options Compared</h2>
+    <div class="options-grid">
+
+      <div class="option-card not-viable">
+        <h4>Option A <span class="verdict verdict-bad">Not Viable</span></h4>
+        <p><strong>Add KWH to existing <code>storefronts[]</code> + reuse ecommerce POM</strong></p>
+        <ul style="margin-top:10px;font-size:13px;">
+          <li>✅ No new files</li>
+          <li>❌ <strong>Breaks all 8 GRA specs</strong> — every smoke iterates <code>storefronts[]</code></li>
+          <li>❌ Magento selectors don't match Frontastic DOM</li>
+          <li>❌ Interface fields (gender nav, size toggles, Qantas points) are meaningless for kitchenware</li>
+          <li>❌ UA override leaks to all existing storefronts</li>
+        </ul>
+      </div>
+
+      <div class="option-card recommended">
+        <h4>Option B <span class="verdict verdict-ok">Recommended</span></h4>
+        <p><strong>Parallel KWH POM set + own data module + own spec suite + own Playwright project (Chromium-only)</strong></p>
+        <ul style="margin-top:10px;font-size:13px;">
+          <li>✅ Zero blast radius on existing 8 GRA specs</li>
+          <li>✅ Stable <code>data-testid</code> selectors throughout</li>
+          <li>✅ UA override isolated to the <code>kitchenwarehouse</code> project</li>
+          <li>✅ Follows established composition-based POM pattern</li>
+          <li>⚠️ More new files to create</li>
+          <li>⚠️ Second commerce platform to maintain</li>
+        </ul>
+      </div>
+
+      <div class="option-card">
+        <h4>Option C <span class="verdict verdict-mid">Future Only</span></h4>
+        <p><strong>Unified "ecommerce" abstraction over Magento + Frontastic behind a platform flag</strong></p>
+        <ul style="margin-top:10px;font-size:13px;">
+          <li>✅ One conceptual model</li>
+          <li>❌ High complexity — leaky abstraction over two very different platforms</li>
+          <li>❌ Risky refactor of a working suite</li>
+          <li>⚠️ Only justified if 5+ Frontastic sites are planned</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════ 6. RISK ASSESSMENT ══════════════ -->
+  <section>
+    <h2><span class="num">6</span> Risk Assessment</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cloudflare blocks GitHub Actions IPs even with UA override</strong></td>
+            <td class="risk-high">High — CI suite unusable</td>
+            <td class="risk-high">Medium–High</td>
+            <td>Run 1-test CI smoke first. If blocked: allowlist CI egress IPs in Cloudflare (requires KWH/AccentGroup infra access) or use a non-Cloudflare lower environment.</td>
+          </tr>
+          <tr>
+            <td>Cloudflare escalates to interactive Turnstile challenge</td>
+            <td class="risk-high">High — Playwright can't solve it</td>
+            <td class="risk-medium">Low–Medium</td>
+            <td>Same as above. Requires infra allowlist or test environment.</td>
+          </tr>
+          <tr>
+            <td>KWH accidentally added to <code>storefronts[]</code></td>
+            <td class="risk-high">High — breaks 8 storefronts × ~7 specs</td>
+            <td class="risk-low">Low (if Option B followed)</td>
+            <td>Hard rule: KWH uses its own data module, never the shared array.</td>
+          </tr>
+          <tr>
+            <td><code>base-test.ts</code> change destabilizes existing fixtures</td>
+            <td class="risk-medium">Medium</td>
+            <td class="risk-low">Low (additive only)</td>
+            <td>Additive fixtures only; call <code>advisor()</code> before editing per CLAUDE.md.</td>
+          </tr>
+          <tr>
+            <td>Third-party scripts hang <code>networkidle</code></td>
+            <td class="risk-medium">Medium — tests time out</td>
+            <td class="risk-high">High (Insider, ABTasty, Optimizely present)</td>
+            <td>Use <code>waitUntil: 'commit'</code> + hydration anchor. Never use <code>networkidle</code>.</td>
+          </tr>
+          <tr>
+            <td>No KWH staging environment</td>
+            <td class="risk-medium">Medium — risk of real orders in production</td>
+            <td class="risk-medium">Unknown</td>
+            <td>Confirm with stakeholders before automating cart/checkout.</td>
+          </tr>
+          <tr>
+            <td>Build-ID or Frontastic payload-dependent selectors</td>
+            <td class="risk-low">Low</td>
+            <td class="risk-low">Low</td>
+            <td>Use <code>data-testid</code> and role selectors exclusively; never use <code>buildId</code>-scoped paths.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ 7. IMPLEMENTATION STEPS ══════════════ -->
+  <section>
+    <h2><span class="num">7</span> Implementation Steps</h2>
+    <p style="margin-bottom:20px;color:var(--muted);">Ordered action list for the implementation agent — only proceed after user approval.</p>
+
+    <ul class="step-list">
+      <li>
+        <span class="step-num gate">1</span>
+        <div class="step-content">
+          <strong>⛔ GATE — CI Bot-Challenge Smoke</strong>
+          <p>Add a single throwaway Chromium test that navigates to KWH with a spoofed UA. Run it in GitHub Actions. Confirm HTTP 200 (not 403 / "Just a moment…"). <strong>Everything else depends on this passing.</strong></p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <div class="step-content">
+          <strong>Add <code>KWH_URL</code> environment variable</strong>
+          <p>Extend <code>src/config/environment.ts</code> interface + loader. Add <code>KWH_URL=...</code> to <code>.env.testing</code>, <code>.env.staging</code>, <code>.env.production</code>.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <div class="step-content">
+          <strong>Add <code>kitchenwarehouse</code> Playwright project</strong>
+          <p>In <code>playwright.config.ts</code> add a Chromium-only project with <code>use.userAgent</code> = normal Chrome UA string. Scope <code>testMatch</code> to the new KWH spec directory. Confirm the override does not leak into existing projects.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <div class="step-content">
+          <strong>Create <code>src/data/kitchenwarehouse/kwh-data.ts</code></strong>
+          <p>Named <code>KwhSiteConfig</code> interface (no inferred types). Fields: <code>url</code>, <code>titleRegex</code>, <code>searchTerm</code>, <code>categorySlug</code>, <code>expectedNavLinks</code>, <code>pdpPath</code>, etc. Do NOT reuse the <code>Storefront</code> interface.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">5</span>
+        <div class="step-content">
+          <strong>Build page objects — <code>src/pages/kitchenwarehouse/</code></strong>
+          <p>In dependency order: <code>KwhHomePage</code> → <code>KwhNavPage</code> → <code>KwhSearchPage</code> → <code>KwhPLPPage</code> → <code>KwhPDPPage</code> → <code>KwhCartPage</code>. Use <code>getByTestId()</code> / role selectors. Hoist all locators to <code>private readonly</code> fields.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">6</span>
+        <div class="step-content">
+          <strong>Register fixtures in <code>src/config/base-test.ts</code></strong>
+          <p>Additive only. No Firefox teardown block needed (Chromium-only). Call <code>advisor()</code> before editing this file.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">7</span>
+        <div class="step-content">
+          <strong>Add overlay dismiss selectors (if needed)</strong>
+          <p>Verify KWH newsletter / cookie-consent overlay selectors against a live render and add to <code>OverlayHelper</code> if not already covered. Additive change only.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">8</span>
+        <div class="step-content">
+          <strong>Write KWH smoke spec suite — <code>tests/kitchenwarehouse/smoke/</code></strong>
+          <p>Own loop over <code>KwhSiteConfig[]</code>. <strong>Never reference <code>storefronts</code>.</strong> Follow <code>TC_XX - Description</code> or <code>E2E-{DOMAIN}-{NNN}-kwh</code> naming convention.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">9</span>
+        <div class="step-content">
+          <strong>Add KWH connectivity check to <code>global-setup.ts</code></strong>
+          <p>Must use a browser-UA fetch (bare curl / node fetch gets 403 from Cloudflare).</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">10</span>
+        <div class="step-content">
+          <strong>Add Chromium-only CI job</strong>
+          <p>New job in <code>.github/workflows/playwright.yml</code> or dedicated <code>playwright-kwh.yml</code>. Chromium only. Ubuntu runner. No KWH entry in the existing warmup step.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">11</span>
+        <div class="step-content">
+          <strong>Run <code>npm run lint</code> + full regression</strong>
+          <p>TypeScript strict check must pass. All 8 GRA storefront specs must pass unchanged — confirms <code>storefronts[]</code> was not touched and the UA override is isolated.</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ══════════════ 8. VALIDATION ══════════════ -->
+  <section>
+    <h2><span class="num">8</span> Validation Checklist</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Check</th><th>How to Verify</th><th>Pass Criteria</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CI anti-bot gate</td>
+            <td>1-test Chromium smoke in GitHub Actions with UA override</td>
+            <td>HTTP 200 returned (not 403 / "Just a moment…")</td>
+          </tr>
+          <tr>
+            <td>TypeScript strict</td>
+            <td><code>npm run lint</code></td>
+            <td>Zero errors; all exported data types have named interfaces</td>
+          </tr>
+          <tr>
+            <td>KWH smoke locally</td>
+            <td><code>npx playwright test --project kitchenwarehouse</code></td>
+            <td>All new KWH specs pass on Chromium</td>
+          </tr>
+          <tr>
+            <td>GRA regression</td>
+            <td><code>npm run test:testing</code> (full suite)</td>
+            <td>All 8 GRA storefront specs pass unchanged</td>
+          </tr>
+          <tr>
+            <td>UA override isolation</td>
+            <td>Check existing <code>chromium</code> / <code>firefox</code> project configs</td>
+            <td>Neither project has <code>use.userAgent</code> set by the KWH change</td>
+          </tr>
+          <tr>
+            <td><code>storefronts[]</code> untouched</td>
+            <td><code>git diff src/data/ecommerce/storefronts.ts</code></td>
+            <td>No changes to this file</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ 9. OPEN QUESTIONS ══════════════ -->
+  <section>
+    <h2><span class="num">9</span> Open Questions</h2>
+    <ul class="q-list">
+      <li>Is there a KWH staging or non-production environment? All probing was done against production. Automating cart/checkout against production risks creating real orders.</li>
+      <li>Will Cloudflare challenge GitHub Actions datacenter IPs even with the UA override? This is the single most important unknown — run a throwaway CI smoke immediately to find out.</li>
+      <li>What is the auth mechanism? <code>/login</code> returns 404 and <code>/account</code> redirects to home. Is auth (login/register/order history) in scope for the initial suite?</li>
+      <li>Chromium only, or also Firefox? Recommendation is Chromium-only for KWH (avoids Firefox Juggler teardown workaround and a second UA fingerprint to manage).</li>
+      <li>Separate CI workflow (<code>playwright-kwh.yml</code>) or extend existing <code>playwright.yml</code>? Separate is cleaner; extending avoids workflow proliferation.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════ KEY FILE REFERENCES ══════════════ -->
+  <section>
+    <h2><span class="num">10</span> Key File References</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>Relevance</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td><strong>Do NOT add KWH here</strong></td></tr>
+          <tr><td><code>tests/ecommerce/smoke/*.spec.ts</code></td><td>All iterate <code>storefronts[]</code> — adding KWH there breaks these</td></tr>
+          <tr><td><code>tests/ecommerce/accessibility/accessibility-smoke.spec.ts</code></td><td>Also iterates <code>storefronts[]</code></td></tr>
+          <tr><td><code>src/config/base-test.ts:41–146</code></td><td>Fixture registry to extend (additive); call <code>advisor()</code> first</td></tr>
+          <tr><td><code>src/config/environment.ts:69–127</code></td><td>Env loader to extend with <code>kwhUrl</code></td></tr>
+          <tr><td><code>playwright.config.ts:129–227</code></td><td>Add <code>kitchenwarehouse</code> project here</td></tr>
+          <tr><td><code>src/pages/base-page.ts</code></td><td>Base class for all new KWH page objects</td></tr>
+          <tr><td><code>src/pages/helpers/</code></td><td>Helper classes — reuse as-is</td></tr>
+          <tr><td><code>src/pages/ecommerce/home-page.ts:27–37</code></td><td>Hydration-safe navigation pattern to copy for <code>KwhHomePage</code></td></tr>
+          <tr><td><code>.github/workflows/playwright.yml</code></td><td>CI workflow to extend or clone for KWH</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Technical Research Report &nbsp;·&nbsp; KitchenWare House (kitchenwarehouse.com.au) &nbsp;·&nbsp; Generated 2026-06-24 &nbsp;·&nbsp; Playwright TypeScript Automation Framework
+</footer>
+
+</body>
+</html>
