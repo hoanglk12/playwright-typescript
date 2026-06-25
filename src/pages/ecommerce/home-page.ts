@@ -116,6 +116,69 @@ export class EcommerceHomePage extends BasePage {
       .toBe(true);
   }
 
+  async assertBrandNameVisible(brandName: string, siteName: string): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          try {
+            return await this.page.evaluate((name) => {
+              // Normalise to alphanumeric-only so "Dr. Martens" matches "Dr Martens" / "drmartens".
+              // document.title is checked first because it reliably contains the brand name even
+              // when the logo is an <img> — textContent excludes alt attribute values, making the
+              // title branch the only passing path for image-logo-only brands like Dr. Martens.
+              const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+              const target = norm(name);
+              if (norm(document.title).includes(target)) return true;
+              const bodyText = norm(document.body.textContent ?? '');
+              return bodyText.includes(target);
+            }, brandName);
+          } catch {
+            return null;
+          }
+        },
+        {
+          message: `Expected brand name "${brandName}" to appear in page title or body on ${siteName}`,
+          timeout: TIMEOUTS.PAGE_LOAD_SLOW,
+          intervals: [500, 1000, 2000],
+        },
+      )
+      .toBe(true);
+  }
+
+  /**
+   * E2E-LOC-007 — Assert the loyalty program name text appears somewhere in the page body.
+   * Scrolls to the bottom of the page on each poll attempt to trigger lazy-loaded footer
+   * content (loyalty CTAs live in the footer and are not rendered until the page is
+   * scrolled into view). Uses textContent (not innerText) so hidden/off-screen elements
+   * are included. The method receives programName as an argument and passes it into
+   * page.evaluate() — no class-level locator field needed for a dynamic value.
+   */
+  async assertLoyaltyProgramVisible(programName: string, siteName: string): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          try {
+            return await this.page.evaluate((name) => {
+              // Scroll to bottom to trigger lazy-loaded footer content
+              window.scrollTo(0, document.body.scrollHeight);
+              // Use textContent (includes hidden elements) instead of innerText
+              // which skips elements with display:none or visibility:hidden
+              const text = (document.body.textContent ?? '').replace(/\s+/g, ' ').toLowerCase();
+              return text.includes(name.toLowerCase());
+            }, programName);
+          } catch {
+            return null;
+          }
+        },
+        {
+          message: `Expected loyalty program name "${programName}" to be visible somewhere on ${siteName}`,
+          timeout: TIMEOUTS.PAGE_LOAD_SLOW,
+          intervals: [500, 1000, 2000],
+        }
+      )
+      .toBe(true);
+  }
+
   async assertPromoMessageVisible(siteName: string): Promise<void> {
     await expect
       .poll(

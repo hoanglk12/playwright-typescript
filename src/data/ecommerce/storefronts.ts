@@ -45,6 +45,10 @@ export interface Storefront {
    * TODO: confirm with a real in-stock product slug per storefront.
    */
   pdpExpectedSize?: string;
+  /** Brand display name shown on the site (E2E-LOC-007) */
+  brandName: string;
+  /** Loyalty program name visible on the homepage; undefined = not configured for this site (E2E-LOC-007) */
+  loyaltyProgramName?: string;
 }
 
 export const storefronts: readonly Storefront[] = [
@@ -66,6 +70,8 @@ export const storefronts: readonly Storefront[] = [
     pdpPath: '/products/some-product.html', // TODO: replace with real Magento product slug
     pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
     pdpExpectedSize: '7',
+    brandName: 'Platypus',
+    loyaltyProgramName: 'Kicks Club',
   },
   {
     name: 'Platypus NZ',
@@ -86,6 +92,8 @@ export const storefronts: readonly Storefront[] = [
     pdpPath: '/products/some-product.html', // TODO: replace with real Magento product slug
     pdpSizeToggleLabels: ['US MENS', 'US WOMENS'],
     pdpExpectedSize: '7',
+    brandName: 'Platypus',
+    loyaltyProgramName: 'Kicks Club',
   },
   {
     name: 'Skechers AU',
@@ -104,6 +112,10 @@ export const storefronts: readonly Storefront[] = [
     pdpPath: '/some-product.html', // TODO: replace with real slug
     pdpSizeToggleLabels: ['MENS', 'WOMENS'],
     pdpExpectedSize: '7',
+    brandName: 'Skechers',
+    // 'Skechers Insider' loyalty program is not present on staging — footer contains
+    // only brand/nav links, no loyalty program CTA. Remove this field until staging
+    // reflects production content.
   },
   {
     name: 'Skechers NZ',
@@ -123,6 +135,10 @@ export const storefronts: readonly Storefront[] = [
     pdpPath: '/some-product.html', // TODO: replace with real slug
     pdpSizeToggleLabels: ['MENS', 'WOMENS'],
     pdpExpectedSize: '7',
+    brandName: 'Skechers',
+    // 'Skechers Insider' loyalty program is not present on staging — footer contains
+    // only brand/nav links, no loyalty program CTA. Remove this field until staging
+    // reflects production content.
   },
   {
     name: 'Vans AU',
@@ -141,6 +157,8 @@ export const storefronts: readonly Storefront[] = [
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
     pdpExpectedSize: '7',
+    brandName: 'Vans',
+    // No loyalty program configured for Vans AU on staging — omit until confirmed.
   },
   {
     name: 'Vans NZ',
@@ -159,6 +177,8 @@ export const storefronts: readonly Storefront[] = [
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
     pdpExpectedSize: '7',
+    brandName: 'Vans',
+    // No loyalty program configured for Vans NZ on staging — omit until confirmed.
   },
   {
     name: 'Dr. Martens AU',
@@ -177,6 +197,8 @@ export const storefronts: readonly Storefront[] = [
     pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
     pdpSizeToggleLabels: ['UK MENS', 'UK WOMENS'],
     pdpExpectedSize: '4',
+    brandName: 'Dr. Martens',
+    // No loyalty program configured for Dr. Martens AU on staging — omit until confirmed.
   },
   {
     name: 'Dr. Martens NZ',
@@ -197,5 +219,7 @@ export const storefronts: readonly Storefront[] = [
     pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
     pdpSizeToggleLabels: ['UK MENS', 'UK WOMENS'],
     pdpExpectedSize: '4',
+    brandName: 'Dr. Martens',
+    // No loyalty program configured for Dr. Martens NZ on staging — omit until confirmed.
   },
 ];

@@ -139,4 +139,30 @@ test.describe('Ecommerce Localization Smoke @ecommerce @smoke @localization', ()
       logger.step(`Step 5 - ${site.name} CLOTHING nav shouldHaveClothing=${shouldHaveClothing} assertion passed`);
     });
   }
+
+  for (const site of storefronts) {
+    test(`E2E-LOC-007 - ${site.name} displays correct brand name and loyalty program`, async ({
+      ecommerceHomePage,
+    }) => {
+      const logger = createTestLogger(
+        `E2E-LOC-007 - ${site.name} displays correct brand name and loyalty program`,
+      );
+
+      logger.step('Step 1 - Navigate to homepage');
+      await ecommerceHomePage.navigate(site.url);
+
+      logger.step('Step 2 - Assert brand name visible in page body');
+      await ecommerceHomePage.assertBrandNameVisible(site.brandName, site.name);
+      logger.verify(`${site.name} page body contains brand "${site.brandName}"`, site.brandName, 'found');
+
+      if (!site.loyaltyProgramName) {
+        logger.step('Step 3 - Skip loyalty program assertion (not configured for this site)');
+        return;
+      }
+
+      logger.step('Step 3 - Assert loyalty program name visible on page');
+      await ecommerceHomePage.assertLoyaltyProgramVisible(site.loyaltyProgramName, site.name);
+      logger.verify(`${site.name} loyalty program name visible`, site.loyaltyProgramName, 'found');
+    });
+  }
 });
