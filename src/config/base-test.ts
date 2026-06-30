@@ -15,6 +15,7 @@ import { EcommercePDPPage } from '@pages/ecommerce/pdp-page';
 import { EcommerceCartOverlayPage } from '@pages/ecommerce/cart-overlay-page';
 import { EcommerceAccountModalPage } from '@pages/ecommerce/account-modal';
 import { EcommerceErrorPage } from '@pages/ecommerce/error-page';
+import { EcommerceCheckoutPage } from '@pages/ecommerce/checkout-page';
 import { PercyHelper } from '../pages/helpers';
 import { ConsoleHelper } from '@pages/helpers/console-helper';
 import AxeBuilder from '@axe-core/playwright';
@@ -34,6 +35,7 @@ type CustomFixtures = {
   ecommerceCartOverlayPage: EcommerceCartOverlayPage;
   ecommerceAccountModalPage: EcommerceAccountModalPage;
   ecommerceErrorPage: EcommerceErrorPage;
+  ecommerceCheckoutPage: EcommerceCheckoutPage;
   percyHelper: PercyHelper;
   softAssert: SoftAssertHelper;
   consoleHelper: ConsoleHelper;
@@ -148,6 +150,15 @@ export const test = base.extend<CustomFixtures>({
 
   ecommerceErrorPage: async ({ page }, use) => {
     await use(new EcommerceErrorPage(page));
+    // Firefox teardown workaround — prevents Juggler protocol hangs on SPA service workers
+    // and persistent WebSocket/analytics connections on staging storefronts.
+    if (page.context().browser()?.browserType().name() === 'firefox') {
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
+    }
+  },
+
+  ecommerceCheckoutPage: async ({ page }, use) => {
+    await use(new EcommerceCheckoutPage(page));
     // Firefox teardown workaround — prevents Juggler protocol hangs on SPA service workers
     // and persistent WebSocket/analytics connections on staging storefronts.
     if (page.context().browser()?.browserType().name() === 'firefox') {

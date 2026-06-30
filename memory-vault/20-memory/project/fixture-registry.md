@@ -3,7 +3,7 @@ name: fixture-registry
 description: "All registered test fixtures — UI base-test.ts and API ApiTest.ts — with Firefox teardown list and registration rules"
 type: project
 tags: [memory, project]
-last_verified: 2026-06-16
+last_verified: 2026-06-30
 ---
 
 ## UI Fixtures (src/config/base-test.ts)
@@ -25,10 +25,16 @@ Import: `import { test, expect } from '@config/base-test'`
 | `ecommercePDPPage` | `EcommercePDPPage` | ecommerce | ✅ |
 | `ecommerceCartOverlayPage` | `EcommerceCartOverlayPage` | ecommerce | ✅ |
 | `ecommerceAccountModalPage` | `EcommerceAccountModalPage` | ecommerce | ✅ |
+| `ecommerceErrorPage` | `EcommerceErrorPage` | ecommerce | ✅ |
+| `ecommerceCheckoutPage` | `EcommerceCheckoutPage` | ecommerce | ✅ |
 | `percyHelper` | `PercyHelper` | visual regression | — |
 | `softAssert` | `SoftAssertHelper` | soft assertions | — |
 
-**Firefox teardown pattern** (all 6 ecommerce fixtures): navigates to `about:blank` before context teardown on Firefox. Prevents Juggler protocol hang caused by SPA service workers + persistent WebSocket/analytics connections on staging storefronts. **Do not remove.**
+**Firefox teardown pattern** (all 8 ecommerce fixtures): navigates to `about:blank` before context teardown on Firefox. Prevents Juggler protocol hang caused by SPA service workers + persistent WebSocket/analytics connections on staging storefronts. **Do not remove.**
+
+`ecommerceErrorPage` — `src/pages/ecommerce/error-page.ts`. Handles soft-404 SPA routing. Methods: `navigateToNotFound(baseUrl)`, `assertBackToHomeVisible()`, `assertBrandErrorUiVisible(brandName, siteName)`. Used by E2E-ERR-001.
+
+`ecommerceCheckoutPage` — `src/pages/ecommerce/checkout-page.ts`. Handles Magento PWA guest checkout where clicking CHECKOUT opens an auth modal on the PDP (URL never changes to `/checkout`). Methods: `clickCheckoutCtaFromOverlay()`, `waitForCheckoutLoad()`, `isOnCheckoutPage()`, `submitCurrentStep()`, `hasRequiredFieldValidation()`, `getValidationMessages()`. Uses `page.evaluate()` → `btn.click()` for all interactive steps to propagate through React's synthetic event system. `force: true` on locator clicks bypasses React event delegation on NZ storefronts — do NOT use it here. Used by E2E-ERR-006.
 
 ## API Fixtures (src/api/ApiTest.ts)
 

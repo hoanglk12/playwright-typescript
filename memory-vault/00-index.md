@@ -1,7 +1,7 @@
 ---
 type: index
 tags: [memory, index]
-last_verified: 2026-06-15
+last_verified: 2026-06-30
 ---
 # Memory Index
 
@@ -14,7 +14,8 @@ last_verified: 2026-06-15
 - [[ecommerce-pdp-page-gotchas|Ecommerce PDP Page Gotchas]] — 9 patterns: Bloomreach popup (Vans AU), Dr. Martens gallery, dual-h1, swatch goto(), gallery wait, cart count (aria-label fast path + NETWORK_IDLE_SLOW + addToCart stabilisation), preferMens nav-label, Platypus AU nav pitfalls (MENS=socks), mini cart overlay detection (aside/complementary + fixed/absolute + CTA gate)
 - [[technical_debt_phase1|Technical Debt Status]] — All Critical + Warning items resolved (Phases 1–3, 2026-06-09); DEBT-014/016 resolved 2026-06-11; open: DEBT-013 dep bumps, DEBT-015 npm audit
 - [[ecommerce-storefronts|Ecommerce Storefronts]] — 8 brands (AU/NZ), staging URLs, nav label spelling, preferMens brands, API siteCode map, per-brand DOM quirks
-- [[fixture-registry|Fixture Registry]] — All 14 UI fixtures + API fixtures; Firefox teardown list (6 ecommerce); softExpect vs softAssert; registration steps
+- [[fixture-registry|Fixture Registry]] — All 16 UI fixtures + API fixtures; Firefox teardown list (8 ecommerce); softExpect vs softAssert; registration steps; ecommerceErrorPage + ecommerceCheckoutPage added 2026-06-30
+- [[ecommerce-smoke-spec-catalog|Ecommerce Smoke Spec Catalog]] — Full test catalog for localization-smoke.spec.ts (E2E-LOC-001/002/003/004/007) and error-handling-smoke.spec.ts (E2E-ERR-001/003/006); scope, fixtures, skip conditions, React event-delegation gotcha for ERR-006, staging load flakiness notes
 - [[test-conventions|Test Conventions]] — TC_XX vs E2E naming; no-rename rule; tag placement in describe(); serial mode rules per suite type; import rules
 - [[typescript-coding-rules|TypeScript Coding Rules]] — errors?.length guard; optional chaining inside length checks; module-level let initializers; GraphQL string hoisting; AuthType enum; named interfaces
 - [[execution-config|Execution Config]] — fullyParallel strategy; 4 API workers; Firefox testIgnore in CI; API_SUITE_SETUP timeout gotcha; retries; forbidOnly; OS matrix
