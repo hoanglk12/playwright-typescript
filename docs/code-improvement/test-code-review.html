@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Code Review - src/tests Directory</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 20px;
+        }
+        .summary {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 5px solid #3498db;
+        }
+        .recommendation {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            border-left: 5px solid #e67e22;
+        }
+        .highlight {
+            background-color: #e67e22;
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 0 0 8px 8px;
+            font-size: 0.9em;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #27ae60;
+            color: white;
+        }
+        .warning {
+            background-color: #e67e22;
+            color: white;
+        }
+        .info {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Test Code Review</h1>
+        <p>Comprehensive analysis of code quality in src/tests directory</p>
+    </header>
+
+    <div class="summary">
+        <h2>Summary of Code Quality Assessment</h2>
+        <p><span class="status success">High Quality</span> The test suite demonstrates strong engineering practices with excellent organization, logging, and error handling. The structure follows best practices for maintainability and scalability.</p>
+        
+        <h3>Key Strengths:</h3>
+        <ul>
+            <li><strong>Consistent Test Organization:</strong> Tests are well-organized into logical directories (api/, ecommerce/, frontsite/) with clear separation of concerns</li>
+            <li><strong>Comprehensive Error Handling:</strong> Extensive use of softExpect for non-fatal assertions that allow tests to continue despite minor failures</li>
+            <li><strong>Proper Use of Page Object Model:</strong> The ecommerceNavPage, ecommercePLPPage, and ecommercePDPPage objects demonstrate good implementation of the Page Object pattern</li>
+            <li><strong>Effective Logging:</strong> Comprehensive use of createTestLogger with detailed step-by-step logging for debugging purposes</li>
+            <li><strong>Parameterized Testing:</strong> The cart-smoke.spec.ts file uses loops with for (const [index, site] of storefronts.entries()) to run tests across multiple sites efficiently</li>
+        </ul>
+    </div>
+
+    <div class="recommendation">
+        <h2>Refactoring Recommendations for Shared State Module</h2>
+        <p>The current shared-state.ts implementation has several issues that could lead to test pollution and debugging challenges:</p>
+        
+        <h3>Current Issues:</h3>
+        <ul>
+            <li><strong>Global Variables:</strong> The use of global variables (customerToken, customerId, etc.) creates a shared mutable state across tests, which can cause race conditions and make tests non-deterministic.</li>
+            <li><strong>Lack of Encapsulation:</strong> There are no access controls or validation mechanisms - any test file can modify these values directly.</li>
+            <li><strong>No Initialization Checks:</strong> There's no mechanism to ensure values are properly initialized before use.</li>
+        </ul>
+
+        <h3>Recommended Refactoring:</h3>
+        <pre class="code-block">
+// shared-state.ts (refactored)
+class TestState {
+  private _customerToken: string | null = null;
+  private _customerId: string | null = null;
+  private _cartId: string | null = null;
+  private _addressId: string | null = null;
+
+  // Private setter with validation
+  private setCustomerToken(token: string): void {
+    if (!token || typeof token !== 'string') {
+      throw new Error('Invalid customer token');
+    }
+    this._customerToken = token;
+  }
+
+  // Public getter with validation
+  getCustomerToken(): string {
+    if (!this._customerToken) {
+      throw new Error('Customer token not set');
+    }
+    return this._customerToken;
+  }
+
+  // Reset method for test cleanup
+  reset(): void {
+    this._customerToken = null;
+    this._customerId = null;
+    this._cartId = null;
+    this._addressId = null;
+  }
+
+  // Factory method for singleton instance
+  static getInstance(): TestState {
+    if (!TestState.instance) {
+      TestState.instance = new TestState();
+    }
+    return TestState.instance;
+  }
+
+  private static instance: TestState | null = null;
+}
+
+export default TestState.getInstance();
+        </pre>
+        
+        <p>This refactored version:</p>
+        <ul>
+            <li>Uses encapsulation to prevent direct access to internal state</li>
+            <li>Adds validation checks for input data</li>
+            <li>Provides a reset method for proper test cleanup</li>
+            <li>Uses a singleton pattern to ensure consistent state management</li>
+            <li>Throws meaningful errors when invalid operations occur</li>
+        </ul>
+    </div>
+
+    <div class="recommendation">
+        <h2>Suggestions for Improving Test Naming Conventions</h2>
+        <p>Current naming follows a pattern like E2E-CART-001-XXX but could be more descriptive:</p>
+        
+        <h3>Current:</h3>
+        <p>E2E-CART-001-001 - Skechers AU Mini cart shows 0 items on fresh session</p>
+        
+        <h3>Improved:</h3>
+        <p>Cart_Smoke_InitialEmpty_ShouldShowZeroItemsOnFreshSession</p>
+        
+        <h3>Best Practices:</h3>
+        <ul>
+            <li>Use PascalCase for test names</li>
+            <li>Include the feature area, test type, and expected behavior</li>
+            <li>Follow the format: [Feature]_[TestType]_[ExpectedBehavior]</li>
+            <li>Avoid special characters and spaces in test names</li>
+            <li>Make test names self-documenting so they don't require reading the implementation</li>
+        </ul>
+    </div>
+
+    <div class="recommendation">
+        <h2>Recommendations for Reducing Code Duplication</h2>
+        <p>Several patterns suggest opportunities for abstraction:</p>
+        
+        <h3>Common Patterns to Abstract:</h3>
+        <ul>
+            <li><strong>Common Setup/Teardown Patterns:</strong> Both API and UI tests follow similar setup patterns. Consider creating a base test class or utility functions.</li>
+            <li><strong>Shared Test Data:</strong> The pla-test-data.ts file contains test-specific data that could be better organized.</li>
+            <li><strong>Error Handling:</strong> Similar error assertion patterns exist across multiple tests.</li>
+        </ul>
+
+        <h3>Implementation Strategy:</h3>
+        <pre class="code-block">
+// test-utils.ts
+export function createTestLogger(testName: string) {
+  // Implementation with standardized logging
+}
+
+export function assertResponseHasData(response: any, expectedFields: string[]) {
+  // Generic assertion for response data validation
+}
+
+export function waitForElementToBeVisible(selector: string, timeout = 10000) {
+  // Generic wait utility for common scenarios
+}
+        </pre>
+    </div>
+
+    <div class="recommendation">
+        <h2>Guidance on Best Practices for Managing Test Data</h2>
+        <ol>
+            <li><strong>Separate Test Data from Tests:</strong> Keep test data in dedicated files like test-data.ts or fixtures.ts.</li>
+            <li><strong>Use Factories:</strong> Implement factory functions to generate test data:
+                <pre class="code-block">
+function createValidCustomer() {
+  return {
+    email: `test-${Date.now()}@example.com`,
+    firstname: 'John',
+    lastname: 'Doe',
+    password: 'securePassword123',
+    phone_number: '+1234567890'
+  };
+}
+                </pre>
+            </li>
+            <li><strong>Environment-Specific Data:</strong> Use environment variables or configuration files for different environments.</li>
+            <li><strong>Data Cleanup:</strong> Always include cleanup routines to avoid test pollution.</li>
+            <li><strong>Version Control:</strong> Treat test data as code and version it appropriately.</li>
+        </ol>
+    </div>
+
+    <footer>
+        <p>Generated on June 1, 2026 | Automated Test Code Review Report</p>
+        <p>This document provides recommendations for improving code quality and maintainability in the src/tests directory.</p>
+    </footer>
+</body>
+</html>

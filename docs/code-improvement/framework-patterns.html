@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playwright TypeScript Framework — Design Patterns & Best Practices</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+      --tag-bg: #1e2640;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; padding: 40px 60px; max-width: 1100px; }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    .sidebar-logo {
+      padding: 0 24px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: block;
+      padding: 7px 12px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(91,138,245,.15); color: var(--accent); }
+    .nav-num { display: inline-block; width: 20px; font-size: 11px; color: var(--muted); }
+
+    /* ── Page header ─────────────────────────────────────────── */
+    .page-header { margin-bottom: 48px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+    .page-header h1 { font-size: 28px; font-weight: 800; background: linear-gradient(135deg,#5b8af5,#ce93d8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .page-header .sub { color: var(--muted); margin-top: 8px; font-size: 14px; }
+    .meta-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .chip {
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      border: 1px solid;
+    }
+    .chip-blue { background: rgba(91,138,245,.1); border-color: rgba(91,138,245,.4); color: #5b8af5; }
+    .chip-green { background: rgba(61,220,132,.1); border-color: rgba(61,220,132,.4); color: #3ddc84; }
+    .chip-purple { background: rgba(206,147,216,.1); border-color: rgba(206,147,216,.4); color: #ce93d8; }
+
+    /* ── Sections ─────────────────────────────────────────────── */
+    .section { margin-bottom: 60px; }
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg,var(--accent),var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 20px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* ── Cards ────────────────────────────────────────────────── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: var(--accent); }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .card-body { font-size: 13px; color: var(--muted); line-height: 1.65; }
+    .card-body strong { color: var(--text); }
+    .card-icon { font-size: 16px; }
+
+    /* ── Pattern blocks ───────────────────────────────────────── */
+    .pattern { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .pattern-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+    .pattern-title { font-size: 15px; font-weight: 700; }
+    .pattern-body { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.7; }
+    .pattern-body strong { color: var(--text); }
+    .badge {
+      padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0;
+    }
+    .badge-arch { background: rgba(91,138,245,.15); color: var(--accent); }
+    .badge-test { background: rgba(61,220,132,.15); color: var(--green); }
+    .badge-ci { background: rgba(255,179,0,.15); color: var(--amber); }
+    .badge-api { background: rgba(0,188,212,.15); color: var(--cyan); }
+    .badge-ts { background: rgba(206,147,216,.15); color: var(--purple); }
+    .badge-perf { background: rgba(255,82,82,.15); color: var(--red); }
+
+    /* ── Code blocks ──────────────────────────────────────────── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 12.5px;
+      line-height: 1.6;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    }
+    .code-label {
+      display: inline-block; font-size: 10px; font-weight: 700; color: var(--muted);
+      letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .kw { color: #c792ea; }
+    .fn { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type { color: #ffcb6b; }
+    .num { color: #f78c6c; }
+    .tag { color: #f07178; }
+    .prop { color: #89ddff; }
+
+    /* ── Tables ───────────────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
+    th { background: var(--surface2); color: var(--accent); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--muted); vertical-align: top; }
+    td strong { color: var(--text); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    code {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 6px; font-size: 12px;
+      font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    /* ── Callouts ─────────────────────────────────────────────── */
+    .callout {
+      border-radius: 8px; padding: 14px 18px; font-size: 13px;
+      display: flex; gap: 12px; align-items: flex-start; margin: 16px 0;
+    }
+    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .callout-blue { background: rgba(91,138,245,.08); border: 1px solid rgba(91,138,245,.25); }
+    .callout-green { background: rgba(61,220,132,.08); border: 1px solid rgba(61,220,132,.25); }
+    .callout-amber { background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.25); }
+    .callout-body { color: var(--muted); }
+    .callout-body strong { color: var(--text); }
+
+    /* ── Flow diagram ─────────────────────────────────────────── */
+    .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .flow-node {
+      padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      background: var(--surface2); border: 1px solid var(--border); white-space: nowrap;
+    }
+    .flow-arrow { color: var(--muted); font-size: 18px; }
+    .flow-node.highlight { background: rgba(91,138,245,.15); border-color: rgba(91,138,245,.4); color: var(--accent); }
+    .flow-node.green { background: rgba(61,220,132,.1); border-color: rgba(61,220,132,.35); color: var(--green); }
+    .flow-node.amber { background: rgba(255,179,0,.1); border-color: rgba(255,179,0,.35); color: var(--amber); }
+
+    /* ── Two-col layout ───────────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* ── Divider ──────────────────────────────────────────────── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+    @media (max-width: 1100px) { .main { padding: 32px 32px; } }
+    @media (max-width: 800px) {
+      .sidebar { display: none; }
+      .two-col { grid-template-columns: 1fr; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── Sidebar nav ── -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>PW TypeScript Framework</h2>
+      <p>Patterns &amp; Best Practices</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Architecture</div>
+      <a href="#pom" class="nav-item"><span class="nav-num">01</span>Composition-Based POM</a>
+      <a href="#helpers" class="nav-item"><span class="nav-num">02</span>Helper Layer</a>
+      <a href="#fixtures" class="nav-item"><span class="nav-num">03</span>Custom Fixtures</a>
+      <a href="#imports" class="nav-item"><span class="nav-num">04</span>Import Convention</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Test Patterns</div>
+      <a href="#structure" class="nav-item"><span class="nav-num">05</span>Test Structure</a>
+      <a href="#data" class="nav-item"><span class="nav-num">06</span>Test Data</a>
+      <a href="#assertions" class="nav-item"><span class="nav-num">07</span>Assertions</a>
+      <a href="#logging" class="nav-item"><span class="nav-num">08</span>Logging</a>
+      <a href="#timeouts" class="nav-item"><span class="nav-num">09</span>Timeouts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">API Testing</div>
+      <a href="#api-clients" class="nav-item"><span class="nav-num">10</span>API Client Hierarchy</a>
+      <a href="#graphql" class="nav-item"><span class="nav-num">11</span>GraphQL Patterns</a>
+      <a href="#gra" class="nav-item"><span class="nav-num">12</span>GRA Multi-Brand</a>
+      <a href="#api-state" class="nav-item"><span class="nav-num">13</span>Shared State</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Execution</div>
+      <a href="#parallel" class="nav-item"><span class="nav-num">14</span>Parallelism &amp; Workers</a>
+      <a href="#retry" class="nav-item"><span class="nav-num">15</span>Retry Mechanism</a>
+      <a href="#env" class="nav-item"><span class="nav-num">16</span>Environment Config</a>
+      <a href="#lifecycle" class="nav-item"><span class="nav-num">17</span>Global Lifecycle</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">CI/CD &amp; Reporting</div>
+      <a href="#cicd" class="nav-item"><span class="nav-num">18</span>CI/CD Pipelines</a>
+      <a href="#reporting" class="nav-item"><span class="nav-num">19</span>Reporting</a>
+      <a href="#visual" class="nav-item"><span class="nav-num">20</span>Visual Testing</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Code Quality</div>
+      <a href="#typescript" class="nav-item"><span class="nav-num">21</span>TypeScript Quality</a>
+      <a href="#mocking" class="nav-item"><span class="nav-num">22</span>API Mocking</a>
+      <a href="#workarounds" class="nav-item"><span class="nav-num">23</span>Browser Workarounds</a>
+    </div>
+  </nav>
+
+  <!-- ── Main content ── -->
+  <main class="main">
+
+    <div class="page-header">
+      <h1>Framework Design Patterns &amp; Best Practices</h1>
+      <p class="sub">A comprehensive reference for all patterns, conventions, and automation best practices applied in this Playwright TypeScript framework.</p>
+      <div class="meta-chips">
+        <span class="chip chip-blue">Playwright v1.59</span>
+        <span class="chip chip-blue">TypeScript Strict</span>
+        <span class="chip chip-green">Composition-Based POM</span>
+        <span class="chip chip-green">GRA Multi-Brand API</span>
+        <span class="chip chip-purple">GitHub Actions CI</span>
+        <span class="chip chip-purple">Monocart + Slack</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 01 — Composition-Based Page Object Model               -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="pom">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Composition-Based Page Object Model</h2>
+          <div class="section-desc">Favour composition over inheritance for all browser interactions</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">AbstractBasePage → Composed Helpers</span>
+          <span class="badge badge-arch">Architecture</span>
+        </div>
+        <p class="pattern-body">
+          <strong>All page objects extend <code>BasePage</code></strong>, which owns 8 specialised helper instances as <code>protected readonly</code> fields.
+          Browser interactions are delegated to helpers — <strong>never call <code>page.locator()</code> or <code>page.click()</code> directly inside a page class</strong>.
+          This decouples interaction logic from page semantics and makes helpers independently testable and swappable.
+        </p>
+        <pre><span class="cmt">// src/pages/base-page.ts — abstract root of the POM hierarchy</span>
+<span class="kw">export abstract class</span> <span class="type">BasePage</span> {
+  <span class="kw">protected</span> page: <span class="type">Page</span>;
+  <span class="kw">protected readonly</span> waits:    <span class="type">WaitHelper</span>;
+  <span class="kw">protected readonly</span> elements: <span class="type">ElementHelper</span>;
+  <span class="kw">protected readonly</span> style:    <span class="type">StyleHelper</span>;
+  <span class="kw">protected readonly</span> frames:   <span class="type">FrameHelper</span>;
+  <span class="kw">protected readonly</span> files:    <span class="type">FileHelper</span>;
+  <span class="kw">protected readonly</span> storage:  <span class="type">StorageHelper</span>;
+  <span class="kw">protected readonly</span> network:  <span class="type">NetworkHelper</span>;
+  <span class="kw">protected readonly</span> tables:   <span class="type">TableHelper</span>;
+
+  <span class="fn">constructor</span>(page: <span class="type">Page</span>) {
+    <span class="kw">this</span>.page     = page;
+    <span class="kw">this</span>.waits    = <span class="kw">new</span> <span class="type">WaitHelper</span>(page);
+    <span class="kw">this</span>.elements = <span class="kw">new</span> <span class="type">ElementHelper</span>(page, <span class="kw">this</span>.waits);
+    <span class="kw">this</span>.style    = <span class="kw">new</span> <span class="type">StyleHelper</span>(page, <span class="kw">this</span>.waits);
+    <span class="kw">this</span>.frames   = <span class="kw">new</span> <span class="type">FrameHelper</span>(page);
+    <span class="kw">this</span>.files    = <span class="kw">new</span> <span class="type">FileHelper</span>(page, <span class="kw">this</span>.waits);
+    <span class="kw">this</span>.storage  = <span class="kw">new</span> <span class="type">StorageHelper</span>(page);
+    <span class="kw">this</span>.network  = <span class="kw">new</span> <span class="type">NetworkHelper</span>(page);
+    <span class="kw">this</span>.tables   = <span class="kw">new</span> <span class="type">TableHelper</span>(page, <span class="kw">this</span>.waits, <span class="kw">this</span>.elements);
+  }
+}</pre>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Locators Hoisted to Class Fields</span>
+          <span class="badge badge-arch">Convention</span>
+        </div>
+        <p class="pattern-body">
+          All <code>Locator</code> instances and raw selector strings <strong>must be declared as <code>private readonly</code> class fields</strong> at the top of every page class.
+          This makes selectors discoverable in one place, enables refactoring without touching method bodies, and satisfies TypeScript's strict mode.
+          Dynamic locators (parameter-driven) live in private helper methods that reference field-level constants.
+        </p>
+        <div class="two-col">
+          <div>
+            <div class="code-label">✅ Correct</div>
+            <pre><span class="kw">class</span> <span class="type">CheckoutPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="cmt">// Locators as class fields</span>
+  <span class="kw">private readonly</span> submitBtn =
+    <span class="kw">this</span>.page.<span class="fn">getByRole</span>(<span class="str">'button'</span>,
+      { name: <span class="str">'Place Order'</span> });
+  <span class="kw">private readonly</span> itemSel =
+    <span class="str">'[data-testid="cart-item"]'</span>;
+
+  <span class="kw">async</span> <span class="fn">placeOrder</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="kw">await this</span>.elements.<span class="fn">clickLocator</span>(
+      <span class="kw">this</span>.submitBtn);
+  }
+}</pre>
+          </div>
+          <div>
+            <div class="code-label">❌ Banned</div>
+            <pre><span class="kw">class</span> <span class="type">CheckoutPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="kw">async</span> <span class="fn">placeOrder</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="cmt">// WRONG — inline selector in helper call</span>
+    <span class="kw">await this</span>.elements.<span class="fn">clickElement</span>(
+      <span class="str">'[data-testid="submit"]'</span>);
+
+    <span class="cmt">// WRONG — direct page.locator</span>
+    <span class="kw">await this</span>.page
+      .<span class="fn">locator</span>(<span class="str">'.btn-submit'</span>)
+      .<span class="fn">click</span>();
+  }
+}</pre>
+          </div>
+        </div>
+        <div class="callout callout-amber" style="margin-top:16px">
+          <span class="callout-icon">🚫</span>
+          <div class="callout-body"><strong>Banned selectors:</strong> Hierarchical structural selectors like <code>div &gt; span &gt; ul &gt; li:nth-child(2)</code> are prohibited. They break on any DOM restructure and carry no semantic meaning. Prefer <code>getByRole()</code>, <code>getByLabel()</code>, <code>getByText()</code>. CSS selectors are only acceptable for computed-style queries (<code>this.style.*</code>) or <code>evaluate()</code> calls.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 02 — Helper Layer                                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="helpers">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Helper Layer — Single Responsibility Classes</h2>
+          <div class="section-desc">Each helper class owns one domain of browser interaction</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Field</th><th>Class</th><th>Responsibility</th></tr></thead>
+        <tbody>
+          <tr><td><code>this.waits</code></td><td><strong>WaitHelper</strong></td><td>Page/element/network synchronisation, AJAX, spinner detection, custom poll conditions</td></tr>
+          <tr><td><code>this.elements</code></td><td><strong>ElementHelper</strong></td><td>Clicks, text input, getText, attributes, scroll, drag-drop, keyboard, dropdowns</td></tr>
+          <tr><td><code>this.style</code></td><td><strong>StyleHelper</strong></td><td>Computed colours (→ hex), CSS properties, element dimensions, image natural size</td></tr>
+          <tr><td><code>this.frames</code></td><td><strong>FrameHelper</strong></td><td>iframe operations via <code>frameLocator()</code> API</td></tr>
+          <tr><td><code>this.files</code></td><td><strong>FileHelper</strong></td><td>File upload via input or drag-and-drop, multi-file, clear uploaded</td></tr>
+          <tr><td><code>this.storage</code></td><td><strong>StorageHelper</strong></td><td>Cookies, localStorage, sessionStorage, clipboard read/write</td></tr>
+          <tr><td><code>this.network</code></td><td><strong>NetworkHelper</strong></td><td>Route mocking, request interception, HAR recording, performance timing</td></tr>
+          <tr><td><code>this.tables</code></td><td><strong>TableHelper</strong></td><td>HTML table row/cell access, sorting, pagination, data extraction</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-blue">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body"><strong>Backward-compatible delegations:</strong> <code>BasePage</code> still exposes shim methods like <code>this.clickElement()</code> so existing page objects compile unchanged. New code should call the helper directly: <code>this.elements.clickElement()</code>. New browser interactions belong in a helper class, never in <code>BasePage</code> itself.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 03 — Custom Fixtures                                     -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="fixtures">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Custom Fixtures — Playwright Extension Pattern</h2>
+          <div class="section-desc">Page objects and shared utilities injected via <code>test.extend()</code></div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">test.extend&lt;CustomFixtures&gt;</span>
+          <span class="badge badge-arch">Design Pattern</span>
+        </div>
+        <p class="pattern-body">
+          <code>src/config/base-test.ts</code> extends Playwright's <code>test</code> with all page objects and utilities.
+          Tests receive page objects via destructuring — no <code>new</code> calls in spec files.
+          Each fixture is <strong>lazily instantiated per test</strong>, ensuring isolation.
+          The <code>use()</code> function defines setup and teardown boundaries (code after <code>await use(...)</code> is teardown).
+        </p>
+        <pre><span class="cmt">// src/config/base-test.ts</span>
+<span class="kw">export const</span> test = base.<span class="fn">extend</span>&lt;<span class="type">CustomFixtures</span>&gt;({
+  homePage: <span class="kw">async</span> ({ page }, use) =&gt; {
+    <span class="kw">await</span> <span class="fn">use</span>(<span class="kw">new</span> <span class="type">HomePage</span>(page));
+  },
+
+  softAssert: <span class="kw">async</span> ({}, use) =&gt; {
+    <span class="kw">await</span> <span class="fn">use</span>(<span class="kw">new</span> <span class="type">SoftAssertHelper</span>(<span class="kw">new</span> <span class="type">TestLogger</span>(base.<span class="fn">info</span>().title)));
+  },
+
+  ecommerceCartOverlayPage: <span class="kw">async</span> ({ page }, use) =&gt; {
+    <span class="kw">await</span> <span class="fn">use</span>(<span class="kw">new</span> <span class="type">EcommerceCartOverlayPage</span>(page));
+    <span class="cmt">// Teardown: Firefox SPA service-worker workaround (see §23)</span>
+    <span class="kw">if</span> (page.<span class="fn">context</span>().<span class="fn">browser</span>()?.browserType().<span class="fn">name</span>() === <span class="str">'firefox'</span>) {
+      <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'about:blank'</span>, { waitUntil: <span class="str">'commit'</span> }).<span class="fn">catch</span>(() =&gt; {});
+    }
+  },
+});
+
+<span class="kw">export</span> { expect };
+<span class="kw">export const</span> softExpect: <span class="kw">typeof</span> expect.soft = expect.soft.<span class="fn">bind</span>(expect);</pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 04 — Import Convention                                   -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="imports">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Import Convention &amp; Path Aliases</h2>
+          <div class="section-desc">Strict import rules prevent fixture loss and circular dependencies</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Context</th><th>Import from</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><strong>UI / frontsite tests</strong></td><td><code>@config/base-test</code></td><td>Gets all page object fixtures + <code>softExpect</code></td></tr>
+          <tr><td><strong>GRA API specs</strong> (<code>pla-*.spec.ts</code>)</td><td><code>./gra-test</code></td><td>Gets <code>site: SiteContext</code> and <code>siteState</code> fixtures for multi-brand injection</td></tr>
+          <tr><td><strong>Non-GRA API specs</strong></td><td><code>../../src/api/ApiTest</code></td><td>Gets <code>apiClient</code>, <code>graphqlClient</code>, etc.</td></tr>
+          <tr><td><strong>Never</strong></td><td><code>@playwright/test</code> in spec files</td><td>Loses all custom fixtures silently — tests compile but fixtures are undefined</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-green" style="margin-top:16px">
+        <span class="callout-icon">📁</span>
+        <div class="callout-body"><strong>TypeScript path aliases</strong> (configured in <code>tsconfig.json</code>):
+          <code>@pages/*</code> → <code>src/pages/*</code> &nbsp;|&nbsp;
+          <code>@utils/*</code> → <code>src/utils/*</code> &nbsp;|&nbsp;
+          <code>@config/*</code> → <code>src/config/*</code> &nbsp;|&nbsp;
+          <code>@data/*</code> → <code>src/data/*</code> &nbsp;|&nbsp;
+          <code>@tests/*</code> → <code>tests/*</code>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 05 — Test Structure                                      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="structure">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Test Structure &amp; Naming Conventions</h2>
+          <div class="section-desc">Consistent patterns across all specs for discoverability and CI filtering</div>
+        </div>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@config/base-test'</span>;
+<span class="kw">import</span> { <span class="type">MyData</span> } <span class="kw">from</span> <span class="str">'../../src/data/my-data'</span>;
+<span class="kw">import</span> { <span class="fn">createTestLogger</span> } <span class="kw">from</span> <span class="str">'../../src/utils/test-logger'</span>;
+
+test.<span class="fn">describe</span>(<span class="str">'Feature Name @tag1 @tag2'</span>, () =&gt; {
+  test(<span class="str">'TC_01 - Description of what the test does'</span>, <span class="kw">async</span> ({ myPage }) =&gt; {
+    <span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_01 Description'</span>);
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 1 - Navigate to page'</span>);
+    <span class="kw">await</span> myPage.<span class="fn">navigateToPage</span>();
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 2 - Assert element visible'</span>);
+    <span class="fn">expect</span>(<span class="kw">await</span> myPage.<span class="fn">isElementVisible</span>()).<span class="fn">toBeTruthy</span>();
+  });
+});</pre>
+
+      <div class="card-grid" style="margin-top:20px">
+        <div class="card">
+          <div class="card-title"><span class="card-icon">🏷️</span>Test Naming</div>
+          <div class="card-body">
+            <strong>UI/API:</strong> <code>TC_01 - Description</code><br>
+            <strong>Ecommerce smoke:</strong> <code>E2E-{DOMAIN}-{NNN}-{site}</code><br>
+            <strong>Legacy PLA:</strong> <code>PLA_OperationName - description</code><br>
+            Never rename existing tests — breaks CI tag filtering and monocart history.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="card-icon">🏷️</span>Tagging Strategy</div>
+          <div class="card-body">
+            Tags go in the <code>test.describe()</code> name string.<br>
+            <strong>Common tags:</strong> <code>@api</code>, <code>@graphql</code>, <code>@regression</code>, <code>@smoke</code>, <code>@frontsite</code>, <code>@ecommerce</code>, <code>@admin</code><br>
+            Run subsets with <code>--grep "@smoke"</code> in CI.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="card-icon">🔧</span>forbidOnly in CI</div>
+          <div class="card-body">
+            <code>forbidOnly: !!process.env.CI</code> in both configs.<br>
+            Any accidental <code>test.only()</code> committed to the repo will <strong>fail the build immediately</strong> rather than silently skipping other tests.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="card-icon">📋</span>Two Configs, Two Scopes</div>
+          <div class="card-body">
+            <strong>playwright.config.ts</strong> — UI tests, ignores <code>**/api/**</code><br>
+            <strong>api.config.ts</strong> — API tests only, no browser<br>
+            Both read from <code>src/config/environment.ts</code> via <code>.env.{NODE_ENV}</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 06 — Test Data                                           -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="data">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Test Data Management</h2>
+          <div class="section-desc">Typed, generated, never hardcoded in specs</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory + Typed Interface Pattern</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <p class="pattern-body">
+          All test data lives in <code>src/data/</code>. Every exported constant and generator return type <strong>must carry a named interface annotation</strong> — never rely on TypeScript inference for exported data shapes. Static constants use <code>const</code> objects; dynamic/random data uses generator classes with explicit return types.
+        </p>
+        <pre><span class="cmt">// ✅ Correct — named interfaces, annotated const, typed generator</span>
+<span class="kw">export interface</span> <span class="type">LoginCredentials</span> { username: <span class="type">string</span>; password: <span class="type">string</span>; }
+
+<span class="kw">export interface</span> <span class="type">AdminDataShape</span> {
+  VALID_ADMIN:    <span class="type">LoginCredentials</span>;
+  INVALID_ADMIN:  <span class="type">LoginCredentials</span>;
+  EMPTY_CREDENTIALS: <span class="type">LoginCredentials</span>;
+}
+
+<span class="kw">export const</span> AdminData: <span class="type">AdminDataShape</span> = {
+  VALID_ADMIN:   { username: <span class="str">'admin'</span>, password: <span class="str">'pass123'</span> },
+  INVALID_ADMIN: { username: <span class="str">'wrong'</span>, password: <span class="str">'wrong'</span>  },
+  EMPTY_CREDENTIALS: { username: <span class="str">''</span>, password: <span class="str">''</span> },
+};
+
+<span class="kw">export class</span> <span class="type">AdminTestDataGenerator</span> {
+  <span class="kw">static</span> <span class="fn">generateCustomerData</span>(): <span class="type">CustomerData</span> { <span class="cmt">// ← explicit return type</span>
+    <span class="kw">const</span> ts = Date.<span class="fn">now</span>();
+    <span class="kw">return</span> { customerName: <span class="str">`Test ${ts}`</span>, email: <span class="str">`test${ts}@mail.com`</span> };
+  }
+}</pre>
+      </div>
+      <table>
+        <thead><tr><th>Location</th><th>Content</th></tr></thead>
+        <tbody>
+          <tr><td><code>src/data/*.ts</code></td><td>UI / general test data modules</td></tr>
+          <tr><td><code>src/data/api/</code></td><td>API test data — one file per feature domain (<code>pla-catalog-data.ts</code>, <code>pla-auth-data.ts</code>…)</td></tr>
+          <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td>Ecommerce brand/storefront config constants</td></tr>
+          <tr><td><code>src/data/api/sites.ts</code></td><td>GRA brand registry — <code>SiteContext</code> per brand with baseURL, testData, hasLoyalty flag</td></tr>
+        </tbody>
+      </table>
+
+      <div class="pattern" style="margin-top:24px">
+        <div class="pattern-header">
+          <span class="pattern-title">Interface vs Factory — Two Separate Concepts</span>
+          <span class="badge badge-ts">Clarification</span>
+        </div>
+        <p class="pattern-body">
+          The pattern name <strong>"Factory + Typed Interface"</strong> is two distinct things working together — not one concept.
+          The <strong>interface</strong> is only a shape contract: it declares what fields exist and their types at compile time. It creates nothing.
+          The <strong>factory</strong> is the function or class method that generates dynamic values at runtime and returns a fully populated object that satisfies the interface.
+          Defining an interface with typed properties is <em>not</em> the factory — it is only the "Typed Interface" half.
+        </p>
+        <div class="two-col">
+          <div>
+            <div class="code-label">Interface — shape contract only (compile-time)</div>
+            <pre><span class="cmt">// Declares what fields must exist and their types</span>
+<span class="cmt">// Creates NOTHING — no values, no logic</span>
+<span class="kw">export interface</span> <span class="type">GraTestData</span> {
+  validCustomer:    <span class="type">CustomerInput</span>;
+  validCredentials: <span class="type">ValidCredentials</span>;
+  invalidCartId:    <span class="type">string</span>;
+}</pre>
+          </div>
+          <div>
+            <div class="code-label">Factory — generates values and builds the object (runtime)</div>
+            <pre><span class="cmt">// Generates dynamic values FIRST</span>
+<span class="kw">export function</span> <span class="fn">createBrandTestData</span>(prefix: <span class="type">string</span>): <span class="type">GraTestData</span> {
+  <span class="kw">const</span> email = <span class="str">`${prefix}test${Date.now()}@mail.com`</span>;
+  <span class="kw">const</span> name  = <span class="fn">generateFirstName</span>();
+  <span class="cmt">// Returns a REAL OBJECT — all fields use the same values</span>
+  <span class="kw">return</span> { validCustomer: { email, firstname: name, ... },
+           validCredentials: { email, ... } };
+}</pre>
+          </div>
+        </div>
+        <div class="callout callout-blue" style="margin-top:16px">
+          <span class="callout-icon">ℹ️</span>
+          <div class="callout-body">
+            <strong>Why the factory generates values before the return:</strong> all fields for the same logical entity (email, name, address) must share the same randomly-generated values.
+            If email were generated separately inside <code>validCustomer</code> and again inside <code>validCredentials</code>, two different <code>Date.now()</code> calls would produce two different emails — the credentials would no longer match the registered customer.
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">When to Use Factory vs Static Const</span>
+          <span class="badge badge-test">Decision Guide</span>
+        </div>
+        <p class="pattern-body">Not every data file needs a factory. The choice depends entirely on whether the data must change per test run.</p>
+        <table style="margin:0">
+          <thead><tr><th>Data type</th><th>Use</th><th>Reason</th></tr></thead>
+          <tbody>
+            <tr><td>Customer email, name, address</td><td><strong>Factory</strong></td><td>Must be unique per run — registering the same email twice fails on a live backend</td></tr>
+            <tr><td>Brand URLs, nav labels, country codes</td><td><strong>Static const</strong></td><td>Fixed — Australia's country code is always <code>'AU'</code>, no generation needed</td></tr>
+            <tr><td>Error messages, expected strings</td><td><strong>Static const</strong></td><td>Fixed expected values used for assertion — must not change between runs</td></tr>
+            <tr><td>Invalid/negative test inputs</td><td><strong>Static const</strong></td><td>Deliberate bad values — randomising them would make negative tests unpredictable</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory Presence by File</span>
+          <span class="badge badge-test">Reference</span>
+        </div>
+        <p class="pattern-body">Not all data files in <code>src/data/</code> contain a factory. The table below shows exactly which files have factory code and where.</p>
+        <table style="margin:0">
+          <thead><tr><th>File</th><th>Has Factory?</th><th>Factory location</th></tr></thead>
+          <tbody>
+            <tr><td><code>src/data/api/gra-test-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 163–267 — <code>createBrandTestData(prefix)</code> function; generates email, name, phone, address (all linked)</td></tr>
+            <tr><td><code>src/data/admin-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 113–162 — <code>AdminTestDataGenerator</code> class with 4 static <code>generate*()</code> methods</td></tr>
+            <tr><td><code>src/data/home-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 51–100 — <code>HomeTestDataGenerator</code> class with 4 static <code>generate*()</code> methods</td></tr>
+            <tr><td><code>src/data/profile-listing-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Class <code>ProfileListingTestDataGenerator</code> exists but contains only a static URL property — no generator methods</td></tr>
+            <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only <code>Storefront</code> interface + <code>storefronts</code> readonly array — all values are fixed per brand</td></tr>
+            <tr><td><code>src/data/api/gra-address-book-countries-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces + <code>addressBookCountriesData</code> const — country codes never change</td></tr>
+            <tr><td><code>src/data/api/gra-catalog-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces + <code>GraCatalogData</code> const — search terms and invalid SKUs are fixed</td></tr>
+            <tr><td><code>src/data/api/gra-auth-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces + const objects — deliberate bad tokens/emails must be fixed for predictable negative tests</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 07 — Assertions                                          -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="assertions">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Assertion Patterns — Hard vs Soft</h2>
+          <div class="section-desc">Strategic choice between fail-fast and accumulate-all-failures</div>
+        </div>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">Pattern A — <code>softExpect</code></div>
+          <div class="card-body">
+            Drop-in replacement for <code>expect</code>. <strong>Does NOT log internally</strong> — safe to pair with <code>logger.verify()</code> before it.<br><br>
+            <code>import { softExpect } from '@config/base-test';</code><br>
+            <code>softExpect(title).toContain('Expected');</code>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pattern B — <code>softAssert</code> fixture</div>
+          <div class="card-body">
+            Integrates with <code>TestLogger</code>. Each call logs <code>🔵 [SOFT]</code> internally. <strong>Do NOT also call</strong> <code>logger.verify()</code> before it — duplicate log entry.<br><br>
+            <code>softAssert.toBe(count, 12, 'Item count');</code><br>
+            <code>await softAssert.toBeVisible(el, 'Header');</code>
+          </div>
+        </div>
+      </div>
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">When to Use Each Type</span>
+          <span class="badge badge-test">Decision Guide</span>
+        </div>
+        <table style="margin:0">
+          <thead><tr><th>Scenario</th><th>Use</th><th>Reason</th></tr></thead>
+          <tbody>
+            <tr><td>Multiple independent checks on same page state</td><td><strong>Soft</strong></td><td>See all failures at once</td></tr>
+            <tr><td>Per-item assertions inside a loop</td><td><strong>Soft</strong></td><td>All items reported, not just first failure</td></tr>
+            <tr><td>Precondition that guards subsequent steps</td><td><strong>Hard</strong></td><td>Following steps are meaningless if this fails</td></tr>
+            <tr><td>Playwright locator assertions (<code>expect(locator).toBeVisible()</code>)</td><td><strong>Hard</strong></td><td><code>SoftAssertHelper</code> has no locator equivalent</td></tr>
+            <tr><td><code>expect.poll()</code></td><td><strong>Hard</strong></td><td>Has its own retry/timeout logic; soft adds no value</td></tr>
+            <tr><td>Single-assertion test</td><td><strong>Hard</strong></td><td>Soft provides no benefit with one check</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 08 — Logging                                             -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="logging">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Structured Test Logging</h2>
+          <div class="section-desc">Observability for every test step, attached to HTML reports</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">TestLogger — Step / Action / Verify Triad</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <p class="pattern-body">
+          Every test creates a <code>TestLogger</code> via <code>createTestLogger(testName)</code>. Logs are written to <code>./test-logs/test-execution.log</code> and also attached as annotations to the Playwright HTML report, making failure context available directly in the report without opening log files.
+        </p>
+        <pre><span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_01 Login with valid credentials'</span>);
+
+logger.<span class="fn">step</span>(<span class="str">'Step 1 - Navigate to login page'</span>);   <span class="cmt">// 🔍 numbered step</span>
+logger.<span class="fn">action</span>(<span class="str">'Click'</span>, <span class="str">'Submit button'</span>);        <span class="cmt">// ⚡ interaction</span>
+logger.<span class="fn">verify</span>(<span class="str">'URL contains /dashboard'</span>,         <span class="cmt">// ✅ assertion outcome</span>
+  <span class="str">'/dashboard'</span>, page.<span class="fn">url</span>());
+logger.<span class="fn">error</span>(err, <span class="str">'Sign-in mutation failed'</span>);   <span class="cmt">// ❌ error context</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 09 — Timeouts                                            -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="timeouts">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>CI-Aware Timeout Constants</h2>
+          <div class="section-desc">Named constants, never magic numbers; longer in CI, shorter locally</div>
+        </div>
+      </div>
+      <pre><span class="cmt">// src/constants/timeouts.ts</span>
+<span class="kw">const</span> isCI = process.env.CI === <span class="str">'true'</span>;
+
+<span class="kw">export const</span> TIMEOUTS = {
+  PAGE_LOAD:        isCI ? <span class="num">60000</span> : <span class="num">30000</span>,   <span class="cmt">// adaptive</span>
+  ELEMENT_VISIBLE:  isCI ? <span class="num">20000</span> : <span class="num">10000</span>,
+  API_RESPONSE:     <span class="num">20000</span>,
+  API_SUITE_SETUP:  <span class="num">90000</span>,  <span class="cmt">// multi-call beforeAll (≥6 sequential staging calls)</span>
+  POLL_INTERVAL_FAST:   <span class="num">500</span>,
+  POLL_INTERVAL_NORMAL: <span class="num">1000</span>,
+  POLL_INTERVAL_SLOW:   <span class="num">2000</span>,
+} <span class="kw">as const</span>;</pre>
+      <div class="callout callout-amber">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body"><strong>API suite setup hooks:</strong> Any <code>beforeAll</code> with 6+ sequential staging API calls (auth + cart + SKU search + address + shipping + payment) must set <code>test.setTimeout(TIMEOUTS.API_SUITE_SETUP)</code> as its <strong>first line</strong>, or the hook will exceed the 30s default and all tests in the block will appear as "did not run".</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 10 — API Client Hierarchy                                -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="api-clients">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div>
+          <h2>API Client Hierarchy</h2>
+          <div class="section-desc">Layered REST and GraphQL clients with response wrapper chains</div>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="flow-node highlight">ApiClient<br><small>Low-level HTTP</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node green">ApiClientExt<br><small>*WithWrapper methods</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node amber">ApiResponseWrapper<br><small>Fluent assertions</small></div>
+      </div>
+      <div class="flow" style="margin-top:8px">
+        <div class="flow-node highlight">ApiClient</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node green">GraphQLClient<br><small>query/mutate/batch</small></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node amber">GraphQLResponseWrapper<br><small>assertNoErrors, assertDataField…</small></div>
+      </div>
+      <pre style="margin-top:20px"><span class="cmt">// Preferred: ApiClientExt — fluent wrapper chain</span>
+<span class="kw">const</span> response = <span class="kw">await</span> apiClientExt.<span class="fn">getWithWrapper</span>(<span class="str">'/resource/1'</span>);
+<span class="kw">await</span> response.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+<span class="kw">await</span> response.<span class="fn">assertJsonPath</span>(<span class="str">'user.name'</span>, <span class="str">'Alice'</span>);
+<span class="kw">await</span> response.<span class="fn">assertHasHeader</span>(<span class="str">'content-type'</span>);
+<span class="kw">const</span> id = <span class="kw">await</span> response.<span class="fn">extract</span>(<span class="str">'data.id'</span>);
+
+<span class="cmt">// GraphQL: assertNoErrors() FIRST on every happy-path test</span>
+<span class="kw">const</span> gql = <span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(QUERY, { id: <span class="str">'1'</span> });
+<span class="kw">await</span> gql.<span class="fn">assertNoErrors</span>();           <span class="cmt">// ← always first</span>
+<span class="kw">await</span> gql.<span class="fn">assertDataField</span>(<span class="str">'user.id'</span>, <span class="str">'1'</span>);</pre>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">AuthType Strategy Enum</span>
+          <span class="badge badge-api">API Pattern</span>
+        </div>
+        <p class="pattern-body">Auth strategies are expressed as an <strong>enum</strong>, never as string literals. Each value triggers different header construction inside <code>ApiClient.init()</code>. New strategies are added by extending the enum — no switch-statement sprawl in test code.</p>
+        <table style="margin:0">
+          <thead><tr><th>Value</th><th>Header produced</th></tr></thead>
+          <tbody>
+            <tr><td><code>AuthType.NONE</code></td><td>No auth headers</td></tr>
+            <tr><td><code>AuthType.BASIC</code></td><td><code>Authorization: Basic &lt;base64&gt;</code></td></tr>
+            <tr><td><code>AuthType.BEARER</code></td><td><code>Authorization: Bearer &lt;token&gt;</code></td></tr>
+            <tr><td><code>AuthType.API_KEY</code></td><td>Custom header name + value</td></tr>
+            <tr><td><code>AuthType.CUSTOM</code></td><td>Arbitrary <code>customHeaders</code> map</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Static Token Store — Cross-Test Auth Sharing</span>
+          <span class="badge badge-api">API Pattern</span>
+        </div>
+        <p class="pattern-body">
+          <code>ApiClient.tokenStore</code> is a static <code>Record&lt;string, string&gt;</code>. Tokens persist across all tests within a single worker process. Use <code>ApiClient.storeToken(key, token)</code> after login; retrieve with <code>ApiClient.getToken(key)</code> in later tests.
+        </p>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory Fixtures — Dynamic Client Creation at Test Time</span>
+          <span class="badge badge-api">Factory Pattern</span>
+        </div>
+        <p class="pattern-body">
+          <code>ApiTest.ts</code> exposes four <strong>factory fixtures</strong> alongside the standard singleton fixtures (<code>apiClient</code>, <code>graphqlClient</code>, etc.).
+          A factory fixture is not a pre-built client — it is a <strong>function</strong> the test calls to create one or more clients on demand, each with custom options merged on top of environment defaults.
+          The fixture itself manages the full lifecycle: it initialises every client the test creates and disposes them all after <code>use()</code> completes — the test body never calls <code>init()</code> or <code>dispose()</code>.
+        </p>
+        <table style="margin:0 0 16px">
+          <thead><tr><th>Factory fixture</th><th>Returns</th><th>When to use over the singleton</th></tr></thead>
+          <tbody>
+            <tr><td><code>createClient</code></td><td><code>ApiClient</code></td><td>Need a low-level client with non-default auth or headers</td></tr>
+            <tr><td><code>createClientExt</code></td><td><code>ApiClientExt</code></td><td>Need a wrapper-chain client with Bearer token or API key</td></tr>
+            <tr><td><code>createRestfulApiClient</code></td><td><code>RestfulApiClient</code></td><td>Need a device API client with custom timeout or auth</td></tr>
+            <tr><td><code>createGraphQLClient</code></td><td><code>GraphQLClient</code></td><td>Need a GraphQL client pointed at a different brand baseURL (GRA pattern)</td></tr>
+          </tbody>
+        </table>
+        <div class="two-col">
+          <div>
+            <div class="code-label">Factory fixture internals (createClientExt)</div>
+            <pre><span class="cmt">// src/api/ApiTest.ts:118–130</span>
+createClientExt: <span class="kw">async</span> ({ apiBaseUrl }, use) =&gt; {
+  <span class="kw">const</span> clients: <span class="type">ApiClientExt</span>[] = [];   <span class="cmt">// ① lifecycle tracker</span>
+
+  <span class="kw">const</span> factory = <span class="kw">async</span> (
+    options: <span class="type">Partial</span>&lt;<span class="type">ApiClientOptions</span>&gt;
+  ): <span class="type">Promise</span>&lt;<span class="type">ApiClientExt</span>&gt; =&gt; {
+    <span class="kw">const</span> client = <span class="kw">new</span> <span class="type">ApiClientExt</span>({
+      baseURL: apiBaseUrl, ...options  <span class="cmt">// ② merge defaults + overrides</span>
+    });
+    <span class="kw">await</span> client.<span class="fn">init</span>();               <span class="cmt">// ③ always initialised</span>
+    clients.<span class="fn">push</span>(client);              <span class="cmt">// ④ registered for teardown</span>
+    <span class="kw">return</span> client;
+  };
+
+  <span class="kw">await</span> <span class="fn">use</span>(factory);                 <span class="cmt">// ⑤ hand factory to the test</span>
+
+  <span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> clients)
+    <span class="kw">await</span> c.<span class="fn">dispose</span>();               <span class="cmt">// ⑥ dispose ALL created clients</span>
+},</pre>
+          </div>
+          <div>
+            <div class="code-label">Usage in a test</div>
+            <pre><span class="cmt">// Singleton — one client, default auth, no options</span>
+test(<span class="str">'TC_01'</span>, <span class="kw">async</span> ({ apiClientExt }) =&gt; {
+  <span class="kw">const</span> r = <span class="kw">await</span> apiClientExt.<span class="fn">getWithWrapper</span>(<span class="str">'/public'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+});
+
+<span class="cmt">// Factory — caller specifies only the delta</span>
+test(<span class="str">'TC_05'</span>, <span class="kw">async</span> ({ createClientExt }) =&gt; {
+  <span class="kw">const</span> authed = <span class="kw">await</span> <span class="fn">createClientExt</span>({
+    authType: <span class="type">AuthType</span>.BEARER,
+    token: storedToken,         <span class="cmt">// only override what differs</span>
+  });
+  <span class="kw">const</span> r = <span class="kw">await</span> authed.<span class="fn">getWithWrapper</span>(<span class="str">'/protected'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+  <span class="cmt">// no dispose() — factory fixture handles it</span>
+});</pre>
+          </div>
+        </div>
+        <div class="callout callout-amber" style="margin-top:16px">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <strong>Factory fixture vs singleton fixture:</strong> The standard fixtures (<code>apiClient</code>, <code>apiClientExt</code>, <code>graphqlClient</code>) are singletons — one instance per test, default auth, no custom options.
+            Use the factory fixtures when a test needs <strong>non-default auth</strong>, <strong>multiple independent clients</strong>, or a client pointed at a <strong>different base URL</strong> (e.g. GRA brand URL via <code>createGraphQLClient({ baseURL: site.baseURL })</code>).
+            Without factory fixtures, the test would need manual <code>new Client(...)</code> + <code>init()</code> + <code>try/finally dispose()</code> — the factory removes all three.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 11 — GraphQL Patterns                                    -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="graphql">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div>
+          <h2>GraphQL Testing Patterns</h2>
+          <div class="section-desc">Safe variable passing, error guards, staging tolerance</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="code-label">✅ Safe — variables as second arg</div>
+          <pre><span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(
+  <span class="str">`query GetUser($id: ID!) {
+    user(id: $id) { name }
+  }`</span>,
+  { id }   <span class="cmt">// ← variables object</span>
+);</pre>
+        </div>
+        <div>
+          <div class="code-label">❌ Banned — string interpolation</div>
+          <pre><span class="cmt">// Injection risk + breaks query caching</span>
+<span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(
+  <span class="str">`query { user(id: "${id}") { name } }`</span>
+);</pre>
+        </div>
+      </div>
+
+      <div class="card-grid" style="margin-top:16px">
+        <div class="card">
+          <div class="card-title">Error Presence Guard</div>
+          <div class="card-body">
+            <strong>Always</strong> use <code>if (gql.errors?.length)</code>, never <code>if (gql.errors)</code>.
+            An empty array <code>[]</code> is truthy — the bare check silently misclassifies a failed response as success.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Staging Price-Range Tolerance</div>
+          <div class="card-body">
+            Catalog queries use <code>assertNoCriticalErrors(gql)</code> instead of <code>assertNoErrors()</code>. This tolerates <code>price_range</code> path errors (broken staging data) while failing on all other error types.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Schema Gap Handling</div>
+          <div class="card-body">
+            Operations absent from staging schema (<code>productSearch</code>, <code>guestOrder</code>) are detected by checking for <code>"Cannot query field"</code> in errors and returning early — test is not marked failed.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">GraphQL Batching</div>
+          <div class="card-body">
+            <code>GraphQLClient</code> supports query batching via <code>addToBatch()</code> + <code>executeBatch()</code>. Configurable <code>maxBatchSize</code>. Used for introspection and bulk operations.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 12 — GRA Multi-Brand Pattern                             -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="gra">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div>
+          <h2>GRA Multi-Brand Test Pattern</h2>
+          <div class="section-desc">One shared spec suite running across 4 brand endpoints via Playwright projects</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Project-Per-Brand with Metadata Injection</span>
+          <span class="badge badge-api">Design Pattern</span>
+        </div>
+        <p class="pattern-body">
+          <code>api.config.ts</code> declares <strong>one Playwright project per brand</strong> (<code>pla-au</code>, <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code>). Each project sets <code>metadata: { siteCode: '...' }</code>.
+          All 15 <code>pla-*.spec.ts</code> files are shared across all brand projects unchanged.
+          The <code>graTest</code> fixture reads <code>testInfo.project.metadata.siteCode</code> to inject the correct <code>SiteContext</code> (baseURL, testData, currency, feature flags).
+        </p>
+        <pre><span class="cmt">// api.config.ts — one project per brand</span>
+projects: [
+  { name: <span class="str">'pla-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>], metadata: { siteCode: <span class="str">'pla-au'</span> } },
+  { name: <span class="str">'skx-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>], metadata: { siteCode: <span class="str">'skx-au'</span> } },
+  { name: <span class="str">'drm-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>],
+    testIgnore: [<span class="str">'**/pla-loyalty-rewards.spec.ts'</span>], <span class="cmt">// feature flag</span>
+    metadata: { siteCode: <span class="str">'drm-au'</span> } },
+],
+
+<span class="cmt">// gra-test.ts — site context injected into every fixture call</span>
+<span class="kw">const</span> site = siteRegistry[testInfo.project.metadata.siteCode]; <span class="cmt">// SiteContext</span>
+<span class="kw">const</span> graphqlClient = <span class="kw">await</span> <span class="fn">createGraphQLClient</span>({ baseURL: site.baseURL });</pre>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">Always-Fresh Auth</div>
+          <div class="card-body">Every <code>beforeAll</code> calls <code>signInAndStoreToken(client, logger, site, siteState)</code>. Never reuse a cached token — prior test runs (e.g. TC_01 revoking tokens) invalidate stale strings.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Always-Fresh Cart</div>
+          <div class="card-body">Cart creation happens in <code>beforeAll</code>, never in a test. Playwright retries re-run <code>beforeAll</code> but NOT earlier tests, so a <code>cartId</code> set in a prior test is empty string on retry.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Guest Carts for Negative Tests</div>
+          <div class="card-body">Magento's <code>createEmptyCart</code> for authenticated users returns the <em>existing active cart</em>. Negative tests (missing shipping / missing payment) use unauthenticated guest clients to guarantee a genuinely incomplete cart.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Safe SKU Discovery</div>
+          <div class="card-body">Candidate SKU lists collect only confirmed IN_STOCK <code>SimpleProduct</code> or <code>ConfigurableProduct</code> variant SKUs. No <code>else if (item.sku)</code> fallback — that grabs unaddable parent configurable SKUs.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 13 — Shared State                                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="api-state">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div>
+          <h2>Shared State — Map-Keyed Singleton</h2>
+          <div class="section-desc">Per-brand isolated state without cross-contamination between workers</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">TestState + getStateForSite(siteCode)</span>
+          <span class="badge badge-api">Pattern</span>
+        </div>
+        <p class="pattern-body">
+          <code>tests/api/shared-state.ts</code> provides a <code>TestState</code> singleton class keyed by <code>siteCode</code>. When 4 brands run concurrently across 4 workers, each worker has its own Node.js process — the Map is never shared across processes. Within a worker, the Map guarantees each brand's token, cartId, addressId are isolated. Setters throw on empty/falsy values to prevent silent blank-state bugs.
+        </p>
+        <pre><span class="cmt">// Multiple brands — each gets its own bucket</span>
+<span class="kw">const</span> pla = <span class="fn">getStateForSite</span>(<span class="str">'pla-au'</span>);
+<span class="kw">const</span> skx = <span class="fn">getStateForSite</span>(<span class="str">'skx-au'</span>);
+
+pla.<span class="fn">setCustomerToken</span>(token);   <span class="cmt">// only affects pla-au</span>
+skx.<span class="fn">setCartId</span>(cartId);         <span class="cmt">// only affects skx-au</span></pre>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 14 — Parallelism & Workers                               -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="parallel">
+      <div class="section-header">
+        <div class="section-num">14</div>
+        <div>
+          <h2>Parallelism &amp; Worker Configuration</h2>
+          <div class="section-desc">Different strategies for UI tests vs API tests</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Config</th><th>fullyParallel</th><th>workers</th><th>Rationale</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>playwright.config.ts</strong><br>(UI tests)</td>
+            <td><code>true</code></td>
+            <td><code>WORKERS env || "50%"</code></td>
+            <td>Tests are stateless (each gets a fresh browser context). 50% of CPU cores by default balances speed and resource use. Override per-run with <code>WORKERS=4</code> or <code>WORKERS=100%</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>api.config.ts</strong><br>(API tests)</td>
+            <td><code>false</code></td>
+            <td><code>4</code> (fixed)</td>
+            <td>4 brands run concurrently (one worker per brand). Within each worker, tests run sequentially — required because module-level <code>let</code> state (<code>cartId</code>, <code>token</code>) is shared across tests in the same file. <strong>Do NOT set <code>fullyParallel: true</code></strong>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout callout-amber">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body"><strong>Serial mode removed from GRA specs (2026-06-11):</strong> <code>test.describe.configure({ mode: 'serial' })</code> was deliberately removed from all 15 <code>pla-*.spec.ts</code> files. <code>fullyParallel: false</code> alone guarantees sequential ordering without cascade-skip-on-failure. Serial mode would cascade-skip all remaining tests when any one fails — hiding test signal.</div>
+      </div>
+      <div class="card-grid" style="margin-top:16px">
+        <div class="card">
+          <div class="card-title">Dynamic Worker Expression</div>
+          <div class="card-body"><code>"50%"</code> uses half the CPU cores (minimum 1). A numeric string like <code>"4"</code> fixes the count. The <code>WORKERS</code> env var overrides the default — used by CI matrix to tune per-OS.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">CI Matrix: Windows + macOS</div>
+          <div class="card-body">UI test job runs on both <code>windows-latest</code> and <code>macos-latest</code> simultaneously (<code>fail-fast: false</code>). This catches platform-specific issues (e.g. Firefox path-handling differences).</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Firefox Skipped in CI Ecommerce</div>
+          <div class="card-body">Firefox project has <code>testIgnore: ['**/ecommerce/smoke/**']</code> in CI. Ecommerce smoke tests run Chromium-only in CI to reduce flakiness from SPA service-worker teardown issues on Firefox.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 15 — Retry Mechanism                                     -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="retry">
+      <div class="section-header">
+        <div class="section-num">15</div>
+        <div>
+          <h2>Retry Mechanism</h2>
+          <div class="section-desc">Layered retry strategy: test-level, hook-level, and poll-based</div>
+        </div>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">Test-Level Retries</div>
+          <div class="card-body">
+            <code>retries: process.env.CI ? env.retries : 0</code><br>
+            UI: 2 retries in CI, 0 locally.<br>
+            API: 2 retries in CI, 0 locally.<br>
+            Retries re-run the full test including its <code>beforeAll</code>.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Trace on First Retry</div>
+          <div class="card-body">
+            <code>trace: "on-first-retry"</code> (default).<br>
+            Playwright records a full trace (DOM snapshots, network, console) on the first retry attempt. Zero overhead for passing tests; full debugging context for flaky ones.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Screenshots on Failure</div>
+          <div class="card-body">
+            <code>screenshot: "only-on-failure"</code>.<br>
+            Videos: <code>"retain-on-failure"</code>.<br>
+            Both configurable per-environment via <code>SCREENSHOT_MODE</code> and <code>VIDEO_MODE</code> env vars.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Poll-Based Retry (Eventual Consistency)</div>
+          <div class="card-body">
+            <code>expect.poll(() =&gt; condition, { timeout, intervals })</code><br>
+            Used for staging eventual-consistency gaps (e.g. token revocation lag). Also exposed as <code>TIMEOUTS.POLL_INTERVAL_NORMAL</code> (1s) wait + re-query loops.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">SKU Discovery Retry Loop</div>
+          <div class="card-body">
+            <code>beforeAll</code> tries multiple search terms and multiple SKU candidates in a loop. Each candidate's <code>addProductsToCart</code> call checks both <code>errors?.length</code> and <code>user_errors</code> — only moves on when a SKU successfully lands in the cart.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">PDP Size Selection Retry</div>
+          <div class="card-body">
+            Ecommerce PDP tests retry navigating to products when the discovered size is out of stock. Max attempt limit prevents infinite loops; OOS products are treated as expected cases, not failures.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 16 — Environment Config                                  -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="env">
+      <div class="section-header">
+        <div class="section-num">16</div>
+        <div>
+          <h2>Environment Configuration</h2>
+          <div class="section-desc">Multi-environment support via .env file loading and NODE_ENV</div>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="flow-node"><code>NODE_ENV=staging</code></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node highlight"><code>dotenv.config(.env.staging)</code></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node green"><code>getEnvironment()</code></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-node">Config object injected into config files</div>
+      </div>
+      <table style="margin-top:16px">
+        <thead><tr><th>Environment</th><th>Command</th></tr></thead>
+        <tbody>
+          <tr><td>Testing (default)</td><td><code>npm test</code> or <code>NODE_ENV=testing npm test</code></td></tr>
+          <tr><td>Staging</td><td><code>npm run test:staging</code></td></tr>
+          <tr><td>Production</td><td><code>npm run test:production</code></td></tr>
+          <tr><td>API — all envs</td><td><code>npm run test:api</code>, <code>test:api:testing</code>, <code>test:api:staging</code></td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-blue" style="margin-top:12px">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body"><strong>CI auto-detection:</strong> Both configs detect <code>CI</code>, <code>GITLAB_CI</code>, <code>TF_BUILD</code>, <code>GITHUB_ACTIONS</code> environment variables to automatically adjust retries, timeouts, and <code>forbidOnly</code>. No manual flag needed when running in GitHub Actions.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 17 — Global Lifecycle                                    -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="lifecycle">
+      <div class="section-header">
+        <div class="section-num">17</div>
+        <div>
+          <h2>Global Setup &amp; Teardown Lifecycle</h2>
+          <div class="section-desc">Suite-level bootstrapping and cleanup independent of individual tests</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="pattern">
+          <div class="pattern-title" style="margin-bottom:10px">🚀 Global Setup</div>
+          <div class="pattern-body">
+            1. Clear all logs and initialise logging session<br>
+            2. Load <code>.env.{NODE_ENV}</code> configuration<br>
+            3. Clean previous test results directories<br>
+            4. Create required output directories<br>
+            5. Validate browser installations<br>
+            6. Test connectivity to target applications<br>
+            7. Fail fast with clear error if any step fails
+          </div>
+        </div>
+        <div class="pattern">
+          <div class="pattern-title" style="margin-bottom:10px">🧹 Global Teardown</div>
+          <div class="pattern-body">
+            1. Generate test summary (<code>test-summary.txt</code>)<br>
+            2. Run monocart report validation<br>
+            3. Archive artifacts in CI (upload to GitHub Actions)<br>
+            4. Clean temporary files<br>
+            5. Append GitHub Step Summary in CI<br>
+            6. Trigger Slack notification (via workflow)
+          </div>
+        </div>
+      </div>
+      <div class="callout callout-green">
+        <span class="callout-icon">✅</span>
+        <div class="callout-body"><strong>API suite has its own lifecycle:</strong> <code>tests/api/global-setup.ts</code> and <code>tests/api/global-teardown.ts</code> handle API-specific bootstrapping (no browser, different output directories). Configured in <code>api.config.ts</code> independently from the UI lifecycle.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 18 — CI/CD Pipelines                                     -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="cicd">
+      <div class="section-header">
+        <div class="section-num">18</div>
+        <div>
+          <h2>CI/CD Pipelines</h2>
+          <div class="section-desc">GitHub Actions workflows with Slack notifications, matrix strategy, caching, and Cloudflare deployment</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Workflow file</th><th>Purpose</th><th>Triggers</th></tr></thead>
+        <tbody>
+          <tr><td><code>playwright-with-slack.yml</code></td><td>Main UI + API pipeline with Slack Block Kit notification</td><td>push, PR, <code>workflow_dispatch</code></td></tr>
+          <tr><td><code>playwright.yml</code></td><td>Simpler UI tests without Slack</td><td>push, PR</td></tr>
+          <tr><td><code>api-restful-tests-with-slack.yml</code></td><td>GRA API tests with Slack summary</td><td>push, PR, <code>workflow_dispatch</code></td></tr>
+          <tr><td><code>api-restful-tests.yml</code></td><td>GRA API tests without Slack</td><td>push, PR</td></tr>
+          <tr><td><code>percy-visual-tests.yml</code></td><td>Percy visual regression run</td><td>push, <code>workflow_dispatch</code></td></tr>
+          <tr><td><code>lighthouse-ci.yml</code></td><td>Lighthouse performance assertions</td><td>push, <code>workflow_dispatch</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="pattern" style="margin-top:20px">
+        <div class="pattern-header">
+          <span class="pattern-title">Key CI Patterns Applied</span>
+          <span class="badge badge-ci">CI/CD</span>
+        </div>
+        <div class="card-grid" style="margin-bottom:0">
+          <div class="card">
+            <div class="card-title">Browser Caching</div>
+            <div class="card-body"><code>actions/cache</code> keyed on <code>package-lock.json</code> hash. Saves ~2 min per run by skipping Playwright browser download when dependencies haven't changed.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Matrix Strategy (Windows + macOS)</div>
+            <div class="card-body">UI jobs run on both OS concurrently. <code>fail-fast: false</code> ensures both complete even if one fails. Matrix includes shell/script-extension differences handled automatically.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">workflow_dispatch Inputs</div>
+            <div class="card-body">Environment, mode, workers, browser, test type are all selectable at trigger time. Enables ad-hoc single-browser or single-environment runs without code changes.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Shard Merging</div>
+            <div class="card-body">OS-specific JSON reports are downloaded as artifacts and merged in a <code>test-report</code> job. Merged counts feed Slack and GitHub Step Summary. Monocart's JSON is used for trend history via branch-scoped <code>actions/cache</code>.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Cloudflare Pages Deployment</div>
+            <div class="card-body">Playwright HTML report and monocart report are deployed to Cloudflare Pages. Report URLs appear as Slack action buttons — stakeholders click through to the live interactive report without needing GitHub access.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">GitHub Step Summary</div>
+            <div class="card-body"><code>monocart onEnd</code> hook appends a markdown results table to <code>$GITHUB_STEP_SUMMARY</code>. Visible directly in the Actions run summary tab — no separate report URL needed for a quick pass/fail view.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Slack Block Kit Notification</div>
+            <div class="card-body">Rich Slack message with colour-coded status, per-suite counts (total/passed/failed/skipped/flaky/duration), environment and browser context, and action buttons (Workflow Run, UI Report, API Report, View Commit).</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Monocart Trend / History</div>
+            <div class="card-body">Previous run's <code>index.json</code> is cached per-branch with <code>actions/cache</code>. When <code>MONOCART_TREND_FILE</code> env var points to it, monocart renders a pass/fail trend chart across runs in the interactive report.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 19 — Reporting                                           -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="reporting">
+      <div class="section-header">
+        <div class="section-num">19</div>
+        <div>
+          <h2>Multi-Reporter Strategy</h2>
+          <div class="section-desc">Five reporters run in parallel — additive, no conflicts</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Reporter</th><th>Output</th><th>Audience / Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><strong>html</strong></td><td><code>playwright-report/</code> / <code>api-report/</code></td><td>Engineers: interactive step traces, screenshots, videos</td></tr>
+          <tr><td><strong>json</strong></td><td><code>test-results/results.json</code></td><td>CI tooling: programmatic parsing, artifact analysis, shard merging</td></tr>
+          <tr><td><strong>junit</strong></td><td><code>test-results/results.xml</code></td><td>Test management tools (Jira Xray, Azure DevOps): JUnit-compatible import</td></tr>
+          <tr><td><strong>list</strong> / <strong>line</strong></td><td>stdout</td><td>Console progress during local and CI runs</td></tr>
+          <tr><td><strong>monocart-reporter</strong></td><td><code>monocart-report/index.html</code></td><td>Stakeholders: rich grid, trend chart, GitHub Step Summary, Slack-ready summary counts</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 20 — Visual Testing                                      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="visual">
+      <div class="section-header">
+        <div class="section-num">20</div>
+        <div>
+          <h2>Visual Regression Testing</h2>
+          <div class="section-desc">Percy integration with silent skip when token is absent</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Conditional Percy Snapshots</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <p class="pattern-body">
+          Percy snapshots only execute when <code>PERCY_TOKEN</code> is set in the environment. When absent (local development), <code>percyHelper.snapshot()</code> silently skips — the test passes without any visual assertion. This means visual tests can live in the same suite as functional tests without breaking local runs.
+          <code>PercyHelper</code> is NOT a <code>BasePage</code> field — it is only available via the <code>percyHelper</code> fixture.
+        </p>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 21 — TypeScript Quality                                  -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="typescript">
+      <div class="section-header">
+        <div class="section-num">21</div>
+        <div>
+          <h2>TypeScript Quality Standards</h2>
+          <div class="section-desc">Strict mode, explicit typing, linting enforced in CI</div>
+        </div>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">Strict Mode</div>
+          <div class="card-body"><code>"strict": true</code> in <code>tsconfig.json</code>. Enables <code>strictNullChecks</code>, <code>noImplicitAny</code>, <code>strictFunctionTypes</code>. CI runs <code>npm run lint</code> (<code>tsc --noEmit</code>) — type errors fail the build.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Explicit Return Types</div>
+          <div class="card-body">All exported functions and generator methods declare explicit return types. Generator classes return typed interfaces, never inferred. This prevents interface drift when implementations change.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">No <code>any</code> Casts</div>
+          <div class="card-body"><code>AuthType.BEARER</code> enum is always used — never <code>"bearer" as any</code>. Data shapes carry named interfaces. <code>page.evaluate()</code> receives typed arrow functions, not raw strings where avoidable.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Optional Chaining on Error Arrays</div>
+          <div class="card-body"><code>gql.errors?.[0]?.message ?? ''</code> even inside a length check. TypeScript does NOT narrow <code>errors</code> to non-undefined inside <code>if (gql.errors?.length)</code> — optional chaining is still required on index access.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Module-Level <code>let</code> Initializers</div>
+          <div class="card-body"><code>let cartId: string = ''</code> not <code>let cartId: string</code>. Explicit initializers prevent TypeScript's definite assignment checks from being ambiguous and make the "empty state" semantic explicit.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Module Paths: NodeNext</div>
+          <div class="card-body"><code>"module": "NodeNext"</code> + <code>"moduleResolution": "NodeNext"</code> aligns TypeScript's module resolution with Node.js ESM semantics, avoiding common <code>.js</code> extension and re-export issues.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 22 — API Mocking                                         -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="mocking">
+      <div class="section-header">
+        <div class="section-num">22</div>
+        <div>
+          <h2>API Mocking for UI Tests</h2>
+          <div class="section-desc">Centralised mock scenarios, network interception via Playwright route API</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">ApiMockService — Centralised Scenarios</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <p class="pattern-body">
+          <code>src/api/ApiMockService.ts</code> wraps Playwright's <code>page.route()</code> API into named scenario methods.
+          Tests call high-level methods like <code>mockSuccessfulLogin()</code> instead of managing route handlers directly.
+          <code>NetworkHelper</code> provides the low-level route/unroute/intercept primitives; <code>ApiMockService</code> composes them into reusable scenarios.
+        </p>
+        <pre><span class="kw">const</span> mocks = <span class="kw">new</span> <span class="type">ApiMockService</span>(page);
+
+<span class="kw">await</span> mocks.<span class="fn">mockSuccessfulLogin</span>();          <span class="cmt">// stub auth endpoint</span>
+<span class="kw">await</span> mocks.<span class="fn">mockProductList</span>(productData);    <span class="cmt">// stub catalogue</span>
+<span class="kw">await</span> mocks.<span class="fn">mockGraphQLQuery</span>(<span class="str">'GetCart'</span>, {}); <span class="cmt">// stub specific GQL op</span>
+<span class="kw">await</span> mocks.<span class="fn">mockGraphQLError</span>(<span class="str">'PlaceOrder'</span>);  <span class="cmt">// simulate error</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 23 — Browser Workarounds                                 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="workarounds">
+      <div class="section-header">
+        <div class="section-num">23</div>
+        <div>
+          <h2>Browser-Specific Workarounds</h2>
+          <div class="section-desc">Documented fixes for known browser protocol / SPA issues</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Firefox SPA Service-Worker Teardown</span>
+          <span class="badge badge-arch">Workaround</span>
+        </div>
+        <p class="pattern-body">
+          All six ecommerce fixtures (<code>ecommerceHomePage</code>, <code>ecommerceNavPage</code>, <code>ecommerceSearchPage</code>, <code>ecommercePLPPage</code>, <code>ecommercePDPPage</code>, <code>ecommerceCartOverlayPage</code>) navigate to <code>about:blank</code> before teardown on Firefox.
+          <strong>Root cause:</strong> Firefox's Juggler protocol hangs on <code>context.close()</code> when SPAs have active service workers or persistent WebSocket/analytics connections. Navigating to <code>about:blank</code> triggers the unload lifecycle — deregistering service workers and closing connections — before the context is destroyed.
+          <strong>Do NOT remove</strong> this workaround from any of these fixtures.
+        </p>
+        <pre><span class="cmt">// Fixture teardown (after await use(...))</span>
+<span class="kw">if</span> (page.<span class="fn">context</span>().<span class="fn">browser</span>()?.browserType().<span class="fn">name</span>() === <span class="str">'firefox'</span>) {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'about:blank'</span>, { waitUntil: <span class="str">'commit'</span>, timeout: <span class="num">5000</span> })
+    .<span class="fn">catch</span>(() =&gt; {});  <span class="cmt">// swallow — page may already be closing</span>
+}</pre>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Firefox User Preferences for Stability</span>
+          <span class="badge badge-arch">Workaround</span>
+        </div>
+        <p class="pattern-body">
+          The Firefox project in <code>playwright.config.ts</code> sets explicit <code>firefoxUserPrefs</code> to disable geolocation, push notifications, background processes, and speculative connections that can cause flaky network waits or test-isolation issues. Network timeouts are also tightened to prevent lingering connections from blocking context teardown.
+        </p>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Staging Eventual-Consistency Polling</span>
+          <span class="badge badge-api">Workaround</span>
+        </div>
+        <p class="pattern-body">
+          PLA staging token revocation has a race condition: after <code>revokeCustomerToken</code>, the old token may still be accepted for 1–5s. Tests poll the protected resource with <code>TIMEOUTS.POLL_INTERVAL_NORMAL</code> (1s) intervals until the <code>graphql-authorization</code> error appears, rather than asserting immediately after revocation.
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- Summary table                                            -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num" style="background:linear-gradient(135deg,#3ddc84,#00bcd4)">✦</div>
+        <div>
+          <h2>Pattern Quick-Reference</h2>
+          <div class="section-desc">All patterns at a glance</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Category</th><th>Pattern / Practice</th><th>Where Applied</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Architecture</strong></td><td>Composition over inheritance (helper delegation)</td><td><code>BasePage</code> + 8 helpers</td></tr>
+          <tr><td><strong>Architecture</strong></td><td>Abstract base class + concrete page objects</td><td><code>src/pages/**/*.ts</code></td></tr>
+          <tr><td><strong>Architecture</strong></td><td>Fixture-based dependency injection</td><td><code>src/config/base-test.ts</code></td></tr>
+          <tr><td><strong>Architecture</strong></td><td>Path aliases for layer isolation</td><td><code>tsconfig.json</code>, <code>@pages</code>, <code>@config</code>…</td></tr>
+          <tr><td><strong>Design</strong></td><td>Strategy pattern (AuthType enum)</td><td><code>ApiClient.ts</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Builder / fluent wrapper (ApiResponseWrapper)</td><td><code>ApiClientExt</code>, <code>GraphQLClient</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Singleton + Map-keyed state isolation</td><td><code>shared-state.ts</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Factory pattern (test data generators — files with generate* methods only)</td><td><code>src/data/api/gra-test-data.ts</code>, <code>admin-data.ts</code>, <code>home-data.ts</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Factory fixtures (dynamic client creation + auto lifecycle)</td><td><code>src/api/ApiTest.ts</code> — <code>createClient</code>, <code>createClientExt</code>, <code>createGraphQLClient</code>, <code>createRestfulApiClient</code></td></tr>
+          <tr><td><strong>Design</strong></td><td>Typed Interface — named interface on every exported data shape</td><td>All <code>src/data/**/*.ts</code> files (both factory and const files)</td></tr>
+          <tr><td><strong>Design</strong></td><td>Project-per-brand multi-brand injection</td><td><code>api.config.ts</code>, <code>gra-test.ts</code></td></tr>
+          <tr><td><strong>Test</strong></td><td>TC_XX naming + tag-based filtering</td><td>All spec files</td></tr>
+          <tr><td><strong>Test</strong></td><td>Dual assertion mode (hard vs soft)</td><td>All spec files</td></tr>
+          <tr><td><strong>Test</strong></td><td>Structured logging with Playwright annotations</td><td><code>TestLogger</code>, all spec files</td></tr>
+          <tr><td><strong>Test</strong></td><td>Named timeout constants (CI-aware)</td><td><code>src/constants/timeouts.ts</code></td></tr>
+          <tr><td><strong>Test</strong></td><td>Always-fresh auth + always-fresh cart</td><td>All GRA <code>beforeAll</code> blocks</td></tr>
+          <tr><td><strong>Test</strong></td><td>Guest carts for negative test isolation</td><td><code>pla-place-order.spec.ts</code> TC_02/TC_03</td></tr>
+          <tr><td><strong>Test</strong></td><td>Safe SKU discovery (candidate list + user_errors check)</td><td>Checkout/cart beforeAll hooks</td></tr>
+          <tr><td><strong>Test</strong></td><td>Staging tolerance (assertNoCriticalErrors)</td><td><code>pla-catalog.spec.ts</code></td></tr>
+          <tr><td><strong>Test</strong></td><td>Schema gap graceful handling</td><td><code>productSearch</code>, <code>guestOrder</code> tests</td></tr>
+          <tr><td><strong>Execution</strong></td><td>fullyParallel: true + 50% workers (UI)</td><td><code>playwright.config.ts</code></td></tr>
+          <tr><td><strong>Execution</strong></td><td>fullyParallel: false + 4 fixed workers (API)</td><td><code>api.config.ts</code></td></tr>
+          <tr><td><strong>Execution</strong></td><td>No serial mode in GRA specs (cascade-skip prevention)</td><td>All <code>pla-*.spec.ts</code></td></tr>
+          <tr><td><strong>Execution</strong></td><td>Test-level retries (2 in CI, 0 local)</td><td>Both configs</td></tr>
+          <tr><td><strong>Execution</strong></td><td>Trace on first retry</td><td>Both configs</td></tr>
+          <tr><td><strong>Execution</strong></td><td>beforeAll timeout scaling for multi-step setups</td><td><code>TIMEOUTS.API_SUITE_SETUP</code></td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>OS matrix strategy (Windows + macOS)</td><td><code>playwright-with-slack.yml</code></td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>Browser caching (actions/cache)</td><td>All workflow files</td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>Shard report merging</td><td><code>test-report</code> job</td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>Cloudflare Pages report deployment</td><td><code>playwright-with-slack.yml</code></td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>Slack Block Kit rich notifications</td><td><code>*-with-slack.yml</code></td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>GitHub Step Summary via monocart onEnd hook</td><td>Both configs</td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>Monocart trend/history (branch-scoped cache)</td><td>Both configs</td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>forbidOnly guards against accidental test.only</td><td>Both configs</td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>Docker support (build + multi-browser + API)</td><td><code>package.json</code> docker:* scripts</td></tr>
+          <tr><td><strong>CI/CD</strong></td><td>Lighthouse CI performance assertions</td><td><code>lighthouse-ci.yml</code></td></tr>
+          <tr><td><strong>Quality</strong></td><td>TypeScript strict mode + noEmit lint gate</td><td><code>tsconfig.json</code>, <code>npm run lint</code></td></tr>
+          <tr><td><strong>Quality</strong></td><td>Named interfaces on all exported data shapes</td><td><code>src/data/**/*.ts</code></td></tr>
+          <tr><td><strong>Quality</strong></td><td>errors?.length guard (never bare truthy)</td><td>All API spec files</td></tr>
+          <tr><td><strong>Quality</strong></td><td>Module-level GraphQL hoisting (never inline)</td><td>All API spec files</td></tr>
+          <tr><td><strong>Quality</strong></td><td>AuthType enum (never string literals)</td><td>All API spec files</td></tr>
+          <tr><td><strong>Quality</strong></td><td>Percy conditional snapshot (PERCY_TOKEN gate)</td><td><code>PercyHelper</code>, visual tests</td></tr>
+          <tr><td><strong>Workaround</strong></td><td>Firefox about:blank teardown (SPA service workers)</td><td>6 ecommerce fixtures</td></tr>
+          <tr><td><strong>Workaround</strong></td><td>Firefox user preferences (stability)</td><td><code>playwright.config.ts</code> Firefox project</td></tr>
+          <tr><td><strong>Workaround</strong></td><td>Poll-based eventual-consistency waits</td><td><code>pla-authentication.spec.ts</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div style="text-align:center; color:var(--muted); font-size:12px; padding: 40px 0 20px; border-top: 1px solid var(--border); margin-top: 20px;">
+      Playwright TypeScript Framework — Design Patterns Reference &nbsp;|&nbsp; Updated 2026-06-17
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Highlight active nav item on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navItems = document.querySelectorAll('.nav-item');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navItems.forEach(n => n.classList.remove('active'));
+        const link = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

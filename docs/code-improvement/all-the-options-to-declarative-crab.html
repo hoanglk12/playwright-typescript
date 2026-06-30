@@ -1,0 +1,802 @@
+﻿<!DOCTYPE html><html><head><title>GRA GraphQL Expansion Plan</title><meta charset="utf-8"><style>* {
+	box-sizing: border-box;
+}
+
+html {
+	font-size: 100%;
+}
+
+body {
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+		'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+	line-height: 1.6;
+	font-size: 0.6875em; /* 11 pt */
+	color: #111;
+	margin: 0;
+}
+
+body > :first-child {
+	padding-top: 0;
+	margin-top: 0;
+}
+
+body > :last-child {
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0;
+	padding: 0.5em 0 0.25em;
+}
+
+h5,
+h6 {
+	padding: 0;
+}
+
+h5 {
+	font-size: 1em;
+}
+
+h6 {
+	font-size: 0.875em;
+	text-transform: uppercase;
+}
+
+p {
+	margin: 0.25em 0 1em;
+}
+
+blockquote {
+	margin: 0.5em 0 1em;
+	padding-left: 0.5em;
+	padding-right: 1em;
+	border-left: 4px solid gainsboro;
+	font-style: italic;
+}
+
+ul,
+ol {
+	margin: 0;
+	margin-left: 1em;
+	padding: 0 1.5em 0.5em;
+}
+
+pre {
+	white-space: pre-wrap;
+}
+
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code,
+p code,
+li code,
+pre code {
+	background-color: #f8f8f8;
+	padding: 0.1em 0.375em;
+	border: 1px solid #f8f8f8;
+	border-radius: 0.25em;
+	font-family: monospace;
+	font-size: 1.2em;
+}
+
+pre code {
+	display: block;
+	padding: 0.5em;
+}
+
+.page-break {
+	page-break-after: always;
+}
+
+img {
+	max-width: 100%;
+	margin: 1em 0;
+}
+
+table {
+	border-spacing: 0;
+	border-collapse: collapse;
+	display: block;
+	margin: 0 0 1em;
+	width: 100%;
+	overflow: auto;
+}
+
+table th,
+table td {
+	padding: 0.5em 1em;
+	border: 1px solid gainsboro;
+}
+
+table th {
+	font-weight: 600;
+}
+
+table tr {
+	background-color: white;
+	border-top: 1px solid gainsboro;
+}
+
+table tr:nth-child(2n) {
+	background-color: whitesmoke;
+}
+/*# sourceURL=E:\OLDDATA\DATA\TESTING\AutomationTesting\playwright-typescript\node_modules\md-to-pdf\markdown.css*/</style><style>pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
+}
+code.hljs {
+  padding: 3px 5px
+}
+/*!
+  Theme: GitHub
+  Description: Light theme as seen on github.com
+  Author: github.com
+  Maintainer: @Hirse
+  Updated: 2021-05-15
+
+  Outdated base version: https://github.com/primer/github-syntax-light
+  Current colors taken from GitHub's CSS
+*/
+.hljs {
+  color: #24292e;
+  background: #ffffff
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  /* prettylights-syntax-keyword */
+  color: #d73a49
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  /* prettylights-syntax-entity */
+  color: #6f42c1
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  /* prettylights-syntax-constant */
+  color: #005cc5
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  /* prettylights-syntax-string */
+  color: #032f62
+}
+.hljs-built_in,
+.hljs-symbol {
+  /* prettylights-syntax-variable */
+  color: #e36209
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  /* prettylights-syntax-comment */
+  color: #6a737d
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  /* prettylights-syntax-entity-tag */
+  color: #22863a
+}
+.hljs-subst {
+  /* prettylights-syntax-storage-modifier-import */
+  color: #24292e
+}
+.hljs-section {
+  /* prettylights-syntax-markup-heading */
+  color: #005cc5;
+  font-weight: bold
+}
+.hljs-bullet {
+  /* prettylights-syntax-markup-list */
+  color: #735c0f
+}
+.hljs-emphasis {
+  /* prettylights-syntax-markup-italic */
+  color: #24292e;
+  font-style: italic
+}
+.hljs-strong {
+  /* prettylights-syntax-markup-bold */
+  color: #24292e;
+  font-weight: bold
+}
+.hljs-addition {
+  /* prettylights-syntax-markup-inserted */
+  color: #22863a;
+  background-color: #f0fff4
+}
+.hljs-deletion {
+  /* prettylights-syntax-markup-deleted */
+  color: #b31d28;
+  background-color: #ffeef0
+}
+.hljs-char.escape_,
+.hljs-link,
+.hljs-params,
+.hljs-property,
+.hljs-punctuation,
+.hljs-tag {
+  /* purposely ignored */
+  
+}/*# sourceURL=E:\OLDDATA\DATA\TESTING\AutomationTesting\playwright-typescript\node_modules\highlight.js\styles\github.css*/</style></head>
+	<body class="">
+		<h1 id="technical-research-report--expanding-pla-graphql-suite-to-all-gra-sites">Technical Research Report — Expanding PLA GraphQL Suite to All GRA Sites</h1>
+<p><strong>Date:</strong> 2026-06-07 | <strong>Branch:</strong> main | <strong>Status:</strong> Research complete — all decisions confirmed — ready for implementation</p>
+<hr>
+<h2 id="1-summary">1. Summary</h2>
+<p>The existing suite (15 spec files, ~117 tests under <code>tests/api/pla-*.spec.ts</code>) targets one Accent Group Magento 2 GraphQL endpoint. The goal is to extend test coverage to SKX AU/NZ, DRM AU/NZ, and VAN AU/NZ — 6 additional brand+region combinations.</p>
+<p><strong>Headline finding — all brands share an identical GraphQL schema.</strong> Every brand exposes the same auth, cart, checkout, wishlist, loyalty, and <code>createCustomer</code> mutations with identical input shapes. Divergence is <strong>data + config only</strong>, not schema. This means the existing 15 specs can be reused for all brands with virtually no logic changes.</p>
+<p><strong>Two critical findings:</strong></p>
+<ol>
+<li><p><strong>"PLA NZ" is actually Platypus AU today.</strong> All GRA hosts default to store_code <code>au</code>, AUD, country AU when no <code>Store</code> header is sent. The existing PLA suite exercises the AU store on every host, including <code>stag-platypus-nz</code>. True NZ store views require a <code>Store: nz</code> header.</p>
+</li>
+<li><p><strong>An ergonomic framework gap affects NZ authenticated tests (not a hard blocker).</strong> <code>ApiClient.init()</code> applies auth via a mutually-exclusive switch — you cannot combine <code>AuthType.BEARER</code> <em>with</em> <code>customHeaders</code> on one client instance. However, NZ authed tests are <strong>still achievable today with no framework change</strong> by putting both headers into <code>customHeaders</code> under <code>AuthType.CUSTOM</code> (e.g. <code>{ 'Store': 'nz', 'Authorization': 'Bearer …' }</code>) — <code>init()</code>'s <code>CUSTOM</code> branch runs <code>Object.assign(headers, customHeaders)</code>, so both headers are sent. The recommended <code>init()</code> additive-merge fix is a <strong>cleanliness improvement</strong> (keeps tests using <code>AuthType.BEARER</code> semantically) — not a prerequisite that blocks NZ coverage.</p>
+</li>
+</ol>
+<hr>
+<h2 id="2-current-state--what-pla-suite-covers">2. Current State — What PLA Suite Covers</h2>
+<table>
+<thead>
+<tr>
+<th>Spec file</th>
+<th>Area</th>
+<th>~Tests</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pla-authentication.spec.ts</code></td>
+<td>auth mutations (generateCustomerToken, revoke, reset password)</td>
+<td>9</td>
+</tr>
+<tr>
+<td><code>pla-account-creation-signin.spec.ts</code></td>
+<td>createCustomer, sign-in flows</td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>pla-customer-profile.spec.ts</code></td>
+<td>customer query, profile reads</td>
+<td>6</td>
+</tr>
+<tr>
+<td><code>pla-my-details.spec.ts</code></td>
+<td>updateCustomerV2 mutations</td>
+<td>7</td>
+</tr>
+<tr>
+<td><code>pla-address-book-countries.spec.ts</code></td>
+<td>address CRUD, countries query</td>
+<td>9</td>
+</tr>
+<tr>
+<td><code>pla-search.spec.ts</code></td>
+<td>products(search), productSearch, catalog search</td>
+<td>6</td>
+</tr>
+<tr>
+<td><code>pla-catalog.spec.ts</code></td>
+<td>products query, categories, price_range</td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>pla-cart_minicart.spec.ts</code></td>
+<td>createEmptyCart, addProductsToCart, mini-cart</td>
+<td>10</td>
+</tr>
+<tr>
+<td><code>pla-wishlist.spec.ts</code></td>
+<td>addProductsToWishlist, removeProductsFromWishlist</td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>pla-checkout-shipping.spec.ts</code></td>
+<td>setShippingAddressesOnCart, setShippingMethodsOnCart</td>
+<td>9</td>
+</tr>
+<tr>
+<td><code>pla-checkout-billing-payment.spec.ts</code></td>
+<td>setBillingAddressOnCart, setPaymentMethodOnCart</td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>pla-place-order.spec.ts</code></td>
+<td>placeOrder, order confirmation</td>
+<td>7</td>
+</tr>
+<tr>
+<td><code>pla-loyalty-rewards.spec.ts</code></td>
+<td>applyRewardPointsToCart, applyQantasPointsToCart</td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>pla-order-history.spec.ts</code></td>
+<td>customer.orders, guestOrder queries</td>
+<td>6</td>
+</tr>
+<tr>
+<td><code>pla-support-features.spec.ts</code></td>
+<td>storeConfig, countries, CMS</td>
+<td>6</td>
+</tr>
+</tbody></table>
+<p><strong>Total: ~117 tests covering ~15 domain areas.</strong> Every scenario is reusable across all brands.</p>
+<hr>
+<h2 id="3-endpoint-viability--all-8-alive">3. Endpoint Viability — All 8 Alive</h2>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Status</th>
+<th>Default store</th>
+<th>Store: nz</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>stag-platypus-au.accentgra.com/graphql</td>
+<td>HTTP 200, auth working</td>
+<td>au / AUD</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>stag-platypus-nz.accentgra.com/graphql</td>
+<td>HTTP 200, defaults to au</td>
+<td>au / AUD</td>
+<td>nz / NZD ✓ confirmed</td>
+</tr>
+<tr>
+<td>stag-skechers-au.accentgra.com/graphql</td>
+<td>HTTP 200, auth working</td>
+<td>au / AUD</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>stag-skechers-nz.accentgra.com/graphql</td>
+<td>HTTP 200, defaults to au</td>
+<td>au / AUD</td>
+<td>nz / NZD ✓ confirmed</td>
+</tr>
+<tr>
+<td>stag-drmartens-au.accentgra.com/graphql</td>
+<td>HTTP 200, auth working</td>
+<td>au / AUD</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>stag-drmartens-nz.accentgra.com/graphql</td>
+<td>HTTP 200, defaults to au</td>
+<td>au / AUD</td>
+<td>nz / NZD ✓ confirmed</td>
+</tr>
+<tr>
+<td>stag-vans-au.accentgra.com/graphql</td>
+<td>HTTP 200, auth working</td>
+<td>au / AUD</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>stag-vans-nz.accentgra.com/graphql</td>
+<td>HTTP 200, defaults to au</td>
+<td>au / AUD</td>
+<td>nz / NZD ✓ confirmed</td>
+</tr>
+</tbody></table>
+<p>All 4 NZ hosts confirmed live by probing <code>storeConfig</code> with and without <code>Store</code> header:</p>
+<pre><code># Without Store header → AU store (default on all NZ hostnames)
+POST https://stag-drmartens-nz.accentgra.com/graphql
+Content-Type: application/json
+→ { "store_code": "au", "base_currency_code": "AUD", "locale": "en_AU" }
+
+# With Store: nz header → NZ store
+POST https://stag-drmartens-nz.accentgra.com/graphql
+Content-Type: application/json
+Store: nz
+→ { "store_code": "nz", "base_currency_code": "NZD", "locale": "en_AU" }
+</code></pre>
+<p>The <code>-nz</code> hostname does NOT automatically serve NZ store. <code>Store: nz</code> must be sent on every request to every NZ host.</p>
+<hr>
+<h2 id="4-schema-differences">4. Schema Differences</h2>
+<ul>
+<li><strong>Brand vs brand (PLA/SKX/DRM/VAN):</strong> IDENTICAL. All brand-specific and standard Magento 2 mutations present on every brand including <code>loyalty_program_status</code>, <code>phone_number</code>, <code>applyRewardPointsToCart</code>, <code>applyQantasPointsToCart</code>.</li>
+<li><strong>AU vs NZ:</strong> Store-view config only — currency (AUD→NZD), country codes (AU→NZ), available regions/shipping methods.</li>
+<li><strong>Qantas (user-confirmed):</strong> <code>applyQantasPointsToCart</code> is an AU-wide feature. All 4 AU brand sites include Qantas tests. All 4 NZ sites have Qantas tests <strong>removed entirely</strong> — not skipped, not gated, simply absent from the NZ spec files. No <code>supportsQantas</code> flag needed.</li>
+</ul>
+<hr>
+<h2 id="5-options--scoring">5. Options &amp; Scoring</h2>
+<h3 id="option-a--duplicate-per-site-90-files">Option A — Duplicate per-site (90+ files)</h3>
+<p>Copy all 15 spec files 6 times, hardcode per-site data. Zero framework change, maximum isolation.</p>
+<ul>
+<li><strong>Cons:</strong> 90+ files, any fix to a shared scenario must be applied 6×, maintenance nightmare.</li>
+<li><strong>Score: 9/40</strong></li>
+</ul>
+<h3 id="option-b--parameterised-loop-single-spec-loop-over-sites-array">Option B — Parameterised loop (single spec, loop over sites array)</h3>
+<p>One spec file per scenario, <code>sites.forEach(site =&gt; test.describe(site.name, ...))</code>. No framework change.</p>
+<ul>
+<li><strong>Cons:</strong> Playwright serial mode + nested loops interact badly; poor isolation; CI can't run brands in parallel; report grouping messy.</li>
+<li><strong>Score: 23/40</strong></li>
+</ul>
+<h3 id="option-c--shared-suite--playwright-project-per-site-⭐-recommended">Option C — Shared suite + Playwright project per site ⭐ RECOMMENDED</h3>
+<p>One spec file per scenario. Site-specific config injected via a <code>SiteContext</code> interface. Each brand gets its own data file under <code>src/data/api/{brand}/</code>. <code>api.config.ts</code> runs 8 projects (one per site), each setting <code>GRAPHQL_BASE_URL</code> and <code>Store</code> header. Full Playwright project isolation — independent reporting, parallel CI matrix.</p>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th align="right">Score</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Maintenance (1-10)</td>
+<td align="right">9</td>
+</tr>
+<tr>
+<td>Enterprise alignment (1-10)</td>
+<td align="right">9</td>
+</tr>
+<tr>
+<td>SDET best practice (1-10)</td>
+<td align="right">9</td>
+</tr>
+<tr>
+<td>CI impact (1-10)</td>
+<td align="right">9</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td align="right"><strong>36/40</strong></td>
+</tr>
+</tbody></table>
+<h3 id="option-d--brand-group-overrides">Option D — Brand-group overrides</h3>
+<p>Group similar brands, per-group spec overrides. Premise broken by uniform-schema evidence.</p>
+<ul>
+<li><strong>Score: 20/40</strong></li>
+</ul>
+<hr>
+<h2 id="6-recommended-approach--option-c-phased">6. Recommended Approach — Option C (Phased)</h2>
+<h3 id="phase-1-au-brand-hosts-no-framework-change">Phase 1: AU brand hosts (no framework change)</h3>
+<p><code>createGraphQLClient({ baseURL: site.baseURL })</code> is already supported — the <code>...options</code> spread in <code>ApiTest.ts</code> overrides <code>baseURL</code>. This covers all 4 AU brand hosts immediately.</p>
+<p><strong>New files:</strong></p>
+<ul>
+<li><code>src/data/api/sites.ts</code> — <code>SiteContext</code> interface + registry of all 8 sites</li>
+<li><code>src/data/api/skx/skx-au-data.ts</code> — SKX AU test data</li>
+<li><code>src/data/api/drm/drm-au-data.ts</code> — DRM AU test data</li>
+<li><code>src/data/api/van/van-au-data.ts</code> — VAN AU test data</li>
+<li><code>tests/api/skx-*.spec.ts</code> (or refactor pla-* to be site-parameterised)</li>
+<li>Re-key <code>shared-state.ts</code> to <code>Map&lt;siteCode, TestState&gt;</code></li>
+<li>Parameterise <code>signInAndStoreToken</code> to accept <code>SiteContext</code></li>
+</ul>
+<p><strong>Changes to <code>api.config.ts</code>:</strong> add explicit projects <code>pla-au</code>, <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code> (replacing the implicit default run).</p>
+<p><strong>Per-project <code>SiteContext</code> wiring (must be specified — the registry alone is not enough):</strong> each project carries <code>metadata: { siteCode: 'skx-au' }</code> <strong>and</strong> a <code>testMatch</code>/<code>grep</code> filter so it runs only the relevant specs (otherwise every project runs every spec, multiplying the suite 8×). Expose the site to specs via a fixture that reads <code>testInfo.project.metadata.siteCode</code>, looks it up in the <code>sites.ts</code> registry, and yields a <code>site: SiteContext</code> fixture. Specs take <code>{ graphqlClient, site }</code> and pull <code>baseURL</code> / <code>storeHeader</code> / data from <code>site</code> — no env-var juggling. The <code>graphqlClient</code> fixture builds from <code>site.baseURL</code> and, when <code>site.storeHeader</code> is set, passes <code>customHeaders: { Store: site.storeHeader }</code>.</p>
+<p><strong>Sequencing note:</strong> with <code>workers: 1</code> + <code>fullyParallel: false</code> (current <code>api.config.ts</code>), a single local <code>npm run test:api</code> runs all 8 projects <strong>sequentially</strong> (8× duration) in one process — which is also why <code>shared-state</code> re-keying matters locally. In the CI matrix (one site per job = one process), the singleton is already process-isolated, so the re-key is a safety belt there rather than a strict requirement.</p>
+<h3 id="phase-2-nz-store-views-requires-framework-fix">Phase 2: NZ store views (requires framework fix)</h3>
+<p><strong>Framework change needed in <code>src/api/ApiClient.ts</code>:</strong> make <code>init()</code> merge <code>customHeaders</code> additively with auth headers.</p>
+<p><strong>Why:</strong> <code>ApiClient.init()</code> uses a mutually-exclusive switch — <code>AuthType.BEARER</code> sets only the Bearer token; <code>AuthType.CUSTOM</code> sets only custom headers. You cannot apply both at once. NZ authenticated tests need two headers simultaneously on every request:</p>
+<ul>
+<li><code>Authorization: Bearer {token}</code> — for auth (cart, wishlist, checkout, loyalty, ~9/15 spec areas)</li>
+<li><code>Store: nz</code> — to activate the NZ store view</li>
+</ul>
+<p>Without this fix, public NZ tests (catalog, search, storeConfig, countries) work via <code>AuthType.CUSTOM</code>, but all authenticated NZ scenarios are impossible. The fix is additive and backward-compatible — existing AU tests are unaffected.</p>
+<p><strong>New files:</strong></p>
+<ul>
+<li><code>src/data/api/pla/pla-nz-data.ts</code>, <code>src/data/api/skx/skx-nz-data.ts</code>, etc.</li>
+<li>Add NZ projects to <code>api.config.ts</code> with <code>storeHeader: 'nz'</code></li>
+</ul>
+<h3 id="phase-3-ci--reporting">Phase 3: CI + reporting</h3>
+<ul>
+<li>Convert <code>api-restful-tests.yml</code> to a brand matrix (8 parallel jobs)</li>
+<li>Per-site monocart trend files + Slack aggregation showing per-brand counts</li>
+</ul>
+<h3 id="sitecontext-interface-proposed">SiteContext interface (proposed)</h3>
+<pre><code class="hljs ts"><span class="hljs-keyword">interface</span> <span class="hljs-title class_">SiteContext</span> {
+  <span class="hljs-attr">siteCode</span>: <span class="hljs-built_in">string</span>;        <span class="hljs-comment">// 'pla-au', 'skx-nz', etc.</span>
+  <span class="hljs-attr">brand</span>: <span class="hljs-built_in">string</span>;           <span class="hljs-comment">// 'platypus', 'skechers', 'drmartens', 'vans'</span>
+  <span class="hljs-attr">baseURL</span>: <span class="hljs-built_in">string</span>;         <span class="hljs-comment">// full graphql URL</span>
+  <span class="hljs-attr">storeHeader</span>?: <span class="hljs-built_in">string</span>;    <span class="hljs-comment">// 'nz' for NZ stores; undefined for AU</span>
+  <span class="hljs-attr">countryCode</span>: <span class="hljs-built_in">string</span>;     <span class="hljs-comment">// 'AU' or 'NZ'</span>
+  <span class="hljs-attr">currency</span>: <span class="hljs-built_in">string</span>;        <span class="hljs-comment">// 'AUD' or 'NZD'</span>
+  <span class="hljs-comment">// No supportsQantas flag — Qantas tests are absent from NZ spec files entirely</span>
+  <span class="hljs-attr">validCustomer</span>: <span class="hljs-title class_">CustomerData</span>;
+  <span class="hljs-attr">validCredentials</span>: <span class="hljs-title class_">LoginCredentials</span>;
+  <span class="hljs-attr">shippingRegion</span>: <span class="hljs-built_in">string</span>;  <span class="hljs-comment">// 'NSW' for AU, appropriate NZ region</span>
+}
+</code></pre>
+<hr>
+<h2 id="7-risk-assessment">7. Risk Assessment</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Impact</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>AuthType.BEARER</code> cannot combine with <code>customHeaders</code></td>
+<td><strong>Low</strong> — workaround exists (<code>AuthType.CUSTOM</code> with both headers); NZ authed tests achievable today</td>
+<td><code>ApiClient.init()</code> additive-merge fix preferred for clean API, but not required; backward-compat gate</td>
+</tr>
+<tr>
+<td>Global <code>shared-state</code> singleton collides</td>
+<td><strong>High</strong> — cross-site token/cartId leakage</td>
+<td>Re-key to <code>Map&lt;siteCode, TestState&gt;</code></td>
+</tr>
+<tr>
+<td><code>plaTestData</code> hardcoded for AU</td>
+<td><strong>High</strong> — wrong data sent to non-PLA sites</td>
+<td>Per-site data files + SiteContext</td>
+</tr>
+<tr>
+<td>Qantas on NZ sites</td>
+<td><strong>None</strong> — Qantas tests removed entirely from NZ spec files</td>
+<td>AU loyalty spec includes Qantas; NZ loyalty spec has only <code>applyRewardPointsToCart</code></td>
+</tr>
+<tr>
+<td>NZ shipping/payment methods differ</td>
+<td><strong>Medium</strong> — checkout tests may fail on NZ</td>
+<td>Re-probe NZ cart at Phase 2 implementation</td>
+</tr>
+<tr>
+<td>CI duration 8× serial</td>
+<td><strong>Medium</strong> — slow if not parallelised</td>
+<td>Matrix jobs; each <code>workers:1</code> within own project</td>
+</tr>
+<tr>
+<td>NZ test accounts per brand</td>
+<td><strong>Medium</strong> — need valid credentials per site</td>
+<td>Use create-on-demand pattern (matches PLA flow)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-implementation-steps-after-user-approval">8. Implementation Steps (after user approval)</h2>
+<ol>
+<li><strong>Create <code>SiteContext</code> interface + sites registry</strong> (<code>src/data/api/sites.ts</code>)</li>
+<li><strong>Re-key <code>shared-state.ts</code></strong> to <code>Map&lt;siteCode, {token, cartId, customerId, addressId}&gt;</code></li>
+<li><strong>Refactor <code>signInAndStoreToken</code></strong> to accept <code>SiteContext</code> + keyed shared-state</li>
+<li><strong>Create Phase 1 data files</strong> — <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code> under <code>src/data/api/{brand}/</code></li>
+<li><strong>Refactor PLA spec files</strong> to consume <code>SiteContext</code> instead of importing <code>plaTestData</code> directly</li>
+<li><strong>Add AU projects to <code>api.config.ts</code></strong> — <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code>; keep <code>pla-au</code> project</li>
+<li><strong>Run Phase 1</strong> — validate all AU brand runs pass</li>
+<li><strong>Fix <code>ApiClient.init()</code></strong> — additive header merge (preferred ergonomic fix; remove the redundant <code>AuthType.CUSTOM</code> case body when applying). Not a Phase 2 prerequisite — the <code>AuthType.CUSTOM</code> workaround unblocks NZ authed tests without it</li>
+<li><strong>Create NZ data files</strong> for all 4 brands</li>
+<li><strong>Add NZ projects to <code>api.config.ts</code></strong> with <code>storeHeader: 'nz'</code></li>
+<li><strong>NZ loyalty spec</strong> — create a separate NZ loyalty spec that covers only <code>applyRewardPointsToCart</code>; AU loyalty spec retains both <code>applyRewardPointsToCart</code> + <code>applyQantasPointsToCart</code></li>
+<li><strong>Update CI workflows</strong> — convert to brand matrix, update monocart + Slack</li>
+</ol>
+<hr>
+<h2 id="9-user-decisions-confirmed-2026-06-07">9. User Decisions (confirmed 2026-06-07)</h2>
+<ol>
+<li><strong>NZ scope:</strong> Full NZ store view coverage — all 15 scenarios run for every NZ endpoint with <code>Store: nz</code> header + NZD/NZ data. <code>ApiClient.init()</code> uses a mutually-exclusive auth switch: <code>AuthType.BEARER</code> sets only the Bearer token, <code>AuthType.CUSTOM</code> sets only custom headers — you cannot combine <code>AuthType.BEARER</code> with <code>customHeaders</code> on the same client. Authenticated NZ tests need <code>Authorization: Bearer {token}</code> + <code>Store: nz</code> simultaneously. <strong>This is achievable today without any framework change</strong> by sending both via <code>AuthType.CUSTOM</code> (<code>customHeaders: { 'Store': 'nz', 'Authorization': 'Bearer …' }</code>). The Phase 2 <code>ApiClient.init()</code> additive-merge fix is <strong>preferred but optional</strong> — it lets NZ authed tests keep using <code>AuthType.BEARER</code> semantically instead of hand-building the <code>Authorization</code> header. Public NZ tests (catalog, search, storeConfig) already work via <code>AuthType.CUSTOM</code> with just <code>{ 'Store': 'nz' }</code>.</li>
+<li><strong>PLA AU:</strong> Add as explicit <code>pla-au</code> project (formalise the current default run).</li>
+<li><strong>Qantas:</strong> AU-wide feature. All 4 AU sites include Qantas tests in their loyalty spec. All 4 NZ sites have Qantas tests <strong>removed entirely</strong> — not skipped, not conditionally gated, just absent. NZ loyalty spec covers only <code>applyRewardPointsToCart</code>.<ul>
+<li>Include Qantas: pla-au, skx-au, drm-au, van-au</li>
+<li>No Qantas at all: pla-nz, skx-nz, drm-nz, van-nz</li>
+</ul>
+</li>
+<li><strong>CI:</strong> 8 parallel matrix jobs — one per site.</li>
+<li><strong>Test accounts:</strong> Per-brand create-on-demand (matches existing PLA flow) — confirmed.</li>
+</ol>
+<hr>
+<h2 id="10-validation">10. Validation</h2>
+<ul>
+<li>Phase 1 gate: SKX AU, DRM AU, VAN AU runs produce same pass rate as PLA AU reference</li>
+<li>Phase 2 gate: one NZ authed query (Bearer + <code>Store: nz</code>) returns NZD currency, NZ country — no auth error</li>
+<li>Backward-compat gate: PLA AU run unchanged after <code>shared-state</code> re-keying</li>
+<li>Qantas gate: NZ loyalty spec contains only <code>applyRewardPointsToCart</code> — no Qantas test cases present; AU loyalty spec contains both Qantas + reward points tests</li>
+<li>CI gate: 8 distinct project groups (pla-au, pla-nz, skx-au, skx-nz, drm-au, drm-nz, van-au, van-nz) visible in monocart report</li>
+</ul>
+
+	
+
+
+<hr>
+<h2 id="11-framework-analysis-current-state-and-detailed-examples">11. Framework Analysis — Current State &amp; Detailed Examples</h2>
+
+<h3 id="are-current-tests-running-correctly">Are Current Tests Running Correctly?</h3>
+<p><strong>Yes, for PLA AU — the 15 existing specs are correct.</strong></p>
+<p><code>src/api/config/environment.ts:43</code> defaults <code>graphqlBaseUrl</code> to <code>stag-platypus-au.accentgra.com</code>. That host serves the AU store by default (no <code>Store</code> header required). Every PLA spec connects here, so AU data, AUD, and AU country codes are correct. Nothing is running wrongly today.</p>
+
+<h3 id="the-store-view-header-gap">The Store View Header Gap — Exactly Where It Breaks</h3>
+<p>The problem is <strong>future NZ tests</strong>, not existing AU ones. Here is the specific failure path.</p>
+<p><strong>Step 1 — NZ hostname does NOT mean NZ store:</strong></p>
+<pre><code class="hljs bash"># Without Store header &rarr; AU store (default on all NZ hostnames)
+POST https://stag-platypus-nz.accentgra.com/graphql
+&rarr; { "store_code": "au", "base_currency_code": "AUD" }
+
+# With Store: nz header &rarr; NZ store
+POST https://stag-platypus-nz.accentgra.com/graphql
+Store: nz
+&rarr; { "store_code": "nz", "base_currency_code": "NZD" }
+</code></pre>
+<p><strong>Step 2 — The framework cannot send Bearer + Store header together.</strong></p>
+<p>The <code>init()</code> method in <code>src/api/ApiClient.ts:51-73</code> uses a mutually exclusive switch — exiting each case with <code>break</code> before <code>customHeaders</code> can be applied:</p>
+<pre><code class="hljs ts">// ApiClient.ts — current (broken for NZ authenticated tests)
+switch (this.clientOptions.authType) {
+  case AuthType.BEARER:
+    headers['Authorization'] = `Bearer ${this.clientOptions.token}`;
+    break;   // exits here; customHeaders are NEVER applied
+  case AuthType.CUSTOM:
+    Object.assign(headers, this.clientOptions.customHeaders);
+    break;   // sets Store: nz but NO Authorization header
+}
+</code></pre>
+<p>NZ authenticated tests need <strong>both simultaneously</strong>:</p>
+<ul>
+  <li><code>Authorization: Bearer eyJhb...</code> — for cart / wishlist / checkout / loyalty (~9/15 spec areas)</li>
+  <li><code>Store: nz</code> — to activate NZ store view on every request</li>
+</ul>
+<p>With the current code, only one can be set. <code>AuthType.BEARER</code> silently ignores <code>customHeaders</code>. <code>AuthType.CUSTOM</code> sets <code>Store: nz</code> but adds no auth token.</p>
+<p><strong>Concrete effect in a test:</strong></p>
+<pre><code class="hljs ts">// What you would write for an NZ authenticated test today:
+const nzAuthClient = await createGraphQLClient({
+  authType: AuthType.BEARER,
+  token: customerToken,
+  customHeaders: { 'Store': 'nz' },  // silently dropped — never sent
+});
+// Request that actually goes out:
+//   Authorization: Bearer eyJhb...  ✓
+//   Store: nz                       ✗  (missing)
+// Magento responds with AUD/AU data, not NZD/NZ
+</code></pre>
+<p>For public NZ tests (catalog, search, storeConfig — no auth needed), <code>AuthType.CUSTOM</code> with <code>{ 'Store': 'nz' }</code> <em>does</em> work. Those 6/15 spec areas are unblocked even before the fix.</p>
+
+<h3 id="phase-1-framework-examples">Phase 1 — Framework Examples (AU Brands, No Fix Required)</h3>
+<p>AU brand hosts (SKX, DRM, VAN) work immediately. <code>createGraphQLClient({ baseURL: site.baseURL })</code> already overrides the URL via the <code>...options</code> spread in <code>ApiTest.ts:157-162</code>.</p>
+<p>What is missing for Phase 1 is the data layer. <code>api-test-helpers.ts:3</code> is hardwired to PLA:</p>
+<pre><code class="hljs ts">// api-test-helpers.ts — current (PLA-only)
+import { plaTestData } from '../../src/data/api/pla-test-data';
+
+export async function signInAndStoreToken(client, logger): Promise&lt;string&gt; {
+  const { email, password, remember } = plaTestData.validCredentials;  // PLA only
+  setCustomerToken(token);  // writes to a single global TestState singleton
+}
+</code></pre>
+<p><code>shared-state.ts</code> is a <strong>single global singleton</strong> — one token, one cartId, one addressId. Running multiple brands serially across Playwright projects would clobber each other's state.</p>
+<p><strong>New <code>SiteContext</code> interface</strong> (<code>src/data/api/sites.ts</code>):</p>
+<pre><code class="hljs ts">export interface SiteContext {
+  siteCode: string;           // 'pla-au', 'skx-au', 'van-nz', etc.
+  brand: string;              // 'platypus', 'skechers', 'drmartens', 'vans'
+  baseURL: string;            // full graphql URL
+  storeHeader?: string;       // 'nz' for NZ stores; undefined for AU
+  countryCode: string;        // 'AU' or 'NZ'
+  currency: string;           // 'AUD' or 'NZD'
+  validCustomer: CustomerInput;
+  validCredentials: ValidCredentials;
+  shippingRegion: string;     // 'NSW' for AU, appropriate NZ region
+  // No supportsQantas flag — Qantas tests absent from NZ spec files entirely
+}
+</code></pre>
+<p><strong>Updated <code>signInAndStoreToken</code></strong> — accepts <code>SiteContext</code> instead of reading <code>plaTestData</code> directly:</p>
+<pre><code class="hljs ts">// api-test-helpers.ts — updated for Phase 1
+export async function signInAndStoreToken(
+  client: GraphQLClient,
+  logger: TestLogger,
+  site: SiteContext,      // new: per-site credentials
+  state: SiteTestState,  // new: per-site state bucket
+): Promise&lt;string&gt; {
+  const { email, password, remember } = site.validCredentials;  // site-scoped
+  // ... same sign-in / create-account flow ...
+  state.setCustomerToken(token);  // writes into site-scoped state
+  return token;
+}
+</code></pre>
+<p><strong>Re-keyed <code>shared-state.ts</code></strong> — one <code>TestState</code> per site code:</p>
+<pre><code class="hljs ts">// shared-state.ts — updated for Phase 1
+const stateMap = new Map&lt;string, TestState&gt;();
+
+export function getStateForSite(siteCode: string): TestState {
+  if (!stateMap.has(siteCode)) stateMap.set(siteCode, new TestState());
+  return stateMap.get(siteCode)!;
+}
+// pla-au, skx-au, drm-au, van-au each get their own isolated token / cartId / addressId
+</code></pre>
+
+<h3 id="phase-2-apiclient-fix">Phase 2 — The <code>ApiClient.init()</code> Fix (Preferred, Not Required, for NZ Authenticated Tests)</h3>
+<p><strong>Workaround without the fix (works on current code):</strong> put both headers into <code>customHeaders</code> under <code>AuthType.CUSTOM</code>. The <code>CUSTOM</code> branch runs <code>Object.assign(headers, customHeaders)</code>, so both <code>Store: nz</code> and <code>Authorization: Bearer …</code> are sent on every request:</p>
+<pre><code class="hljs ts">// No framework change needed — both headers sent via AuthType.CUSTOM
+const nzAuthClient = await createGraphQLClient({
+  baseURL: 'https://stag-platypus-nz.accentgra.com/graphql',
+  authType: AuthType.CUSTOM,
+  customHeaders: {
+    'Store': 'nz',
+    'Authorization': `Bearer ${nzCustomerToken}`,
+  },
+});
+// Authorization: Bearer ...  ✓
+// Store: nz                  ✓
+</code></pre>
+<p><strong>Preferred fix (cleaner API):</strong> one additive merge after the switch lets tests keep using <code>AuthType.BEARER</code> semantically. Backward-compatible — existing AU tests are unaffected because they do not set <code>customHeaders</code>. <strong>Note:</strong> when applying this, remove the now-redundant <code>case AuthType.CUSTOM</code> body — the post-switch merge already covers it (leaving both would assign <code>customHeaders</code> twice; harmless but dead code).</p>
+<pre><code class="hljs ts">// ApiClient.ts — fixed init()
+async init(): Promise&lt;void&gt; {
+  const headers: Record&lt;string, string&gt; = {};
+
+  switch (this.clientOptions.authType) {
+    case AuthType.BEARER:
+      if (this.clientOptions.token) {
+        headers['Authorization'] = `Bearer ${this.clientOptions.token}`;
+      }
+      break;
+    // ... other cases unchanged ...
+  }
+
+  // NEW: always merge customHeaders additively, regardless of authType
+  if (this.clientOptions.customHeaders) {
+    Object.assign(headers, this.clientOptions.customHeaders);
+  }
+
+  this.context = await request.newContext({ extraHTTPHeaders: headers, ... });
+}
+</code></pre>
+<p>After this fix, an NZ authenticated client works correctly:</p>
+<pre><code class="hljs ts">// After fix — Bearer + Store: nz both sent on every request
+const nzAuthClient = await createGraphQLClient({
+  baseURL: 'https://stag-platypus-nz.accentgra.com/graphql',
+  authType: AuthType.BEARER,
+  token: nzCustomerToken,
+  customHeaders: { 'Store': 'nz' },
+});
+// Authorization: Bearer ...  ✓
+// Store: nz                  ✓
+// Magento returns NZD, NZ country codes, NZ shipping methods
+</code></pre>
+
+<h3 id="current-state-summary">Current State Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Current State</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLA AU (existing 15 specs)</td>
+<td>Hits <code>stag-platypus-au.accentgra.com</code>, no <code>Store</code> header needed</td>
+<td><strong>Working correctly</strong></td>
+</tr>
+<tr>
+<td>SKX / DRM / VAN AU (Phase 1)</td>
+<td>Needs per-site data files + keyed <code>shared-state</code> + <code>SiteContext</code></td>
+<td>Not built yet</td>
+</tr>
+<tr>
+<td>Any NZ public tests (catalog, search, storeConfig)</td>
+<td>Would work today with <code>AuthType.CUSTOM + { 'Store': 'nz' }</code></td>
+<td>Not built yet</td>
+</tr>
+<tr>
+<td>Any NZ authenticated tests (cart, wishlist, checkout, loyalty)</td>
+<td>Achievable today via <code>AuthType.CUSTOM</code> with <code>{ 'Store': 'nz', 'Authorization': 'Bearer …' }</code>; <code>AuthType.BEARER</code> + <code>customHeaders</code> cannot be combined</td>
+<td><strong>Works with workaround — <code>init()</code> fix preferred for clean API, not required</strong></td>
+</tr>
+</tbody>
+</table>
+<p>No framework code change is strictly required before NZ authenticated tests can be written — the <code>AuthType.CUSTOM</code> workaround unblocks them today. The <code>ApiClient.init()</code> additive-merge fix is a preferred ergonomic improvement. Everything else (Phase 1 + Phase 2) is additive: new data modules, <code>SiteContext</code> registry, re-keyed shared-state, new spec files, updated <code>api.config.ts</code> projects.</p>
+</body></html>
