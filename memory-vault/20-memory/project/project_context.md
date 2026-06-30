@@ -35,16 +35,20 @@ Playwright TypeScript automation framework for Fieldfisher (law firm) web proper
 - drm-au/van-au: `testIgnore: ['**/pla-loyalty-rewards.spec.ts']` — loyalty feature not deployed; excluded from report entirely
 - `api-scenarios-report.html` at `Guideline/api-scenarios-report.html` — see [[pla-api-testing]] for patterns and API quirks
 
-**Ecommerce UI smoke tests (6 spec files, ~200 tests as of 2026-06-04):**
+**Ecommerce UI smoke tests (9 spec files, ~260+ tests as of 2026-06-30):**
 - `homepage-smoke.spec.ts`: E2E-HOME-001/002/003 — 3 × 8 = 24 tests
 - `navigation-smoke.spec.ts`: E2E-NAV-001/002/003/004/005/009 — ~6 × 8 = 48 tests
 - `search-smoke.spec.ts`: E2E-SRCH-001/002 — 2 × 8 = 16 tests
 - `plp-smoke.spec.ts`: E2E-PLP-001/004/006/011/012 — 5 × 8 = 40 tests
 - `pdp-smoke.spec.ts`: E2E-PDP-001/002/004/005/006/007 — 6 × 8 = 48 tests
-- `cart-smoke.spec.ts`: E2E-CART-001 (empty mini cart) + E2E-CART-002 (ATC count) + E2E-CART-003 (mini cart overlay opens) — 3 × 8 = 24 tests
-- **Shared helpers:** `tests/ecommerce/smoke/smoke-helpers.ts` exports `getPreferredNavLabel(site, preferMens)` and `navigateToPlp(navPage, plpPage, site, navLabel)` — used by cart, pdp, and plp smoke specs to reduce duplication
-- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas; E2E-CART-004 through E2E-CART-011 remain
-- **Serial mode removed (2026-06-07):** All 6 smoke specs changed from `test.describe.serial` to `test.describe` — fixtures are test-scoped (each test gets its own browser context), so serial mode only added destructive cascade-skip behaviour with no benefit. See [[ecommerce-pdp-page-gotchas]] for PDP/cart patterns.
+- `cart-smoke.spec.ts`: E2E-CART-001/002/003 — 3 × 8 = 24 tests
+- `auth.spec.ts`: E2E-AUTH-001-001 through -010 — ~80 tests (account modal, sign-in/out, loyalty)
+- `localization-smoke.spec.ts`: E2E-LOC-001 (2) + LOC-002 (2) + LOC-003 (8) + LOC-004 (2) + LOC-007 (8) = 22 tests — see [[ecommerce-smoke-spec-catalog]]
+- `error-handling-smoke.spec.ts`: E2E-ERR-001 (8) + ERR-003 (8) + ERR-006 (8) = 24 tests — see [[ecommerce-smoke-spec-catalog]]
+- **Shared helpers:** `tests/ecommerce/smoke/smoke-helpers.ts` exports `getPreferredNavLabel`, `navigateToPlp`, `findProductWithAvailableSizes`, `shouldPreferMens`, `selectFirstPurchasableSize`, `ensureCartOverlayOpen`
+- Discovery report at `Guideline/E2E_DISCOVERY_REPORT.md`: 108 scenarios across 13 feature areas
+- **Serial mode removed (2026-06-07):** All 9 smoke specs use `test.describe` (not serial) — fixtures are test-scoped; serial only added cascade-skip behaviour with no benefit.
+- **E2E-ERR-006 gotcha (2026-06-30):** Magento PWA guest checkout — clicking CHECKOUT does NOT navigate to `/checkout`; opens auth modal on PDP (URL unchanged). `ecommerceCheckoutPage.submitCurrentStep()` must use `page.evaluate()` → `btn.click()` — `locator.click({ force: true })` bypasses React synthetic event delegation on NZ storefronts. Playwright 1.61.0→1.61.1 bump also applied (Node.js 22.18.0 incompatibility fix).
 
 **CAPTCHA solving integration (researched 2026-05-31, not yet implemented):**
 - Research report: `specs/captcha-solving-integration.html` — covers 2captcha official TS SDK, types: Cloudflare Turnstile, reCAPTCHA v2/v3, hCaptcha

@@ -13,7 +13,7 @@ Playwright TypeScript framework. Key facts:
   - `this.overlays` (`OverlayHelper`): overlay/modal dismissal via a fixed close-selector list. **Gap**: no Escape-key fallback, no container-scoped button targeting — the 3 Bloomreach inline dismissal methods in ecommerce page objects cannot migrate yet without extending the helper.
 - **Import rule**: Always `import { test, expect } from '@config/base-test'` in test files — never `@playwright/test` directly. The base-test extends with all page fixtures.
 - **Two configs**: `playwright.config.ts` (UI, all tests except `**/api/**`) and `api.config.ts` (API only, 1 worker serial).
-- **Firefox teardown**: `ecommerceHomePage` fixture navigates to `about:blank` before teardown on Firefox — intentional workaround for Juggler/service-worker hang. Do not remove.
+- **Firefox teardown**: All 8 ecommerce fixtures (`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`, `ecommerceCartOverlayPage`, `ecommerceAccountModalPage`, `ecommerceErrorPage`, `ecommerceCheckoutPage`) navigate to `about:blank` before teardown on Firefox — intentional workaround for Juggler/service-worker hang. Do not remove from any of them.
 - **Multi-app**: frontSiteUrl (Accent Group frontsite), adminUrl (guru99 bank), apiBaseUrl (restful-booker).
 - **Shared state**: `tests/api/shared-state.ts` is a **singleton `TestState` class** with typed getters/setters (setters throw on empty). Module-level function exports provide backward-compat API.
 - **Test data**: All test data in `src/data/`, never hardcoded in spec files. Static = const objects; dynamic = generators. PLA test data uses `createPlaTestData()` factory — returns a fresh self-consistent instance; call once at module level.
