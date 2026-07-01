@@ -1,7 +1,7 @@
 ---
 type: index
 tags: [memory, index]
-last_verified: 2026-06-30
+last_verified: 2026-07-01
 ---
 # Memory Index
 
@@ -19,6 +19,7 @@ last_verified: 2026-06-30
 - [[test-conventions|Test Conventions]] — TC_XX vs E2E naming; no-rename rule; tag placement in describe(); serial mode rules per suite type; import rules
 - [[typescript-coding-rules|TypeScript Coding Rules]] — errors?.length guard; optional chaining inside length checks; module-level let initializers; GraphQL string hoisting; AuthType enum; named interfaces
 - [[execution-config|Execution Config]] — fullyParallel strategy; 4 API workers; Firefox testIgnore in CI; API_SUITE_SETUP timeout gotcha; retries; forbidOnly; OS matrix
+- [[windows-ci-timeout-shard-fix|Windows CI Timeout & Shard Fix]] — playwright-with-slack.yml Windows leg chronically cancelled at 45min; root cause = broken %USERPROFILE% cache path + Windows throughput/retry cost; fixed via ~ cache path + 3-way Windows-only test sharding (matrix include, shardIndex/shardTotal, run-ui-tests.bat/.sh --shard forwarding); checkout-page.ts waitForCheckoutLoad() timeout-swallowing still open
 - [[advisor-nudge-mechanism|Advisor Nudge Mechanism]] — PostToolUse hook: ≥3 repeated test runs or file edits + 90s floor → injects additionalContext nudging advisor() call; resets on advisor() call; CLAUDE.md §5 lists 7 immediate-trigger patterns
 - [[gra-storefront-tech-notes|GRA Storefront Tech Notes]] — Live browser investigation (2026-06-15): Magento PWA Studio 9/GRA 10, GraphQL-GET only, styled-components hashed classes, no SW, no nav landmark, no data-testid, Skechers empty h1 bug, Vans Bloomreach popup (#popup-close), dataLayer patterns, route-block list, cart button [aria-label*="cart" i]
 - [[gra-integration-test-report|GRA Integration Test Report]] — INT-001–010 canonical scenarios for 8 GRA storefronts; ROI matrix; system boundaries; per-brand gotchas; report at docs/gra-integration-test-scenarios.html
