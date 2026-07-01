@@ -61,21 +61,34 @@ permissions:
 
 jobs:
   ui-test:
-    name: UI Tests (${{ matrix.os }})
+    name: UI Tests (${{ matrix.os }} shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     environment: ${{ github.event.inputs && github.event.inputs.environment || 'testing' }}
     if: ${{ inputs.test_type != 'api' }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
         include:
           - os: windows-latest
             shell: cmd
             script_ext: bat
+            shardIndex: 1
+            shardTotal: 3
+          - os: windows-latest
+            shell: cmd
+            script_ext: bat
+            shardIndex: 2
+            shardTotal: 3
+          - os: windows-latest
+            shell: cmd
+            script_ext: bat
+            shardIndex: 3
+            shardTotal: 3
           - os: macos-latest
             shell: bash
             script_ext: sh
+            shardIndex: 1
+            shardTotal: 1
       fail-fast: false
     
     steps:
@@ -94,7 +107,7 @@ jobs:
           path: |
             ~/.cache/ms-playwright
             ~/Library/Caches/ms-playwright
-            %USERPROFILE%\AppData\Local\ms-playwright
+            ~\AppData\Local\ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-playwright-
@@ -161,7 +174,7 @@ jobs:
 
       - name: Run UI tests (Unix)
         if: runner.os != 'Windows'
-        run: ./run-ui-tests.sh ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }}
+        run: ./run-ui-tests.sh ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }} ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
@@ -171,7 +184,7 @@ jobs:
 
       - name: Run UI tests (Windows)
         if: runner.os == 'Windows'
-        run: ./run-ui-tests.bat ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }}
+        run: ./run-ui-tests.bat ${{ env.TEST_ENV }} ${{ env.TEST_MODE }} ${{ env.TEST_WORKERS }} ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         shell: cmd
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
@@ -196,7 +209,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: monocart-shard-${{ runner.os }}-${{ github.run_id }}
+          name: monocart-shard-${{ runner.os }}-${{ matrix.shardIndex }}-${{ github.run_id }}
           path: monocart-report/
           retention-days: 1
 
@@ -204,7 +217,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: ui-test-results-${{ runner.os }}-${{ env.TEST_ENV }}-${{ env.TEST_MODE }}
+          name: ui-test-results-${{ runner.os }}-${{ matrix.shardIndex }}-${{ env.TEST_ENV }}-${{ env.TEST_MODE }}
           path: |
             test-results/
             playwright-report/

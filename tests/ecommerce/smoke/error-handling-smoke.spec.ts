@@ -79,6 +79,49 @@ test.describe('Ecommerce Error Handling Smoke @ecommerce @smoke @error-handling'
   }
 
   for (const site of storefronts) {
+    test(`E2E-ERR-005 - ${site.name} - Login with wrong password shows error`, async ({
+      ecommerceAccountModalPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`E2E-ERR-005 - ${site.name} - Wrong Password Error`);
+
+      logger.step('Step 1 - Navigate to storefront homepage');
+      await ecommerceAccountModalPage.navigate(site.url);
+
+      logger.step('Step 2 - Click account icon to open login modal');
+      await ecommerceAccountModalPage.openModal();
+
+      logger.step('Step 3 - Wait for modal to appear');
+      await ecommerceAccountModalPage.waitForModalVisible();
+
+      logger.step('Step 4 - Assert login modal is visible before submitting');
+      const modalVisible = await ecommerceAccountModalPage.isModalVisible();
+      logger.verify('Login modal visible', true, modalVisible);
+      expect(modalVisible).toBe(true);
+
+      logger.step('Step 5 - Capture baseline (no error before submit)');
+      const errorBeforeSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
+
+      logger.step('Step 6 - Fill wrong password credentials and click Login');
+      const creds = invalidCredentials[site.name];
+      await ecommerceAccountModalPage.login(creds.email, creds.password);
+
+      logger.step('Step 7 - Wait for error message to appear');
+      await ecommerceAccountModalPage.waitForLoginError();
+
+      logger.step('Step 8 - Assert error appeared only after failed login');
+      const errorAfterSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
+      softAssert.toBeTruthy(
+        errorBeforeSubmit.length === 0 && errorAfterSubmit.length > 0,
+        `Error message appeared only after failed login on ${site.name}`,
+      );
+
+      const stillLoggedOut = !(await ecommerceAccountModalPage.isLoggedIn());
+      softAssert.toBeTruthy(stillLoggedOut, `User remains logged out after failed login on ${site.name}`);
+    });
+  }
+
+  for (const site of storefronts) {
     test(`E2E-ERR-006 - ${site.name} - Checkout required fields blank shows validation`, async ({
       ecommerceNavPage,
       ecommercePLPPage,
@@ -157,49 +200,6 @@ test.describe('Ecommerce Error Handling Smoke @ecommerce @smoke @error-handling'
         hasValidation,
         `${site.name}: expected required-field validation after blank checkout submission. Messages found: ${JSON.stringify(messages)}`,
       ).toBe(true);
-    });
-  }
-
-  for (const site of storefronts) {
-    test(`E2E-ERR-005 - ${site.name} - Login with wrong password shows error`, async ({
-      ecommerceAccountModalPage,
-      softAssert,
-    }) => {
-      const logger = createTestLogger(`E2E-ERR-005 - ${site.name} - Wrong Password Error`);
-
-      logger.step('Step 1 - Navigate to storefront homepage');
-      await ecommerceAccountModalPage.navigate(site.url);
-
-      logger.step('Step 2 - Click account icon to open login modal');
-      await ecommerceAccountModalPage.openModal();
-
-      logger.step('Step 3 - Wait for modal to appear');
-      await ecommerceAccountModalPage.waitForModalVisible();
-
-      logger.step('Step 4 - Assert login modal is visible before submitting');
-      const modalVisible = await ecommerceAccountModalPage.isModalVisible();
-      logger.verify('Login modal visible', true, modalVisible);
-      expect(modalVisible).toBe(true);
-
-      logger.step('Step 5 - Capture baseline (no error before submit)');
-      const errorBeforeSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
-
-      logger.step('Step 6 - Fill wrong password credentials and click Login');
-      const creds = invalidCredentials[site.name];
-      await ecommerceAccountModalPage.login(creds.email, creds.password);
-
-      logger.step('Step 7 - Wait for error message to appear');
-      await ecommerceAccountModalPage.waitForLoginError();
-
-      logger.step('Step 8 - Assert error appeared only after failed login');
-      const errorAfterSubmit = await ecommerceAccountModalPage.getLoginErrorMessage();
-      softAssert.toBeTruthy(
-        errorBeforeSubmit.length === 0 && errorAfterSubmit.length > 0,
-        `Error message appeared only after failed login on ${site.name}`,
-      );
-
-      const stillLoggedOut = !(await ecommerceAccountModalPage.isLoggedIn());
-      softAssert.toBeTruthy(stillLoggedOut, `User remains logged out after failed login on ${site.name}`);
     });
   }
 });

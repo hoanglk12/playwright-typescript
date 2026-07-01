@@ -14,9 +14,16 @@ if /i "%MODE%"=="serial" (
     if "%WORKERS%"=="" set WORKERS=4
 )
 
+set SHARD=%4
+
 echo Environment: %ENV%
 echo Workers: %WORKERS%
+if not "%SHARD%"=="" echo Shard: %SHARD%
 echo.
 
 set API_ENV=%ENV%
-npx playwright test --config=playwright.config.ts --workers=%WORKERS%
+if "%SHARD%"=="" (
+    npx playwright test --config=playwright.config.ts --workers=%WORKERS%
+) else (
+    npx playwright test --config=playwright.config.ts --workers=%WORKERS% --shard=%SHARD%
+)

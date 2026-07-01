@@ -10,9 +10,16 @@ else
     WORKERS=${3:-4}
 fi
 
+SHARD=${4:-}
+
 echo "Environment: $ENV"
 echo "Workers: $WORKERS"
+[ -n "$SHARD" ] && echo "Shard: $SHARD"
 echo ""
 
 export API_ENV=$ENV
-npx playwright test --config=playwright.config.ts --workers=$WORKERS
+if [ -n "$SHARD" ]; then
+    npx playwright test --config=playwright.config.ts --workers=$WORKERS --shard=$SHARD
+else
+    npx playwright test --config=playwright.config.ts --workers=$WORKERS
+fi
