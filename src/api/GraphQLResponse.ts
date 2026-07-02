@@ -102,7 +102,7 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
    * @param path - Path to the field (dot notation)
    * @param value - Expected value
    */
-  public async assertDataField(path: string, value: any): Promise<this> {
+  public async assertDataField(path: string, value: unknown): Promise<this> {
     const data = await this.getData();
     const actual = this.extractFromPath(data, path);
     expect(actual).toEqual(value);
@@ -114,16 +114,16 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
    * @param path - Path to the field (dot notation)
    * @param value - Expected value
    */
-  public async assertDataFieldContains(path: string, value: any): Promise<this> {
+  public async assertDataFieldContains(path: string, value: unknown): Promise<this> {
     const data = await this.getData();
     const actual = this.extractFromPath(data, path);
-    
+
     if (Array.isArray(actual)) {
       expect(actual).toContainEqual(value);
     } else if (typeof actual === 'string') {
       expect(actual).toContain(String(value));
     } else {
-      expect(actual).toMatchObject(value);
+      expect(actual).toMatchObject(value as Record<string, unknown>);
     }
     return this;
   }
@@ -176,9 +176,9 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
    * @param path - Path in dot notation
    * @returns Extracted value
    */
-  private extractFromPath(obj: any, path: string): any {
-    return path.split('.').reduce((prev, curr) => {
-      return prev && prev[curr];
+  private extractFromPath(obj: unknown, path: string): unknown {
+    return path.split('.').reduce((prev: unknown, curr: string) => {
+      return prev && (prev as Record<string, unknown>)[curr];
     }, obj);
   }
 

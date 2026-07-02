@@ -151,7 +151,7 @@ export class ApiClient {
    * @param headers - Additional headers
    * @returns API response
    */
-  async post(url: string, data?: any, headers?: Record<string, string>): Promise<APIResponse> {
+  async post(url: string, data?: unknown, headers?: Record<string, string>): Promise<APIResponse> {
     return this.context.post(url, {
       data,
       headers
@@ -165,7 +165,7 @@ export class ApiClient {
    * @param headers - Additional headers
    * @returns API response
    */
-  async put(url: string, data?: any, headers?: Record<string, string>): Promise<APIResponse> {
+  async put(url: string, data?: unknown, headers?: Record<string, string>): Promise<APIResponse> {
     return this.context.put(url, {
       data,
       headers
@@ -179,7 +179,7 @@ export class ApiClient {
    * @param headers - Additional headers
    * @returns API response
    */
-  async patch(url: string, data?: any, headers?: Record<string, string>): Promise<APIResponse> {
+  async patch(url: string, data?: unknown, headers?: Record<string, string>): Promise<APIResponse> {
     return this.context.patch(url, {
       data,
       headers
@@ -192,7 +192,7 @@ export class ApiClient {
    * @param data - Request body data
    * @returns API response
    */
-  async delete(url: string, data?: any): Promise<APIResponse> {
+  async delete(url: string, data?: unknown): Promise<APIResponse> {
     return this.context.delete(url, { data });
   }
 

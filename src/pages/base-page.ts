@@ -26,6 +26,9 @@ import {
  *   this.storage.*  — cookies, localStorage, sessionStorage, clipboard
  *   this.network.*  — route mocking, request monitoring, performance
  *   this.tables.*   — HTML table interactions
+ *   this.tabs.*     — window/tab switching, dialog accept/dismiss
+ *   this.dom.*      — non-throwing DOM inspection queries
+ *   this.overlays.* — cookie banner / popup / modal dismissal
  *
  * The delegated methods below keep the existing page-object call-sites working.
  */
