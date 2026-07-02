@@ -23,13 +23,13 @@ Supplements the root `CLAUDE.md`. Rules here apply to everything under `tests/ec
 ## Page Object
 
 All ecommerce specs use fixtures from `base-test.ts`:
-`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`, `ecommerceCartOverlayPage`.
+`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`, `ecommerceCartOverlayPage`, `ecommerceAccountModalPage`, `ecommerceErrorPage`, `ecommerceCheckoutPage`.
 
 Never instantiate page objects directly in specs — always use the fixture.
 
 ## Firefox Teardown — Do Not Remove
 
-All six ecommerce fixtures navigate to `about:blank` before teardown on Firefox. This is intentional — Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove or refactor this workaround.
+All nine ecommerce fixtures navigate to `about:blank` before teardown on Firefox. This is intentional — Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove or refactor this workaround.
 
 ## EcommercePDPPage — Known Storefront Gotchas
 

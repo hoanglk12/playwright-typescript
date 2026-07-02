@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-Composition-based Page Object Model. `BasePage` owns 8 helper instances — **never call `page.locator()` or `page.click()` directly inside page classes**. Use the helpers instead:
+Composition-based Page Object Model. `BasePage` owns 11 helper instances — **never call `page.locator()` or `page.click()` directly inside page classes**. Use the helpers instead:
 
 | Property | Class | Purpose |
 |---|---|---|
@@ -18,6 +18,9 @@ Composition-based Page Object Model. `BasePage` owns 8 helper instances — **ne
 | `this.storage` | `StorageHelper` | Cookies, localStorage, sessionStorage, clipboard |
 | `this.network` | `NetworkHelper` | Route mocking, request interception, performance |
 | `this.tables` | `TableHelper` | HTML table interactions |
+| `this.tabs` | `TabHelper` | Window/tab switching, dialog accept/dismiss |
+| `this.dom` | `DomScanHelper` | Non-throwing DOM inspection queries |
+| `this.overlays` | `OverlayHelper` | Cookie banner / popup / modal dismissal |
 
 `PercyHelper` is **not** a `BasePage` field — it is available only as the `percyHelper` fixture in tests.
 
@@ -444,7 +447,6 @@ const client = await ApiClient.withStoredToken(
 
 - **Shared state**: `tests/api/shared-state.ts` — state that must survive across test files in one worker
 - **Lifecycle**: `tests/api/global-setup.ts` and `tests/api/global-teardown.ts` — before/after the full API suite
-- **Mocking** (UI tests only): `ApiMockService` in `src/api/ApiMockService.ts` — centralised scenarios (`mockSuccessfulLogin`, `mockProductList`, `mockGraphQLQuery`, `mockGraphQLError`, etc.)
 - **Services**: `src/api/services/{service-name}/` — models live alongside their service
 - **Config**: `api.config.ts` — 8 workers (one per GRA brand+region: 4 AU + 4 NZ), sequential within each spec (`fullyParallel: false`); reads from `.env.{NODE_ENV}` via `src/api/config/environment.ts`
 - **Run**: `npm run test:api` — 8 workers (brands run concurrently, tests within a spec run sequentially)
