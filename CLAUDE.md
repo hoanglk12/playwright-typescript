@@ -447,7 +447,6 @@ const client = await ApiClient.withStoredToken(
 
 - **Shared state**: `tests/api/shared-state.ts` — state that must survive across test files in one worker
 - **Lifecycle**: `tests/api/global-setup.ts` and `tests/api/global-teardown.ts` — before/after the full API suite
-- **Mocking** (UI tests only): `ApiMockService` in `src/api/ApiMockService.ts` — centralised scenarios (`mockSuccessfulLogin`, `mockProductList`, `mockGraphQLQuery`, `mockGraphQLError`, etc.)
 - **Services**: `src/api/services/{service-name}/` — models live alongside their service
 - **Config**: `api.config.ts` — 8 workers (one per GRA brand+region — 4 AU + 4 NZ), sequential within each spec (`fullyParallel: false`); reads from `.env.{NODE_ENV}` via `src/api/config/environment.ts`
 - **Run**: `npm run test:api` — 8 workers (brands run concurrently, tests within a spec run sequentially)
