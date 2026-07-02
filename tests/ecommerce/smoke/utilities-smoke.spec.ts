@@ -45,4 +45,37 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
       softAssert.toBe(await ecommerceTrackOrderPage.isSubmitButtonVisible(), true, 'Submit button visible');
     });
   }
+
+  for (const site of storefronts) {
+    test(`E2E-UTIL-005 - ${site.name} - Help/Support page accessible via header link`, async ({
+      ecommerceHelpSupportPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(
+        `E2E-UTIL-005 - ${site.name} - Help/Support page accessible via header link`,
+      );
+
+      logger.step('Step 1 - Navigate to storefront homepage');
+      await ecommerceHelpSupportPage.navigate(site.url);
+
+      logger.step('Step 2 - Assert Help/Support link is present in header');
+      const linkPresent = await ecommerceHelpSupportPage.isHelpSupportLinkPresent();
+      if (!linkPresent) {
+        test.skip(
+          true,
+          `${site.name}: no Help/Support link found in header — link may not be configured on this staging storefront`,
+        );
+        return;
+      }
+
+      logger.step('Step 3 - Click Help/Support link');
+      await ecommerceHelpSupportPage.clickHelpSupportLink();
+
+      logger.step('Step 4 - Assert navigation to Help/Support page succeeded');
+      await ecommerceHelpSupportPage.assertNavigatedToHelpSupportPage(site.name);
+
+      logger.step('Step 5 - Soft-assert landed on help/support destination');
+      softAssert.toBe(ecommerceHelpSupportPage.isOnHelpDestination(), true, 'On help/support destination URL');
+    });
+  }
 });

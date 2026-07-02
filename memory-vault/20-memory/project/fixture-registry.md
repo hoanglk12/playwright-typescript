@@ -27,14 +27,20 @@ Import: `import { test, expect } from '@config/base-test'`
 | `ecommerceAccountModalPage` | `EcommerceAccountModalPage` | ecommerce | ✅ |
 | `ecommerceErrorPage` | `EcommerceErrorPage` | ecommerce | ✅ |
 | `ecommerceCheckoutPage` | `EcommerceCheckoutPage` | ecommerce | ✅ |
+| `ecommerceTrackOrderPage` | `EcommerceTrackOrderPage` | ecommerce | ✅ |
+| `ecommerceHelpSupportPage` | `EcommerceHelpSupportPage` | ecommerce | ✅ |
 | `percyHelper` | `PercyHelper` | visual regression | — |
 | `softAssert` | `SoftAssertHelper` | soft assertions | — |
 
-**Firefox teardown pattern** (all 8 ecommerce fixtures): navigates to `about:blank` before context teardown on Firefox. Prevents Juggler protocol hang caused by SPA service workers + persistent WebSocket/analytics connections on staging storefronts. **Do not remove.**
+**Firefox teardown pattern** (all 11 ecommerce fixtures): navigates to `about:blank` before context teardown on Firefox. Prevents Juggler protocol hang caused by SPA service workers + persistent WebSocket/analytics connections on staging storefronts. **Do not remove.**
 
 `ecommerceErrorPage` — `src/pages/ecommerce/error-page.ts`. Handles soft-404 SPA routing. Methods: `navigateToNotFound(baseUrl)`, `assertBackToHomeVisible()`, `assertBrandErrorUiVisible(brandName, siteName)`. Used by E2E-ERR-001.
 
 `ecommerceCheckoutPage` — `src/pages/ecommerce/checkout-page.ts`. Handles Magento PWA guest checkout where clicking CHECKOUT opens an auth modal on the PDP (URL never changes to `/checkout`). Methods: `clickCheckoutCtaFromOverlay()`, `waitForCheckoutLoad()`, `isOnCheckoutPage()`, `submitCurrentStep()`, `hasRequiredFieldValidation()`, `getValidationMessages()`. Uses `page.evaluate()` → `btn.click()` for all interactive steps to propagate through React's synthetic event system. `force: true` on locator clicks bypasses React event delegation on NZ storefronts — do NOT use it here. Used by E2E-ERR-006.
+
+`ecommerceTrackOrderPage` — `src/pages/ecommerce/track-order-page.ts`. Footer-based Track Order link (requires `scrollToBottom()` before it enters the DOM — intersection-observer-gated footer). Methods: `navigate(baseUrl)`, `isTrackOrderLinkPresent()`, `clickTrackOrderLink()`, `assertFormPresent(siteName)`. Used by E2E-UTIL-001.
+
+`ecommerceHelpSupportPage` — `src/pages/ecommerce/help-support-page.ts`. Header-based Help entry point — see [[ecommerce-header-help-gotcha]] for the figure-trigger/flyout DOM pattern this page object encodes. Methods: `navigate(baseUrl)`, `isHelpSupportLinkPresent()`, `clickHelpSupportLink()`, `isOnHelpDestination()`, `assertNavigatedToHelpSupportPage(siteName)`. Used by E2E-UTIL-005.
 
 ## API Fixtures (src/api/ApiTest.ts)
 
