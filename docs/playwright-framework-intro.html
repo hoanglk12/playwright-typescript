@@ -277,6 +277,31 @@
     /* ── Two-col ── */
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
+    /* ── Language toggle ── */
+    .lang-toggle { display: inline-flex; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px; margin-bottom: 28px; }
+    .lang-btn {
+      padding: 6px 18px; border-radius: 16px; font-size: 12.5px; font-weight: 700;
+      color: var(--muted); cursor: pointer; border: none; background: transparent;
+      font-family: inherit; transition: background .15s, color .15s;
+    }
+    .lang-btn.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+    .lang-panel { display: none; }
+    .lang-panel.active { display: block; }
+
+    /* ── Isolation layer list ── */
+    .iso-layer { display: flex; gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--border); }
+    .iso-layer:last-child { border-bottom: none; }
+    .iso-num {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      background: var(--surface2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: var(--accent);
+    }
+    .iso-title { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+    .iso-body { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .iso-body strong { color: var(--text); }
+    .iso-body code { white-space: nowrap; }
+
     /* ── Footer ── */
     .footer {
       text-align: center; padding: 40px 60px 60px;
@@ -328,6 +353,7 @@
       <a href="#cicd" class="nav-item"><span class="nav-num">10</span>CI/CD &amp; Reporting</a>
       <a href="#stack" class="nav-item"><span class="nav-num">11</span>Technology Stack</a>
       <a href="#commands" class="nav-item"><span class="nav-num">12</span>Run Commands</a>
+      <a href="#isolation" class="nav-item"><span class="nav-num">13</span>Parallel Data Isolation</a>
     </div>
   </nav>
 
@@ -1262,6 +1288,317 @@ npm run codegen             <span class="cmt"># Playwright recorder</span></pre>
       </div>
     </section>
 
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 13 — Parallel Data Isolation                             -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="isolation">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div>
+          <h2>Data Isolation in Parallel UI Tests</h2>
+          <div class="section-desc">How six independent layers keep concurrent workers from corrupting each other's data</div>
+        </div>
+      </div>
+
+      <div class="lang-toggle">
+        <button class="lang-btn active" onclick="setIsoLang('en')">🇬🇧 English</button>
+        <button class="lang-btn" onclick="setIsoLang('vi')">🇻🇳 Tiếng Việt</button>
+      </div>
+
+      <!-- ══ EN ══ -->
+      <div class="lang-panel active" id="iso-en">
+
+        <div class="callout callout-blue">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <strong>fullyParallel: true</strong> is safe here not because of one mechanism, but because
+            <strong>six independent layers</strong> each remove a different class of collision — process isolation,
+            browser-context isolation, fresh generated test data, tolerant assertions, collision-free artifact naming,
+            and the deliberate absence of forced serialization.
+          </div>
+        </div>
+
+        <div style="margin: 28px 0;">
+          <div class="iso-layer">
+            <div class="iso-num">1</div>
+            <div>
+              <div class="iso-title">Process-level isolation — one OS process per worker</div>
+              <div class="iso-body">
+                Each <code>workers</code> slot (<code>playwright.config.ts:37-41</code>, default <code>"50%"</code>) is a
+                <strong>separate Node.js process</strong>, not a thread. Any module-level <code>let</code>/<code>const</code>
+                in a spec file exists once per process — a worker can never read another worker's in-memory variables.
+                An audit of every <code>tests/ecommerce/smoke/*.spec.ts</code> file confirmed zero module-level mutable
+                state; every <code>let</code> found (e.g. <code>targetSize</code>, <code>availableSizes</code>) is local
+                to a single <code>test()</code> body.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">2</div>
+            <div>
+              <div class="iso-title">Browser context isolation — fresh context per test, not per worker</div>
+              <div class="iso-body">
+                The <code>page</code> fixture defaults to <strong>test-scoped</strong>: every <code>test()</code> gets a
+                brand-new <code>BrowserContext</code> (cookies, localStorage, sessionStorage, cache all reset). All 10
+                ecommerce page-object fixtures in <code>base-test.ts</code> just wrap this same test-scoped
+                <code>page</code> — nothing widens the scope to worker-level. There is also no persisted
+                <code>storageState.json</code> reuse ("log in once, share everywhere") anywhere in the framework; every
+                test that needs auth logs in fresh inside its own body, so no session token ever crosses a test boundary.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">3</div>
+            <div>
+              <div class="iso-title">Fresh test data per test — the layer that actually prevents backend collisions</div>
+              <div class="iso-body">
+                Browser isolation alone doesn't stop two parallel workers from hitting the <em>same backend record</em>.
+                Any test that performs a real login/logout generates a disposable account first, via a GraphQL
+                <code>createCustomer</code> call, before the browser even opens:
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-header">
+          <span class="code-filename">src/data/ecommerce/test-accounts.ts</span>
+          <span class="code-lang">TypeScript</span>
+        </div>
+        <pre><span class="kw">export function</span> <span class="fn">createFreshAccountCredentials</span>(brandCode: <span class="type">string</span>): FreshAccountCredentials {
+  <span class="kw">const</span> ts = <span class="fn">Date.now</span>();
+  <span class="kw">const</span> rand = faker.string.<span class="fn">alphanumeric</span>(<span class="num">8</span>).<span class="fn">toLowerCase</span>();
+  <span class="kw">return</span> {
+    email: <span class="str">`qa.${brandCode}.e2e${ts}${rand}@mailinator.com`</span>, <span class="cmt">// timestamp + random — collision-safe across workers</span>
+    password: FRESH_ACCOUNT_PASSWORD,
+    firstname: faker.person.<span class="fn">firstName</span>(),
+    lastname: faker.person.<span class="fn">lastName</span>(),
+    phone_number: <span class="str">'0412345678'</span>,
+  };
+}</pre>
+
+        <div style="margin-top: 20px;">
+          <div class="iso-layer">
+            <div class="iso-num" style="opacity:0">3</div>
+            <div class="iso-body">
+              <code>Date.now() + 8-char random suffix</code> gives 36<sup>8</sup> ≈ 2.8 trillion combinations per
+              millisecond bucket — collision probability is negligible even under heavy parallelism. Every real login
+              test (<code>E2E-AUTH-002</code>, <code>E2E-AUTH-010</code>) calls
+              <code>createFreshAccountViaGraphQL(request, site)</code> so each worker gets its own throwaway customer
+              on the shared staging backend. <strong>Static shared data is only used where it's provably inert</strong> —
+              <code>invalidCredentials</code> / <code>nonExistentCredentials</code> in the same file back only
+              negative-path tests (wrong password, non-existent email) that never establish a session or mutate
+              server state, so sharing them across workers is safe by construction.
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">4</div>
+            <div>
+              <div class="iso-title">Assertions tolerate concurrent interference on shared staging</div>
+              <div class="iso-body">
+                Even with fresh accounts, all 8 storefronts remain live shared staging environments. Per
+                <code>tests/ecommerce/CLAUDE.md</code>, cart tests assert the <strong>delta</strong>
+                (<code>initialCartCount + 1</code>), never the absolute count. A test doesn't care what state other
+                concurrent activity left the cart in — it only asserts the change <em>it</em> caused, making it robust
+                to interleaving by design.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">5</div>
+            <div>
+              <div class="iso-title">Collision-free artifacts and reports</div>
+              <div class="iso-body">
+                Screenshots, videos, and traces are written per-test using Playwright's default output-path scheme
+                (title + project + retry embedded in the path), so two workers writing failure artifacts
+                simultaneously never collide on a file. The HTML/JSON/JUnit/monocart reporters themselves run in the
+                <strong>main orchestrating process</strong> — workers report results back over IPC — so there is no
+                multi-process race on the report files either.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">6</div>
+            <div>
+              <div class="iso-title">No artificial serialization</div>
+              <div class="iso-body">
+                Zero uses of <code>test.describe.configure({ mode: 'serial' })</code> exist anywhere under
+                <code>tests/ecommerce/</code>. That's deliberate, not an oversight: because layers 1–5 already solve
+                correctness, the suite doesn't need forced ordering to stay safe, so <code>fullyParallel: true</code>
+                can run everything concurrently without risk.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table style="margin-top: 28px;">
+          <thead>
+            <tr><th>Aspect</th><th>UI Suite (<code>playwright.config.ts</code>)</th><th>API Suite (<code>api.config.ts</code>)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>fullyParallel</strong></td><td><code>true</code></td><td><code>false</code></td></tr>
+            <tr><td><strong>Isolation strategy</strong></td><td>Fresh data + fresh browser context per test</td><td>Per-worker <code>TestState</code> singleton, sequential within a brand</td></tr>
+            <tr><td><strong>Why</strong></td><td>Every test is independent by construction — nothing needs to survive across tests</td><td>Checkout flow deliberately <em>chains</em> state (cart → address → shipping → payment → order) within one spec</td></tr>
+            <tr><td><strong>Concurrency unit</strong></td><td>Individual test (via worker process)</td><td>Brand/project (8 workers = 8 brands)</td></tr>
+          </tbody>
+        </table>
+
+      </div>
+
+      <!-- ══ VI ══ -->
+      <div class="lang-panel" id="iso-vi">
+
+        <div class="callout callout-blue">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <strong>fullyParallel: true</strong> an toàn ở đây không phải nhờ một cơ chế duy nhất, mà nhờ
+            <strong>sáu lớp độc lập</strong>, mỗi lớp loại bỏ một dạng xung đột (collision) khác nhau: cô lập theo
+            process, cô lập browser context, dữ liệu test được sinh mới hoàn toàn, assertion có khả năng chịu nhiễu,
+            đặt tên artifact không trùng lặp, và việc chủ động không ép chạy tuần tự.
+          </div>
+        </div>
+
+        <div style="margin: 28px 0;">
+          <div class="iso-layer">
+            <div class="iso-num">1</div>
+            <div>
+              <div class="iso-title">Cô lập ở cấp process — mỗi worker là một process hệ điều hành riêng</div>
+              <div class="iso-body">
+                Mỗi slot <code>workers</code> (<code>playwright.config.ts:37-41</code>, mặc định <code>"50%"</code>)
+                là một <strong>process Node.js riêng biệt</strong>, không phải là thread. Bất kỳ biến
+                <code>let</code>/<code>const</code> nào khai báo ở cấp module trong file spec chỉ tồn tại trong đúng
+                process đó — một worker không bao giờ đọc được biến trong bộ nhớ của worker khác. Việc rà soát toàn bộ
+                các file <code>tests/ecommerce/smoke/*.spec.ts</code> xác nhận không có biến trạng thái dùng chung nào
+                ở cấp module; mọi <code>let</code> tìm thấy (ví dụ <code>targetSize</code>, <code>availableSizes</code>)
+                đều chỉ tồn tại cục bộ bên trong một hàm <code>test()</code>.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">2</div>
+            <div>
+              <div class="iso-title">Cô lập browser context — context mới cho mỗi test, không phải cho mỗi worker</div>
+              <div class="iso-body">
+                Fixture <code>page</code> mặc định có phạm vi <strong>theo từng test</strong>: mỗi <code>test()</code>
+                nhận một <code>BrowserContext</code> hoàn toàn mới (cookie, localStorage, sessionStorage, cache đều
+                được reset). Cả 10 page-object fixture của ecommerce trong <code>base-test.ts</code> chỉ bọc lại đúng
+                <code>page</code> theo-test này — không có chỗ nào mở rộng phạm vi lên cấp worker. Framework cũng
+                không tái sử dụng <code>storageState.json</code> đã lưu (kiểu "đăng nhập một lần, dùng lại khắp nơi")
+                ở bất kỳ đâu; test nào cần đăng nhập đều tự đăng nhập mới bên trong thân test của chính nó, nên không
+                có session token nào bị rò rỉ qua ranh giới giữa các test.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">3</div>
+            <div>
+              <div class="iso-title">Dữ liệu test được sinh mới cho từng test — lớp thực sự ngăn xung đột ở backend</div>
+              <div class="iso-body">
+                Chỉ cô lập browser thôi thì chưa đủ để ngăn hai worker chạy song song cùng chạm vào
+                <em>cùng một bản ghi ở backend</em>. Bất kỳ test nào thực hiện đăng nhập/đăng xuất thật đều tạo một
+                tài khoản dùng-một-lần trước, thông qua lời gọi GraphQL <code>createCustomer</code>, trước cả khi
+                trình duyệt được mở:
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-header">
+          <span class="code-filename">src/data/ecommerce/test-accounts.ts</span>
+          <span class="code-lang">TypeScript</span>
+        </div>
+        <pre><span class="kw">export function</span> <span class="fn">createFreshAccountCredentials</span>(brandCode: <span class="type">string</span>): FreshAccountCredentials {
+  <span class="kw">const</span> ts = <span class="fn">Date.now</span>();
+  <span class="kw">const</span> rand = faker.string.<span class="fn">alphanumeric</span>(<span class="num">8</span>).<span class="fn">toLowerCase</span>();
+  <span class="kw">return</span> {
+    email: <span class="str">`qa.${brandCode}.e2e${ts}${rand}@mailinator.com`</span>, <span class="cmt">// timestamp + chuỗi ngẫu nhiên — an toàn khi nhiều worker chạy song song</span>
+    password: FRESH_ACCOUNT_PASSWORD,
+    firstname: faker.person.<span class="fn">firstName</span>(),
+    lastname: faker.person.<span class="fn">lastName</span>(),
+    phone_number: <span class="str">'0412345678'</span>,
+  };
+}</pre>
+
+        <div style="margin-top: 20px;">
+          <div class="iso-layer">
+            <div class="iso-num" style="opacity:0">3</div>
+            <div class="iso-body">
+              <code>Date.now() + hậu tố ngẫu nhiên 8 ký tự</code> cho ra 36<sup>8</sup> ≈ 2.8 nghìn tỷ tổ hợp trong mỗi
+              mili-giây — xác suất trùng lặp gần như bằng không kể cả khi chạy song song ở mức độ cao. Mọi test đăng
+              nhập thật (<code>E2E-AUTH-002</code>, <code>E2E-AUTH-010</code>) đều gọi
+              <code>createFreshAccountViaGraphQL(request, site)</code> nên mỗi worker có riêng một khách hàng
+              dùng-rồi-bỏ trên backend staging dùng chung. <strong>Dữ liệu tĩnh dùng chung chỉ được áp dụng ở những
+              nơi đã được chứng minh là vô hại</strong> — <code>invalidCredentials</code> /
+              <code>nonExistentCredentials</code> trong cùng file chỉ phục vụ các test tình huống lỗi (sai mật khẩu,
+              email không tồn tại), không bao giờ tạo session hay thay đổi dữ liệu trên server, nên việc dùng chung
+              giữa các worker vốn đã an toàn theo bản chất của chính dữ liệu đó.
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">4</div>
+            <div>
+              <div class="iso-title">Assertion được thiết kế để chịu được nhiễu từ các test chạy song song trên staging</div>
+              <div class="iso-body">
+                Dù đã có tài khoản mới, cả 8 storefront vẫn là môi trường staging dùng chung, đang chạy thật. Theo quy
+                định trong <code>tests/ecommerce/CLAUDE.md</code>, các test giỏ hàng luôn assert theo
+                <strong>độ chênh lệch (delta)</strong> (<code>initialCartCount + 1</code>), không bao giờ assert theo
+                số tuyệt đối. Một test sẽ không quan tâm hoạt động song song khác đã để lại trạng thái gì trong giỏ
+                hàng — nó chỉ assert đúng phần thay đổi do <em>chính nó</em> gây ra, nhờ vậy tự nhiên đã có khả năng
+                chịu được sự đan xen giữa các test.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">5</div>
+            <div>
+              <div class="iso-title">Artifact và report không bị trùng lặp/ghi đè</div>
+              <div class="iso-body">
+                Screenshot, video và trace được ghi theo từng test bằng cơ chế đặt tên đường dẫn mặc định của
+                Playwright (tên test + project + lần retry được nhúng vào đường dẫn), nên hai worker cùng ghi artifact
+                lỗi một lúc không bao giờ đụng vào cùng một file. Bản thân các reporter HTML/JSON/JUnit/monocart chạy
+                trong <strong>process điều phối chính</strong> — các worker chỉ gửi kết quả về qua IPC — nên cũng
+                không có tình trạng nhiều process cùng ghi đè lên file report.
+              </div>
+            </div>
+          </div>
+
+          <div class="iso-layer">
+            <div class="iso-num">6</div>
+            <div>
+              <div class="iso-title">Không ép chạy tuần tự một cách không cần thiết</div>
+              <div class="iso-body">
+                Không có bất kỳ chỗ nào dùng <code>test.describe.configure({ mode: 'serial' })</code> trong toàn bộ
+                thư mục <code>tests/ecommerce/</code>. Đây là lựa chọn có chủ đích, không phải bỏ sót: vì 5 lớp phía
+                trên đã giải quyết vấn đề đúng đắn dữ liệu, bộ test không cần ép thứ tự chạy để đảm bảo an toàn, nên
+                <code>fullyParallel: true</code> có thể chạy mọi thứ song song mà không gặp rủi ro.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table style="margin-top: 28px;">
+          <thead>
+            <tr><th>Khía cạnh</th><th>Bộ UI (<code>playwright.config.ts</code>)</th><th>Bộ API (<code>api.config.ts</code>)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>fullyParallel</strong></td><td><code>true</code></td><td><code>false</code></td></tr>
+            <tr><td><strong>Chiến lược cô lập</strong></td><td>Dữ liệu mới + browser context mới cho từng test</td><td>Singleton <code>TestState</code> riêng theo worker, chạy tuần tự trong cùng một brand</td></tr>
+            <tr><td><strong>Lý do</strong></td><td>Mỗi test độc lập ngay từ thiết kế — không có gì cần "sống sót" qua các test khác</td><td>Luồng checkout cố tình <em>nối chuỗi</em> trạng thái (giỏ hàng → địa chỉ → vận chuyển → thanh toán → đặt hàng) trong cùng một spec</td></tr>
+            <tr><td><strong>Đơn vị chạy song song</strong></td><td>Từng test riêng lẻ (thông qua worker process)</td><td>Theo brand/project (8 worker = 8 brand)</td></tr>
+          </tbody>
+        </table>
+
+      </div>
+    </section>
+
     <!-- ── Footer ── -->
     <div class="footer">
       <p>Playwright TypeScript Automation Framework &nbsp;|&nbsp; Introduction &amp; Getting Started</p>
@@ -1276,6 +1613,15 @@ npm run codegen             <span class="cmt"># Playwright recorder</span></pre>
 </div>
 
 <script>
+  // Toggle EN/VI panels in the Parallel Data Isolation section
+  function setIsoLang(lang) {
+    document.getElementById('iso-en').classList.toggle('active', lang === 'en');
+    document.getElementById('iso-vi').classList.toggle('active', lang === 'vi');
+    document.querySelectorAll('.lang-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', (lang === 'en' && i === 0) || (lang === 'vi' && i === 1));
+    });
+  }
+
   // Highlight active nav item on scroll
   const sections = document.querySelectorAll('section[id], .hero');
   const navItems = document.querySelectorAll('.nav-item');

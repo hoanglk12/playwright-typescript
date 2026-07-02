@@ -3,15 +3,15 @@ name: execution-config
 description: "Parallelism strategy, retry settings, CI auto-detection, timeouts gotchas, and Firefox testIgnore in CI"
 type: project
 tags: [memory, project]
-last_verified: 2026-06-12
+last_verified: 2026-07-02
 ---
 
 ## Worker & Parallelism Strategy
 
 | Config | fullyParallel | workers | Rationale |
 |---|---|---|---|
-| `playwright.config.ts` (UI) | `true` | `WORKERS env \|\| "50%"` | Tests are stateless (fresh browser context per test). 50% CPU cores by default. |
-| `api.config.ts` (API) | `false` | `4` (fixed) | 4 brands run concurrently. Within each worker, tests run sequentially — module-level `let` state (cartId, token) is shared across tests in one file. |
+| `playwright.config.ts` (UI) | `true` | `WORKERS env \|\| "50%"` | Tests are stateless (fresh browser context per test, fresh data per test — see [[parallel-ui-data-isolation]]). 50% CPU cores by default. |
+| `api.config.ts` (API) | `false` | `8` (fixed) | 8 brand+region projects run concurrently (4 AU + 4 NZ, NZ added 2026-06-19). Within each worker, tests run sequentially — module-level `let` state (cartId, token) is shared across tests in one file. |
 
 **Never set `fullyParallel: true` in api.config.ts.** Sequential order within each brand worker is the intentional design.
 

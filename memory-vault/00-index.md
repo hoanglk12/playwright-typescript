@@ -1,7 +1,7 @@
 ---
 type: index
 tags: [memory, index]
-last_verified: 2026-07-01
+last_verified: 2026-07-02
 ---
 # Memory Index
 
@@ -26,3 +26,4 @@ last_verified: 2026-07-01
 - [[playwright-161-and-helper-migration|Playwright 1.61 + Helper Migration]] — isVisible({timeout}) deprecation fix; this.dom.count() replaces page.evaluate querySelectorAll; waitForUrlPredicate replaces page.waitForURL(fn); OverlayHelper API gap
 - [[ecommerce-auth-modal-gotchas|Ecommerce Auth Modal Gotchas]] — Bloomreach addLocatorHandler, CMS block click discriminator, account toggle locator strategy, Firefox CI exclusion, modal title race condition, brand heading derivation, account panel detection; AUTH-010 uses fresh accounts (testAccounts for Vans/Dr.Martens broken on staging)
 - [[smoke-helpers-patterns|Smoke Helpers Patterns]] — 7 exports in smoke-helpers.ts; Flavor B stays inline; findProductWithAvailableSizes uses cart structure; shouldPreferMens vs skechers-only; never test.skip() inside helper; PDP-005 atcEnabled re-check
+- [[parallel-ui-data-isolation|Parallel UI Data Isolation]] — 6 layers why fullyParallel:true is safe for ecommerce tests: process isolation, test-scoped page/context (no storageState reuse), fresh-generated accounts (Date.now()+faker), delta assertions, collision-free artifacts, no forced serial mode; contrasts with API's per-brand TestState sequential model; documented in docs/playwright-framework-intro.html §13 (EN+VI toggle)
