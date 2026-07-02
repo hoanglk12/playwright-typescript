@@ -2,6 +2,7 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from "../../src/api/ApiClient";
 import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 let customerToken: string = '';
 let cartId: string = '';
@@ -23,6 +24,7 @@ const GET_DYNAMIC_DATA_QUERY = `query GetDynamicData($cart_id:String!){cart(cart
 test.describe("GRA GraphQL API - Support Features @api @graphql @regression", () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('PLA Support Features - Setup');
 
     const client = await createGraphQLClient();

@@ -2,6 +2,7 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from "../../src/api/ApiClient";
 import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 let customerToken: string = '';
 let customerId: string = '';
@@ -75,6 +76,7 @@ const LOYALTY_QUERY = `query loyalty{multiplerewards_loyalty_newsletter_subscrip
 test.describe("GRA GraphQL API - My Details apis", () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('PLA My Details - Setup');
     addressId = siteState.getAddressId();
 

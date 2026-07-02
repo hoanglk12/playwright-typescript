@@ -487,7 +487,7 @@ test.describe('GRA GraphQL API - Feature @api @graphql', () => {
 });
 ```
 
-GRA specs use `fullyParallel: false` (sequential within spec) + 4 workers (one per brand, concurrently). Do **not** add `test.describe.configure({ mode: 'serial' })` to GRA specs.
+GRA specs use `fullyParallel: false` (sequential within spec) + 8 workers (one per brand+region: 4 AU + 4 NZ, concurrently). Do **not** add `test.describe.configure({ mode: 'serial' })` to GRA specs.
 
 ---
 

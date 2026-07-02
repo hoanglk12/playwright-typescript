@@ -10,6 +10,7 @@ import {
   WishlistShape,
 } from '../../src/data/api/gra-wishlist-data';
 import { signInAndStoreToken } from './api-test-helpers';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 let customerToken: string = '';
 let wishlistId: string = '';
@@ -128,6 +129,7 @@ function wasRejected(
 test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('PLA Wishlist - Setup');
 
     // ── 1. Fresh auth ──────────────────────────────────────────────────────────

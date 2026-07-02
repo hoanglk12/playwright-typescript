@@ -72,6 +72,7 @@ const RESET_PASSWORD_MUTATION = `
 
 test.describe('GRA Authentication @api @graphql @regression', () => {
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('beforeAll PLA Authentication setup');
     testEmail = site.testData.validCredentials.email;
     const client = await createGraphQLClient();

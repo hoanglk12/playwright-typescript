@@ -6,6 +6,7 @@ import {
   graCustomerProfileData,
   graCustomerProfileErrorMessages,
 } from '../../src/data/api/gra-customer-profile-data';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 const CHANGE_PASSWORD_MUTATION = `
   mutation ChangeCustomerPassword($currentPassword: String!, $newPassword: String!) {
@@ -85,6 +86,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
   let customerToken: string = '';
 
   test.beforeAll(async ({ createGraphQLClient, site, siteState }) => {
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('PLA Customer Profile - Setup');
     const client = await createGraphQLClient();
     customerToken = await signInAndStoreToken(client, logger, site, siteState);

@@ -52,7 +52,7 @@ import { test, expect, softExpect } from '@config/base-test';
 | Config | Scope | Command |
 |---|---|---|
 | `playwright.config.ts` | UI tests (ignores `**/api/**`) | `npm test` |
-| `api.config.ts` | API tests only (4 workers, sequential) | `npm run test:api` |
+| `api.config.ts` | API tests only (8 workers, sequential) | `npm run test:api` |
 
 Both configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`.
 
@@ -446,8 +446,8 @@ const client = await ApiClient.withStoredToken(
 - **Lifecycle**: `tests/api/global-setup.ts` and `tests/api/global-teardown.ts` — before/after the full API suite
 - **Mocking** (UI tests only): `ApiMockService` in `src/api/ApiMockService.ts` — centralised scenarios (`mockSuccessfulLogin`, `mockProductList`, `mockGraphQLQuery`, `mockGraphQLError`, etc.)
 - **Services**: `src/api/services/{service-name}/` — models live alongside their service
-- **Config**: `api.config.ts` — 4 workers (one per GRA brand), sequential within each spec (`fullyParallel: false`); reads from `.env.{NODE_ENV}` via `src/api/config/environment.ts`
-- **Run**: `npm run test:api` — 4 workers (brands run concurrently, tests within a spec run sequentially)
+- **Config**: `api.config.ts` — 8 workers (one per GRA brand+region: 4 AU + 4 NZ), sequential within each spec (`fullyParallel: false`); reads from `.env.{NODE_ENV}` via `src/api/config/environment.ts`
+- **Run**: `npm run test:api` — 8 workers (brands run concurrently, tests within a spec run sequentially)
 
 ## Visual Testing (Percy)
 
@@ -462,7 +462,7 @@ See `package.json` for the full script list. Key commands:
 
 ```bash
 npm test                          # headless, chromium + firefox, 50% workers
-npm run test:api                  # all API tests (4 workers, sequential)
+npm run test:api                  # all API tests (8 workers, sequential)
 npm run test:simple               # chromium only, 1 worker
 npm run test:serial               # 1 worker (flaky investigation)
 npm run test:headed               # visible browser

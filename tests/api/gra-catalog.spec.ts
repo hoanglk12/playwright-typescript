@@ -1,6 +1,7 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { GraCatalogData } from '../../src/data/api/gra-catalog-data';
+import { TIMEOUTS } from '../../src/constants/timeouts';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -251,6 +252,7 @@ const URL_RESOLVER_QUERY = `
 test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
 
   test.beforeAll(async ({ createGraphQLClient, site }) => {
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
     const logger = createTestLogger('PLA Catalog - Discovery Setup');
     const client = await createGraphQLClient();
 
