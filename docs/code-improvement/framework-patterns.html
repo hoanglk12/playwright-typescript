@@ -1049,7 +1049,7 @@ projects: [
           <span class="badge badge-api">Pattern</span>
         </div>
         <p class="pattern-body">
-          <code>tests/api/shared-state.ts</code> provides a <code>TestState</code> singleton class keyed by <code>siteCode</code>. When 4 brands run concurrently across 4 workers, each worker has its own Node.js process — the Map is never shared across processes. Within a worker, the Map guarantees each brand's token, cartId, addressId are isolated. Setters throw on empty/falsy values to prevent silent blank-state bugs.
+          <code>tests/api/shared-state.ts</code> provides a <code>TestState</code> singleton class keyed by <code>siteCode</code>. When 8 brands run concurrently across 8 workers, each worker has its own Node.js process — the Map is never shared across processes. Within a worker, the Map guarantees each brand's token, cartId, addressId are isolated. Setters throw on empty/falsy values to prevent silent blank-state bugs.
         </p>
         <pre><span class="cmt">// Multiple brands — each gets its own bucket</span>
 <span class="kw">const</span> pla = <span class="fn">getStateForSite</span>(<span class="str">'pla-au'</span>);
