@@ -23,7 +23,7 @@ export class ApiClientExt extends ApiClient {
    * @param headers - Additional headers
    * @returns API response wrapper
    */
-  async postWithWrapper(url: string, data?: any, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
+  async postWithWrapper(url: string, data?: unknown, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
     const response = await this.post(url, data, headers);
     return new ApiResponseWrapper(response);
   }
@@ -35,7 +35,7 @@ export class ApiClientExt extends ApiClient {
    * @param headers - Additional headers
    * @returns API response wrapper
    */
-  async putWithWrapper(url: string, data?: any, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
+  async putWithWrapper(url: string, data?: unknown, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
     const response = await this.put(url, data, headers);
     return new ApiResponseWrapper(response);
   }
@@ -47,7 +47,7 @@ export class ApiClientExt extends ApiClient {
    * @param headers - Additional headers
    * @returns API response wrapper
    */
-  async patchWithWrapper(url: string, data?: any, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
+  async patchWithWrapper(url: string, data?: unknown, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
     const response = await this.patch(url, data, headers);
     return new ApiResponseWrapper(response);
   }
@@ -58,7 +58,7 @@ export class ApiClientExt extends ApiClient {
    * @param data - Request body data
    * @returns API response wrapper
    */
-  async deleteWithWrapper(url: string, data?: any): Promise<ApiResponseWrapper> {
+  async deleteWithWrapper(url: string, data?: unknown): Promise<ApiResponseWrapper> {
     const response = await this.delete(url, data);
     return new ApiResponseWrapper(response);
   }

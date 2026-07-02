@@ -6,7 +6,7 @@ import { expect } from '@playwright/test';
  */
 export class ApiResponseWrapper {
   private response: APIResponse;
-  private responseBody: any;
+  private responseBody: unknown;
 
   /**
    * Creates an API response wrapper
@@ -110,12 +110,12 @@ export class ApiResponseWrapper {
    */
   public async extract<T = any>(path: string): Promise<T> {
     const body = await this.json();
-    return this.extractFromObject(body, path);
+    return this.extractFromObject(body, path) as T;
   }
 
-  private extractFromObject(obj: any, path: string): any {
-    return path.split('.').reduce((prev, curr) => {
-      return prev && prev[curr];
+  private extractFromObject(obj: unknown, path: string): unknown {
+    return path.split('.').reduce((prev: unknown, curr: string) => {
+      return prev && (prev as Record<string, unknown>)[curr];
     }, obj);
   }
 
@@ -143,7 +143,7 @@ export class ApiResponseWrapper {
    * @param path - Path to the property (dot notation)
    * @param value - Expected value
    */
-  public async assertJsonPath(path: string, value: any): Promise<this> {
+  public async assertJsonPath(path: string, value: unknown): Promise<this> {
     const actual = await this.extract(path);
     expect(actual).toEqual(value);
     return this;
@@ -154,14 +154,14 @@ export class ApiResponseWrapper {
    * @param path - Path to the property (dot notation)
    * @param value - Expected value
    */
-  public async assertJsonPathContains(path: string, value: any): Promise<this> {
+  public async assertJsonPathContains(path: string, value: unknown): Promise<this> {
     const actual = await this.extract(path);
     if (Array.isArray(actual)) {
       expect(actual).toContainEqual(value);
     } else if (typeof actual === 'string') {
       expect(actual).toContain(String(value));
     } else {
-      expect(actual).toMatchObject(value);
+      expect(actual).toMatchObject(value as Record<string, unknown>);
     }
     return this;
   }
