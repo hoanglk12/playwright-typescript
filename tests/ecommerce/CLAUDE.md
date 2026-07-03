@@ -109,3 +109,23 @@ This pattern is established in E2E-PDP-005/006/007 — reuse it for any new PDP 
 **Why the three-part gate:** `[class*="cart"]` alone matches the always-present header cart icon, making any assertion vacuously true. The `position:fixed/absolute` + CTA check is the guard against this false-positive.
 
 **Vans AU known issue:** The Bloomreach popup may intercept `clickCartIcon()` after ATC, preventing the overlay from opening. Use soft assertions for overlay visibility so a Bloomreach-blocked Vans AU test records a failure without cascading to other storefronts.
+
+## EcommerceWishlistPage — Known Storefront Gotchas
+
+### 1. Header entry point is a real `<a href="/wishlist">` link, not a flyout trigger
+
+Confirmed live (headless Chromium investigation against all 8 GRA storefronts): the header wishlist icon is a genuine `<a href="/wishlist">` anchor wrapping a `<button aria-label="Toggle Wishlist">`. Unlike the Help/Support trigger (a `<figure>` with no href — see the `EcommerceHelpSupportPage` docblock), clicking it navigates directly to a full `/wishlist` page on every storefront checked — no flyout/overlay panel is involved.
+
+```ts
+// Correct — target the inner button, which carries the accessible name
+private readonly headerWishlistTrigger = this.page
+  .getByRole('button', { name: 'Toggle Wishlist', exact: true })
+  .first();
+
+// Wrong — the wrapping <a> has no accessible name (empty text, no aria-label)
+private readonly headerWishlistTrigger = this.page.getByRole('link', { name: 'Wishlist' });
+```
+
+### 2. Guest empty-state has two independently valid variants — do not hard-code one
+
+All 8 storefronts render the "MY WISHLIST" heading and the empty-state message "You have no items in your list." for a guest. Most storefronts additionally render a "Please Sign in or Register…" prompt with SIGN IN / REGISTER controls above the empty-state message; this prompt was observed to be intermittently absent on one storefront during a fast-loading investigation pass (timing/hydration variance, not a confirmed per-brand difference). Treat both the empty-state message and the sign-in prompt as independently valid guest outcomes — soft-assert `isEmptyWishlistMessageVisible() || isLoginPromptVisible()`, never hard-assert one specific variant.

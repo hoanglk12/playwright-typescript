@@ -78,4 +78,45 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
       softAssert.toBe(ecommerceHelpSupportPage.isOnHelpDestination(), true, 'On help/support destination URL');
     });
   }
+
+  for (const site of storefronts) {
+    test(`E2E-UTIL-007 - ${site.name} - Wishlist page renders (empty state for guest)`, async ({
+      ecommerceWishlistPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(
+        `E2E-UTIL-007 - ${site.name} - Wishlist page renders (empty state for guest)`,
+      );
+
+      logger.step('Step 1 - Navigate to storefront homepage');
+      await ecommerceWishlistPage.navigate(site.url);
+
+      logger.step('Step 2 - Assert Wishlist link is present in header');
+      const linkPresent = await ecommerceWishlistPage.isWishlistLinkPresent();
+      if (!linkPresent) {
+        test.skip(
+          true,
+          `${site.name}: no Wishlist link found in header — link may not be configured on this staging storefront`,
+        );
+        return;
+      }
+
+      logger.step('Step 3 - Click Wishlist link');
+      await ecommerceWishlistPage.clickWishlistLink();
+
+      logger.step('Step 4 - Assert Wishlist page rendered');
+      await ecommerceWishlistPage.assertWishlistPageRendered(site.name);
+
+      logger.step('Step 5 - Soft-assert a valid guest empty-state variant is shown');
+      const [emptyMessageVisible, loginPromptVisible] = await Promise.all([
+        ecommerceWishlistPage.isEmptyWishlistMessageVisible(),
+        ecommerceWishlistPage.isLoginPromptVisible(),
+      ]);
+      softAssert.toBe(
+        emptyMessageVisible || loginPromptVisible,
+        true,
+        'Guest empty-state message or sign-in prompt shown',
+      );
+    });
+  }
 });

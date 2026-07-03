@@ -18,6 +18,7 @@ import { EcommerceErrorPage } from '@pages/ecommerce/error-page';
 import { EcommerceCheckoutPage } from '@pages/ecommerce/checkout-page';
 import { EcommerceTrackOrderPage } from '@pages/ecommerce/track-order-page';
 import { EcommerceHelpSupportPage } from '@pages/ecommerce/help-support-page';
+import { EcommerceWishlistPage } from '@pages/ecommerce/wishlist-page';
 import { PercyHelper } from '../pages/helpers';
 import { ConsoleHelper } from '@pages/helpers/console-helper';
 import AxeBuilder from '@axe-core/playwright';
@@ -40,6 +41,7 @@ type CustomFixtures = {
   ecommerceCheckoutPage: EcommerceCheckoutPage;
   ecommerceTrackOrderPage: EcommerceTrackOrderPage;
   ecommerceHelpSupportPage: EcommerceHelpSupportPage;
+  ecommerceWishlistPage: EcommerceWishlistPage;
   percyHelper: PercyHelper;
   softAssert: SoftAssertHelper;
   consoleHelper: ConsoleHelper;
@@ -181,6 +183,15 @@ export const test = base.extend<CustomFixtures>({
 
   ecommerceHelpSupportPage: async ({ page }, use) => {
     await use(new EcommerceHelpSupportPage(page));
+    // Firefox teardown workaround — prevents Juggler protocol hangs on SPA service workers
+    // and persistent WebSocket/analytics connections on staging storefronts.
+    if (page.context().browser()?.browserType().name() === 'firefox') {
+      await page.goto('about:blank', { waitUntil: 'commit', timeout: 5000 }).catch(() => {});
+    }
+  },
+
+  ecommerceWishlistPage: async ({ page }, use) => {
+    await use(new EcommerceWishlistPage(page));
     // Firefox teardown workaround — prevents Juggler protocol hangs on SPA service workers
     // and persistent WebSocket/analytics connections on staging storefronts.
     if (page.context().browser()?.browserType().name() === 'firefox') {
