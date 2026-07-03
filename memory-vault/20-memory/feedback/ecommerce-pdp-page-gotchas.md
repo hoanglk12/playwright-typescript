@@ -1,10 +1,10 @@
 ---
 name: ecommerce-pdp-page-gotchas
-description: Known DOM/selector bugs and patterns in EcommercePDPPage and EcommerceAccountModalPage — Bloomreach popup (two contexts), gallery selectors, dual-h1, swatch navigation, cart count, nav-label selection, auth modal addLocatorHandler pattern
+description: Known DOM/selector bugs and patterns in EcommercePDPPage, EcommerceAccountModalPage, EcommerceCartOverlayPage — Bloomreach popup (two contexts), gallery selectors, dual-h1, swatch navigation, cart count, nav-label selection, auth modal addLocatorHandler pattern, cart overlay opacity-toggle open/close detection
 type: feedback
 tags: [memory, feedback]
 source_session: 6c04fe97-fef3-464e-b927-fb15d4c54bee
-last_verified: 2026-06-22
+last_verified: 2026-07-03
 ---
 
 ## 1. Vans AU — Bloomreach acquisition popup blocks swatch click
@@ -229,3 +229,21 @@ See also: [[ecommerce-auth-modal-gotchas]]
 **When changing:** recalculate headroom for the slowest storefront (Dr. Martens NZ). Do not increase above 10 unless `test.slow()` budget is also raised or per-product timing improves.
 
 **PASS vs SKIP note:** A `MAX_PRODUCTS_TO_TRY = 10` cap causes a `test.skip` if no product in the first 10 has 2+ colour swatches. For Dr. Martens NZ MEN PLP, boots typically have 2+ colourways so the loop breaks early — but confirm via CI run rather than assuming.
+
+---
+
+## 13. Mini cart overlay — `isOverlayVisible()` cannot detect CLOSED state; opacity-aware `isOverlayGenuinelyOpen()` required (E2E-CART-006)
+
+Discovered 2026-07-03 implementing E2E-CART-006 ("Continue Shopping" closes the overlay).
+
+**Root cause:** On GRA/Magento PWA Studio storefronts, the mini cart drawer panel is **permanently mounted** in the DOM at `position:fixed` with a full-viewport bounding box. Open/close is implemented purely via `opacity: 0 ↔ 1` — the layout box, position, and rect never change between states. `innerText` still reads through an `opacity:0` element. This means `isOverlayVisible()`'s existing gate (position + rect + CTA text) is `true` whether the drawer is open OR closed — it can never report "closed", so it's unusable for the Continue Shopping close-assertion.
+
+**Fix — new method, not a change to the existing one:** `isOverlayGenuinelyOpen()` in `cart-overlay-page.ts` adds `parseFloat(style.opacity) !== 0 && style.visibility !== 'hidden'` to the same panel-scan gate. `isOverlayVisible()` itself was left untouched — CART-003/004/005/008 depend on its existing (open-detection-only) semantics; do not "fix" it to be opacity-aware, that would change behaviour those tests rely on.
+
+**Concurrency-sensitive race this exposed:** `ensureCartOverlayOpen()` (smoke-helpers.ts) waits only on the loose `isOverlayVisible()`, which is satisfied the instant the fixed-position panel has a non-zero bounding box — potentially *before* the CSS opacity fade-in transition completes. A caller that reads `isOverlayGenuinelyOpen()` synchronously right after `ensureCartOverlayOpen()` can catch the panel mid-transition (opacity still 0) and get a false negative. Manifested as 3/8 storefronts failing at 3 concurrent workers, 0/8 failing at 1 worker (Platypus AU, Skechers AU, Skechers NZ) — a load-sensitive timing margin, not a per-storefront defect.
+
+**Fix:** added `waitForOverlayGenuinelyOpen()` / `waitForOverlayHidden()` — both poll the strict detector via `waitForCustomCondition()` (`TIMEOUTS.ELEMENT_VISIBLE` / `TIMEOUTS.POLL_INTERVAL_FAST`, `.catch(() => {})` best-effort). The precondition check must call `waitForOverlayGenuinelyOpen()` after `ensureCartOverlayOpen()`, not read the strict getter directly.
+
+**How to apply:** Any new cart-overlay method that needs to distinguish "mounted but hidden" from "genuinely open/closed" must use `isOverlayGenuinelyOpen()` (or its wait wrappers), never `isOverlayVisible()`. If a similar permanently-mounted-opacity-toggle pattern turns up elsewhere (auth modal, wishlist panel), apply the same two-tier detector split rather than retrofitting the loose one.
+
+See also: [[fixture-registry]]

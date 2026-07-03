@@ -455,7 +455,6 @@ Requires additional setup: cart fixtures via Magento REST API, test account cred
 |---|---|---|---|
 | E2E-CART-006 | "Continue Shopping" button closes cart overlay | P2 | All |
 | E2E-CART-007 | Adding same product in different size creates separate line item | P2 | All |
-| E2E-CART-009 | "BUY 2 GET 20% OFF" discount applies with 2 qualifying items | P1 | All |
 | E2E-CART-010 | Promo/discount code field is visible at checkout entry | P1 | All |
 
 ---

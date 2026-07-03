@@ -57,6 +57,36 @@ export class EcommerceCartOverlayPage extends BasePage {
     }, sel);
   }
 
+  // Strict variant of isOverlayVisible() that additionally requires non-zero opacity and
+  // visibility on the matched panel. Confirmed via live investigation of GRA/Magento PWA
+  // Studio storefronts: the mini cart drawer's outer panel is permanently mounted in the DOM
+  // at position:fixed with a full-viewport bounding box, and open/close is implemented purely
+  // via `opacity: 0 <-> 1` — the layout box and position never change between states, and
+  // crucially, `innerText` still reads through an opacity:0 element. This means
+  // isOverlayVisible()'s position + rect + CTA gate is true whether the drawer is open OR
+  // closed, making it unsuitable for detecting the CLOSED state. isOverlayVisible() itself is
+  // intentionally left unchanged — CART-003/004/005/008 already depend on its existing
+  // semantics for detecting the overlay opening. This method is used only by the Continue
+  // Shopping close-overlay flow (E2E-CART-006), where distinguishing "mounted but hidden"
+  // from "genuinely open" is required.
+  async isOverlayGenuinelyOpen(): Promise<boolean> {
+    const sel = this.overlayPanelSelector;
+    return this.page.evaluate((selector) => {
+      const panels = Array.from(document.querySelectorAll(selector));
+      return panels.some((el) => {
+        const r = (el as Element).getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return false;
+        const style = getComputedStyle(el as Element);
+        const isOverlayPositioned = style.position === 'fixed' || style.position === 'absolute';
+        if (!isOverlayPositioned) return false;
+        if (parseFloat(style.opacity) === 0 || style.visibility === 'hidden') return false;
+        const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
+        const hasCartCta = /checkout|view (cart|bag)|proceed|go to (cart|bag)/.test(text);
+        return (text.includes('cart') || text.includes('bag')) && hasCartCta;
+      });
+    }, sel);
+  }
+
   // Checks whether any visible mini cart overlay panel contains the given text (case-insensitive).
   // Uses a two-part gate (position:fixed/absolute + "cart"/"bag" presence) without the checkout-CTA
   // requirement used by isOverlayVisible(). The CTA gate is intentionally dropped here because on
@@ -298,6 +328,79 @@ export class EcommerceCartOverlayPage extends BasePage {
           'matched any visible button within the positioned overlay panel.',
       );
     }
+  }
+
+  // Clicks the "Continue Shopping" control inside the visible mini cart overlay panel, if
+  // present. Scoped to the same visible positioned overlay panel detected by isOverlayVisible()
+  // (fixed/absolute + non-zero bounding box), mirroring removeFirstItem's panel-scan pattern.
+  // Matches button/link elements whose visible text OR aria-label matches /continue shopping/i.
+  // Returns false (never throws) when no matching control is found — this control's presence
+  // varies per storefront and callers must treat "not found" as a valid skip condition.
+  async clickContinueShopping(): Promise<boolean> {
+    const sel = this.overlayPanelSelector;
+    return this.page.evaluate((panelSelector) => {
+      const visiblePanels = Array.from(document.querySelectorAll(panelSelector)).filter((panel) => {
+        const r = (panel as Element).getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return false;
+        const style = getComputedStyle(panel as Element);
+        return style.position === 'fixed' || style.position === 'absolute';
+      });
+
+      if (visiblePanels.length === 0) return false;
+
+      const continueShoppingRe = /continue shopping/i;
+
+      for (const panel of visiblePanels) {
+        const controls = Array.from(panel.querySelectorAll('button, a[role="button"], a'));
+        for (const control of controls) {
+          const r = (control as Element).getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) continue;
+          const ariaLabel = control.getAttribute('aria-label') ?? '';
+          const text = ((control as HTMLElement).innerText ?? control.textContent ?? '').trim();
+          if (continueShoppingRe.test(ariaLabel) || continueShoppingRe.test(text)) {
+            (control as HTMLElement).click();
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }, sel);
+  }
+
+  // Polls isOverlayGenuinelyOpen() until the mini cart overlay becomes genuinely open (non-zero
+  // opacity, visible). Needed because ensureCartOverlayOpen() (smoke-helpers.ts) only waits on
+  // the loose isOverlayVisible() detector, which is satisfied the instant the permanently-mounted
+  // drawer panel has a non-zero fixed-position bounding box — this can be true BEFORE the CSS
+  // opacity fade-in transition has completed (or even started, if the panel auto-opens without an
+  // explicit click). A caller that immediately reads isOverlayGenuinelyOpen() right after
+  // ensureCartOverlayOpen() can therefore catch the panel mid-transition (opacity still 0 or
+  // partial) and read false, even though the overlay is about to be genuinely open a moment
+  // later. This showed up as a concurrency-sensitive flake (3/8 storefronts failing at 3 workers,
+  // 0/8 at 1 worker) on the Continue Shopping precondition check. Wrapped in .catch(() => {}) —
+  // best-effort, same convention as other polling methods in this suite. The caller's
+  // softAssert/expect remains the source of truth for failures.
+  async waitForOverlayGenuinelyOpen(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(async () => this.isOverlayGenuinelyOpen(), {
+        timeout: TIMEOUTS.ELEMENT_VISIBLE,
+        interval: TIMEOUTS.POLL_INTERVAL_FAST,
+      })
+      .catch(() => {});
+  }
+
+  // Polls isOverlayGenuinelyOpen() until the mini cart overlay becomes hidden. Uses the strict
+  // (opacity-aware) detector rather than isOverlayVisible() — see isOverlayGenuinelyOpen()'s
+  // docblock for why the loose detector can never report "closed" on GRA storefronts. Wrapped
+  // in .catch(() => {}) — best-effort, same convention as other polling methods in this suite.
+  // The caller's softAssert is the source of truth for failures.
+  async waitForOverlayHidden(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(async () => !(await this.isOverlayGenuinelyOpen()), {
+        timeout: TIMEOUTS.ELEMENT_VISIBLE,
+        interval: TIMEOUTS.POLL_INTERVAL_FAST,
+      })
+      .catch(() => {});
   }
 
   // Reads the numeric cart count from the header cart icon — identical evaluate body to

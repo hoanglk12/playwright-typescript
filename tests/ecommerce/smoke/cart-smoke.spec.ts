@@ -373,6 +373,127 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
   }
 
   for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CART-006-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Continue Shopping closes cart overlay`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Continue Shopping closes cart overlay`);
+
+      if (!navLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
+        return;
+      }
+
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
+      if (availableSizes.length === 0) {
+        test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
+        return;
+      }
+
+      logger.step('Step 8 - Capture initial mini cart count before ATC');
+      const initialCartCount = await ecommercePDPPage.getMiniCartCount();
+      logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
+
+      // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
+      // addToCart is called immediately after isAddToCartEnabled to minimise the window in which
+      // the SPA can lose the button (observed on Vans AU with ~400ms gap).
+      logger.step('Step 9 - Select a size, then Add to Cart immediately (try up to 3 sizes)');
+      let targetSize: string | null = null;
+      for (const size of availableSizes.slice(0, 3)) {
+        await ecommercePDPPage.selectSize(size);
+        if (await ecommercePDPPage.isAddToCartEnabled()) {
+          targetSize = size;
+          await ecommercePDPPage.addToCart();
+          break;
+        }
+      }
+
+      if (targetSize === null) {
+        test.skip(
+          true,
+          `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
+        );
+        return;
+      }
+      logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
+
+      logger.step('Step 11 - Poll for mini cart count to increment after ATC');
+      const postAddCount = await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
+
+      logger.step('Step 12 - Assert cart count incremented by 1 (precondition for overlay steps)');
+      expect(
+        postAddCount,
+        `${site.name}: Cart count must increment by 1 after ATC before Continue Shopping can be tested (was ${initialCartCount}, expected ${initialCartCount + 1}, got ${postAddCount})`,
+      ).toBe(initialCartCount + 1);
+
+      logger.step('Step 13 - Open mini cart overlay (auto or manual)');
+      await ensureCartOverlayOpen(ecommerceCartOverlayPage);
+
+      // ensureCartOverlayOpen() only waits on the loose isOverlayVisible() detector, which can
+      // be satisfied before the CSS opacity fade-in transition finishes (or even starts, on
+      // auto-open). Wait for the strict opacity-aware detector to settle before reading the
+      // Step 14 precondition, so the check doesn't race the transition.
+      await ecommerceCartOverlayPage.waitForOverlayGenuinelyOpen();
+
+      // Soft precondition: overlay must be open before Continue Shopping can be tested. Vans AU's
+      // Bloomreach popup can intercept clickCartIcon() and prevent the overlay from opening
+      // (known platform issue). A hard assertion here would hard-fail the test on every
+      // Bloomreach intercept. Early return prevents a misleading "Continue Shopping not found"
+      // failure when the overlay simply didn't open.
+      //
+      // Uses isOverlayGenuinelyOpen() rather than isOverlayVisible() — on GRA storefronts the
+      // drawer panel is permanently mounted with a non-zero fixed-position bounding box even
+      // when closed (opacity:0), so isOverlayVisible() is always true for a non-empty cart and
+      // would make this precondition vacuous (see isOverlayGenuinelyOpen() docblock).
+      logger.step('Step 14 - Assert mini cart overlay is open (precondition for Continue Shopping)');
+      const overlayIsOpen = await ecommerceCartOverlayPage.isOverlayGenuinelyOpen();
+      softAssert.toBeTruthy(
+        overlayIsOpen,
+        `${site.name}: Mini cart overlay must be open before Continue Shopping can be tested`,
+      );
+      if (!overlayIsOpen) return;
+
+      logger.step('Step 15 - Capture current URL before clicking Continue Shopping');
+      const urlBeforeClick = await ecommercePDPPage.getCurrentUrl();
+
+      logger.step('Step 16 - Click Continue Shopping control in the mini cart overlay');
+      const hasControl = await ecommerceCartOverlayPage.clickContinueShopping();
+      if (!hasControl) {
+        test.skip(true, `${site.name}: no "Continue Shopping" control found in cart overlay`);
+        return;
+      }
+
+      logger.step('Step 17 - Wait for mini cart overlay to close');
+      await ecommerceCartOverlayPage.waitForOverlayHidden();
+
+      // Uses isOverlayGenuinelyOpen() rather than isOverlayVisible() for the same reason as the
+      // Step 14 precondition — isOverlayVisible() cannot detect the closed (opacity:0) state on
+      // GRA storefronts.
+      logger.step('Step 18 - Assert overlay is closed and the underlying page is unchanged');
+      softAssert.toBeFalsy(
+        await ecommerceCartOverlayPage.isOverlayGenuinelyOpen(),
+        `${site.name}: Mini cart overlay should be closed after clicking Continue Shopping`,
+      );
+      softAssert.toBe(
+        await ecommercePDPPage.getCurrentUrl(),
+        urlBeforeClick,
+        `${site.name}: Continue Shopping should close the overlay without navigating away from the current page`,
+      );
+    });
+  }
+
+  for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CART-008-${String(index + 1).padStart(3, '0')}`;
     const preferMens = shouldPreferMens(site);
     const navLabel = getPreferredNavLabel(site, preferMens);
