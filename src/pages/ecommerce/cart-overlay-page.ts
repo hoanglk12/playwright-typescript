@@ -403,6 +403,45 @@ export class EcommerceCartOverlayPage extends BasePage {
       .catch(() => {});
   }
 
+  // Closes the mini cart overlay if it is (or becomes) genuinely open — best-effort, never throws.
+  // WHY: addToCart() (pdp-page.ts) uses only click({ force: true }) with no elementFromPoint/
+  // dispatchEvent coverage fallback (unlike selectSize()). If a storefront auto-opens the
+  // position:fixed mini cart drawer after the first Add to Cart, that drawer can sit on top of
+  // the PDP's size selector/ATC button and swallow the second add's click. Callers performing
+  // two sequential Add to Cart actions on the same PDP (e.g. E2E-CART-007) must call this
+  // between the two adds to guarantee the overlay is not intercepting clicks.
+  //
+  // Confirmed via live investigation (Platypus AU): the drawer does NOT open synchronously with
+  // the ATC click — it was still closed ~immediately after the click, and only became genuinely
+  // open ~2s later (opacity fade-in completes after the cart-add API round trip). A single
+  // isOverlayGenuinelyOpen() check taken right after waitForMiniCartCountIncrement() therefore
+  // races the drawer's delayed open and can see "closed" a moment before it opens — this method
+  // must actively poll for a possible late open, not just sample the state once.
+  //
+  // Strategy: poll isOverlayGenuinelyOpen() for up to ELEMENT_CLICKABLE — if it never opens,
+  // return (no-op, the common case on storefronts that don't auto-open). If it opens, try
+  // clickContinueShopping() (returns false harmlessly if no such control exists), fall back to
+  // Escape, then wait for it to close.
+  async closeOverlayIfOpen(): Promise<void> {
+    try {
+      const becameOpen = await this.waits
+        .waitForCustomCondition(async () => this.isOverlayGenuinelyOpen(), {
+          timeout: TIMEOUTS.ELEMENT_CLICKABLE,
+          interval: TIMEOUTS.POLL_INTERVAL_FAST,
+        })
+        .then(() => true)
+        .catch(() => false);
+      if (!becameOpen) return;
+      const closed = await this.clickContinueShopping();
+      if (!closed) {
+        await this.page.keyboard.press('Escape');
+      }
+      await this.waitForOverlayHidden();
+    } catch {
+      // best-effort — caller's downstream soft assertions are the source of truth
+    }
+  }
+
   // Reads the numeric cart count from the header cart icon — identical evaluate body to
   // getMiniCartCount() on EcommercePDPPage. Duplicated here so that waitForMiniCartCountDecrement
   // can poll independently without a cross-page-object dependency. The header cart link is the

@@ -159,3 +159,4 @@ temp_healer.md
 # Obsidian local state (keep app.json, core-plugins.json, graph.json)
 memory-vault/.obsidian/workspace.json
 memory-vault/.obsidian/workspace-mobile.json
+.aider*

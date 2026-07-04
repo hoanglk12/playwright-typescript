@@ -182,6 +182,25 @@ export async function findProductWithAvailableSizes(
 }
 
 /**
+ * Returns true when two size labels are identical or when one is a token-boundary substring
+ * of the other (e.g. "8" within "8.5"). Used to guard against treating two candidates as
+ * distinct sizes when a plain substring check would wrongly flag them (or wrongly pass them —
+ * a naive `.includes()` would also skip genuinely distinct sizes like "4" vs "14"). Boundaries
+ * are non-word characters (`[^\w]`, so a dot IS a boundary) — this exactly mirrors the
+ * `tokenPattern` boundary class used by `overlayContainsSizeLabel` on
+ * `EcommerceCartOverlayPage`, so any sizeB that would false-match sizeA's overlay line is
+ * correctly caught here too.
+ */
+export function sizesOverlap(a: string, b: string): boolean {
+  if (a === b) return true;
+  const escapedA = a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedB = b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const aTokenInB = new RegExp(`(^|[^\\w])${escapedA}([^\\w]|$)`).test(b);
+  const bTokenInA = new RegExp(`(^|[^\\w])${escapedB}([^\\w]|$)`).test(a);
+  return aTokenInB || bTokenInA;
+}
+
+/**
  * Selects the first size from `sizes` that enables the Add to Cart button.
  * Returns the selected size string, or null if none of the tried sizes enabled ATC.
  * Caller must call test.skip() and return when null is returned.

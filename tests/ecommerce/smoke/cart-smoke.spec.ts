@@ -8,6 +8,7 @@ import {
   ensureCartOverlayOpen,
   findProductWithAvailableSizes,
   selectFirstPurchasableSize,
+  sizesOverlap,
 } from './smoke-helpers';
 
 test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
@@ -489,6 +490,149 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
         await ecommercePDPPage.getCurrentUrl(),
         urlBeforeClick,
         `${site.name}: Continue Shopping should close the overlay without navigating away from the current page`,
+      );
+    });
+  }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CART-007-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Adding same product in different size creates separate line item`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(
+        `${tcId} - ${site.name} Adding same product in different size creates separate line item`,
+      );
+
+      if (!navLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
+        return;
+      }
+
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
+      if (availableSizes.length < 2) {
+        test.skip(
+          true,
+          `${site.name}: fewer than 2 sizes found in first 10 ${navLabel} PLP products — cannot test two distinct sizes`,
+        );
+        return;
+      }
+
+      logger.step('Step 7 - Capture initial mini cart count before any ATC');
+      const initialCartCount = await ecommercePDPPage.getMiniCartCount();
+      logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
+
+      // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
+      // addToCart is called immediately after isAddToCartEnabled to minimise the window in which
+      // the SPA can lose the button (observed on Vans AU with ~400ms gap). Try up to 5 candidates
+      // to find the FIRST workable size (sizeA).
+      logger.step('Step 8 - Select first size, then Add to Cart immediately (try up to 5 sizes)');
+      let sizeA: string | null = null;
+      for (const size of availableSizes.slice(0, 5)) {
+        await ecommercePDPPage.selectSize(size);
+        if (await ecommercePDPPage.isAddToCartEnabled()) {
+          sizeA = size;
+          await ecommercePDPPage.addToCart();
+          break;
+        }
+      }
+      if (sizeA === null) {
+        test.skip(
+          true,
+          `${site.name}: first 5 sizes all resulted in sold-out state — no purchasable size found for first Add to Cart`,
+        );
+        return;
+      }
+      logger.verify('First size that enabled Add to Cart', 'non-empty string', sizeA);
+
+      logger.step('Step 9 - Poll for mini cart count to increment after first ATC');
+      const afterFirstAdd = await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
+
+      // The mini cart drawer can auto-open after the first Add to Cart on some storefronts and,
+      // being position:fixed, can intercept clicks on the PDP's size selector/ATC button for the
+      // second add (addToCart() has no elementFromPoint/dispatchEvent coverage fallback, unlike
+      // selectSize()). Close it before attempting the second size selection.
+      logger.step('Step 10 - Close mini cart overlay if it auto-opened, before selecting the second size');
+      await ecommerceCartOverlayPage.closeOverlayIfOpen();
+
+      // Try remaining candidates for a second, DISTINCT purchasable size. Skip any candidate that
+      // is a token-substring of sizeA (or vice versa, e.g. "8" vs "8.5") to avoid a false pass if
+      // a storefront's overlay text search were ever to conflate the two.
+      logger.step('Step 11 - Select a second, distinct size, then Add to Cart immediately (try remaining candidates)');
+      let sizeB: string | null = null;
+      for (const size of availableSizes.slice(1)) {
+        if (sizesOverlap(size, sizeA)) continue;
+        await ecommercePDPPage.selectSize(size);
+        if (await ecommercePDPPage.isAddToCartEnabled()) {
+          sizeB = size;
+          await ecommercePDPPage.addToCart();
+          break;
+        }
+      }
+      if (sizeB === null) {
+        test.skip(
+          true,
+          `${site.name}: no second distinct purchasable size found among remaining candidates — cannot test two sizes`,
+        );
+        return;
+      }
+      logger.verify('Second size that enabled Add to Cart', 'non-empty string', sizeB);
+
+      logger.step('Step 12 - Poll for mini cart count to increment after second ATC');
+      const afterSecondAdd = await ecommercePDPPage.waitForMiniCartCountIncrement(afterFirstAdd);
+
+      logger.step('Step 13 - Open mini cart overlay (auto or manual)');
+      await ensureCartOverlayOpen(ecommerceCartOverlayPage);
+      await ecommerceCartOverlayPage.waitForOverlayGenuinelyOpen();
+
+      // Soft precondition: overlay must be open before content checks. Vans AU's Bloomreach
+      // popup can intercept clickCartIcon() and prevent the overlay from opening (known
+      // platform issue). A hard assertion here would hard-fail the test on every Bloomreach
+      // intercept rather than letting retries succeed. The early return prevents misleading
+      // "size label missing" soft failures when the overlay simply didn't open.
+      logger.step('Step 14 - Assert mini cart overlay is open (precondition for line-item checks)');
+      const overlayIsOpen = await ecommerceCartOverlayPage.isOverlayVisible();
+      softAssert.toBeTruthy(
+        overlayIsOpen,
+        `${site.name}: Mini cart overlay must be open before line-item verification`,
+      );
+      if (!overlayIsOpen) return;
+
+      // PRIMARY assertion: a single cart line item can only carry one size value, so both
+      // distinct size labels appearing simultaneously in the overlay is proof of two separate
+      // line items for the same product. Both checks are independent facts about the same
+      // overlay state, so soft assertions let both be reported even if one fails.
+      logger.step('Step 15 - Assert mini cart overlay shows BOTH distinct size labels (separate line items)');
+      const sizeAInOverlay = await ecommerceCartOverlayPage.overlayContainsSizeLabel(sizeA);
+      softAssert.toBeTruthy(
+        sizeAInOverlay,
+        `${site.name}: Mini cart overlay should show size "${sizeA}" as its own line item`,
+      );
+
+      const sizeBInOverlay = await ecommerceCartOverlayPage.overlayContainsSizeLabel(sizeB);
+      softAssert.toBeTruthy(
+        sizeBInOverlay,
+        `${site.name}: Mini cart overlay should show size "${sizeB}" as its own line item`,
+      );
+
+      // SECONDARY/corroborating assertion: cart badge delta of exactly 2. Kept secondary because
+      // a delta of 2 is also consistent with one line item at qty 2 — the size-label check above
+      // is the real proof of two separate line items.
+      logger.step('Step 16 - Assert mini cart count incremented by exactly 2 in total (corroborating check)');
+      softAssert.toBe(
+        afterSecondAdd,
+        initialCartCount + 2,
+        `${site.name}: Mini cart count should increment by 2 total after adding two distinct sizes (was ${initialCartCount}, expected ${initialCartCount + 2}, got ${afterSecondAdd})`,
       );
     });
   }
