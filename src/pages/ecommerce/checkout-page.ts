@@ -55,6 +55,25 @@ export class EcommerceCheckoutPage extends BasePage {
   // ARIA selector for semantic validation signals (preferred over text scan).
   private readonly ariaValidationSelector = '[role="alert"], [aria-live]:not([aria-live="off"])';
 
+  // Promo/discount code field detection patterns (E2E-CART-010).
+  //
+  // Promotional code fields are rendered inconsistently across the 8 Magento PWA storefronts:
+  //   - Input may be type="text" with placeholder/aria-label/name/id like
+  //     "Promo code", "Discount code", "Coupon code", "Voucher code", "Enter promo code"
+  //   - Input may be associated with a nearby label/legend text matching the same keywords
+  //   - An "Apply" / "Apply code" / "Apply discount" / "Apply coupon" button may appear
+  //     alongside (per discovery report context "promo/discount code field")
+  //
+  // Pattern sources are passed as `.source` strings into page.evaluate(...) — same pattern
+  // as validationTextPattern/ariaValidationSelector above — so the regex is reconstructed
+  // inside the browser context where new RegExp(pattern) is needed.
+  private readonly promoKeywordPattern = /promo|discount|coupon|voucher/i;
+
+  // Pattern that an Apply button label would match — used for the secondary
+  // "Apply promo button visible" check recommended by the discovery report.
+  private readonly promoApplyButtonPattern =
+    /apply.*(promo|discount|coupon|voucher|code)|(promo|discount|coupon|voucher).*code/i;
+
   constructor(page: Page) {
     super(page);
   }
@@ -306,5 +325,167 @@ export class EcommerceCheckoutPage extends BasePage {
       },
       { ariasel: ariaSelector, textpat: textPattern },
     );
+  }
+
+  // E2E-CART-010 — Navigates directly to the /cart page. Used so callers can guarantee the
+  // promo/discount field scan happens against /cart specifically, rather than relying on
+  // isPromoCodeFieldVisible()'s Pass-1 scan of whatever surface (PDP, mini-cart overlay) is
+  // currently loaded. Uses a relative URL to preserve the current storefront origin and
+  // SPA session, same pattern as the Pass-2 navigation inside isPromoCodeFieldVisible().
+  async navigateToCart(): Promise<void> {
+    await this.gotoWithOptions(new URL('/cart', this.page.url()).toString(), {
+      waitUntil: 'domcontentloaded',
+      timeout: TIMEOUTS.NETWORK_IDLE_SLOW,
+    });
+  }
+
+  // E2E-CART-010 — Returns true if a promo/discount/coupon/voucher code field is reachable
+  // from the current checkout entry. Magento PWA storefronts expose this field in one of
+  // three surfaces: the order-summary panel on the shipping step, a "Have a code?" link in
+  // the mini-cart overlay, or — most commonly — the /cart page. This method scans ALL
+  // surfaces by first probing the current DOM, then navigating to /cart and re-scanning.
+  async isPromoCodeFieldVisible(): Promise<boolean> {
+    const promoKeyword = this.promoKeywordPattern.source;
+    const promoApply = this.promoApplyButtonPattern.source;
+
+    // Pass 1: scan current page DOM (checkout step + any visible overlays).
+    if (await this.scanForPromoField(promoKeyword, promoApply)) {
+      return true;
+    }
+
+    // Pass 2: navigate to /cart and re-scan. Most Magento PWAs expose the promo field here
+    // (typically an expandable "Have a promo code?" link). Uses relative URL to preserve
+    // the current storefront origin and SPA session.
+    try {
+      await this.gotoWithOptions(new URL('/cart', this.page.url()).toString(), {
+        waitUntil: 'domcontentloaded',
+        timeout: TIMEOUTS.NETWORK_IDLE_SLOW,
+      });
+      await this.waits
+        .waitForCustomCondition(
+          async () =>
+            this.page
+              .evaluate(() => document.body !== null && document.body.innerText.length > 0)
+              .catch(() => false),
+          { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+        )
+        .catch(() => {});
+      return await this.scanForPromoField(promoKeyword, promoApply);
+    } catch {
+      return false;
+    }
+  }
+
+  // Internal helper: scans the current page DOM for a promo/discount code field. Pattern-
+  // based scan (no CSS) — matches any visible text-input whose name/id/placeholder/aria-label
+  // or associated label text matches the promo keyword pattern (promo|discount|coupon|voucher).
+  // Returns true as soon as ANY signal is found. Never throws.
+  private async scanForPromoField(keywordSource: string, applySource: string): Promise<boolean> {
+    let found = false;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          found = await this.page.evaluate(
+            ({ keywordSource, applySource }: { keywordSource: string; applySource: string }) => {
+              const keywordRe = new RegExp(keywordSource, 'i');
+              const isVisible = (el: Element): boolean => {
+                const r = el.getBoundingClientRect();
+                if (r.width === 0 || r.height === 0) return false;
+                const style = getComputedStyle(el);
+                if (style.visibility === 'hidden' || style.display === 'none') return false;
+                if (parseFloat(style.opacity || '1') === 0) return false;
+                return true;
+              };
+              const fieldAttrMatches = (el: Element): boolean => {
+                const attrs = ['name', 'id', 'placeholder', 'aria-label', 'data-testid', 'title'];
+                for (const a of attrs) {
+                  const v = el.getAttribute(a) ?? '';
+                  if (v && keywordRe.test(v)) return true;
+                }
+                return false;
+              };
+              const labelTextForInput = (input: Element): string => {
+                const id = input.getAttribute('id');
+                if (id) {
+                  const lbl = document.querySelector(`label[for="${CSS.escape(id)}"]`);
+                  if (lbl && isVisible(lbl)) {
+                    return ((lbl as HTMLElement).innerText ?? lbl.textContent ?? '').trim();
+                  }
+                }
+                const parentLabel = input.closest('label');
+                if (parentLabel && isVisible(parentLabel)) {
+                  return ((parentLabel as HTMLElement).innerText ?? parentLabel.textContent ?? '').trim();
+                }
+                const labelledBy = input.getAttribute('aria-labelledby');
+                if (labelledBy) {
+                  const ref = document.getElementById(labelledBy);
+                  if (ref && isVisible(ref)) {
+                    return ((ref as HTMLElement).innerText ?? ref.textContent ?? '').trim();
+                  }
+                }
+                return '';
+              };
+              const nearbyLabelMatches = (input: Element): boolean => {
+                const directLabel = labelTextForInput(input);
+                if (directLabel && keywordRe.test(directLabel)) return true;
+                let parent: Element | null = input.parentElement;
+                for (let depth = 0; depth < 2 && parent; depth++) {
+                  const candidates = Array.from(
+                    parent.querySelectorAll('label, legend, span, div, p'),
+                  );
+                  for (const c of candidates) {
+                    if (c.contains(input)) continue;
+                    if (!isVisible(c)) continue;
+                    if ((c as Element).children.length > 0) continue;
+                    const txt = ((c as HTMLElement).innerText ?? c.textContent ?? '').trim();
+                    if (txt && keywordRe.test(txt)) return true;
+                  }
+                  parent = parent.parentElement;
+                }
+                return false;
+              };
+              const textInputs = Array.from(
+                document.querySelectorAll<HTMLInputElement>('input[type="text"], input:not([type])'),
+              );
+              for (const input of textInputs) {
+                if (!isVisible(input)) continue;
+                if (input.disabled || input.readOnly) continue;
+                if (fieldAttrMatches(input)) return true;
+                if (nearbyLabelMatches(input)) return true;
+              }
+              return false;
+            },
+            { keywordSource, applySource },
+          );
+          return found;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return found;
+  }
+
+  // E2E-CART-010 (recommended secondary check) — Returns true if an "Apply promo/discount/
+  // coupon/voucher code" button is visible at the current checkout entry point. Mirrors the
+  // Apply-button branch of isPromoCodeFieldVisible() but exposed as a standalone helper for
+  // callers that want to split the promo-input and apply-button assertions.
+  async hasApplyPromoButton(): Promise<boolean> {
+    const applyPattern = this.promoApplyButtonPattern.source;
+    return this.page.evaluate((pattern: string) => {
+      const re = new RegExp(pattern, 'i');
+      const btns = Array.from(
+        document.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
+      );
+      return btns.some((btn) => {
+        if (btn.disabled) return false;
+        const text = ((btn as HTMLElement).innerText ?? btn.value ?? btn.textContent ?? '').trim();
+        if (!re.test(text)) return false;
+        const r = btn.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return false;
+        const style = getComputedStyle(btn);
+        if (style.visibility === 'hidden' || style.display === 'none') return false;
+        return true;
+      });
+    }, applyPattern);
   }
 }

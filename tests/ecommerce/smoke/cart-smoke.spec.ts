@@ -789,4 +789,81 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       ).not.toBe('');
     });
   }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CART-010-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Promo code field visible at checkout entry`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCheckoutPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Promo code field visible at checkout entry`);
+
+      if (!navLabel) {
+        test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
+        return;
+      }
+
+      logger.step('Steps 1-5 - Navigate to PLP');
+      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+
+      logger.step('Step 6 - Scan PLP for a product with available sizes');
+      const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
+      if (availableSizes.length === 0) {
+        test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
+        return;
+      }
+
+      logger.step('Step 7 - Capture initial mini cart count before ATC');
+      const initialCartCount = await ecommercePDPPage.getMiniCartCount();
+      logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
+
+      logger.step('Step 8 - Select a size that enables Add to Cart (try up to 3)');
+      const targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
+      if (targetSize === null) {
+        test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
+        return;
+      }
+      logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
+
+      logger.step(`Step 9 - Click Add to Cart with size "${targetSize}" selected`);
+      await ecommercePDPPage.addToCart();
+
+      logger.step('Step 10 - Poll for mini cart count to increment after ATC');
+      const postAddCount = await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
+
+      logger.step('Step 11 - Assert cart count incremented by 1 (precondition for promo-field check)');
+      expect(
+        postAddCount,
+        `${site.name}: Cart count must increment by 1 after ATC before promo-field check is meaningful (was ${initialCartCount}, expected ${initialCartCount + 1}, got ${postAddCount})`,
+      ).toBe(initialCartCount + 1);
+
+      logger.step('Step 12 - Navigate to /cart page');
+      await ecommerceCheckoutPage.navigateToCart();
+
+      // PRIMARY assertion (hard): the promo/discount/coupon/voucher field must be visible on
+      // the /cart page. Per the discovery report, this field lives at /cart, not behind the
+      // checkout CTA / auth-modal flow.
+      logger.step('Step 13 - Assert promo/discount/coupon/voucher field is visible on /cart');
+      const promoVisible = await ecommerceCheckoutPage.isPromoCodeFieldVisible();
+      logger.verify('Promo field visible on /cart', 'true', String(promoVisible));
+      expect(
+        promoVisible,
+        `${site.name}: E2E-CART-010 requires a promo/discount/coupon/voucher code field visible on /cart`,
+      ).toBe(true);
+
+      // SECONDARY check (soft, best-effort): "Apply" button presence alongside the promo field.
+      logger.step('Step 14 - Best-effort check: Apply promo button visible on /cart');
+      const applyVisible = await ecommerceCheckoutPage.hasApplyPromoButton();
+      softAssert.toBeTruthy(
+        applyVisible,
+        `${site.name}: An "Apply" button should be present alongside the promo/discount/coupon/voucher field on /cart`,
+      );
+    });
+  }
 });

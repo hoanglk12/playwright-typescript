@@ -635,3 +635,107 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **A precondition check passes but the guarded step still fails.** The check is likely vacuously true (e.g., `isAddToCartEnabled()` on DM NZ is always `true` regardless of size selection). Do not continue iterating on the guarded step — call advisor to verify whether the precondition is a valid proxy.
 
 **The advisor counter resets automatically** after you call `advisor()`. The stuck-loop hook (`advisor-nudge.js`) is a backstop for general loops, not a replacement for this list.
+
+---
+
+## Hooks (Behavioural Guardrails)
+
+The following rules replace the `.claude/hooks/` JavaScript hooks. They are enforced behaviourally — treat them as hard constraints on every action.
+
+### Hook 1 — Destructive Command Block (pre-tool-use.js equivalent)
+
+**NEVER run any of the following commands:**
+
+| Command | Reason |
+|---|---|
+| `rm -rf` / `rm -fr` / `rm --recursive --force` | Irreversible. Use `npm run clean` or `npx rimraf <path>` instead. |
+| `Remove-Item -Recurse -Force` (PowerShell) | Irreversible. Use `npm run clean` or rimraf instead. |
+| `git push --force` / `git push -f` to `main`/`master`/`develop` | Force-push to protected branch. |
+| `npm publish` | Releases to public registry. Must be done manually. |
+| `docker system prune` | Deletes ALL unused images, containers, networks, volumes. |
+| `DELETE FROM` (SQL) | Can permanently destroy table data. Needs WHERE clause + manual run. |
+| `DROP TABLE` / `DROP DATABASE` / `TRUNCATE TABLE` | Permanently destructive. Use migration scripts. |
+| `git reset --hard` | Discards all uncommitted changes. Use `git stash` instead. |
+| `git clean -f` / `git clean -fd` | Permanently deletes untracked files. Run `git clean -n` first. |
+| `percy exec` / `npm run test:percy` | Consumes billable Percy snapshot credits. CI only. |
+| `lhci collect/upload/run` / `npm run lhci` | Uploads to remote server, costs CI minutes. Run locally with `npx lighthouse`. |
+| `docker build` / `docker-compose build` | Takes 5–15+ minutes. Check existing images first. |
+| `npm run docker:test:parallel` | Runs 3 browser containers simultaneously (6–8 GB+ RAM). CI only. |
+| `WORKERS=100%` / `npm run test:parallel:max` | Saturates all CPU cores. Use `npm run test:parallel` (50%) instead. |
+| `NODE_ENV=production npm test` / `npm run test:production` | Targets live environment. Use `test:testing` or `test:staging`. |
+
+### Hook 2 — TypeScript Check After File Edits (post-tool-batch.js equivalent)
+
+After editing any `.ts` or `.tsx` file, run:
+```bash
+npx tsc --noEmit
+```
+If TypeScript errors are found, fix them before presenting the result. Report the error count and the first 5 errors.
+
+### Hook 3 — Stuck Loop Detection (advisor-nudge.js equivalent)
+
+**Self-monitor for stuck loops.** If you have:
+- Run the same test command 3 or more times without resolving the failure, OR
+- Edited the same file 3 or more times without resolving the issue
+
+**STOP. Step back and diagnose the root cause before any further edits or test runs.**
+
+Ask yourself:
+1. Is this a React event delegation problem? → Use `elementFromPoint` + `dispatchEvent` pattern
+2. Does the test pass in isolation but fail in the suite? → Order-dependency or shared state issue
+3. Are the error artifacts insufficient to diagnose? → Read more artifacts before writing code
+4. Am I about to write a second diagnostic script? → Stop and reason about root cause first
+
+Do not make another incremental patch. Either identify the root cause and switch approach, or explain the blocker to the user.
+
+### Hook 4 — Memory Vault Sync (sync-memory.js equivalent)
+
+When you write or edit any file under `memory-vault/20-memory/`, immediately run:
+```bash
+node scripts/sync-vault-to-lightrag.mjs
+```
+This syncs the vault note to LightRAG. The vault (`memory-vault/20-memory/`) is always the authoritative source — never write memory notes to any other location.
+
+---
+
+## Cline Agents & Workflows
+
+The following sub-agents are available as markdown definitions in `.cline/agents/`:
+
+| Agent | Purpose |
+|---|---|
+| `automation-test-architect` | Convert requirements to production POM test code |
+| `devops-cicd-specialist` | Parse CI reports, classify failures, build briefings |
+| `playwright-test-generator` | Record browser interactions, emit raw spec files |
+| `playwright-test-healer` | Debug and fix failing tests |
+| `playwright-test-planner` | Navigate live app, produce structured test plans |
+| `qa-code-reviewer` | Audit code against framework quality checklist |
+| `qa-orchestrator` | Single entry point for multi-step QA workflows |
+| `security-reviewer` | Scan for secrets, CVEs, unsafe patterns |
+| `technical-debt-agent` | Audit full codebase, produce TECH_DEBT_REPORT.md |
+| `technical-debt-fixer` | Apply targeted fixes from TECH_DEBT_REPORT.md |
+| `technical-implementation-agent` | Implement approved Research Reports |
+| `technical-research-agent` | Research integrations/upgrades (no code edits) |
+| `vault-updater` | Fetch Jira/Confluence → write memory vault note |
+| `memory-vault-curator` | Sync and enrich memory vault wikilinks |
+
+Workflows (equivalent to Claude slash commands) are in `.cline/workflows/`:
+
+| Workflow | Purpose |
+|---|---|
+| `check-ci` | Investigate CI pipeline failure |
+| `fix-debt` | Fix technical debt items from TECH_DEBT_REPORT.md |
+| `fix-test` | Fix a failing or flaky test |
+| `implement` | Implement an approved Technical Research Report |
+| `new-api-test` | Scaffold a new API test file |
+| `new-page-object` | Scaffold a new page object |
+| `new-ui-test` | Scaffold a new UI test spec |
+| `research` | Research a technical topic, produce a Research Report |
+| `review` | Code review changed files on current branch |
+| `run-api` | Run API tests with smart command selection |
+| `run-ui` | Run UI tests with smart command selection |
+| `security-audit` | Run security audit on the project |
+| `sync-vault` | Sync memory vault notes to LightRAG |
+| `write-tests` | Write tests from a requirement or user story |
+
+To use a workflow, say e.g. "run the fix-test workflow for tests/api/my-spec.ts" or reference the agent directly: "use the qa-orchestrator agent to write tests for the login feature".
