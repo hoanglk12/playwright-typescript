@@ -263,7 +263,69 @@ export class EcommerceCheckoutPage extends BasePage {
     return found;
   }
 
-  // Returns the text content of all visible validation error messages on the current step.
+  // Returns true if a promo / coupon code input field is visible on the current checkout step.
+  //
+  // Detection strategy:
+  //   1. Attribute-based: input[name*="coupon" i], input[placeholder*="promo" i], etc.
+  //   2. Label-text fallback: any <input> whose associated <label> text matches
+  //      coupon / promo / discount code.
+  //
+  // Polls for DIALOG_APPEAR timeout to allow lazy-rendered checkout sections to mount.
+  async hasPromoCodeField(): Promise<boolean> {
+    let found = false;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          found = await this.page.evaluate(() => {
+            const isVisible = (el: Element): boolean => {
+              const r = el.getBoundingClientRect();
+              return r.width > 0 && r.height > 0;
+            };
+
+            // 1. Attribute-based detection (most reliable)
+            const attrSelectors = [
+              'input[name*="coupon" i]',
+              'input[name*="promo" i]',
+              'input[name*="discount" i]',
+              'input[id*="coupon" i]',
+              'input[id*="promo" i]',
+              'input[id*="discount" i]',
+              'input[placeholder*="coupon" i]',
+              'input[placeholder*="promo" i]',
+              'input[placeholder*="discount" i]',
+              'input[aria-label*="coupon" i]',
+              'input[aria-label*="promo" i]',
+              'input[aria-label*="discount" i]',
+            ];
+            for (const sel of attrSelectors) {
+              const el = document.querySelector(sel);
+              if (el && isVisible(el)) return true;
+            }
+
+            // 2. Label-text fallback — find <label> whose text matches, then verify
+            //    its associated input is visible.
+            const promoRe = /coupon|promo|discount code/i;
+            const labels = Array.from(document.querySelectorAll('label'));
+            for (const label of labels) {
+              const text = (
+                (label as HTMLElement).innerText ?? label.textContent ?? ''
+              ).trim();
+              if (!promoRe.test(text)) continue;
+              const forId = (label as HTMLLabelElement).htmlFor;
+              const input = forId
+                ? document.getElementById(forId)
+                : label.querySelector('input');
+              if (input && isVisible(input)) return true;
+            }
+
+            return false;
+          });return found;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return found;
+  }// Returns the text content of all visible validation error messages on the current step.
   // Returns an empty array if none are found. Never throws.
   async getValidationMessages(): Promise<string[]> {
     const ariaSelector = this.ariaValidationSelector;
