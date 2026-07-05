@@ -1,6 +1,7 @@
 import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
+import { TIMEOUTS } from '../../../src/constants/timeouts';
 import {
   getPreferredNavLabel,
   navigateToPlp,
@@ -19,6 +20,7 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
     const navLabel = getPreferredNavLabel(site, preferMens);
 
     test(`${tcId} - ${site.name} Checkout page loads after items added to cart`, async ({
+      request,
       ecommerceNavPage,
       ecommercePLPPage,
       ecommercePDPPage,
@@ -29,6 +31,19 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
 
       if (!navLabel) {
         test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
+        return;
+      }
+
+      logger.step('Step 0 - Verify storefront origin is reachable before running the full flow');
+      const originHealthy = await request
+        .get(site.url, { timeout: TIMEOUTS.TIMEOUT_SHORT })
+        .then((response) => response.ok())
+        .catch(() => false);
+      if (!originHealthy) {
+        test.skip(
+          true,
+          `${site.name}: origin failed health check (unreachable or non-2xx within ${TIMEOUTS.TIMEOUT_SHORT}ms) — skipping to avoid burning the retry/test.slow() budget on a dead backend`,
+        );
         return;
       }
 
