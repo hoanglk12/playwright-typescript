@@ -324,24 +324,29 @@ async clickOldButton(): Promise<void> { // no caller
 
 Apply this section **only** to files under `tests/api/` or `src/api/`.
 
-- [ ] **[CRITICAL]** API test files import `apiTest as test` from `../../src/api/ApiTest`, **never** from `@config/base-test` or `@playwright/test`
+- [ ] **[CRITICAL]** Non-GRA API test files import `apiTest as test` from `../../src/api/ApiTest`, **never** from `@config/base-test` or `@playwright/test`. `gra-*.spec.ts` files instead import `graTest as test` from `./gra-test` (see `tests/api/CLAUDE.md`) — do not flag that as a violation.
 
 ```ts
 // CRITICAL violation
 import { test, expect } from '@config/base-test';   // WRONG in API tests
 import { test, expect } from '@playwright/test';     // WRONG in API tests
 
-// Correct
+// Correct — non-GRA API specs (restful-booker.spec.ts, objects-crud.spec.ts)
 import { apiTest as test, expect } from '../../src/api/ApiTest';
+
+// Correct — GRA specs (gra-*.spec.ts)
+import { graTest as test, expect, softExpect } from './gra-test';
 ```
 
-- [ ] **[CRITICAL]** `test.describe.configure({ mode: 'serial' })` is declared at the top of every API spec file (outside all `test.describe` blocks)
+- [ ] **[CRITICAL]** `test.describe.configure({ mode: 'serial' })` is declared at the top of every **non-GRA** API spec file (outside all `test.describe` blocks) — e.g. `restful-booker.spec.ts`, `objects-crud.spec.ts`
 
 ```ts
 // CRITICAL — missing serial declaration causes parallel execution and rate-limit failures
 test.describe.configure({ mode: 'serial' });  // required
 test.describe('My API Tests', () => { ... });
 ```
+
+- [ ] **[CRITICAL]** `gra-*.spec.ts` files do **NOT** add `test.describe.configure({ mode: 'serial' })` — GRA specs use default mode; `fullyParallel: false` in `api.config.ts` already guarantees sequential execution within a file, and serial mode cascades skips on failure, hiding test signal (see `tests/api/CLAUDE.md`)
 
 - [ ] **[WARNING]** `ApiResponseWrapper` chain methods are used for REST assertions — not raw `expect(response.status()).toBe(...)`
 

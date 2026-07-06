@@ -1,0 +1,55 @@
+language: "en-US"
+reviews:
+  profile: "chill"                 # fewer, higher-signal comments
+  request_changes_workflow: false  # advisory; never auto-block merges
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches: ["main", "master", "develop"]
+  path_filters:
+    - "!**/playwright-report/**"
+    - "!**/test-results/**"
+    - "!**/monocart-report/**"
+    - "!**/blob-report/**"
+    - "!**/lighthouse-reports/**"
+    - "!memory-vault/**"
+    - "!**/*.log"
+  path_instructions:
+    - path: "tests/**/*.spec.ts"
+      instructions: >
+        Flag any import of `test`/`expect` from `@playwright/test` directly — UI test files must
+        import from `@config/base-test`. Non-GRA API test files must import `apiTest` from
+        `src/api/ApiTest`; `gra-*.spec.ts` files instead correctly import `graTest` from
+        `./gra-test` — do not flag that as a violation. Flag hardcoded test data (should live in
+        `src/data/`). Flag serial-mode
+        (`test.describe.configure({ mode: 'serial' })`) added to `gra-*.spec.ts` API specs — GRA
+        specs use default mode; non-GRA API specs (restful-booker.spec.ts, objects-crud.spec.ts)
+        may retain serial mode. Flag magic timeout numbers in spec files — require named constants
+        from `src/constants/timeouts.ts`. For API spec files: flag string-interpolated variables
+        inside GraphQL query strings (variables must be passed via the variables argument), require
+        happy-path GraphQL tests to call `assertNoErrors()` before data assertions, and prefer
+        `ApiClientExt` `*WithWrapper` methods over raw `expect(response.status())` assertions.
+        Do NOT comment on fixture-registration or helper-composition architecture — that is handled
+        by a separate specialized reviewer.
+    - path: "src/pages/**/*.ts"
+      instructions: >
+        Flag direct `page.locator()` / `page.click()` usage inside page classes — interactions must
+        go through BasePage helpers (this.elements, this.waits, etc.). Flag inline selector strings
+        passed to helper calls or `page.evaluate()` — selectors must be declared as
+        `private readonly` class fields. Flag banned hierarchical structural selectors
+        (e.g. `div > span > ul > li:nth-child(2)`). Flag magic timeout numbers — require named
+        constants from `src/constants/timeouts.ts`.
+    - path: "src/api/**/*.ts"
+      instructions: >
+        Flag string-interpolated variables inside GraphQL query strings — variables must be passed
+        via the variables argument. Prefer `ApiClientExt` `*WithWrapper` methods for assertion
+        chaining. Ensure happy-path GraphQL tests call `assertNoErrors()`.
+    - path: "src/data/**/*.ts"
+      instructions: >
+        Flag exported data objects and generator return types lacking a named interface annotation.
+  tools:
+    gitleaks:
+      enabled: true                # secret-leak scan (defense in depth)
+chat:
+  auto_reply: true
