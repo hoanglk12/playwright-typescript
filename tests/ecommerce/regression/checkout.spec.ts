@@ -15,7 +15,6 @@ import {
   shouldPreferMens,
   ensureCartOverlayOpen,
   findProductWithAvailableSizes,
-  selectFirstPurchasableSize,
 } from '../smoke/smoke-helpers';
 
 // Shared setup for checkout-regression tests: verifies origin health, navigates to a PLP,
@@ -78,16 +77,26 @@ async function addToCartAndReachCheckoutCta(params: {
   const initialCartCount = await ecommercePDPPage.getMiniCartCount();
   logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
 
-  logger.step('Step 8 - Select a size that enables Add to Cart (try up to 3)');
-  const targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
+  // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
+  // addToCart is called immediately after isAddToCartEnabled to minimise the window in which
+  // the SPA can lose the button (observed on Vans AU with ~400ms gap). Do NOT split this into
+  // selectFirstPurchasableSize() + a separate addToCart() call — that reintroduces the timing
+  // gap and addToCart() silently no-ops against a stale/removed button.
+  logger.step('Step 8-9 - Select a size, then Add to Cart immediately (try up to 3 sizes)');
+  let targetSize: string | null = null;
+  for (const size of availableSizes.slice(0, 3)) {
+    await ecommercePDPPage.selectSize(size);
+    if (await ecommercePDPPage.isAddToCartEnabled()) {
+      targetSize = size;
+      await ecommercePDPPage.addToCart();
+      break;
+    }
+  }
   if (targetSize === null) {
     test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
     return 'skipped';
   }
   logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
-
-  logger.step(`Step 9 - Click Add to Cart with size "${targetSize}" selected`);
-  await ecommercePDPPage.addToCart();
 
   logger.step('Step 10 - Poll for mini cart count to increment after ATC');
   const postAddCount = await ecommercePDPPage.waitForMiniCartCountIncrement(initialCartCount);
