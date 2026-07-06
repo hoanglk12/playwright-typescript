@@ -39,12 +39,12 @@ NEVER import from `@playwright/test` directly in test files — this loses all c
 Do NOT call `logger.verify()` before `softAssert.*` — softAssert logs internally with 🔵 [SOFT].
 
 **Test data — no hardcoded strings in spec files:**
-Check `src/data/` for existing data modules first. If none fit, create `src/data/{kebab-name}-data.ts`:
+Before writing new data, check for an existing module via `mcp__codebase-memory-mcp__search_graph` (query: the feature name, file_pattern: `src/data/*`; project: this repo — run `list_projects` if the exact key is unknown). Fall back to `Grep`/`Glob` on `src/data/` if the tool is unavailable. If none fit, create `src/data/{kebab-name}-data.ts`:
 - Declare named interfaces first
 - Annotate const objects: `export const MyData: MyDataShape = { ... }`
 - Generator methods: `static generate(): MyShape { return { ... }; }`
 
 **Fixtures — use existing page objects:**
-Check `src/config/base-test.ts` for currently registered fixtures before creating new page objects. If you need a new page object, use `/new-page-object` instead.
+Check registered fixtures via `mcp__codebase-memory-mcp__get_code_snippet` (qualified_name targeting `base-test.ts`'s fixture list) before creating new page objects — fall back to `Read` on `src/config/base-test.ts` if the tool is unavailable. If you need a new page object, use `/new-page-object` instead.
 
 Create the spec file and any needed data modules. Run `npm run lint` to verify TypeScript.

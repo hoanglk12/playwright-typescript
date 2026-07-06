@@ -4,7 +4,7 @@ description: Scaffold a new page object following the composition-based POM with
 
 Create a new page object for: $ARGUMENTS
 
-Identify the class name and area (frontsite, admin, or ecommerce) from the description. Check `src/pages/{area}/` first — if a page object for this page already exists, extend or update it rather than creating a duplicate.
+Identify the class name and area (frontsite, admin, or ecommerce) from the description. Before creating anything, check for an existing page object via `mcp__codebase-memory-mcp__search_graph` (query: the page/feature name, label: `Class`, file_pattern: `src/pages/{area}/*`; project: this repo — run `list_projects` if the exact key is unknown) — fall back to `Glob`/`Grep` on `src/pages/{area}/` if the tool is unavailable. If one exists, extend or update it rather than creating a duplicate.
 
 **File location:** src/pages/{area}/{kebab-name}.ts
 
@@ -31,6 +31,9 @@ export class MyFeaturePage extends BasePage {
 
   async clickSubmit(): Promise<void> {
     await this.elements.clickElement(this.submitBtn);
+
+    // WRONG — selector inlined inside helper call instead of referencing a field:
+    // await this.elements.clickElement('[data-testid="submit"]');
   }
 
   async fillEmail(email: string): Promise<void> {

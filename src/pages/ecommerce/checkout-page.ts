@@ -41,6 +41,19 @@ export class EcommerceCheckoutPage extends BasePage {
   // Matches: "CONTINUE AS GUEST", "Guest Checkout", "Continue as Guest".
   private readonly guestSubmitPattern = /guest/i;
 
+  // E2E-CHKOUT-002 — Attribute pattern that identifies an email-type input by its
+  // type/name/id/placeholder/aria-label. Used to scope the guest-section email field
+  // check to the auth modal (guest section), distinct from any unrelated email input
+  // that may exist elsewhere on the page (e.g. a newsletter signup field).
+  private readonly emailFieldPattern = /e-?mail/i;
+
+  // E2E-CHKOUT-002 — Text pattern that identifies a login-section signal (a visible
+  // login-submit button, e.g. "LOG IN & CONTINUE"). Used by isGuestEmailFieldVisible() as
+  // a boundary marker: the ancestor-widening scan stops once it reaches a container that
+  // also contains this signal (or a visible password input), so the guest-email search
+  // never widens past the point where the login section's own email input could shadow it.
+  private readonly loginSubmitPattern = /log\s*in/i;
+
   // Text pattern that identifies the primary submit button on any checkout step
   // (shipping address form, payment step, order review).
   private readonly checkoutSubmitPattern =
@@ -94,6 +107,129 @@ export class EcommerceCheckoutPage extends BasePage {
         return r.width > 0 && r.height > 0;
       });
     }, this.guestSubmitPattern.source);
+  }
+
+  // E2E-CHKOUT-002 — Returns true if a visible, enabled email input is present in the guest
+  // section of the checkout auth modal (i.e. near the "CONTINUE AS GUEST" button). The scan
+  // widens outward from the guest CTA one ancestor level at a time but stops as soon as it
+  // reaches a container that also carries a login-section signal (a visible password input,
+  // or a visible button/submit matching loginSubmitPattern) — that container is treated as
+  // the outer boundary between the guest and login sections, so the search never widens far
+  // enough to pick up the login section's own email input. This is not an absolute DOM
+  // boundary marker (Magento PWA storefronts nest the guest/login sections at varying
+  // depths inside a shared modal wrapper), but the login-signal check is what enforces
+  // correctness rather than any fixed nesting depth. Detection strategy:
+  //   1. Locate a visible button/submit matching guestSubmitPattern (the guest CTA).
+  //   2. Walk up ancestor containers one level at a time from the guest CTA.
+  //   3. At each level, look for a visible, enabled input matching type="email" or an
+  //      email-ish name/id/placeholder/aria-label attribute — return true if found.
+  //   4. At each level, also check for a login-section signal. If present, this level is
+  //      the outer boundary — stop widening after checking it for the email match above
+  //      (do not continue to the parent container).
+  //   5. If no login signal is present, continue widening to the next ancestor. The walk
+  //      is naturally bounded by the DOM tree (stops at document.body / no parent) — no
+  //      arbitrary depth cap is used, since the login-boundary check is the real scoping
+  //      mechanism.
+  // Never throws — returns false on any detection failure.
+  async isGuestEmailFieldVisible(): Promise<boolean> {
+    return this.page
+      .evaluate(
+        ({
+          guestPattern,
+          emailPattern,
+          loginPattern,
+        }: {
+          guestPattern: string;
+          emailPattern: string;
+          loginPattern: string;
+        }) => {
+          const guestRe = new RegExp(guestPattern, 'i');
+          const emailRe = new RegExp(emailPattern, 'i');
+          const loginRe = new RegExp(loginPattern, 'i');
+
+          const isVisible = (el: Element): boolean => {
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) return false;
+            const style = getComputedStyle(el);
+            if (style.visibility === 'hidden' || style.display === 'none') return false;
+            if (parseFloat(style.opacity || '1') === 0) return false;
+            return true;
+          };
+
+          const isEmailInput = (input: HTMLInputElement): boolean => {
+            if (input.disabled) return false;
+            if (input.type === 'email') return true;
+            const attrs = ['name', 'id', 'placeholder', 'aria-label'];
+            return attrs.some((a) => {
+              const v = input.getAttribute(a) ?? '';
+              return v !== '' && emailRe.test(v);
+            });
+          };
+
+          // Login-section boundary signal: a visible password input, or a visible
+          // button/submit whose text matches loginPattern (e.g. "LOG IN & CONTINUE").
+          const hasLoginSignal = (container: Element): boolean => {
+            const hasPasswordInput = Array.from(
+              container.querySelectorAll<HTMLInputElement>('input[type="password"]'),
+            ).some(isVisible);
+            if (hasPasswordInput) return true;
+
+            const loginBtns = Array.from(
+              container.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
+            );
+            return loginBtns.some((b) => {
+              const text = (b.innerText ?? b.textContent ?? '').trim();
+              return loginRe.test(text) && isVisible(b);
+            });
+          };
+
+          const guestBtns = Array.from(
+            document.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
+          ).filter((btn) => {
+            const text = (btn.innerText ?? btn.textContent ?? '').trim();
+            return guestRe.test(text) && isVisible(btn);
+          });
+
+          for (const btn of guestBtns) {
+            let container: Element | null = btn.parentElement;
+            // The tightest ancestor is scanned even if it already carries a login signal —
+            // at that level guest and login markup are genuinely intermixed and there is no
+            // narrower guest-only container to fall back to. Every wider ancestor is gated:
+            // once a login signal appears, the email scan is skipped for that container (and
+            // any container beyond it), because scanning it risks matching the login section's
+            // own email input instead of the guest section's.
+            let isTightestAncestor = true;
+            while (container) {
+              const loginBoundary = hasLoginSignal(container);
+              if (!loginBoundary || isTightestAncestor) {
+                const inputs = Array.from(
+                  container.querySelectorAll<HTMLInputElement>('input'),
+                );
+                const match = inputs.find((input) => isVisible(input) && isEmailInput(input));
+                if (match) return true;
+              }
+
+              // Stop widening once this container carries a login-section signal — it is the
+              // outer boundary between the guest and login sections.
+              if (loginBoundary) break;
+
+              // Safety net: stop at document.body (or once the ancestor chain is exhausted)
+              // so the walk cannot run past the page root. This is a runaway guard only —
+              // the login-signal check above is the mechanism that enforces scoping.
+              if (container === document.body || !container.parentElement) break;
+              container = container.parentElement;
+              isTightestAncestor = false;
+            }
+          }
+          return false;
+        },
+        {
+          guestPattern: this.guestSubmitPattern.source,
+          emailPattern: this.emailFieldPattern.source,
+          loginPattern: this.loginSubmitPattern.source,
+        },
+      )
+      .catch(() => false);
   }
 
   // Waits until the checkout state is active — either:
