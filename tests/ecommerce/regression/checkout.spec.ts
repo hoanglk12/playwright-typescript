@@ -1,5 +1,6 @@
-import { test, expect } from '@config/base-test';
+import { test, expect, softExpect } from '@config/base-test';
 import { storefronts, type Storefront } from '@data/ecommerce/storefronts';
+import { createGuestCheckoutEmail } from '@data/ecommerce/test-accounts';
 import { createTestLogger } from '@utils/test-logger';
 import type { TestLogger } from '@utils/test-logger';
 import { TIMEOUTS } from '../../../src/constants/timeouts';
@@ -195,6 +196,69 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         guestEmailFieldVisible,
         `${site.name}: Guest checkout email entry field should be presented in the auth modal after adding an item to cart`,
       ).toBeTruthy();
+    });
+  }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CHKOUT-003-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Shipping address form validates required fields`, async ({
+      request,
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      ecommerceCheckoutPage,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Shipping address form validates required fields`);
+
+      const result = await addToCartAndReachCheckoutCta({
+        site,
+        navLabel,
+        request,
+        ecommerceNavPage,
+        ecommercePLPPage,
+        ecommercePDPPage,
+        ecommerceCartOverlayPage,
+        ecommerceCheckoutPage,
+        logger,
+      });
+      if (result === 'skipped') return;
+
+      logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST');
+      const { email: guestEmail } = createGuestCheckoutEmail();
+      await ecommerceCheckoutPage.fillGuestEmailAndContinue(guestEmail);
+
+      logger.step('Step 16 - Assert the auth modal has closed and the shipping form is active');
+      // Precondition gate — must be hard, not soft: if the transition to the shipping form
+      // never happened, the next step's blank-form submit would just re-click the SAME guest
+      // CTA again and hasRequiredFieldValidation() would vacuously pass on the stale
+      // "Please enter your email address." message, collapsing this test into a duplicate of
+      // E2E-CHKOUT-002 while reporting green.
+      const onShippingStep = await ecommerceCheckoutPage.isOnShippingStep();
+      logger.verify('Shipping form is active after guest email submit', 'true', String(onShippingStep));
+      expect(
+        onShippingStep,
+        `${site.name}: Submitting a valid guest email should close the auth modal and advance to the shipping address form`,
+      ).toBeTruthy();
+
+      logger.step('Step 17 - Submit the blank shipping form to trigger required-field validation');
+      await ecommerceCheckoutPage.submitCurrentStep();
+
+      logger.step('Step 18 - Assert required-field validation is shown on the shipping form');
+      const hasValidation = await ecommerceCheckoutPage.hasRequiredFieldValidation();
+      logger.verify('Shipping form required-field validation visible', 'true', String(hasValidation));
+      expect(
+        hasValidation,
+        `${site.name}: Submitting the blank shipping address form should surface required-field validation`,
+      ).toBeTruthy();
+
+      logger.step('Step 19 - Capture validation messages for logging (observational, independent check)');
+      const validationMessages = await ecommerceCheckoutPage.getValidationMessages();
+      logger.verify('Shipping form validation messages captured', '>= 1 message', String(validationMessages.length));
+      softExpect(validationMessages.length).toBeGreaterThan(0);
     });
   }
 });

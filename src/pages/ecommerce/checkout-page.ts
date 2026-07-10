@@ -68,6 +68,37 @@ export class EcommerceCheckoutPage extends BasePage {
   // ARIA selector for semantic validation signals (preferred over text scan).
   private readonly ariaValidationSelector = '[role="alert"], [aria-live]:not([aria-live="off"])';
 
+  // E2E-CHKOUT-003 — RECON FINDINGS (Platypus AU staging, 2026-07-10, verified live via a
+  // fixture-based throwaway spec that reused the real page-object methods):
+  //   A valid guest email filled via a genuine CDP-level `fill()` (not a raw `.value =`
+  //   assignment, which does not update React's controlled-input state) followed by
+  //   submitCurrentStep()'s existing CONTINUE AS GUEST click DOES advance the flow: the
+  //   auth modal closes (isGuestEmailFieldVisible() -> false) and the browser navigates to
+  //   a dedicated /checkout URL (checkoutUrlPattern already matches this).
+  //   The shipping form renders headings/legends "CHECKING OUT AS GUEST", "DELIVER TO",
+  //   "DELIVERY METHOD *" and inputs named firstName/lastName/fullAddress/phoneNumber/email.
+  //   Submitting the shipping form blank surfaces "Required fields marked with *" and
+  //   "Please enter your details to see available shipping methods" — already caught by the
+  //   existing validationTextPattern (matches "required"), so hasRequiredFieldValidation()
+  //   needed no changes to detect shipping-step validation.
+  //
+  // Shipping-step heading/legend text pattern — identifies a shipping/delivery-specific
+  // signal distinct from the auth-modal step (which never renders these terms).
+  private readonly shippingStepHeadingPattern =
+    /shipping|deliver(y|\s+to)|checking out as guest/i;
+
+  // Shipping-step input attribute pattern — matches name/id/placeholder/aria-label on the
+  // address-collection fields observed on the shipping form (firstName, lastName,
+  // fullAddress, phoneNumber, and city/postcode/suburb variants on other storefronts).
+  private readonly shippingFieldAttrPattern =
+    /first-?name|last-?name|full-?address|address|post-?code|zip|suburb|city|phone/i;
+
+  // Attribute name used to tag the guest-section email input (see tagGuestEmailInput())
+  // so a genuine Playwright locator can .fill() it — CDP-level fill correctly triggers
+  // React's onChange handler; a raw DOM `.value =` assignment does not.
+  private readonly guestEmailTargetAttr = 'data-qa-guest-email-target';
+  private readonly guestEmailTargetSelector = '[data-qa-guest-email-target="true"]';
+
   // Promo/discount code field detection patterns (E2E-CART-010).
   //
   // Promotional code fields are rendered inconsistently across the 8 Magento PWA storefronts:
@@ -94,7 +125,9 @@ export class EcommerceCheckoutPage extends BasePage {
   // Detects whether the checkout auth modal is visible.
   // The modal appears on the same page (URL unchanged) after clicking CHECKOUT in the overlay.
   // Identified by the presence of visible "CONTINUE AS GUEST" or "LOG IN & CONTINUE" buttons.
-  private async isAuthModalVisible(): Promise<boolean> {
+  // E2E-CHKOUT-003 — exposed publicly (was private) so isOnShippingStep() can use it as the
+  // "auth modal confirmed closed" gate: the shipping form is only reachable once this is false.
+  async isAuthModalVisible(): Promise<boolean> {
     return this.page.evaluate((guestPattern: string) => {
       const re = new RegExp(guestPattern, 'i');
       const btns = Array.from(
@@ -232,6 +265,118 @@ export class EcommerceCheckoutPage extends BasePage {
       .catch(() => false);
   }
 
+  // E2E-CHKOUT-003 — Locates the guest-section email input using the SAME ancestor-widening
+  // scan as isGuestEmailFieldVisible() (guest CTA -> widen until a login-signal boundary) and
+  // tags it with a temporary marker attribute so fillGuestEmailAndContinue() can interact with
+  // it through a genuine Playwright locator. A raw DOM `.value =` assignment does not update
+  // React's controlled-input state — only a real CDP-level fill (dispatched via
+  // this.elements.enterText) reliably triggers the onChange handler that CONTINUE AS GUEST
+  // validation depends on. Returns true if an input was found and tagged. Never throws.
+  private async tagGuestEmailInput(): Promise<boolean> {
+    return this.page
+      .evaluate(
+        ({
+          guestPattern,
+          emailPattern,
+          loginPattern,
+          targetAttr,
+        }: {
+          guestPattern: string;
+          emailPattern: string;
+          loginPattern: string;
+          targetAttr: string;
+        }) => {
+          const guestRe = new RegExp(guestPattern, 'i');
+          const emailRe = new RegExp(emailPattern, 'i');
+          const loginRe = new RegExp(loginPattern, 'i');
+
+          const isVisible = (el: Element): boolean => {
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) return false;
+            const style = getComputedStyle(el);
+            if (style.visibility === 'hidden' || style.display === 'none') return false;
+            if (parseFloat(style.opacity || '1') === 0) return false;
+            return true;
+          };
+
+          const isEmailInput = (input: HTMLInputElement): boolean => {
+            if (input.disabled) return false;
+            if (input.type === 'email') return true;
+            const attrs = ['name', 'id', 'placeholder', 'aria-label'];
+            return attrs.some((a) => {
+              const v = input.getAttribute(a) ?? '';
+              return v !== '' && emailRe.test(v);
+            });
+          };
+
+          const hasLoginSignal = (container: Element): boolean => {
+            const hasPasswordInput = Array.from(
+              container.querySelectorAll<HTMLInputElement>('input[type="password"]'),
+            ).some(isVisible);
+            if (hasPasswordInput) return true;
+
+            const loginBtns = Array.from(
+              container.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
+            );
+            return loginBtns.some((b) => {
+              const text = (b.innerText ?? b.textContent ?? '').trim();
+              return loginRe.test(text) && isVisible(b);
+            });
+          };
+
+          const guestBtns = Array.from(
+            document.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
+          ).filter((btn) => {
+            const text = (btn.innerText ?? btn.textContent ?? '').trim();
+            return guestRe.test(text) && isVisible(btn);
+          });
+
+          for (const btn of guestBtns) {
+            let container: Element | null = btn.parentElement;
+            let isTightestAncestor = true;
+            while (container) {
+              const loginBoundary = hasLoginSignal(container);
+              if (!loginBoundary || isTightestAncestor) {
+                const inputs = Array.from(
+                  container.querySelectorAll<HTMLInputElement>('input'),
+                );
+                const match = inputs.find((input) => isVisible(input) && isEmailInput(input));
+                if (match) {
+                  match.setAttribute(targetAttr, 'true');
+                  return true;
+                }
+              }
+
+              if (loginBoundary) break;
+              if (container === document.body || !container.parentElement) break;
+              container = container.parentElement;
+              isTightestAncestor = false;
+            }
+          }
+          return false;
+        },
+        {
+          guestPattern: this.guestSubmitPattern.source,
+          emailPattern: this.emailFieldPattern.source,
+          loginPattern: this.loginSubmitPattern.source,
+          targetAttr: this.guestEmailTargetAttr,
+        },
+      )
+      .catch(() => false);
+  }
+
+  // E2E-CHKOUT-003 — Fills the guest-section email input in the checkout auth modal with a
+  // valid email and submits it via CONTINUE AS GUEST, advancing the flow from the auth modal
+  // into the shipping address form. Callers must confirm the transition with
+  // isOnShippingStep() before treating the shipping form as active (see that method's doc).
+  async fillGuestEmailAndContinue(email: string): Promise<void> {
+    const tagged = await this.tagGuestEmailInput();
+    if (tagged) {
+      await this.elements.enterText(this.guestEmailTargetSelector, email);
+    }
+    await this.submitCurrentStep();
+  }
+
   // Waits until the checkout state is active — either:
   //   a) The URL changes to a /checkout path (logged-in user, auth modal bypassed), or
   //   b) The checkout auth modal becomes visible (CONTINUE AS GUEST button visible).
@@ -255,6 +400,66 @@ export class EcommerceCheckoutPage extends BasePage {
     const url = this.page.url();
     if (this.checkoutUrlPattern.test(url)) return true;
     return this.isAuthModalVisible();
+  }
+
+  // E2E-CHKOUT-003 — Positively confirms the shipping address form is active, distinct from
+  // the checkout auth-modal step. Two-part gate:
+  //   1. The auth modal must be confirmed CLOSED (isAuthModalVisible() false) — this rules
+  //      out the false-positive where the modal never advanced and a second
+  //      submitCurrentStep() call would just re-click the same guest CTA again.
+  //   2. A shipping-specific signal must be present: a visible heading/legend matching
+  //      shippingStepHeadingPattern (e.g. "DELIVER TO", "DELIVERY METHOD") OR a visible input
+  //      whose name/id/placeholder/aria-label matches shippingFieldAttrPattern (e.g.
+  //      firstName, lastName, fullAddress, phoneNumber, postcode/city/suburb variants).
+  // Never throws — returns false on any detection failure (fails safe, since callers hard-
+  // assert this as a precondition gate).
+  async isOnShippingStep(): Promise<boolean> {
+    const headingPattern = this.shippingStepHeadingPattern.source;
+    const fieldPattern = this.shippingFieldAttrPattern.source;
+    let found = false;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          const authModalVisible = await this.isAuthModalVisible();
+          if (authModalVisible) return false;
+
+          found = await this.page.evaluate(
+            ({ headingSrc, fieldSrc }: { headingSrc: string; fieldSrc: string }) => {
+              const headingRe = new RegExp(headingSrc, 'i');
+              const fieldRe = new RegExp(fieldSrc, 'i');
+
+              const isVisible = (el: Element): boolean => {
+                const r = el.getBoundingClientRect();
+                return r.width > 0 && r.height > 0;
+              };
+
+              const headingMatch = Array.from(
+                document.querySelectorAll('h1, h2, h3, h4, legend'),
+              ).some((el) => {
+                const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
+                return text !== '' && headingRe.test(text) && isVisible(el);
+              });
+              if (headingMatch) return true;
+
+              return Array.from(document.querySelectorAll<HTMLInputElement>('input')).some(
+                (input) => {
+                  if (!isVisible(input)) return false;
+                  const attrs = ['name', 'id', 'placeholder', 'aria-label'];
+                  return attrs.some((a) => {
+                    const v = input.getAttribute(a) ?? '';
+                    return v !== '' && fieldRe.test(v);
+                  });
+                },
+              );
+            },
+            { headingSrc: headingPattern, fieldSrc: fieldPattern },
+          );
+          return found;
+        },
+        { timeout: TIMEOUTS.PAGE_LOAD, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return found;
   }
 
   // Finds and clicks the checkout CTA button inside the mini-cart overlay panel.

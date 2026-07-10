@@ -61,6 +61,21 @@ export function createFreshAccountCredentials(brandCode: string): FreshAccountCr
   };
 }
 
+export interface GuestCheckoutEmail {
+  email: string;
+}
+
+// E2E-CHKOUT-003 — Generates a unique guest-checkout email for the shipping-form regression
+// test, mirroring createFreshAccountCredentials()'s mailinator + Date.now() + random-suffix
+// pattern so repeated test runs never collide on the same address.
+export function createGuestCheckoutEmail(): GuestCheckoutEmail {
+  const ts = Date.now();
+  const rand = faker.string.alphanumeric(8).toLowerCase();
+  return {
+    email: `qa.checkout.e2e${ts}${rand}@mailinator.com`,
+  };
+}
+
 // Uses email addresses that do not exist on any GRA storefront (E2E-AUTH-004).
 // Magento returns the same generic sign-in error for non-existent emails as for
 // wrong passwords — by design, to prevent email enumeration attacks.
