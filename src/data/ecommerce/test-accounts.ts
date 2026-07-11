@@ -76,6 +76,47 @@ export function createGuestCheckoutEmail(): GuestCheckoutEmail {
   };
 }
 
+export interface GuestShippingAddress {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  /**
+   * Partial address text typed into the checkout address-autocomplete field to trigger the
+   * suggestion dropdown. "1 Pitt Street Sydney" is a confirmed Sydney CBD address (verified
+   * live: resolves to a "1 Pitt St, SYDNEY, NSW, 2000" suggestion on Platypus AU staging).
+   * E2E-CHKOUT-004 selects the first rendered suggestion rather than depending on this
+   * resolving to any specific address — see fillShippingAddressAndSelectSuggestion() in
+   * checkout-page.ts for the confirmed recon finding that shipping methods only become
+   * selectable once a suggestion is picked (typed free text alone leaves every delivery-method
+   * radio disabled). A CBD address was deliberately used (rather than a remote suburb) to give
+   * the widest chance of enabling more than one carrier/method — recon confirmed Platypus AU
+   * staging still only ever enables exactly one method regardless of address; this is
+   * documented in checkout-page.ts as a known staging characteristic, not a test defect.
+   *
+   * RECON FINDING (confirmed live, single-worker run against Platypus NZ staging): the AU
+   * address above does NOT resolve to a suggestion on NZ storefronts — the shipping-address
+   * autocomplete is region-scoped, so an AU query against an NZ store returns nothing and
+   * fillShippingAddressAndSelectSuggestion() correctly reports "cannot proceed". This was
+   * initially mistaken for storefront flakiness; it is a genuine region mismatch in the test
+   * data. createGuestShippingAddress() therefore takes an `isNz` flag so callers can request an
+   * NZ-appropriate query for NZ storefronts (see storefronts.ts `storeHeader === 'nz'`).
+   */
+  addressQuery: string;
+}
+
+// E2E-CHKOUT-004 — Generates guest shipping-address form data for the shipping-method
+// selection regression test. Pass `isNz: true` for storefronts with `storeHeader === 'nz'` —
+// the AU default address does not resolve on the NZ region's address-autocomplete (see the
+// addressQuery field doc above for the confirmed recon finding).
+export function createGuestShippingAddress(isNz = false): GuestShippingAddress {
+  return {
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
+    phoneNumber: '0412345678',
+    addressQuery: isNz ? '1 Queen Street Auckland' : '1 Pitt Street Sydney',
+  };
+}
+
 // Uses email addresses that do not exist on any GRA storefront (E2E-AUTH-004).
 // Magento returns the same generic sign-in error for non-existent emails as for
 // wrong passwords — by design, to prevent email enumeration attacks.

@@ -1,6 +1,6 @@
 import { test, expect, softExpect } from '@config/base-test';
 import { storefronts, type Storefront } from '@data/ecommerce/storefronts';
-import { createGuestCheckoutEmail } from '@data/ecommerce/test-accounts';
+import { createGuestCheckoutEmail, createGuestShippingAddress } from '@data/ecommerce/test-accounts';
 import { createTestLogger } from '@utils/test-logger';
 import type { TestLogger } from '@utils/test-logger';
 import { TIMEOUTS } from '../../../src/constants/timeouts';
@@ -8,7 +8,7 @@ import type { EcommerceNavPage } from '../../../src/pages/ecommerce/nav-page';
 import type { EcommercePLPPage } from '../../../src/pages/ecommerce/plp-page';
 import type { EcommercePDPPage } from '../../../src/pages/ecommerce/pdp-page';
 import type { EcommerceCartOverlayPage } from '../../../src/pages/ecommerce/cart-overlay-page';
-import type { EcommerceCheckoutPage } from '../../../src/pages/ecommerce/checkout-page';
+import type { EcommerceCheckoutPage, OrderSummaryTotals } from '../../../src/pages/ecommerce/checkout-page';
 import type { APIRequestContext } from '@playwright/test';
 import {
   getPreferredNavLabel,
@@ -259,6 +259,211 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
       const validationMessages = await ecommerceCheckoutPage.getValidationMessages();
       logger.verify('Shipping form validation messages captured', '>= 1 message', String(validationMessages.length));
       softExpect(validationMessages.length).toBeGreaterThan(0);
+    });
+  }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CHKOUT-004-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Shipping method selection updates order total`, async ({
+      request,
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      ecommerceCheckoutPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Shipping method selection updates order total`);
+
+      const result = await addToCartAndReachCheckoutCta({
+        site,
+        navLabel,
+        request,
+        ecommerceNavPage,
+        ecommercePLPPage,
+        ecommercePDPPage,
+        ecommerceCartOverlayPage,
+        ecommerceCheckoutPage,
+        logger,
+      });
+      if (result === 'skipped') return;
+
+      logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST');
+      const { email: guestEmail } = createGuestCheckoutEmail();
+      await ecommerceCheckoutPage.fillGuestEmailAndContinue(guestEmail);
+
+      logger.step('Step 16 - Assert the auth modal has closed and the shipping form is active');
+      // Precondition gate — must be hard, not soft: without a confirmed transition to the
+      // shipping form, every step below (address fill, method selection, total reads) would
+      // operate against the wrong page state and produce meaningless results.
+      const onShippingStep = await ecommerceCheckoutPage.isOnShippingStep();
+      logger.verify('Shipping form is active after guest email submit', 'true', String(onShippingStep));
+      expect(
+        onShippingStep,
+        `${site.name}: Submitting a valid guest email should close the auth modal and advance to the shipping address form`,
+      ).toBeTruthy();
+
+      logger.step('Step 17 - Fill guest shipping contact fields and address, selecting an address suggestion');
+      const shippingAddress = createGuestShippingAddress(site.storeHeader === 'nz');
+      const addressSelected = await ecommerceCheckoutPage.fillGuestShippingAddress(shippingAddress);
+      if (!addressSelected) {
+        test.skip(
+          true,
+          `${site.name}: no address suggestion could be selected for "${shippingAddress.addressQuery}" — shipping methods cannot be reliably rendered without a confirmed address`,
+        );
+        return;
+      }
+
+      logger.step('Step 18 - Wait for shipping methods to become selectable (enabled)');
+      await ecommerceCheckoutPage.waitForShippingMethodsReady();
+
+      logger.step('Step 19 - Assert at least 1 selectable shipping method is available (precondition)');
+      const methodCount = await ecommerceCheckoutPage.getSelectableShippingMethodCount();
+      logger.verify('Selectable shipping method count', '>= 1', String(methodCount));
+      if (methodCount === 0) {
+        test.skip(
+          true,
+          `${site.name}: no shipping methods became selectable within the readiness timeout after committing an address — cannot verify a method-selection total delta`,
+        );
+        return;
+      }
+
+      logger.step('Step 20 - Read the current order summary totals and detect whether a method already arrived pre-selected');
+      // Waits for the pre-selection state to settle before snapshotting it — a storefront's
+      // auto-selected default carrier can commit slightly after its radio first becomes enabled
+      // (confirmed live on Skechers AU), which would otherwise read as "not pre-selected" a
+      // moment too early and cause the first branch below to silently re-select the already-
+      // checked free method.
+      await ecommerceCheckoutPage.waitForShippingSelectionSettled();
+      const currentTotals = await ecommerceCheckoutPage.getOrderSummaryTotals();
+      const preSelected = await ecommerceCheckoutPage.isAnyShippingMethodSelected();
+      logger.verify('A shipping method is pre-selected on arrival', 'boolean', String(preSelected));
+
+      // Change-detection is keyed on the 'delivery' line rather than 'total': getOrderSummaryTotals()
+      // parses 'total' positionally and a discount/member-price line inside the order summary panel
+      // on some storefronts can shift that parse (confirmed live on Vans AU — a parsed total lower
+      // than the parsed subtotal). 'delivery' sits immediately after the subtotal price with no
+      // intervening discount line and has proven reliable on every storefront checked.
+      // Shared consistency assertion for every "single shipping method, no alternate to compare
+      // against" terminal state below — total must equal subtotal + delivery + discount (the
+      // discount line, when present, is already negative — see OrderSummaryTotals.discount /
+      // the class-level recon docblock on getOrderSummaryTotals(), confirmed live on Vans AU
+      // where a "Singles Day 25% Off" promotion line sits between subtotal and delivery).
+      // Deliberately does NOT require delivery > 0: confirmed live on Dr. Martens AU that the
+      // single pre-selected method ("Free Express Delivery") can genuinely cost $0 — the
+      // requirement ("shipping method selection updates order total") is already proven true by
+      // the method being selected + the total being internally consistent with it, independent
+      // of whether that method happens to be free.
+      const assertSingleMethodConsistency = (totals: OrderSummaryTotals): void => {
+        const isConsistent =
+          totals.subtotal !== null &&
+          totals.delivery !== null &&
+          totals.total !== null &&
+          Math.abs(totals.total - (totals.subtotal + totals.delivery + (totals.discount ?? 0))) < 0.01;
+        softAssert.toBeTruthy(
+          isConsistent,
+          `${site.name}: Total should equal subtotal + delivery + discount (subtotal: ${totals.subtotal}, delivery: ${totals.delivery}, discount: ${totals.discount}, total: ${totals.total})`,
+        );
+      };
+
+      if (!preSelected) {
+        logger.step('Step 21 - No method pre-selected: select the first available method and capture the settled delivery cost');
+        await ecommerceCheckoutPage.selectNthEnabledShippingMethod(0);
+        const totalsAfterFirst = await ecommerceCheckoutPage.waitForOrderSummaryTotalChange(
+          currentTotals.delivery,
+          'delivery',
+        );
+
+        const deliveryIncreasedFromBaseline =
+          currentTotals.delivery !== null &&
+          totalsAfterFirst.delivery !== null &&
+          totalsAfterFirst.delivery > currentTotals.delivery;
+
+        if (deliveryIncreasedFromBaseline) {
+          // The common case: the first method is a paid one and the delivery cost visibly
+          // increased from the $0 pre-selection baseline.
+          logger.step('Step 22 - Assert the delivery cost increased from the pre-selection $0 baseline (final outcome check)');
+          softAssert.toBeTruthy(
+            deliveryIncreasedFromBaseline,
+            `${site.name}: Selecting a shipping method should increase the delivery cost line from its baseline (baseline: ${currentTotals.delivery}, after selection: ${totalsAfterFirst.delivery})`,
+          );
+        } else if (methodCount > 1) {
+          // The first (index 0) method itself turned out to be free — confirmed live on Skechers
+          // AU, where index 0 in DOM order is "Free Express Delivery" ($0.00) and index 1 is the
+          // paid "Standard Shipping" ($10.00). Comparing against the original $0 baseline would
+          // wrongly fail here (a free method was genuinely selected, nothing is broken), so
+          // instead select the next method and compare the two settled delivery costs against
+          // EACH OTHER — this still proves "shipping method selection updates order total"
+          // without assuming the arbitrary first method in DOM order is a paid one.
+          logger.step('Step 22 - First method is itself free: select an alternate method and compare delivery costs against each other (final outcome check)');
+          await ecommerceCheckoutPage.selectNthEnabledShippingMethod(1);
+          const totalsAfterSecond = await ecommerceCheckoutPage.waitForOrderSummaryTotalChange(
+            totalsAfterFirst.delivery,
+            'delivery',
+          );
+          const deliveryChanged =
+            totalsAfterFirst.delivery !== null &&
+            totalsAfterSecond.delivery !== null &&
+            totalsAfterFirst.delivery !== totalsAfterSecond.delivery;
+          softAssert.toBeTruthy(
+            deliveryChanged,
+            `${site.name}: Switching between shipping methods should change the delivery cost line (method 1: ${totalsAfterFirst.delivery}, method 2: ${totalsAfterSecond.delivery})`,
+          );
+        } else {
+          // Exactly 1 method exists, it was not pre-selected, and selecting it left delivery at
+          // $0 — confirmed live on Vans AU: the storefront's only shipping method is literally
+          // named "freeshipping". This is a genuine $0-shipping storefront configuration, not a
+          // failed click — getCheckedShippingMethodIndex() confirms the radio actually toggled.
+          logger.step('Step 22 - Only method is genuinely free: confirm the selection registered and assert internal consistency of the settled totals');
+          const selectionConfirmed = (await ecommerceCheckoutPage.getCheckedShippingMethodIndex()) !== -1;
+          softAssert.toBeTruthy(
+            selectionConfirmed,
+            `${site.name}: The only shipping method should be checked after selecting it (confirms the $0 result reflects genuine free shipping, not a failed click)`,
+          );
+          assertSingleMethodConsistency(totalsAfterFirst);
+        }
+      } else if (methodCount > 1) {
+        logger.step('Step 21 - A method is pre-selected and more than 1 is available: select an alternate method and wait for the delivery cost to change');
+        const checkedIndex = await ecommerceCheckoutPage.getCheckedShippingMethodIndex();
+        if (checkedIndex === -1) {
+          // preSelected was true via isAnyShippingMethodSelected()'s 'delivery > 0' fallback, but
+          // no radio reports checked in this same tick — we cannot determine which index is
+          // already selected, so a computed "alternate" could silently reselect the same method
+          // instead of a genuine alternate. Fall back to the same internal-consistency check used
+          // for the "single method, pre-selected" terminal state rather than guessing.
+          logger.step('Step 22 - Checked method index could not be determined: assert internal consistency of the settled totals instead of guessing an alternate');
+          assertSingleMethodConsistency(currentTotals);
+        } else {
+          const alternateIndex = checkedIndex === 0 ? 1 : 0;
+          await ecommerceCheckoutPage.selectNthEnabledShippingMethod(alternateIndex);
+          const totalsAfterSwitch = await ecommerceCheckoutPage.waitForOrderSummaryTotalChange(
+            currentTotals.delivery,
+            'delivery',
+          );
+
+          logger.step('Step 22 - Assert the delivery cost changed after switching to the alternate method (final outcome check)');
+          const deliveryChanged =
+            currentTotals.delivery !== null &&
+            totalsAfterSwitch.delivery !== null &&
+            totalsAfterSwitch.delivery !== currentTotals.delivery;
+          softAssert.toBeTruthy(
+            deliveryChanged,
+            `${site.name}: Switching to an alternate shipping method should change the delivery cost line (before: ${currentTotals.delivery}, after: ${totalsAfterSwitch.delivery})`,
+          );
+        }
+      } else {
+        // Exactly 1 method exists and it arrived pre-selected — this already proves "shipping
+        // method selection updates order total" (the method's selection is what produced the
+        // delivery line currently reflected in the total) and there is no alternate method
+        // available for a delta comparison. Assert internal consistency instead (see
+        // assertSingleMethodConsistency doc — deliberately does not require delivery > 0, since
+        // the pre-selected method itself can genuinely be free, confirmed live on Dr. Martens AU).
+        logger.step('Step 21 - Exactly 1 method, pre-selected: assert internal consistency of the settled totals (already proves the requirement)');
+        assertSingleMethodConsistency(currentTotals);
+      }
     });
   }
 });

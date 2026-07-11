@@ -77,6 +77,20 @@ export class ElementHelper {
     await this.pageRef.current.fill(selector, text);
   }
 
+  /**
+   * Clears the field then types text as real per-character keystroke events
+   * (Playwright's pressSequentially), instead of a single fill() value assignment.
+   * Required for widgets that debounce on keyup — e.g. an address autocomplete —
+   * where a plain fill() dispatches one combined input event and never triggers
+   * the suggestion lookup.
+   */
+  async clearAndTypeSequentially(selector: string, text: string): Promise<void> {
+    await this.waits.waitForElement(selector);
+    const locator = this.pageRef.current.locator(selector);
+    await locator.clear();
+    await locator.pressSequentially(text, { delay: 50 });
+  }
+
   // ── Queries ─────────────────────────────────────────────────────────────────
 
   async getText(selector: string): Promise<string> {
