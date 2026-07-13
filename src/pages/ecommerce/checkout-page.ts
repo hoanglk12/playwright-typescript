@@ -16,6 +16,22 @@ export interface OrderSummaryTotals {
   discount: number | null;
 }
 
+// E2E-CHKOUT-006 — A single product line item as rendered in the order-review surface.
+export interface OrderReviewLineItem {
+  /**
+   * Concatenated text of every line between the item's position in the list and its
+   * "Qty: <n>" line (typically brand + product name + a "<colour> | <size>" variant line —
+   * see the class-level recon docblock above getOrderReviewLineItems()). Callers should use a
+   * substring/contains match against the product name captured at ATC time (e.g.
+   * EcommercePDPPage.getProductName()) rather than an exact-equality match, since the exact
+   * line composition/order is storefront-dependent.
+   */
+  name: string;
+  quantity: number;
+  /** Line price, parsed the same way as OrderSummaryTotals prices. Null if not parseable. */
+  price: number | null;
+}
+
 // E2E-CHKOUT-004 — RECON FINDINGS (Platypus AU staging, 2026-07-11, verified live via a
 // fixture-based throwaway spec that reused the real page-object methods):
 //   The shipping form's "Address *" field is a SINGLE free-text input (name="fullAddress",
@@ -196,6 +212,28 @@ export class EcommerceCheckoutPage extends BasePage {
   // parse — but it DOES mean total != subtotal + delivery whenever a discount is present unless
   // the discount is also captured. This pattern parses that negative token separately.
   private readonly summaryDiscountTokenPattern = /^-\$\d+(\.\d{2})?$/;
+
+  // E2E-CHKOUT-006 — RECON FINDING (confirmed live, Platypus AU staging, single-worker run via
+  // a throwaway fixture-based recon spec that reused the real page-object methods, mirroring
+  // the E2E-CHKOUT-003/004 recon approach): after a guest email is submitted and the shipping
+  // form becomes active, the SAME "ORDER SUMMARY" panel that getOrderSummaryTotals() reads
+  // appends a "<N> ITEM" / "<N> ITEMS" heading below the Subtotal/Delivery/Total/GST lines,
+  // followed by an "Edit" link and then, per item and in this fixed order: one or more name
+  // lines (observed as a brand line + a product-name line, e.g. "Converse" / "Chuck Taylor All
+  // Star Lift Lo" — the product-name line matches EcommercePDPPage.getProductName() exactly), a
+  // "<colour> | <size>" variant line (e.g. "White | 5 US Womens"), a "Qty: <n>" line, and a
+  // price token. This list is already fully rendered BEFORE any shipping method has been
+  // selected — the Delivery line can still read the pre-selection "$0.00" placeholder while the
+  // item list itself is complete — so no shipping-method selection is required to reach this
+  // data. No distinct post-shipping "order review" step exists that is reachable without
+  // entering payment details (CONTINUE TO PAYMENT is the next action after this panel); this
+  // shipping-step order summary panel IS the pre-payment order-review surface for
+  // E2E-CHKOUT-006. getOrderReviewLineItems() therefore scopes into the same "ORDER SUMMARY"
+  // heading as getOrderSummaryTotals() and reads the item list positionally, mirroring how the
+  // totals themselves are read.
+  private readonly orderReviewItemsHeaderPattern = /^\d+\s*items?$/i;
+  private readonly orderReviewEditLinePattern = /^edit$/i;
+  private readonly orderReviewQtyLinePattern = /^qty:?\s*\d+$/i;
 
   // Loading-placeholder text shown while shipping-method rates are being recalculated.
   // Also used to exclude the placeholder from address-suggestion detection, since it contains
@@ -1394,6 +1432,96 @@ export class EcommerceCheckoutPage extends BasePage {
         { orderSummaryHeading, subtotalLabel, totalLabel, priceToken, discountToken },
       )
       .catch(() => ({ subtotal: null, delivery: null, total: null, discount: null }));
+  }
+
+  // E2E-CHKOUT-006 — Reads product name + quantity + price for each line item rendered in the
+  // "ORDER SUMMARY" panel's "<N> ITEM(S)" list (see the recon docblock above
+  // orderReviewItemsHeaderPattern). Uses the same body-innerText scan + positional-parse
+  // strategy as getOrderSummaryTotals(): scopes to the "ORDER SUMMARY" heading onward, locates
+  // the "<N> ITEM(S)" header line, then walks forward collecting lines into a buffer (skipping
+  // "Edit" links) until a "Qty: <n>" line is hit — the buffer becomes that item's `name`, and
+  // the first price-token line found within the next 2 lines after "Qty:" becomes its `price`.
+  // Stops once the header's declared item count has been read, so unrelated marketing copy
+  // rendered below the list (e.g. loyalty-program promos, confirmed present on Platypus AU) is
+  // never absorbed as a phantom extra item. Returns an empty array if no item list is found.
+  // Never throws.
+  async getOrderReviewLineItems(): Promise<OrderReviewLineItem[]> {
+    const orderSummaryHeading = this.orderSummaryHeadingPattern.source;
+    const itemsHeaderPattern = this.orderReviewItemsHeaderPattern.source;
+    const editLinePattern = this.orderReviewEditLinePattern.source;
+    const qtyLinePattern = this.orderReviewQtyLinePattern.source;
+    const priceToken = this.summaryPriceTokenPattern.source;
+
+    return this.page
+      .evaluate(
+        ({
+          orderSummaryHeading,
+          itemsHeaderPattern,
+          editLinePattern,
+          qtyLinePattern,
+          priceToken,
+        }: {
+          orderSummaryHeading: string;
+          itemsHeaderPattern: string;
+          editLinePattern: string;
+          qtyLinePattern: string;
+          priceToken: string;
+        }) => {
+          const headingRe = new RegExp(orderSummaryHeading, 'i');
+          const itemsHeaderRe = new RegExp(itemsHeaderPattern, 'i');
+          const editRe = new RegExp(editLinePattern, 'i');
+          const qtyRe = new RegExp(qtyLinePattern, 'i');
+          const priceRe = new RegExp(priceToken);
+
+          const lines = document.body.innerText
+            .split('\n')
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0);
+          const startIdx = lines.findIndex((l) => headingRe.test(l));
+          const scoped = startIdx === -1 ? lines : lines.slice(startIdx);
+
+          const parsePrice = (token: string): number => Number(token.replace(/[^0-9.]/g, ''));
+
+          const headerIdx = scoped.findIndex((l) => itemsHeaderRe.test(l));
+          if (headerIdx === -1) return [];
+
+          const countMatch = scoped[headerIdx].match(/\d+/);
+          const itemCount = countMatch ? Number(countMatch[0]) : 0;
+
+          const items: { name: string; quantity: number; price: number | null }[] = [];
+          let buffer: string[] = [];
+          let idx = headerIdx + 1;
+          while (idx < scoped.length && items.length < itemCount) {
+            const line = scoped[idx];
+            if (editRe.test(line)) {
+              idx++;
+              continue;
+            }
+            if (qtyRe.test(line)) {
+              const qtyMatch = line.match(/\d+/);
+              const quantity = qtyMatch ? Number(qtyMatch[0]) : 0;
+              let price: number | null = null;
+              let consumed = idx + 1;
+              for (let k = idx + 1; k < Math.min(idx + 3, scoped.length); k++) {
+                if (priceRe.test(scoped[k])) {
+                  price = parsePrice(scoped[k]);
+                  consumed = k + 1;
+                  break;
+                }
+              }
+              items.push({ name: buffer.join(' ').trim(), quantity, price });
+              buffer = [];
+              idx = consumed;
+              continue;
+            }
+            buffer.push(line);
+            idx++;
+          }
+          return items;
+        },
+        { orderSummaryHeading, itemsHeaderPattern, editLinePattern, qtyLinePattern, priceToken },
+      )
+      .catch(() => []);
   }
 
   // E2E-CHKOUT-004 — Polls getOrderSummaryTotals() until `field` (default 'total') differs from

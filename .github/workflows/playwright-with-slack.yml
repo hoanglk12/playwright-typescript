@@ -63,7 +63,7 @@ jobs:
   ui-test:
     name: UI Tests (${{ matrix.os }} shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 120
     environment: ${{ github.event.inputs && github.event.inputs.environment || 'testing' }}
     if: ${{ inputs.test_type != 'api' }}
     strategy:

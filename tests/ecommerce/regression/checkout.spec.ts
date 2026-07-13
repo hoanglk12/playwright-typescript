@@ -8,7 +8,11 @@ import type { EcommerceNavPage } from '../../../src/pages/ecommerce/nav-page';
 import type { EcommercePLPPage } from '../../../src/pages/ecommerce/plp-page';
 import type { EcommercePDPPage } from '../../../src/pages/ecommerce/pdp-page';
 import type { EcommerceCartOverlayPage } from '../../../src/pages/ecommerce/cart-overlay-page';
-import type { EcommerceCheckoutPage, OrderSummaryTotals } from '../../../src/pages/ecommerce/checkout-page';
+import type {
+  EcommerceCheckoutPage,
+  OrderSummaryTotals,
+  OrderReviewLineItem,
+} from '../../../src/pages/ecommerce/checkout-page';
 import type { APIRequestContext } from '@playwright/test';
 import {
   getPreferredNavLabel,
@@ -18,11 +22,42 @@ import {
   findProductWithAvailableSizes,
 } from '../smoke/smoke-helpers';
 
+// E2E-CHKOUT-006 — Product identity captured during ATC, surfaced on the 'ok' outcome so
+// callers can verify the order-review surface later shows the SAME product/quantity that was
+// actually added (rather than merely asserting a row exists). Captured once, before the
+// size-selection loop, since product name/price are stable across size variants and this keeps
+// the isAddToCartEnabled() -> addToCart() adjacency tight (see the Step 8-9 comment below).
+interface CheckoutCtaOkResult {
+  status: 'ok';
+  productName: string;
+  productPrice: string;
+  size: string;
+}
+
+interface CheckoutCtaSkippedResult {
+  status: 'skipped';
+}
+
+type CheckoutCtaResult = CheckoutCtaOkResult | CheckoutCtaSkippedResult;
+
+// E2E-CHKOUT-006 — Parses a price string captured via EcommercePDPPage.getPrice() (e.g.
+// "$139.99") into a number, matching the same digit/decimal-point extraction strategy used by
+// EcommerceCheckoutPage.getOrderSummaryTotals()'s internal parsePrice(). Returns null when no
+// numeric value can be extracted.
+function parsePriceToken(token: string): number | null {
+  const cleaned = token.replace(/[^0-9.]/g, '');
+  if (cleaned.length === 0) return null;
+  const value = Number(cleaned);
+  return Number.isNaN(value) ? null : value;
+}
+
 // Shared setup for checkout-regression tests: verifies origin health, navigates to a PLP,
 // finds a purchasable product/size, adds it to cart, and opens the checkout CTA flow up to
 // (but not including) the final checkout-state assertion — each test supplies its own
-// assertion after this returns. Returns `'skipped'` when a precondition forces a skip (the
-// caller must `return` immediately since `test.skip()` has already been called internally).
+// assertion after this returns. Returns `{ status: 'skipped' }` when a precondition forces a
+// skip (the caller must `return` immediately since `test.skip()` has already been called
+// internally). Returns `{ status: 'ok', productName, productPrice, size }` otherwise, carrying
+// the product identity captured at ATC time for tests that verify the order-review surface.
 async function addToCartAndReachCheckoutCta(params: {
   site: Storefront;
   navLabel: string | undefined;
@@ -33,7 +68,7 @@ async function addToCartAndReachCheckoutCta(params: {
   ecommerceCartOverlayPage: EcommerceCartOverlayPage;
   ecommerceCheckoutPage: EcommerceCheckoutPage;
   logger: TestLogger;
-}): Promise<'ok' | 'skipped'> {
+}): Promise<CheckoutCtaResult> {
   const {
     site,
     navLabel,
@@ -48,7 +83,7 @@ async function addToCartAndReachCheckoutCta(params: {
 
   if (!navLabel) {
     test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
-    return 'skipped';
+    return { status: 'skipped' };
   }
 
   logger.step('Step 0 - Verify storefront origin is reachable before running the full flow');
@@ -61,7 +96,7 @@ async function addToCartAndReachCheckoutCta(params: {
       true,
       `${site.name}: origin failed health check (unreachable or non-2xx within ${TIMEOUTS.TIMEOUT_SHORT}ms) — skipping to avoid burning the retry/test.slow() budget on a dead backend`,
     );
-    return 'skipped';
+    return { status: 'skipped' };
   }
 
   logger.step('Steps 1-5 - Navigate to PLP');
@@ -71,12 +106,19 @@ async function addToCartAndReachCheckoutCta(params: {
   const availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
   if (availableSizes.length === 0) {
     test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
-    return 'skipped';
+    return { status: 'skipped' };
   }
 
   logger.step('Step 7 - Capture initial mini cart count before ATC');
   const initialCartCount = await ecommercePDPPage.getMiniCartCount();
   logger.verify('Initial cart count before ATC', '>= 0', String(initialCartCount));
+
+  // E2E-CHKOUT-006 — Capture product identity BEFORE the size-selection loop, not inside it:
+  // name/price are already rendered on the PDP and are stable across which size gets picked, so
+  // capturing here keeps the isAddToCartEnabled() -> addToCart() adjacency in Step 8-9 tight
+  // (inserting awaits between those two calls would reintroduce the timing gap documented below).
+  const productName = await ecommercePDPPage.getProductName();
+  const productPrice = await ecommercePDPPage.getPrice();
 
   // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
   // addToCart is called immediately after isAddToCartEnabled to minimise the window in which
@@ -95,7 +137,7 @@ async function addToCartAndReachCheckoutCta(params: {
   }
   if (targetSize === null) {
     test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
-    return 'skipped';
+    return { status: 'skipped' };
   }
   logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
 
@@ -117,7 +159,7 @@ async function addToCartAndReachCheckoutCta(params: {
   logger.step('Step 14 - Wait for checkout to load');
   await ecommerceCheckoutPage.waitForCheckoutLoad();
 
-  return 'ok';
+  return { status: 'ok', productName, productPrice, size: targetSize };
 }
 
 test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
@@ -149,7 +191,7 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         ecommerceCheckoutPage,
         logger,
       });
-      if (result === 'skipped') return;
+      if (result.status === 'skipped') return;
 
       logger.step('Step 15 - Assert checkout page has loaded');
       const onCheckoutPage = await ecommerceCheckoutPage.isOnCheckoutPage();
@@ -187,7 +229,7 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         ecommerceCheckoutPage,
         logger,
       });
-      if (result === 'skipped') return;
+      if (result.status === 'skipped') return;
 
       logger.step('Step 15 - Assert guest checkout email field is presented');
       const guestEmailFieldVisible = await ecommerceCheckoutPage.isGuestEmailFieldVisible();
@@ -225,7 +267,7 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         ecommerceCheckoutPage,
         logger,
       });
-      if (result === 'skipped') return;
+      if (result.status === 'skipped') return;
 
       logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST');
       const { email: guestEmail } = createGuestCheckoutEmail();
@@ -289,7 +331,7 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         ecommerceCheckoutPage,
         logger,
       });
-      if (result === 'skipped') return;
+      if (result.status === 'skipped') return;
 
       logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST');
       const { email: guestEmail } = createGuestCheckoutEmail();
@@ -464,6 +506,119 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         logger.step('Step 21 - Exactly 1 method, pre-selected: assert internal consistency of the settled totals (already proves the requirement)');
         assertSingleMethodConsistency(currentTotals);
       }
+    });
+  }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CHKOUT-006-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Order review shows correct items, quantities, total`, async ({
+      request,
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      ecommerceCheckoutPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Order review shows correct items, quantities, total`);
+
+      const result = await addToCartAndReachCheckoutCta({
+        site,
+        navLabel,
+        request,
+        ecommerceNavPage,
+        ecommercePLPPage,
+        ecommercePDPPage,
+        ecommerceCartOverlayPage,
+        ecommerceCheckoutPage,
+        logger,
+      });
+      if (result.status === 'skipped') return;
+
+      logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST');
+      const { email: guestEmail } = createGuestCheckoutEmail();
+      await ecommerceCheckoutPage.fillGuestEmailAndContinue(guestEmail);
+
+      logger.step('Step 16 - Assert the auth modal has closed and the shipping form is active');
+      // Precondition gate — must be hard: without a confirmed transition to the shipping form,
+      // the order-review panel read below would operate against the wrong page state.
+      const onShippingStep = await ecommerceCheckoutPage.isOnShippingStep();
+      logger.verify('Shipping form is active after guest email submit', 'true', String(onShippingStep));
+      expect(
+        onShippingStep,
+        `${site.name}: Submitting a valid guest email should close the auth modal and advance to the shipping address form`,
+      ).toBeTruthy();
+
+      logger.step('Step 17 - Fill guest shipping contact fields and address, selecting an address suggestion');
+      const shippingAddress = createGuestShippingAddress(site.storeHeader === 'nz');
+      const addressSelected = await ecommerceCheckoutPage.fillGuestShippingAddress(shippingAddress);
+      if (!addressSelected) {
+        test.skip(
+          true,
+          `${site.name}: no address suggestion could be selected for "${shippingAddress.addressQuery}" — the order-review panel cannot be reliably read without a confirmed address`,
+        );
+        return;
+      }
+
+      logger.step('Step 18 - Wait for shipping methods / order summary to settle');
+      // The order-review item list is already fully rendered once the address is committed and
+      // does not require a shipping method to be selected (confirmed live — see the recon
+      // docblock above EcommerceCheckoutPage.orderReviewItemsHeaderPattern). Waiting for the
+      // shipping-methods list to settle still ensures the Delivery/Total lines used by the
+      // consistency check below reflect a fully-settled read rather than a mid-recalculation
+      // snapshot (e.g. the "Hang tight, we are finding the best option" placeholder state).
+      await ecommerceCheckoutPage.waitForShippingMethodsReady();
+      await ecommerceCheckoutPage.waitForShippingSelectionSettled();
+
+      logger.step('Step 19 - Read the order-review line items (precondition for per-item checks)');
+      const lineItems: OrderReviewLineItem[] = await ecommerceCheckoutPage.getOrderReviewLineItems();
+      logger.verify('Order review line items found', '>= 1', String(lineItems.length));
+      // Precondition gate — must be hard: every check below is meaningless against an empty list.
+      expect(
+        lineItems.length,
+        `${site.name}: The order-review panel should show at least 1 line item after adding a product to cart`,
+      ).toBeGreaterThan(0);
+      const [reviewedItem] = lineItems;
+
+      logger.step('Step 20 - Assert the line item name matches the product added at ATC time (independent check)');
+      const capturedName = result.productName.trim();
+      const nameMatches =
+        capturedName.length > 0 && reviewedItem.name.toLowerCase().includes(capturedName.toLowerCase());
+      softAssert.toBeTruthy(
+        nameMatches,
+        `${site.name}: Order-review line item name ("${reviewedItem.name}") should contain the product name captured at ATC ("${result.productName}") — an empty captured name means getProductName() returned nothing (e.g. Skechers empty h1)`,
+      );
+
+      logger.step('Step 21 - Assert the line item quantity matches the quantity actually added (independent check)');
+      softAssert.toBe(
+        reviewedItem.quantity,
+        1,
+        `${site.name}: Order-review line item quantity should be 1 (the quantity added via ATC)`,
+      );
+
+      logger.step('Step 22 - Assert the line item price matches the price captured at ATC time (independent check)');
+      const expectedPrice = parsePriceToken(result.productPrice);
+      const priceMatches =
+        expectedPrice !== null && reviewedItem.price !== null && Math.abs(reviewedItem.price - expectedPrice) < 0.01;
+      softAssert.toBeTruthy(
+        priceMatches,
+        `${site.name}: Order-review line item price (${reviewedItem.price}) should match the price captured at ATC time (${expectedPrice})`,
+      );
+
+      logger.step('Step 23 - Assert the order summary total is internally consistent (final outcome check)');
+      const totals: OrderSummaryTotals = await ecommerceCheckoutPage.getOrderSummaryTotals();
+      const isConsistent =
+        totals.subtotal !== null &&
+        totals.delivery !== null &&
+        totals.total !== null &&
+        Math.abs(totals.total - (totals.subtotal + totals.delivery + (totals.discount ?? 0))) < 0.01;
+      softAssert.toBeTruthy(
+        isConsistent,
+        `${site.name}: Total should equal subtotal + delivery + discount (subtotal: ${totals.subtotal}, delivery: ${totals.delivery}, discount: ${totals.discount}, total: ${totals.total})`,
+      );
     });
   }
 });
