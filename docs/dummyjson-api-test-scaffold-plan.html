@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DummyJSON API Test Scaffold — Implementation Plan</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+    .main { max-width: 980px; margin: 0 auto; padding: 0 32px 80px; }
+    .hero {
+      padding: 64px 32px 44px;
+      margin: 0 -32px 40px;
+      background: linear-gradient(160deg, rgba(91,138,245,.10) 0%, rgba(124,77,255,.06) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero .eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 12px;
+    }
+    .hero h1 { font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; }
+    .hero p.sub { color: var(--muted); font-size: 16px; max-width: 680px; }
+    .meta-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .pill {
+      font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    }
+    .pill strong { color: var(--text); }
+
+    h2 {
+      font-size: 21px; font-weight: 700; margin: 48px 0 16px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    h2 .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 7px; background: var(--surface2);
+      color: var(--accent); font-size: 13px; font-weight: 800; flex-shrink: 0;
+    }
+    h3 { font-size: 16px; font-weight: 700; margin: 26px 0 10px; color: var(--text); }
+    p { margin-bottom: 14px; color: var(--text); }
+    p.lead { color: var(--muted); }
+    ul, ol { margin: 0 0 16px 22px; }
+    li { margin-bottom: 8px; }
+    strong { color: #fff; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    code {
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      background: var(--code-bg); border: 1px solid var(--border);
+      padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #ffd479;
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px; overflow-x: auto; margin: 14px 0 20px;
+    }
+    pre code { background: none; border: none; padding: 0; color: #cdd6f4; font-size: 13px; line-height: 1.6; }
+
+    table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 13.5px; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    tr:last-child td { border-bottom: none; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px 22px; margin-bottom: 18px;
+    }
+    .card h3 { margin-top: 0; }
+    .file-path {
+      font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 13px;
+      color: var(--cyan); background: var(--code-bg); border: 1px solid var(--border);
+      padding: 3px 9px; border-radius: 6px; display: inline-block; margin-bottom: 10px;
+    }
+    .tag-new { color: var(--green); font-weight: 700; }
+    .tag-edit { color: var(--amber); font-weight: 700; }
+
+    .fact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin: 14px 0 22px; }
+    @media (max-width: 700px) { .fact-grid { grid-template-columns: 1fr; } }
+    .fact { padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+    .fact code { display: block; margin-top: 4px; white-space: normal; }
+
+    .callout {
+      border-left: 3px solid var(--amber); background: rgba(255,179,0,.07);
+      padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0 22px; font-size: 14px;
+    }
+    .callout strong { color: var(--amber); }
+
+    footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="main" style="padding:0;">
+      <div class="eyebrow">Implementation Plan · Not Yet Applied</div>
+      <h1>DummyJSON API Test Scaffold</h1>
+      <p class="sub">Adding a fourth API practice target — <code>dummyjson.com</code> (products / carts / users / JWT auth) — to the existing REST + GraphQL suite, following the same service-class and fixture conventions already used for restful-booker and restful-api.dev.</p>
+      <div class="meta-row">
+        <span class="pill">Status: <strong>Planned</strong></span>
+        <span class="pill">New files: <strong>8</strong></span>
+        <span class="pill">Edited files: <strong>3–4</strong></span>
+        <span class="pill">Est. tests: <strong>~26</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <h2><span class="num">·</span>Context</h2>
+    <p>The user asked for a practice API test suite scaffolded against dummyjson.com, chosen because its data model (products, carts, users) is closer to real e-commerce shape than the framework's existing practice targets, and it adds JWT-based auth (<code>accessToken</code>/<code>refreshToken</code>) as a new pattern to exercise. This mirrors two existing integrations — <code>RestfulBookerService</code> (login + token reuse) and <code>RestfulApiClient</code> (plain CRUD) — but combines both patterns across four related resource domains sharing one base URL and one auth flow.</p>
+    <p>The endpoint contracts below were verified live against <a href="https://dummyjson.com/docs">dummyjson.com/docs</a> before writing this plan, so the scaffold isn't guessing at field names.</p>
+    <p><strong>Scope decisions</strong> (confirmed with the user): four domain-split spec files, mirroring the repo's existing <code>gra-catalog.spec.ts</code> / <code>gra-cart-minicart.spec.ts</code> / <code>gra-customer-profile.spec.ts</code> / <code>gra-authentication.spec.ts</code> split — and fuller CRUD coverage (~5–7 tests per domain) rather than a bare smoke scaffold.</p>
+
+    <h2><span class="num">·</span>Verified API Contract</h2>
+    <div class="fact-grid">
+      <div class="fact">POST <code>/auth/login</code><code>{ username, password, expiresInMins? }</code> → user fields + <code>accessToken</code> + <code>refreshToken</code></div>
+      <div class="fact">GET <code>/auth/me</code><code>Authorization: Bearer &lt;accessToken&gt;</code></div>
+      <div class="fact">POST <code>/auth/refresh</code><code>{ refreshToken, expiresInMins? }</code> → new token pair</div>
+      <div class="fact">Documented test user<code>username: 'emilys', password: 'emilyspass'</code></div>
+      <div class="fact">Products<code>GET /products, /products/{id}, /products/search?q=, POST /products/add, PUT /products/{id}, DELETE /products/{id}</code></div>
+      <div class="fact">Carts<code>GET /carts, /carts/{id}, /carts/user/{userId}, POST /carts/add, PUT /carts/{id}, DELETE /carts/{id}</code></div>
+      <div class="fact">Users<code>GET /users, /users/{id}, /users/search?q=, POST /users/add, PUT /users/{id}, DELETE /users/{id}</code></div>
+      <div class="fact">List response shape<code>{ &lt;resource&gt;: [...], total, skip, limit }</code></div>
+    </div>
+
+    <div class="callout">
+      <strong>Design-critical quirk:</strong> add/update/delete endpoints on dummyjson are <em>simulated</em> — they return a plausible response (new id, <code>isDeleted</code> / <code>deletedOn</code>, etc.) but do not persist server-side. Every mutating test must assert against the response of the mutating call itself and must never re-fetch afterward to verify persistence (unlike <code>objects-crud.spec.ts</code>'s real-backend cleanup pattern against restful-api.dev).
+    </div>
+
+    <h2><span class="num">·</span>Files to Add / Edit</h2>
+
+    <div class="card">
+      <span class="file-path">src/api/config/environment.ts</span> <span class="tag-edit">EDIT</span>
+      <p>Add <code>dummyjsonBaseUrl: string;</code> to <code>ApiEnvironment</code> and <code>dummyjsonBaseUrl: process.env.DUMMYJSON_BASE_URL || 'https://dummyjson.com',</code> to the returned object — same pattern as <code>restfulApiBaseUrl</code>.</p>
+    </div>
+
+    <div class="card">
+      <span class="file-path">src/api/services/dummyjson/models.ts</span> <span class="tag-new">NEW</span>
+      <p>Interfaces only, colocated with the service (matches <code>restful-booker/models.ts</code>): <code>LoginRequest</code>, <code>AuthUser</code>, <code>AuthResponse</code>, <code>RefreshTokenRequest</code>, <code>RefreshTokenResponse</code>, <code>Product</code>, <code>ProductsListResponse</code>, <code>AddProductRequest</code>, <code>UpdateProductRequest</code>, <code>CartProductInput</code>, <code>CartProduct</code>, <code>Cart</code>, <code>CartsListResponse</code>, <code>AddCartRequest</code>, <code>UpdateCartRequest</code>, <code>User</code>, <code>UsersListResponse</code>, <code>AddUserRequest</code>, <code>UpdateUserRequest</code>, <code>DeletedResource</code>. Field sets track only what the tests assert on, not dummyjson's full schema.</p>
+    </div>
+
+    <div class="card">
+      <span class="file-path">src/api/services/dummyjson/DummyJsonService.ts</span> <span class="tag-new">NEW</span>
+      <p><code>class DummyJsonService extends ApiClient</code>, constructor <code>{ baseURL: string; timeout?: number }</code>, following <code>RestfulBookerService</code>'s exact shape.</p>
+      <pre><code>private tokenKey = 'dummyjson-token';
+
+login(username, password, expiresInMins?)       // POST /auth/login → stores accessToken via ApiClient.storeToken
+getAuthenticatedUser()                          // GET /auth/me, Bearer token from ApiClient.getToken(this.tokenKey)
+refreshAccessToken(refreshToken, expiresInMins?) // POST /auth/refresh
+
+getAllProducts(params?) / getProductById(id) / searchProducts(q)
+addProduct(data) / updateProduct(id, data) / deleteProduct(id)
+
+getAllCarts() / getCartById(id) / getCartsByUser(userId)
+addCart(data) / updateCart(id, data) / deleteCart(id)
+
+getAllUsers(params?) / getUserById(id) / searchUsers(q)
+addUser(data) / updateUser(id, data) / deleteUser(id)</code></pre>
+      <p>Every method wraps <code>this.get/post/put/delete(...)</code> in <code>new ApiResponseWrapper(response)</code> — specs never touch a raw <code>apiClient</code>/<code>apiClientExt</code> directly.</p>
+    </div>
+
+    <div class="card">
+      <span class="file-path">src/api/services/dummyjson/index.ts</span> <span class="tag-new">NEW</span>
+      <p>Barrel: <code>export * from './models'; export * from './DummyJsonService';</code> (matches <code>restful-booker/index.ts</code>).</p>
+    </div>
+
+    <div class="card">
+      <span class="file-path">src/api/ApiTest.ts</span> <span class="tag-edit">EDIT</span>
+      <ul>
+        <li>Import <code>DummyJsonService</code> from <code>./services/dummyjson</code>.</li>
+        <li>Add <code>dummyjsonBaseUrl: string;</code> and <code>dummyjsonService: DummyJsonService;</code> to <code>ApiTestFixtures</code>.</li>
+        <li>Add <code>dummyjsonBaseUrl</code> fixture (mirrors <code>restfulApiBaseURL</code>).</li>
+        <li>Add <code>dummyjsonService</code> fixture (mirrors <code>bookingService</code> exactly — construct, <code>init()</code>, <code>use()</code>, <code>dispose()</code>).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <span class="file-path">src/data/api/dummyjson-data.ts</span> <span class="tag-new">NEW</span>
+      <p>Interface + const + generator pattern (matches <code>gra-auth-data.ts</code> + <code>restful-api-data.ts</code>):</p>
+      <ul>
+        <li><code>DummyJsonCredentials</code> interface; <code>dummyJsonAuthData</code> const with <code>VALID_USER</code> (<code>emilys</code> / <code>emilyspass</code>, the documented test account) and <code>INVALID_USER</code>.</li>
+        <li>Known-stable resource IDs for read/404 tests, declared as typed consts with a one-line comment explaining why they're hardcoded (id <code>1</code> is dummyjson's long-stable seed record; <code>999999</code> is used for 404 checks).</li>
+        <li><code>DummyJsonDataGenerator</code> class (faker-based, same import path as <code>restful-api-data.ts</code>): <code>generateProduct()</code>, <code>generateProductUpdate()</code>, <code>generateUser()</code>, <code>generateUserUpdate()</code>, <code>generateCart(userId)</code>.</li>
+      </ul>
+    </div>
+
+    <h2><span class="num">·</span>New Spec Files</h2>
+    <p class="lead">All four import <code>{ apiTest as test, expect, softExpect } from '../../src/api/ApiTest'</code>, use <code>test.describe.configure({ mode: 'serial' })</code>, <code>TC_XX - Description</code> naming, <code>@api @regression</code> tags, and the <code>dummyjsonService</code> fixture. <code>softAssert</code> is used for multi-property checks (pagination metadata); single-assertion checks (404s, precondition status codes) stay hard <code>expect</code>.</p>
+
+    <table>
+      <tr><th>File</th><th>~Tests</th><th>Coverage</th></tr>
+      <tr>
+        <td><code>dummyjson-auth.spec.ts</code></td>
+        <td>5</td>
+        <td>Valid login → tokens (soft multi-check); invalid login → 400; <code>/auth/me</code> with token → 200; <code>/auth/me</code> without token → 401 (guard-error style, same as <code>RestfulBookerService</code>); refresh flow issues new <code>accessToken</code>.</td>
+      </tr>
+      <tr>
+        <td><code>dummyjson-products.spec.ts</code></td>
+        <td>7</td>
+        <td>List + pagination metadata; get-by-known-id; 404 for unknown id; search <code>q=phone</code>; add (simulated, echo checks); update (simulated); delete (simulated, <code>isDeleted</code>/<code>deletedOn</code>).</td>
+      </tr>
+      <tr>
+        <td><code>dummyjson-carts.spec.ts</code></td>
+        <td>7</td>
+        <td>List + pagination metadata; get-by-known-id; 404 for unknown id; carts-by-user (userId discovered dynamically from the known cart first, same discovery pattern <code>restful-booker.spec.ts</code> uses for booking IDs — avoids hardcoding a userId that could drift); add (simulated); update (simulated); delete (simulated).</td>
+      </tr>
+      <tr>
+        <td><code>dummyjson-users.spec.ts</code></td>
+        <td>7</td>
+        <td>List + pagination metadata; get-by-known-id; 404 for unknown id; search <code>q=emily</code>; add (simulated); update (simulated); delete (simulated).</td>
+      </tr>
+    </table>
+
+    <h2><span class="num">·</span>Wiring</h2>
+    <div class="card">
+      <span class="file-path">api.config.ts</span> <span class="tag-edit">EDIT</span>
+      <p>Add <code>'**/tests/api/dummyjson-*.spec.ts'</code> to the existing <code>misc-api</code> project's <code>testMatch</code> array (line ~188), alongside <code>restful-booker.spec.ts</code>/<code>objects-crud.spec.ts</code>. No dedicated project entry is needed — <code>ApiClient</code> builds its own request context from the <code>baseURL</code> passed at construction (via the <code>dummyjsonService</code> fixture), not from Playwright's project-level <code>use.baseURL</code>.</p>
+    </div>
+    <div class="card">
+      <span class="file-path">.env.example / .env.testing</span> <span class="tag-edit">EDIT · optional</span>
+      <p>Add <code>DUMMYJSON_BASE_URL=https://dummyjson.com</code> for documentation parity with <code>RESTFUL_API_BASE_URL</code> — not functionally required since <code>environment.ts</code> already falls back to the same default.</p>
+    </div>
+
+    <h2><span class="num">·</span>Verification</h2>
+    <ol>
+      <li><code>npm run lint</code> — tsc type-check, confirms new interfaces/fixtures compile cleanly.</li>
+      <li>Run just the new specs against the live public API:
+        <pre><code>npx playwright test --config=api.config.ts --project=misc-api --grep "DummyJSON"</code></pre>
+      </li>
+      <li>Spot-check the HTML/monocart report (<code>api-report/</code> / <code>monocart-api-report/</code>) for the new <code>DummyJSON *</code> describe blocks, confirm all ~26 tests pass, and confirm the existing <code>restful-booker</code>/<code>objects-crud</code> tests in the same <code>misc-api</code> project still pass (no regression from the <code>testMatch</code> edit).</li>
+    </ol>
+
+    <footer>
+      Generated from the plan drafted for this session · not yet implemented · source markdown: <code>scaffold-api-tests-against-velvety-waterfall.md</code>
+    </footer>
+  </div>
+</body>
+</html>

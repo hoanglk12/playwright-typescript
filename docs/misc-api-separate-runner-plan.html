@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Plan: Split misc-api onto its own GitHub Actions runner</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --code-bg: #f6f8fa;
+    --accent: #0969da;
+    --pill-bg: #eef2ff;
+    --pill-fg: #3730a3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --fg: #e6edf3;
+      --muted: #9aa4b2;
+      --border: #30363d;
+      --code-bg: #161b22;
+      --accent: #58a6ff;
+      --pill-bg: #1c2333;
+      --pill-fg: #a5b4fc;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 { font-size: 1.7rem; margin-bottom: 4px; }
+  h2 { font-size: 1.25rem; margin-top: 2.2em; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  h3 { font-size: 1.05rem; margin-top: 1.6em; }
+  p, li { color: var(--fg); }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .pill {
+    display: inline-block;
+    background: var(--pill-bg);
+    color: var(--pill-fg);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-right: 6px;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 0.92rem;
+  }
+  th { background: var(--code-bg); }
+  .box {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    background: var(--code-bg);
+    margin: 1em 0;
+  }
+  .files {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .files > div { flex: 1; min-width: 220px; }
+  .files ul { margin-top: 6px; }
+  a { color: var(--accent); }
+  .job-diagram {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 1.2em 0;
+  }
+  .job {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    flex: 1;
+    min-width: 180px;
+    background: var(--code-bg);
+  }
+  .job.notify { flex-basis: 100%; }
+  .job h4 { margin: 0 0 6px; font-size: 0.95rem; }
+  .job p { margin: 0; font-size: 0.85rem; color: var(--muted); }
+  .arrow { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<span class="pill">CI / GitHub Actions</span><span class="pill">Plan — not yet implemented</span>
+<h1>Split <code>misc-api</code> onto its own GitHub Actions runner</h1>
+<p class="subtitle">Answering: could the <code>misc-api</code> Playwright project run on a separate machine in GitHub Actions?</p>
+
+<h2>Context</h2>
+<p>
+<code>api.config.ts</code> defines 9 Playwright projects: 8 GRA brand+region projects
+(<code>pla-au</code>, <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code>,
+<code>pla-nz</code>, <code>skx-nz</code>, <code>drm-nz</code>, <code>van-nz</code>) running the
+shared <code>gra-*.spec.ts</code> suite, plus a 9th project, <code>misc-api</code>, which runs the
+two non-GRA specs (<code>restful-booker.spec.ts</code>, <code>objects-crud.spec.ts</code> —
+third-party public APIs, unrelated to the GRA staging environment).
+</p>
+<p>
+Today, both <code>.github/workflows/api-restful-tests.yml</code> and
+<code>.github/workflows/api-restful-tests-with-slack.yml</code> run <code>npm run test:api</code>
+(all 9 projects) in a <strong>single job on a single <code>ubuntu-latest</code> runner</strong>,
+relying on Playwright's internal <code>workers: 8</code> for intra-machine parallelism.
+<code>misc-api</code> shares that one VM with the GRA suite even though it targets a completely
+different backend with different flakiness characteristics.
+</p>
+<div class="box">
+<strong>Answer:</strong> yes — each GitHub Actions <em>job</em> already gets its own fresh runner
+VM by default, and jobs without a <code>needs:</code> dependency between them run in parallel on
+separate machines. The fix is to split the single <code>api-tests</code> job into two independent
+jobs.
+</div>
+<p>
+Scope, per decision: this change targets <strong><code>api-restful-tests-with-slack.yml</code>
+only</strong>. The plain <code>api-restful-tests.yml</code> and
+<code>run-api-tests-nonparallel.sh</code> stay untouched.
+</p>
+
+<h2>Resulting job topology</h2>
+<div class="job-diagram">
+  <div class="job">
+    <h4>api-tests-gra</h4>
+    <p>ubuntu-latest · runs 8 GRA projects · own monocart trend cache + CF Pages deploy</p>
+  </div>
+  <div class="job">
+    <h4>api-tests-misc</h4>
+    <p>ubuntu-latest (separate VM) · runs misc-api only · own monocart report + artifact</p>
+  </div>
+  <div class="job notify">
+    <h4>notify-slack</h4>
+    <p>needs: [api-tests-gra, api-tests-misc] · combines both results into one Slack message</p>
+  </div>
+</div>
+
+<h2>Changes</h2>
+
+<h3>1. <code>package.json</code> — two new project-scoped scripts</h3>
+<pre><code>"test:api:gra": "playwright test --config=api.config.ts --project=pla-au --project=skx-au --project=drm-au --project=van-au --project=pla-nz --project=skx-nz --project=drm-nz --project=van-nz",
+"test:api:misc": "playwright test --config=api.config.ts --project=misc-api",</code></pre>
+<p>Additive only — <code>test:api</code> (all 9 projects) is untouched and still backs the plain workflow.</p>
+
+<h3>2. <code>.github/workflows/api-restful-tests-with-slack.yml</code> — split into two parallel jobs</h3>
+<p>Mirrors the multi-job pattern already used in <code>playwright-with-slack.yml</code>
+(<code>ui-test</code> + <code>api-test</code> + <code>test-report</code> + <code>notify-slack</code>),
+scaled down to two peer jobs feeding one Slack step.</p>
+
+<table>
+<tr><th>Job</th><th>Change</th></tr>
+<tr>
+  <td><code>api-tests-gra</code> <em>(renamed from <code>api-tests</code>)</em></td>
+  <td>
+    Run step → <code>npm run test:api:gra</code>.<br>
+    Monocart trend cache key → <code>monocart-trend-api-gra-${{ github.ref_name }}</code>.<br>
+    Keep existing Cloudflare Pages deploy (<code>playwright-restful-api-reports</code>).<br>
+    Outputs renamed: <code>gra_tests</code>, <code>gra_passed</code>, <code>gra_failed</code>,
+    <code>gra_skipped</code>, <code>gra_deploy_url</code>.
+  </td>
+</tr>
+<tr>
+  <td><code>api-tests-misc</code> <em>(new)</em></td>
+  <td>
+    No <code>needs:</code> on the GRA job → runs concurrently on its own runner.<br>
+    Run step → <code>npm run test:api:misc</code>.<br>
+    Own monocart summary extraction → outputs <code>misc_tests</code>, <code>misc_passed</code>,
+    <code>misc_failed</code>, <code>misc_skipped</code>.<br>
+    Own artifact: <code>monocart-misc-api-report-${{ github.run_id }}</code>.<br>
+    Own <code>$GITHUB_STEP_SUMMARY</code> block.<br>
+    No Cloudflare Pages deploy (would need a new CF Pages project — out of scope for now;
+    artifact + step summary is sufficient).
+  </td>
+</tr>
+<tr>
+  <td><code>notify-slack</code></td>
+  <td>
+    <code>needs: [api-tests-gra, api-tests-misc]</code>.<br>
+    Failure if either job's <code>result</code> is <code>failure</code>.<br>
+    Slack payload gets two sections — "GRA API Tests" (existing fields) and
+    "Misc API Tests" (new <code>misc_*</code> fields).<br>
+    Buttons: keep "View Workflow Run" + GRA report button; add a "Misc API Artifact" button
+    linking to the run's artifacts page.
+  </td>
+</tr>
+</table>
+
+<h2>Files touched vs. untouched</h2>
+<div class="files">
+  <div>
+    <strong>Touched</strong>
+    <ul>
+      <li><code>package.json</code></li>
+      <li><code>.github/workflows/api-restful-tests-with-slack.yml</code></li>
+    </ul>
+  </div>
+  <div>
+    <strong>Not touched</strong>
+    <ul>
+      <li><code>api.config.ts</code> (projects already correctly separated)</li>
+      <li><code>.github/workflows/api-restful-tests.yml</code></li>
+      <li><code>run-api-tests-nonparallel.sh</code></li>
+      <li><code>playwright-with-slack.yml</code></li>
+    </ul>
+  </div>
+</div>
+
+<h2>Verification</h2>
+<ol>
+  <li><code>npm run test:api:gra</code> locally — confirm only the 8 GRA projects run (no <code>misc-api</code> in the output).</li>
+  <li><code>npm run test:api:misc</code> locally — confirm only <code>restful-booker.spec.ts</code> + <code>objects-crud.spec.ts</code> run.</li>
+  <li>Lint the updated workflow YAML for syntax correctness.</li>
+  <li>Push to a branch / trigger <code>workflow_dispatch</code> and confirm in the Actions UI that <code>api-tests-gra</code> and <code>api-tests-misc</code> appear as two separate jobs running concurrently on two separate runners, and that the Slack message renders both result blocks correctly.</li>
+</ol>
+
+</body>
+</html>
