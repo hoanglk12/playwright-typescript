@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Plan: OpenTelemetry Demo API Test Suite</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --code-bg: #f6f8fa;
+    --accent: #0969da;
+    --pill-bg: #eef2ff;
+    --pill-fg: #3730a3;
+    --ok-bg: #dcfce7;
+    --ok-fg: #166534;
+    --warn-bg: #fef3c7;
+    --warn-fg: #92400e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --fg: #e6edf3;
+      --muted: #9aa4b2;
+      --border: #30363d;
+      --code-bg: #161b22;
+      --accent: #58a6ff;
+      --pill-bg: #1c2333;
+      --pill-fg: #a5b4fc;
+      --ok-bg: #12261c;
+      --ok-fg: #4ade80;
+      --warn-bg: #2a2110;
+      --warn-fg: #fbbf24;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 { font-size: 1.7rem; margin-bottom: 4px; }
+  h2 { font-size: 1.25rem; margin-top: 2.2em; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  h3 { font-size: 1.05rem; margin-top: 1.6em; }
+  p, li { color: var(--fg); }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .pill {
+    display: inline-block;
+    background: var(--pill-bg);
+    color: var(--pill-fg);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-right: 6px;
+  }
+  .pill.ok { background: var(--ok-bg); color: var(--ok-fg); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn-fg); }
+  code {
+    background: var(--code-bg);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 0.88rem;
+    vertical-align: top;
+  }
+  th { background: var(--code-bg); }
+  .box {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    background: var(--code-bg);
+    margin: 1em 0;
+  }
+  .box.live {
+    border-color: var(--ok-fg);
+  }
+  .files {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .files > div { flex: 1; min-width: 220px; }
+  .files ul { margin-top: 6px; }
+  a { color: var(--accent); }
+  .tree {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .badge-row { margin: 10px 0 20px; }
+</style>
+</head>
+<body>
+
+<span class="pill">API Testing</span><span class="pill">Playwright TypeScript</span><span class="pill warn">Plan — not yet implemented</span>
+<h1>OpenTelemetry Demo (Astronomy Shop) — API Test Suite</h1>
+<p class="subtitle">A 3-group Playwright TypeScript API test suite against the running OTel Demo stack, source-verified and live-confirmed before any test code was written.</p>
+
+<h2>Context</h2>
+<p>
+The goal was a Playwright TypeScript API test suite against the OpenTelemetry Demo
+microservices app (gateway at <code>http://localhost:8080</code>, started via
+<code>docker compose -f compose.yaml -f compose.full.yaml -f compose.observability.yaml up</code>),
+organized into 3 groups — functional, integration, fault-injection — partly intended
+as interview talking points about microservice testing strategy.
+</p>
+<p>
+The explicit brief was: <strong>verify everything against source first, then confirm
+live with curl, and flag any discrepancy rather than silently writing a test around a
+guessed behavior.</strong> That discovery pass is what this document captures. Several
+real discrepancies turned up between the original task assumptions and actual system
+behavior — those corrections are what shaped the final Phase 2 design.
+</p>
+<div class="box">
+<strong>Repo location:</strong> the actual OpenTelemetry Demo repo lives at
+<code>E:\OLDDATA\DATA\TESTING\MicroserviceTesting\opentelemetry-demo</code> (confirmed
+via <code>docker inspect frontend-proxy</code> → compose <code>working_dir</code>),
+not inside this <code>playwright-typescript</code> framework repo. The new test project
+will be created at
+<code>E:\OLDDATA\DATA\TESTING\MicroserviceTesting\otel-demo-api-tests</code>, sibling
+to the otel-demo repo — this HTML plan is filed here in <code>docs/</code> purely as
+this framework's documentation convention.
+</div>
+
+<h2>Phase 1 — Discovery Findings</h2>
+
+<h3>A. Envoy gateway (<code>src/frontend-proxy/envoy.tmpl.yaml</code>)</h3>
+<table>
+<tr><th>Prefix</th><th>Backend</th><th>Host:Port</th><th>Notes</th></tr>
+<tr><td><code>/</code> (catch-all)</td><td><code>frontend</code> (Next.js)</td><td><code>frontend:8080</code></td><td>must stay last in Envoy config</td></tr>
+<tr><td><code>/feature</code> <em>(no trailing slash)</em></td><td><code>flagd-ui</code></td><td><code>flagd-ui:4000</code></td><td>prefix match, no redirect pair — reachable via gateway at <code>http://localhost:8080/feature/...</code>, live-confirmed</td></tr>
+<tr><td><code>/flagservice/</code></td><td><code>flagd</code></td><td><code>flagd:8013</code></td><td>OFREP port, timeout disabled</td></tr>
+<tr><td><code>/jaeger/</code>, <code>/grafana/</code>, <code>/telemetry/</code>, <code>/opamp/</code>, <code>/loadgen/</code>, <code>/profiles/</code>, <code>/chatbot/</code>, <code>/images/</code>, <code>/otlp-http/</code></td><td>respective services</td><td>—</td><td>not needed for this suite</td></tr>
+</table>
+
+<h3>B. Frontend API routes (<code>src/frontend/pages/api/*.ts</code>, Next.js Pages Router)</h3>
+<p>
+Every route is wrapped in <code>InstrumentationMiddleware</code>, which never maps
+errors to specific status codes. Any thrown/rejected error becomes a
+<strong>bare HTTP 500 with plain-text "Internal Server Error"</strong> — confirmed live
+against an unknown product ID. There is no structured JSON error contract anywhere in
+this app.
+</p>
+<table>
+<tr><th>Route</th><th>Method</th><th>Request</th><th>Response</th><th>Backend</th></tr>
+<tr><td><code>/api/products</code></td><td>GET</td><td><code>?currencyCode</code></td><td><code>Product[]</code></td><td>ProductCatalog.listProducts (gRPC)</td></tr>
+<tr><td><code>/api/products/[productId]</code></td><td>GET</td><td><code>?currencyCode</code></td><td><code>Product</code></td><td>ProductCatalog.getProduct (gRPC) — no 404 handling; unknown ID → 500 <span class="pill ok">live-confirmed</span></td></tr>
+<tr><td><code>/api/cart</code></td><td>GET</td><td><code>?sessionId&amp;currencyCode</code></td><td><code>{userId, items: IProductCartItem[]}</code></td><td>Cart.getCart (gRPC), hydrated with product <span class="pill ok">live-confirmed</span></td></tr>
+<tr><td><code>/api/cart</code></td><td>POST</td><td><code>AddItemRequest {userId, item:{productId,quantity}}</code></td><td>raw <code>Cart {userId, items: CartItem[]}</code></td><td>Cart.addItem (gRPC) — no quantity validation anywhere in the chain</td></tr>
+<tr><td><code>/api/cart</code></td><td>DELETE</td><td><code>{userId}</code></td><td>204 empty</td><td>Cart.emptyCart (gRPC)</td></tr>
+<tr><td><code>/api/checkout</code></td><td>POST</td><td><code>PlaceOrderRequest {userId, email, address, userCurrency, creditCard}</code>, <code>?currencyCode</code></td><td><code>IProductCheckout {orderId, shippingTrackingId, shippingCost, shippingAddress, items[]}</code></td><td>Checkout.placeOrder (gRPC) — no top-level "total" field; no empty-cart guard</td></tr>
+<tr><td><code>/api/currency</code></td><td>GET</td><td>—</td><td><code>string[]</code></td><td>Currency.getSupportedCurrencies <span class="pill ok">live-confirmed</span></td></tr>
+</table>
+
+<h3>C. flagd-ui flag toggle mechanism — corrected understanding</h3>
+<p>
+<code>src/flagd-ui</code> is an <strong>Elixir Phoenix LiveView app</strong>, not a
+REST-first frontend. Its dashboard flips flags over a WebSocket (<code>phx-change</code>
+event), but a plain JSON HTTP API also exists and is what the test suite uses:
+</p>
+<ul>
+<li><code>GET http://localhost:8080/feature/api/read</code> → <code>{"flags": {...entire config...}}</code> <span class="pill ok">live-confirmed</span></li>
+<li><code>POST http://localhost:8080/feature/api/write</code> with body <code>{"data": &lt;entire modified flags JSON&gt;}</code> — replaces the whole file, no single-flag endpoint exists over HTTP. flagd-ui writes straight to <code>src/flagd/demo.flagd.json</code> (bind-mounted into both <code>flagd-ui</code> and <code>flagd</code> containers); flagd hot-reloads via its file watcher.</li>
+</ul>
+<div class="box warn" style="border-color:var(--warn-fg);">
+<strong>Discrepancy:</strong> the task's assumed flag names (<code>paymentServiceFailure</code>,
+<code>cartServiceFailure</code>) don't exist. Real keys are <code>paymentFailure</code> and
+<code>cartFailure</code> (no "Service" infix). <code>kafkaQueueProblems</code> and
+<code>productCatalogFailure</code> matched as assumed.
+</div>
+<p>
+<strong>Mutation semantics differ per flag</strong> — must replicate flagd-ui's own
+<code>storage.ex</code> logic exactly:
+</p>
+<ul>
+<li>Flags with a <code>targeting.if</code> block (currently only <code>productCatalogFailure</code>) → set <code>targeting.if[1]</code> (the "then" branch), leave <code>defaultVariant</code> untouched.</li>
+<li>All other flags → set <code>defaultVariant</code> directly.</li>
+<li><code>paymentFailure</code> / <code>cartFailure</code> use <strong>percentage variants</strong> (<code>"off"</code>, <code>"100%"</code>, etc.), not booleans — use <code>"100%"</code> for deterministic failure.</li>
+</ul>
+
+<h3>D. Fault-injection flags — verified against source</h3>
+<table>
+<tr><th>Flag</th><th>Verified effect</th><th>Test implication</th></tr>
+<tr><td><code>paymentFailure</code> (100%)</td><td><code>payment/charge.js</code> throws synchronously → checkout wraps as <code>codes.Internal</code> → frontend re-throws → <strong>HTTP 500</strong></td><td>Assert 500 on <code>POST /api/checkout</code></td></tr>
+<tr><td><code>cartFailure</code> (100%)</td><td>Only read inside <code>CartService.EmptyCart</code> — add/get unaffected. Redis connect failure → <code>RpcException(FailedPrecondition)</code> → <strong>HTTP 500</strong></td><td>Must target <code>DELETE /api/cart</code> specifically</td></tr>
+<tr><td><code>productCatalogFailure</code> (on)</td><td>Targeting rule scoped to <code>product_id == "OLJCESPC7Z"</code> only — other products unaffected <span class="pill ok">live-confirmed</span></td><td>Assert 500 for that product ID; assert a different product ID stays 200 with the same flag on</td></tr>
+<tr><td><code>kafkaQueueProblems</code> (on)</td><td><strong>Discrepancy:</strong> fires <em>after</em> the order message is already sent successfully — floods extra Kafka messages, does not fail <code>PlaceOrder</code></td><td>Redesigned as a <strong>resilience</strong> assertion: checkout still returns 200 despite the flag being on</td></tr>
+</table>
+
+<h3>E. Negative-path assumptions corrected by source</h3>
+<table>
+<tr><th>Task's assumption</th><th>Verified reality</th><th>Test implication</th></tr>
+<tr><td>"negative quantity" cart add → some kind of rejection</td><td><code>CartService.cs</code> has zero validation on quantity at any layer; negative/zero silently accepted, can even drive an existing line item negative</td><td>Test documents the actual permissive behavior as a 200 — flagged as a real, undocumented data-integrity gap</td></tr>
+<tr><td>"empty cart checkout" → error</td><td><code>checkout/main.go</code> has no empty-cart guard — proceeds to charge the card for shipping-only cost and returns a completed order with 0 items</td><td>Test documents actual behavior: 200, <code>items: []</code>, order total = shipping cost only</td></tr>
+</table>
+
+<h3>F. Kafka → accounting propagation (group2)</h3>
+<p>
+<code>fraud-detection</code> (Kotlin) only logs to stdout — no queryable state, not
+host-reachable. <code>accounting</code> (.NET) writes to Postgres <code>astronomy_db</code>,
+schema <code>accounting</code>, table <code>"order"(order_id TEXT PRIMARY KEY)</code>
+(<code>src/postgresql/init.sql:28-30</code>). Neither service exposes a host port;
+Postgres itself uses <code>ports: - ${POSTGRES_PORT}</code> (single-value form), which
+Docker maps to a <strong>random ephemeral host port</strong> on every stack restart
+(currently 5673 → 5432) — not safe to hardcode.
+</p>
+<div class="box">
+<strong>Decision (confirmed with user):</strong> verify via
+<code>docker exec astronomy-db psql -U astronomy_user -d astronomy_db -c "SELECT order_id FROM accounting.\"order\" WHERE order_id = '&lt;id&gt;'"</code>,
+shelled out from a test helper. Avoids the ephemeral-port problem entirely and needs no
+new npm dependency — only requires the Docker CLI on PATH.
+</div>
+
+<h3>G. Live-verified mutating mechanisms</h3>
+<p>
+Three assumptions were flagged by an independent review as unverified and risky enough
+to break Phase 2 silently. All three are now live-confirmed against the running stack
+(fully reversible, scoped to this local sandbox):
+</p>
+<div class="box live">
+<strong>Flag write + propagation timing</strong> <span class="pill ok">live-confirmed</span><br>
+Full round trip performed: <code>GET /feature/api/read</code> → mutated
+<code>productCatalogFailure.targeting.if[1]</code> to <code>"on"</code> →
+<code>POST /feature/api/write</code> → <strong>200</strong> → polled
+<code>GET /api/products/OLJCESPC7Z</code> and got <strong>500 on the first poll
+(≤313ms)</strong> — propagation is near-instant. Confirmed a different product ID
+(<code>66VCHSJNUP</code>) stayed 200 throughout, proving the targeting scope. Reverted
+and diffed the full flag file against the pre-test baseline — <strong>byte-identical</strong>.
+</div>
+<div class="box live">
+<strong>Valid credit card payload</strong> <span class="pill ok">live-confirmed via source</span><br>
+<code>src/payment/charge.js</code> validates via <code>simple-card-validator</code>
+(Luhn + digit pattern), a <strong>brand allowlist (visa/mastercard only)</strong>, and a
+<strong>future-expiry check</strong>. The demo's own frontend hardcodes a
+guaranteed-valid card at <code>CheckoutForm.tsx:52-55</code>:
+<code>4432-8015-6152-0454</code>, cvv <code>672</code>, exp <code>2030-01</code> — this
+exact literal will be reused in test payloads (documented as the demo's own known-good
+test card, not a real card).
+</div>
+<div class="box live">
+<strong>OrderItem.cost is per-unit, not line-total</strong><br>
+<code>checkout/main.go:546-549</code> builds <code>OrderItem.Cost</code> from the
+converted unit price with no quantity multiplication; quantity is applied separately
+only when computing the order's internal grand total (not returned to the client).
+Group2's cross-check must multiply <code>item.cost × item.quantity</code> itself.
+</div>
+<div class="box">
+<strong>Guard against vacuous passes:</strong> every group3 test asserts a
+<strong>baseline 200 with the flag off</strong> before flipping it on, so a pre-existing
+broken payload can't make the "expect 500 after flag on" assertion pass for the wrong
+reason.
+</div>
+<div class="box">
+<strong>Whole-suite concurrency:</strong> <code>/feature/api/write</code> mutates one
+flag file shared by the entire running stack, not just group3 — if group3 ran on a
+separate worker while group1/group2 executed concurrently, flipping
+<code>paymentFailure=100%</code> would 500 group2's checkout mid-flight. Fix:
+<code>workers: 1</code> for the whole <code>playwright.config.ts</code> project (nothing
+in this suite requires parallelism against one shared mutable backend).
+</div>
+
+<h2>Phase 2 — Implementation Plan</h2>
+<p>
+New project at <code>otel-demo-api-tests/</code>, sibling to the otel-demo repo (not
+inside it, not inside this framework repo).
+</p>
+<div class="tree">otel-demo-api-tests/
+  package.json                 # @playwright/test, typescript, @types/node
+  tsconfig.json
+  playwright.config.ts         # baseURL http://localhost:8080, testDir ./tests, workers: 1, no browser projects
+  src/
+    constants.ts                # API paths, known product IDs (valid + invalid), flag names, currency codes, demo test card
+    types.ts                    # Product, Money, CartItem, AddItemRequest, IProductCart, PlaceOrderRequest, Address, CreditCardInfo, IProductCheckout, FlagsConfig
+    helpers/
+      cart-helpers.ts           # addItem/getCart/emptyCart wrappers over APIRequestContext
+      checkout-helpers.ts       # placeOrder wrapper, valid-order-payload builder
+      flag-helpers.ts           # setFlag(request, flagKey, variant) replicating flagd-ui's targeting-vs-defaultVariant logic; resetFlag; getFlags
+      db-helpers.ts             # verifyOrderInAccountingDb(orderId) via `docker exec astronomy-db psql ...`, short poll for Kafka lag
+  tests/
+    group1-functional-api.spec.ts
+    group2-integration-flow.spec.ts
+    group3-fault-injection.spec.ts</div>
+
+<h3>group1-functional-api.spec.ts</h3>
+<p class="subtitle">Demonstrates direct per-service contract testing.</p>
+<ul>
+<li>GET /api/products → 200, array of <code>Product</code>-shaped items</li>
+<li>GET /api/products/OLJCESPC7Z → 200, correct shape</li>
+<li>GET /api/products/{invalid} → 500 (documented as the actual, non-ideal contract)</li>
+<li>POST /api/cart (add item) → 200, item present in returned cart</li>
+<li>GET /api/cart → 200, hydrated item/product data</li>
+<li>DELETE /api/cart (empty) → 204</li>
+<li>POST /api/checkout with a valid cart, using the demo's own known-good test card → 200, <code>orderId</code> present, items priced (unit cost — <code>× quantity</code> for line totals)</li>
+<li>Negative cases per corrected findings: empty-cart checkout (200, 0 items, shipping-only total) and negative-quantity add (200, accepted verbatim) — each documents the actual permissive behavior, not a guessed rejection</li>
+</ul>
+
+<h3>group2-integration-flow.spec.ts</h3>
+<p class="subtitle">Demonstrates cross-service integration testing.</p>
+<ul>
+<li>Full flow: unique generated userId → add item to cart → checkout (same known-good test card) targeting a non-USD currency (e.g. EUR) → assert response items/shippingCost currencyCode matches, cross-check the converted item price against an independent <code>GET /api/products/OLJCESPC7Z?currencyCode=EUR</code> call (avoids hardcoding a conversion rate); multiply <code>item.cost × item.quantity</code> before any line-total comparison
+  <div class="box" style="margin-top:8px;"><strong>Two currency sources:</strong> <code>items[].cost</code>/<code>shippingCost</code> are driven by <code>userCurrency</code> in the checkout request <em>body</em> (passed to gRPC <code>placeOrder</code>); the <code>?currencyCode</code> query param only re-hydrates <code>items[].item.product.priceUsd</code>. Set <strong>both</strong> to the same target currency.</div>
+</li>
+<li>Kafka propagation: after a successful checkout, poll <code>accounting."order"</code> via <code>docker exec astronomy-db psql</code> for the returned <code>orderId</code> (short retry loop, async consumption)</li>
+</ul>
+
+<h3>group3-fault-injection.spec.ts</h3>
+<p class="subtitle">Demonstrates resilience/fault-injection testing across service boundaries.</p>
+<ul>
+<li><code>test.describe.configure({ mode: 'serial' })</code> for the whole file (belt-and-suspenders with the suite-wide <code>workers: 1</code>)</li>
+<li>Reusable <code>setFlag</code>/<code>resetFlag</code> helper, built on the live-confirmed read→mutate→write round trip, with a short bounded poll (~2-3s) after write even though propagation measured ≤313ms live</li>
+<li>Every test asserts a <strong>baseline 200 with the flag off first</strong>, then flips it on</li>
+<li><code>paymentFailure</code> (100%): baseline 200 → flag on → checkout → 500; reset in <code>afterEach</code> via try/finally</li>
+<li><code>cartFailure</code> (100%): baseline 200 on <code>DELETE /api/cart</code> → flag on → same call → 500; reset</li>
+<li><code>productCatalogFailure</code> (on): baseline 200 on <code>GET /api/products/OLJCESPC7Z</code> → flag on → 500, while a different product ID stays 200 the whole time; reset</li>
+<li><code>kafkaQueueProblems</code> (on): baseline 200 checkout → flag on → checkout still 200 (corrected resilience assertion); reset</li>
+<li>All flag resets happen in <code>afterEach</code> unconditionally (try/finally), independent of test outcome</li>
+</ul>
+
+<h2>Verification</h2>
+<ul>
+<li><code>npx tsc --noEmit</code> in the new project for type-checking</li>
+<li>Run each spec file individually against the live stack (<code>docker compose ps</code> to confirm containers up first)</li>
+<li>For group3, confirm flags are reset by re-reading <code>/feature/api/read</code> after the suite and diffing against the original baseline captured at suite start</li>
+<li>For group2's DB check, manually confirm <code>docker exec astronomy-db psql -U astronomy_user -d astronomy_db -c "SELECT * FROM accounting.\"order\" LIMIT 5"</code> works from the shell before wiring it into the helper</li>
+</ul>
+
+</body>
+</html>
