@@ -55,7 +55,7 @@ export default defineConfig({
     [
       'monocart-reporter',
       {
-        name: `Playwright API Tests — ${process.env.NODE_ENV ?? 'testing'}`,
+        name: `Playwright ${process.env.API_SUITE_NAME ?? 'API'} Tests — ${process.env.NODE_ENV ?? 'testing'}`,
         outputFile: 'monocart-api-report/index.html',
         trend: process.env.MONOCART_API_TREND_FILE
           ? (() => {
@@ -71,7 +71,7 @@ export default defineConfig({
             const s = reportData.summary;
             if (process.env.GITHUB_STEP_SUMMARY) {
               const lines = [
-                '## Playwright API Test Report',
+                `## Playwright ${process.env.API_SUITE_NAME ?? 'API'} Test Report`,
                 '| Metric | Count |',
                 '|--------|-------|',
                 `| Total | ${s.tests?.value ?? s.tests} |`,

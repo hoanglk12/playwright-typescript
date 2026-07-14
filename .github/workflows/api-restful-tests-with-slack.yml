@@ -71,6 +71,7 @@ jobs:
         npm run test:api:gra
       env:
         CI: true
+        API_SUITE_NAME: 'GRA API'
 
     - name: Upload test results
       uses: actions/upload-artifact@v7
@@ -169,6 +170,7 @@ jobs:
         npm run test:api:misc
       env:
         CI: true
+        API_SUITE_NAME: 'Misc API'
 
     - name: Upload test results
       uses: actions/upload-artifact@v7
