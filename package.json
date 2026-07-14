@@ -41,6 +41,8 @@
     "report:monocart:api": "npx monocart show-report monocart-api-report/index.html",
     "test:api:testing": "cross-env NODE_ENV=testing playwright test --config=api.config.ts",
     "test:api": "playwright test --config=api.config.ts",
+    "test:api:gra": "playwright test --config=api.config.ts --project=pla-au --project=skx-au --project=drm-au --project=van-au --project=pla-nz --project=skx-nz --project=drm-nz --project=van-nz",
+    "test:api:misc": "playwright test --config=api.config.ts --project=misc-api",
     "test:api:serial": "playwright test --config=api.config.ts --workers=1",
     "test:api:headed": "echo 'API tests do not require browser - running headless'",
     "test:api:debug": "playwright test --config=api.config.ts --debug",

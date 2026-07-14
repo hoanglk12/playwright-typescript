@@ -29,51 +29,49 @@ permissions:
   contents: read
 
 jobs:
-  api-tests:
+  api-tests-gra:
     runs-on: ubuntu-latest
     outputs:
-      tests:          ${{ steps.monocart.outputs.tests }}
-      passed:         ${{ steps.monocart.outputs.passed }}
-      failed:         ${{ steps.monocart.outputs.failed }}
-      skipped:        ${{ steps.monocart.outputs.skipped }}
-      api_deploy_url: ${{ steps.cf-api.outputs.url }}
+      gra_tests:          ${{ steps.monocart.outputs.tests }}
+      gra_passed:         ${{ steps.monocart.outputs.passed }}
+      gra_failed:         ${{ steps.monocart.outputs.failed }}
+      gra_skipped:        ${{ steps.monocart.outputs.skipped }}
+      gra_deploy_url:     ${{ steps.cf-api.outputs.url }}
 
     steps:
     - uses: actions/checkout@v6
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v6
       with:
         node-version: '22'
         cache: 'npm'
-    
+
     - name: Install dependencies
       run: npm ci
-    
-    - name: Make scripts executable
-      run: chmod +x run-api-tests-nonparallel.sh
 
     - name: Restore monocart API trend data
       uses: actions/cache@v5
       id: monocart-api-trend
       with:
         path: monocart-api-trend/index.json
-        key: monocart-trend-api-${{ github.ref_name }}
-        restore-keys: monocart-trend-api-
+        key: monocart-trend-api-gra-${{ github.ref_name }}
+        restore-keys: monocart-trend-api-gra-
 
     - name: Set monocart API trend env
       if: steps.monocart-api-trend.outputs.cache-hit == 'true'
       run: echo "MONOCART_API_TREND_FILE=${{ github.workspace }}/monocart-api-trend/index.json" >> $GITHUB_ENV
 
-    - name: Run RESTful API tests
+    - name: Run GRA API tests
       id: tests
       continue-on-error: true
       run: |
         ENV=${{ github.event.inputs.environment || 'testing' }}
-        ./run-api-tests-nonparallel.sh $ENV serial 1
+        export API_ENV=$ENV
+        npm run test:api:gra
       env:
         CI: true
-    
+
     - name: Upload test results
       uses: actions/upload-artifact@v7
       if: always()
@@ -135,8 +133,102 @@ jobs:
         npx wrangler@3 pages deploy monocart-api-report \
           --project-name playwright-restful-api-reports \
           --branch main \
-          --commit-message "RESTful API run ${{ github.run_id }} attempt ${{ github.run_attempt }}"
+          --commit-message "GRA API run ${{ github.run_id }} attempt ${{ github.run_attempt }}"
         echo "url=https://playwright-restful-api-reports.pages.dev" >> $GITHUB_OUTPUT
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  api-tests-misc:
+    runs-on: ubuntu-latest
+    outputs:
+      misc_tests:   ${{ steps.monocart-misc.outputs.tests }}
+      misc_passed:  ${{ steps.monocart-misc.outputs.passed }}
+      misc_failed:  ${{ steps.monocart-misc.outputs.failed }}
+      misc_skipped: ${{ steps.monocart-misc.outputs.skipped }}
+      misc_deploy_url: ${{ steps.cf-misc.outputs.url }}
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '22'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run Misc API tests
+      id: tests
+      continue-on-error: true
+      run: |
+        ENV=${{ github.event.inputs.environment || 'testing' }}
+        export API_ENV=$ENV
+        npm run test:api:misc
+      env:
+        CI: true
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v7
+      if: always()
+      with:
+        name: misc-api-test-results
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+
+    - name: Extract monocart Misc API summary
+      if: always()
+      id: monocart-misc
+      run: |
+        if [ -f monocart-api-report/index.json ]; then
+          node -e "
+            const d = require('./monocart-api-report/index.json');
+            const s = d.summary || {};
+            console.log('tests=' + (s.tests || 0));
+            console.log('passed=' + (s.passed || 0));
+            console.log('failed=' + (s.failed || 0));
+            console.log('skipped=' + (s.skipped || 0));
+          " >> $GITHUB_OUTPUT
+        else
+          echo "tests=N/A" >> $GITHUB_OUTPUT
+          echo "passed=N/A" >> $GITHUB_OUTPUT
+          echo "failed=N/A" >> $GITHUB_OUTPUT
+          echo "skipped=N/A" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Upload monocart Misc API report
+      uses: actions/upload-artifact@v7
+      if: always()
+      with:
+        name: monocart-misc-api-report-${{ github.run_id }}
+        path: monocart-api-report/
+        retention-days: 30
+
+    - name: Write Misc API step summary
+      if: always()
+      run: |
+        echo "## Misc API Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Projects:** misc-api (restful-booker.spec.ts, objects-crud.spec.ts)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Tests**: ${{ steps.monocart-misc.outputs.tests }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Passed**: ${{ steps.monocart-misc.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Failed**: ${{ steps.monocart-misc.outputs.failed }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Skipped**: ${{ steps.monocart-misc.outputs.skipped }}" >> $GITHUB_STEP_SUMMARY
+
+    - name: Deploy monocart Misc API report to Cloudflare Pages
+      if: always()
+      id: cf-misc
+      continue-on-error: true
+      run: |
+        npx wrangler@3 pages project create playwright-misc-api-reports --production-branch main 2>/dev/null || true
+        npx wrangler@3 pages deploy monocart-api-report \
+          --project-name playwright-misc-api-reports \
+          --branch main \
+          --commit-message "Misc API run ${{ github.run_id }} attempt ${{ github.run_attempt }}"
+        echo "url=https://playwright-misc-api-reports.pages.dev" >> $GITHUB_OUTPUT
       env:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -144,22 +236,23 @@ jobs:
   notify-slack:
     name: Send Slack Notification
     runs-on: ubuntu-latest
-    needs: [api-tests]
+    needs: [api-tests-gra, api-tests-misc]
     if: always()
     steps:
       - name: Determine test status
         id: status
         run: |
-          TEST_RESULT="${{ needs.api-tests.result }}"
-          
-          if [[ "$TEST_RESULT" == "success" ]]; then
-            echo "color=#36a64f" >> $GITHUB_OUTPUT
-            echo "emoji=:white_check_mark:" >> $GITHUB_OUTPUT
-            echo "text=Passed" >> $GITHUB_OUTPUT
-          elif [[ "$TEST_RESULT" == "failure" ]]; then
+          GRA_RESULT="${{ needs.api-tests-gra.result }}"
+          MISC_RESULT="${{ needs.api-tests-misc.result }}"
+
+          if [[ "$GRA_RESULT" == "failure" || "$MISC_RESULT" == "failure" ]]; then
             echo "color=#FF0000" >> $GITHUB_OUTPUT
             echo "emoji=:x:" >> $GITHUB_OUTPUT
             echo "text=Failed" >> $GITHUB_OUTPUT
+          elif [[ "$GRA_RESULT" == "success" && "$MISC_RESULT" == "success" ]]; then
+            echo "color=#36a64f" >> $GITHUB_OUTPUT
+            echo "emoji=:white_check_mark:" >> $GITHUB_OUTPUT
+            echo "text=Passed" >> $GITHUB_OUTPUT
           else
             echo "color=#FFA500" >> $GITHUB_OUTPUT
             echo "emoji=:warning:" >> $GITHUB_OUTPUT
@@ -223,22 +316,57 @@ jobs:
                 },
                 {
                   "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*GRA API Tests*"
+                  }
+                },
+                {
+                  "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Total Tests:*\n${{ needs.api-tests.outputs.tests }}"
+                      "text": "*Total Tests:*\n${{ needs.api-tests-gra.outputs.gra_tests }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*✅ Passed:*\n${{ needs.api-tests.outputs.passed }}"
+                      "text": "*✅ Passed:*\n${{ needs.api-tests-gra.outputs.gra_passed }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*❌ Failed:*\n${{ needs.api-tests.outputs.failed }}"
+                      "text": "*❌ Failed:*\n${{ needs.api-tests-gra.outputs.gra_failed }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*⏭ Skipped:*\n${{ needs.api-tests.outputs.skipped }}"
+                      "text": "*⏭ Skipped:*\n${{ needs.api-tests-gra.outputs.gra_skipped }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Misc API Tests*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Total Tests:*\n${{ needs.api-tests-misc.outputs.misc_tests }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*✅ Passed:*\n${{ needs.api-tests-misc.outputs.misc_passed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*❌ Failed:*\n${{ needs.api-tests-misc.outputs.misc_failed }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*⏭ Skipped:*\n${{ needs.api-tests-misc.outputs.misc_skipped }}"
                     }
                   ]
                 },
@@ -266,7 +394,15 @@ jobs:
                         "type": "plain_text",
                         "text": "RESTful API Report"
                       },
-                      "url": "${{ needs.api-tests.outputs.api_deploy_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}"
+                      "url": "${{ needs.api-tests-gra.outputs.gra_deploy_url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Misc API Report"
+                      },
+                      "url": "${{ needs.api-tests-misc.outputs.misc_deploy_url || format('{0}/{1}/actions/runs/{2}#artifacts', github.server_url, github.repository, github.run_id) }}"
                     },
                     {
                       "type": "button",
