@@ -113,13 +113,13 @@
 <body>
   <div class="hero">
     <div class="main" style="padding:0;">
-      <div class="eyebrow">Implementation Plan · Not Yet Applied</div>
+      <div class="eyebrow">Implementation Plan · Revised After Technical Review · Not Yet Applied</div>
       <h1>DummyJSON API Test Scaffold</h1>
       <p class="sub">Adding a fourth API practice target — <code>dummyjson.com</code> (products / carts / users / JWT auth) — to the existing REST + GraphQL suite, following the same service-class and fixture conventions already used for restful-booker and restful-api.dev.</p>
       <div class="meta-row">
-        <span class="pill">Status: <strong>Planned</strong></span>
+        <span class="pill">Status: <strong>Planned · Reviewed 2026-07-14</strong></span>
         <span class="pill">New files: <strong>8</strong></span>
-        <span class="pill">Edited files: <strong>3–4</strong></span>
+        <span class="pill">Edited files: <strong>4–5</strong></span>
         <span class="pill">Est. tests: <strong>~26</strong></span>
       </div>
     </div>
@@ -131,6 +131,16 @@
     <p>The user asked for a practice API test suite scaffolded against dummyjson.com, chosen because its data model (products, carts, users) is closer to real e-commerce shape than the framework's existing practice targets, and it adds JWT-based auth (<code>accessToken</code>/<code>refreshToken</code>) as a new pattern to exercise. This mirrors two existing integrations — <code>RestfulBookerService</code> (login + token reuse) and <code>RestfulApiClient</code> (plain CRUD) — but combines both patterns across four related resource domains sharing one base URL and one auth flow.</p>
     <p>The endpoint contracts below were verified live against <a href="https://dummyjson.com/docs">dummyjson.com/docs</a> before writing this plan, so the scaffold isn't guessing at field names.</p>
     <p><strong>Scope decisions</strong> (confirmed with the user): four domain-split spec files, mirroring the repo's existing <code>gra-catalog.spec.ts</code> / <code>gra-cart-minicart.spec.ts</code> / <code>gra-customer-profile.spec.ts</code> / <code>gra-authentication.spec.ts</code> split — and fuller CRUD coverage (~5–7 tests per domain) rather than a bare smoke scaffold.</p>
+
+    <h2><span class="num">·</span>Review Amendments (2026-07-14)</h2>
+    <p class="lead">A technical-research review verified every structural claim in this plan against the live codebase (mirror targets, fixture patterns, faker, <code>ApiResponseWrapper</code>, <code>misc-api</code> testMatch) and the dummyjson.com contract. The plan was endorsed with the following amendments, now folded into the sections below:</p>
+    <ul>
+      <li><strong>Bearer-header gap (blocking):</strong> <code>ApiClient.get()</code> (<code>src/api/ApiClient.ts:143</code>) accepts only <code>(url, queryParams?)</code> — no headers parameter, unlike <code>post</code>/<code>put</code>/<code>patch</code>. The original <code>getAuthenticatedUser()</code> could not attach <code>Authorization: Bearer</code> to GET <code>/auth/me</code>. Fixed via <code>ApiClient.withStoredToken()</code> (Option B — no shared-file change); see the service card.</li>
+      <li><strong>Default execution mode, not serial:</strong> <code>test.describe.configure({ mode: 'serial' })</code> removed from all four specs. Tests are independent (mutations are simulated), <code>fullyParallel: false</code> already serializes within a file, and serial mode causes cascade-skips that hide signal.</li>
+      <li><strong>Describe titles contain the literal <code>DummyJSON</code></strong> so the <code>--grep "DummyJSON"</code> verification command matches.</li>
+      <li><strong>Casing:</strong> <code>dummyjsonBaseUrl</code> is used for both the env field and the fixture. The existing pattern has split casing (<code>restfulApiBaseUrl</code> env vs <code>restfulApiBaseURL</code> fixture); this plan deliberately uses one consistent form rather than mirroring the split.</li>
+      <li><strong>CI cosmetic edit added:</strong> the misc-suite step-summary string in <code>api-restful-tests-with-slack.yml</code> hardcodes the spec list and must mention the dummyjson specs; see Wiring.</li>
+    </ul>
 
     <h2><span class="num">·</span>Verified API Contract</h2>
     <div class="fact-grid">
@@ -162,11 +172,13 @@
 
     <div class="card">
       <span class="file-path">src/api/services/dummyjson/DummyJsonService.ts</span> <span class="tag-new">NEW</span>
-      <p><code>class DummyJsonService extends ApiClient</code>, constructor <code>{ baseURL: string; timeout?: number }</code>, following <code>RestfulBookerService</code>'s exact shape.</p>
+      <p><code>class DummyJsonService extends ApiClient</code>, constructor <code>{ baseURL: string; timeout?: number }</code>, following <code>RestfulBookerService</code>'s exact shape — <strong>plus</strong> the constructor stores its own <code>baseUrl</code>/<code>timeoutMs</code> fields (the base class's <code>clientOptions</code> is private, and <code>getAuthenticatedUser()</code> below needs them).</p>
       <pre><code>private tokenKey = 'dummyjson-token';
+private readonly baseUrl: string;    // stored — base class options are private
+private readonly timeoutMs?: number;
 
 login(username, password, expiresInMins?)       // POST /auth/login → stores accessToken via ApiClient.storeToken
-getAuthenticatedUser()                          // GET /auth/me, Bearer token from ApiClient.getToken(this.tokenKey)
+getAuthenticatedUser()                          // GET /auth/me via ApiClient.withStoredToken (see below)
 refreshAccessToken(refreshToken, expiresInMins?) // POST /auth/refresh
 
 getAllProducts(params?) / getProductById(id) / searchProducts(q)
@@ -177,7 +189,21 @@ addCart(data) / updateCart(id, data) / deleteCart(id)
 
 getAllUsers(params?) / getUserById(id) / searchUsers(q)
 addUser(data) / updateUser(id, data) / deleteUser(id)</code></pre>
-      <p>Every method wraps <code>this.get/post/put/delete(...)</code> in <code>new ApiResponseWrapper(response)</code> — specs never touch a raw <code>apiClient</code>/<code>apiClientExt</code> directly.</p>
+      <div class="callout">
+        <strong>Amended — Bearer header on GET:</strong> <code>ApiClient.get()</code> has no headers parameter (only <code>post</code>/<code>put</code>/<code>patch</code> do), so <code>/auth/me</code> cannot attach <code>Authorization: Bearer</code> through the inherited <code>get()</code>. <code>getAuthenticatedUser()</code> instead spins up a pre-authed client via the existing <code>ApiClient.withStoredToken()</code> helper — contained to this service, no change to the shared base class:
+      </div>
+      <pre><code>async getAuthenticatedUser(): Promise&lt;ApiResponseWrapper&gt; {
+  const client = await ApiClient.withStoredToken(
+    { baseURL: this.baseUrl, timeout: this.timeoutMs },
+    this.tokenKey
+  );
+  try {
+    return new ApiResponseWrapper(await client.get('/auth/me'));
+  } finally {
+    await client.dispose();
+  }
+}</code></pre>
+      <p>Every method wraps <code>this.get/post/put/delete(...)</code> in <code>new ApiResponseWrapper(response)</code> (exported from <code>src/api/ApiResponse.ts</code>) — specs never touch a raw <code>apiClient</code>/<code>apiClientExt</code> directly. Note <code>ApiClient.delete(url, data?)</code> also takes no headers — fine here, since dummyjson deletes are unauthenticated.</p>
     </div>
 
     <div class="card">
@@ -190,7 +216,7 @@ addUser(data) / updateUser(id, data) / deleteUser(id)</code></pre>
       <ul>
         <li>Import <code>DummyJsonService</code> from <code>./services/dummyjson</code>.</li>
         <li>Add <code>dummyjsonBaseUrl: string;</code> and <code>dummyjsonService: DummyJsonService;</code> to <code>ApiTestFixtures</code>.</li>
-        <li>Add <code>dummyjsonBaseUrl</code> fixture (mirrors <code>restfulApiBaseURL</code>).</li>
+        <li>Add <code>dummyjsonBaseUrl</code> fixture (same role as <code>restfulApiBaseURL</code>; amended — deliberately uses one consistent casing for both env field and fixture instead of mirroring the existing <code>restfulApiBaseUrl</code>/<code>restfulApiBaseURL</code> split).</li>
         <li>Add <code>dummyjsonService</code> fixture (mirrors <code>bookingService</code> exactly — construct, <code>init()</code>, <code>use()</code>, <code>dispose()</code>).</li>
       </ul>
     </div>
@@ -206,7 +232,7 @@ addUser(data) / updateUser(id, data) / deleteUser(id)</code></pre>
     </div>
 
     <h2><span class="num">·</span>New Spec Files</h2>
-    <p class="lead">All four import <code>{ apiTest as test, expect, softExpect } from '../../src/api/ApiTest'</code>, use <code>test.describe.configure({ mode: 'serial' })</code>, <code>TC_XX - Description</code> naming, <code>@api @regression</code> tags, and the <code>dummyjsonService</code> fixture. <code>softAssert</code> is used for multi-property checks (pagination metadata); single-assertion checks (404s, precondition status codes) stay hard <code>expect</code>.</p>
+    <p class="lead">All four import <code>{ apiTest as test, expect, softExpect } from '../../src/api/ApiTest'</code>, use <strong>default execution mode</strong> (no <code>test.describe.configure</code> — amended: tests are independent since mutations are simulated, <code>fullyParallel: false</code> already serializes within a file, and serial mode would cascade-skip on failure), <code>TC_XX - Description</code> naming, <code>@api @regression</code> tags, and the <code>dummyjsonService</code> fixture. Describe titles contain the literal <code>DummyJSON</code> (e.g. <code>'DummyJSON Products API @api @regression'</code>) so the <code>--grep "DummyJSON"</code> verification command matches. <code>softAssert</code> is used for multi-property checks (pagination metadata); single-assertion checks (404s, precondition status codes) stay hard <code>expect</code>.</p>
 
     <table>
       <tr><th>File</th><th>~Tests</th><th>Coverage</th></tr>
@@ -238,8 +264,12 @@ addUser(data) / updateUser(id, data) / deleteUser(id)</code></pre>
       <p>Add <code>'**/tests/api/dummyjson-*.spec.ts'</code> to the existing <code>misc-api</code> project's <code>testMatch</code> array (line ~188), alongside <code>restful-booker.spec.ts</code>/<code>objects-crud.spec.ts</code>. No dedicated project entry is needed — <code>ApiClient</code> builds its own request context from the <code>baseURL</code> passed at construction (via the <code>dummyjsonService</code> fixture), not from Playwright's project-level <code>use.baseURL</code>.</p>
     </div>
     <div class="card">
+      <span class="file-path">.github/workflows/api-restful-tests-with-slack.yml</span> <span class="tag-edit">EDIT · cosmetic (added by review)</span>
+      <p>The misc-suite GitHub step-summary hardcodes the spec list (~line 217: <code>restful-booker.spec.ts, objects-crud.spec.ts</code>). Update the string to include the four <code>dummyjson-*.spec.ts</code> files. Slack counts auto-update from the monocart summary — no other CI change needed; <code>npm run test:api:misc</code> (<code>--project=misc-api</code>, no grep) picks up the new specs automatically via the testMatch glob.</p>
+    </div>
+    <div class="card">
       <span class="file-path">.env.example / .env.testing</span> <span class="tag-edit">EDIT · optional</span>
-      <p>Add <code>DUMMYJSON_BASE_URL=https://dummyjson.com</code> for documentation parity with <code>RESTFUL_API_BASE_URL</code> — not functionally required since <code>environment.ts</code> already falls back to the same default.</p>
+      <p>Add <code>DUMMYJSON_BASE_URL=https://dummyjson.com</code> to <code>.env.testing</code> for documentation parity with <code>RESTFUL_API_BASE_URL</code> — not functionally required since <code>environment.ts</code> already falls back to the same default. (<code>.env.example</code> is minimal and can stay as-is.)</p>
     </div>
 
     <h2><span class="num">·</span>Verification</h2>
@@ -248,11 +278,15 @@ addUser(data) / updateUser(id, data) / deleteUser(id)</code></pre>
       <li>Run just the new specs against the live public API:
         <pre><code>npx playwright test --config=api.config.ts --project=misc-api --grep "DummyJSON"</code></pre>
       </li>
-      <li>Spot-check the HTML/monocart report (<code>api-report/</code> / <code>monocart-api-report/</code>) for the new <code>DummyJSON *</code> describe blocks, confirm all ~26 tests pass, and confirm the existing <code>restful-booker</code>/<code>objects-crud</code> tests in the same <code>misc-api</code> project still pass (no regression from the <code>testMatch</code> edit).</li>
+      <li>Run the full misc project to confirm no regression from the <code>testMatch</code> edit:
+        <pre><code>npm run test:api:misc</code></pre>
+      </li>
+      <li>Spot-check the HTML/monocart report (<code>api-report/</code> / <code>monocart-api-report/</code>) for the new <code>DummyJSON *</code> describe blocks, confirm all ~26 tests pass, and confirm the existing <code>restful-booker</code>/<code>objects-crud</code> tests in the same <code>misc-api</code> project still pass.</li>
+      <li>CI dry-run via <code>workflow_dispatch</code> on the RESTful API workflow — confirm the misc job picks up the new specs and the Slack misc counts increase.</li>
     </ol>
 
     <footer>
-      Generated from the plan drafted for this session · not yet implemented · source markdown: <code>scaffold-api-tests-against-velvety-waterfall.md</code>
+      Generated from the plan drafted for this session · revised 2026-07-14 after technical-research review (Bearer-gap fix, default mode, grep-able titles, casing, CI summary string) · not yet implemented · source markdown: <code>scaffold-api-tests-against-velvety-waterfall.md</code>
     </footer>
   </div>
 </body>
