@@ -15,6 +15,10 @@ export class EcommercePDPPage extends BasePage {
   private readonly colorScrollerContainerSelector =
     '[class*="swiper-container"]:has([class*="colorScroller-next"])';
   private readonly acquisitionPopupSelector = '[class*="bloomreach-acquisition-popup"][class*="state-open"]';
+  // Vans post-ATC Bloomreach popup (#popup.popup.visible, z-index 200) — a DIFFERENT popup
+  // from acquisitionPopupSelector's swatch overlay. It appears after add-to-cart and
+  // intercepts the cart icon click.
+  private readonly postAtcPopupCloseSelector = '#popup-close';
   // getByRole uses accessible name; storefronts render aria-label="Justify" on ATC buttons,
   // which overrides the visible text and breaks getByRole matching. Match by text content instead.
   private readonly addToCartBtnLocator = this.page.locator('button', { hasText: /add to (cart|bag)/i });
@@ -127,6 +131,21 @@ export class EcommercePDPPage extends BasePage {
         .catch(() => {});
     } catch {
       // best-effort dismissal
+    }
+  }
+
+  // Dismisses the Vans post-ATC Bloomreach popup if it appears (see
+  // postAtcPopupCloseSelector). Best-effort and session-based — the popup does not always
+  // appear, so callers should gate this to Vans storefronts to avoid paying the
+  // DIALOG_APPEAR wait on storefronts where the selector never matches.
+  async dismissPostAtcPopup(): Promise<void> {
+    const closeBtn = this.elements.locator(this.postAtcPopupCloseSelector);
+    const appeared = await closeBtn
+      .waitFor({ state: 'visible', timeout: TIMEOUTS.DIALOG_APPEAR })
+      .then(() => true)
+      .catch(() => false);
+    if (appeared) {
+      await closeBtn.click({ force: true }).catch(() => {});
     }
   }
 

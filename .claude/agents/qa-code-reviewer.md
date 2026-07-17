@@ -499,6 +499,64 @@ const navLabel = getPreferredNavLabel(site, preferMens);  // caller controls pre
 
 ---
 
+### 15. UI Integration Tests — Network Capture & Analytics Boundaries
+
+Apply this section **only** to files under `tests/{area}/integration/` (e.g. `tests/ecommerce/integration/`). These specs verify cross-system boundaries (GraphQL mutation → backend → UI state → analytics) from the browser. Reference implementation: `add-to-cart-integration.spec.ts` + `integration-helpers.ts`.
+
+- [ ] **[CRITICAL]** Happy-path network interception is **pass-through capture only** — `route.fetch()` → read body → `route.fulfill({ response })`. Mocking/stubbing the response in an integration test destroys the boundary under test. Mocks are only acceptable in explicitly negative/error-path tests.
+
+- [ ] **[CRITICAL]** GraphQL route interception matches the **bare endpoint** (`**/graphql*`) and discriminates on the **POST body**, never on a `?operationName=` URL pattern. GRA storefronts send mutations as bare `POST /graphql` with `operationName` only in the JSON body — a URL-shaped pattern structurally never matches and makes the boundary assertion vacuous.
+
+```ts
+// CRITICAL — URL-shaped pattern can never match a bare-URL POST mutation
+await page.route('**/graphql?**operationName=addProductsToCart**', handler); // WRONG
+
+// Correct — bare endpoint + body inspection, non-matches pass through
+await page.route('**/graphql*', async (route) => {
+  const req = route.request();
+  if (req.method() !== 'POST') { await route.continue(); return; }
+  const body = req.postDataJSON() as { query?: string } | undefined;
+  if (!body?.query?.includes(AtcAnalyticsData.ATC_MUTATION_BODY_MATCHER)) {
+    await route.continue(); return;
+  }
+  const response = await route.fetch();
+  state.payload = await response.json();
+  await route.fulfill({ response });
+});
+```
+
+- [ ] **[CRITICAL]** All non-target requests hitting a broad route pattern are passed through untouched via `route.continue()` — both the non-POST branch and the non-matching-body branch must exist.
+
+- [ ] **[CRITICAL]** Analytics dataLayer checks use an **array scan** (`adobeDataLayer.find(...)` falling back to `dataLayer.find(...)`) — **never** `adobeDataLayer.getState() ?? fallback`. `getState()` returns the merged state object, which is always truthy: the fallback never triggers and the assertion passes vacuously whether or not the event fired.
+
+```ts
+// CRITICAL — getState() is always truthy; assertion is vacuous
+const atcEvent = await page.evaluate(() =>
+  (window as any).adobeDataLayer?.getState?.() ??
+  (window as any).dataLayer?.find((e: any) => e?.event === 'add_to_cart')); // WRONG
+
+// Correct — scan the event array for the actual event
+const atcEvent = await getAddToCartDataLayerEvent(page); // integration-helpers
+```
+
+- [ ] **[WARNING]** Mutation-name discriminators, analytics event names, and noise-route lists live in `src/data/` typed modules (e.g. `AtcAnalyticsData` in `src/data/ecommerce/analytics-events.ts`) — not as spec-file literals. Do **not** flag a broad substring discriminator (e.g. `ProductsToCart`) as imprecise and suggest "tightening" it to an exact `operationName` match — the client operationName and the GraphQL field name differ per product type/storefront build (see the data module's doc comment); the substring is the deliberate, live-verified choice.
+
+- [ ] **[WARNING]** Mutation response fields are read **positionally** (`Object.values(payload.data)[0]`) when the interceptor guarantees a single captured operation — a hardcoded response field key (e.g. `data.addProductsToCart`) silently yields `undefined` when the schema field name varies.
+
+- [ ] **[WARNING]** Noise-route blocking is restricted to the documented list — verify that routes the boundaries under test depend on (e.g. Bloomreach `api-accent.bloomreach.co/webxp` experiment, Attraqt `collect-ap2.attraqt.io` beacon) are **not** blocked. An over-broad block list makes Boundary A/C pass or fail for the wrong reason.
+
+- [ ] **[WARNING]** Independent boundary outcomes (mutation payload, UI cart state, analytics event) are all `softAssert` — no hard `expect` gate between boundaries. A storefront with one broken boundary must still have the other boundaries checked and reported. Preconditions that make the whole flow meaningless (origin unreachable, no purchasable size) remain hard `test.skip()` guards with reasons.
+
+- [ ] A failure-gated diagnostic `logger.verify(...)` placed **after** a `softAssert.*` call, firing only on the fail path with distinct content (e.g. dumping a raw captured payload), is **allowed** — it is not the double-logging violation from Section 7, which covers a manual `logger.verify` duplicating the same check **before** the soft assertion.
+
+- [ ] **[SUGGESTION]** Shared capture/scan utilities live in a folder-scoped `integration-helpers.ts` (mirroring `smoke-helpers.ts`) while there is one consuming spec. When a **second** integration spec needs the same GraphQL capture, promote it to a factory fixture (`createXCapture` in `base-test.ts`, following the `createGraphQLClient` pattern) — state this threshold in the review rather than letting the choice drift.
+
+- [ ] Closure state written from inside an async route handler is held in an object wrapper (`{ payload: T | null }`), not a bare reassigned `let` — TypeScript control-flow narrowing reads the bare `let` as `never` at the assertion site.
+
+- [ ] Per-brand quirk interactions (popup dismissal, brand-specific waits) are **page object methods** (e.g. `EcommercePDPPage.dismissPostAtcPopup()`); spec/helper code only gates *whether* to call them by storefront (e.g. `dismissVansPostAtcPopup(pdpPage, site)`).
+
+- [ ] Test IDs follow `E2E-INT-{NNN}-{index}` with `@integration` in the `test.describe()` tag string; one test per storefront generated from `storefronts.entries()` — no hand-duplicated per-brand blocks.
+
 ---
 
 ### Graph Tools (optional supplement)
