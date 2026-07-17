@@ -214,7 +214,7 @@ jobs:
       if: always()
       run: |
         echo "## Misc API Test Results Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- **Projects:** misc-api (restful-booker.spec.ts, objects-crud.spec.ts)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Projects:** misc-api (restful-booker.spec.ts, objects-crud.spec.ts, dummyjson-auth.spec.ts, dummyjson-products.spec.ts, dummyjson-carts.spec.ts, dummyjson-users.spec.ts)" >> $GITHUB_STEP_SUMMARY
         echo "- **Total Tests**: ${{ steps.monocart-misc.outputs.tests }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Passed**: ${{ steps.monocart-misc.outputs.passed }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Failed**: ${{ steps.monocart-misc.outputs.failed }}" >> $GITHUB_STEP_SUMMARY

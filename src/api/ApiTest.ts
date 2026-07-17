@@ -4,6 +4,7 @@ import { ApiClientExt } from './ApiClientExt';
 import { RestfulApiClient } from './services/restful-device/RestfulApiClient';
 import { GraphQLClient, GraphQLClientOptions } from './GraphQLClient';
 import { RestfulBookerService } from './services/restful-booker';
+import { DummyJsonService } from './services/dummyjson';
 import { getApiEnvironment } from './config/environment';
 import { SoftAssertHelper } from '../utils/soft-assert-helper';
 import { TestLogger } from '../utils/test-logger';
@@ -14,11 +15,13 @@ import { TestLogger } from '../utils/test-logger';
 export interface ApiTestFixtures {
   apiBaseUrl: string;
   restfulApiBaseURL: string;
+  dummyjsonBaseUrl: string;
   graphqlURL: string;
   apiClient: ApiClient;
   apiClientExt: ApiClientExt;
   restfulApiClient: RestfulApiClient;
   bookingService: RestfulBookerService;
+  dummyjsonService: DummyJsonService;
   graphqlClient: GraphQLClient;
   createClient: (options: Partial<ApiClientOptions>) => Promise<ApiClient>;
   createClientExt: (options: Partial<ApiClientOptions>) => Promise<ApiClientExt>;
@@ -39,6 +42,10 @@ export const apiTest = base.extend<ApiTestFixtures>({
     restfulApiBaseURL: async ({}, use) => {
         const apiEnv = getApiEnvironment();
         await use(apiEnv.restfulApiBaseUrl);
+    },
+    dummyjsonBaseUrl: async ({}, use) => {
+        const apiEnv = getApiEnvironment();
+        await use(apiEnv.dummyjsonBaseUrl);
     },
 
     // GraphQL endpoint URL
@@ -81,6 +88,18 @@ export const apiTest = base.extend<ApiTestFixtures>({
         const service = new RestfulBookerService({ 
             baseURL: apiBaseUrl,
             timeout: apiEnv.timeout 
+        });
+        await service.init();
+        await use(service);
+        await service.dispose();
+    },
+
+    // Provide a DummyJSON service
+    dummyjsonService: async ({ dummyjsonBaseUrl }, use) => {
+        const apiEnv = getApiEnvironment();
+        const service = new DummyJsonService({
+            baseURL: dummyjsonBaseUrl,
+            timeout: apiEnv.timeout
         });
         await service.init();
         await use(service);

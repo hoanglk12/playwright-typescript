@@ -181,13 +181,14 @@ export default defineConfig({
       testIgnore: ['**/gra-loyalty-rewards.spec.ts', '**/gra-loyalty-rewards-nz.spec.ts'],
       metadata: { siteCode: 'van-nz' },
     },
-    // Non-GRA specs (restful-booker, graphql-examples, objects-crud)
+    // Non-GRA specs (restful-booker, graphql-examples, objects-crud, dummyjson)
     {
       name: 'misc-api',
       testDir: './tests/api',
       testMatch: [
         '**/tests/api/restful-booker.spec.ts',
         '**/tests/api/objects-crud.spec.ts',
+        '**/tests/api/dummyjson-*.spec.ts',
       ],
     },
   ],
