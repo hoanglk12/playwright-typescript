@@ -3,6 +3,7 @@ import { AuthType } from "../../src/api/ApiClient";
 import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 
 let customerToken: string = '';
 let cartId: string = '';
@@ -30,74 +31,81 @@ test.describe("GRA GraphQL API - Support Features @api @graphql @regression", ()
     const client = await createGraphQLClient();
     customerToken = await signInAndStoreToken(client, logger, site, siteState);
 
-    logger.step('Create fresh cart for this session');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const cartResponse = await authClient.mutateWrapped(CREATE_CART_MUTATION);
-    const cartGql = await cartResponse.getGraphQLResponse();
-    if (cartGql.errors?.length) {
-      throw new Error(`Cart creation failed: ${cartGql.errors[0]?.message ?? ''}`);
-    }
-    const newCartId = cartGql.data?.createEmptyCart;
-    if (!newCartId) throw new Error('Cart creation returned no cartId');
-    cartId = newCartId;
-    siteState.setCartId(cartId);
-    logger.action('Fresh cart created', cartId);
+    await logger.step('Create fresh cart for this session', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+      const cartResponse = await authClient.mutateWrapped(CREATE_CART_MUTATION);
+      const cartGql = await cartResponse.getGraphQLResponse();
+      if (cartGql.errors?.length) {
+        throw new Error(`Cart creation failed: ${cartGql.errors[0]?.message ?? ''}`);
+      }
+      const newCartId = cartGql.data?.createEmptyCart;
+      if (!newCartId) throw new Error('Cart creation returned no cartId');
+      cartId = newCartId;
+      siteState.setCartId(cartId);
+      logger.action('Fresh cart created', cartId);
+    });
   });
 
   test("TC_01 - GRA_getCurrencyData - should get currency code with valid token", async ({
     createGraphQLClient, site,
   }) => {
     const logger = createTestLogger('TC_01 PLA_getCurrencyData - should get currency code with valid token');
-    logger.step('Step 1 - Send getCurrencyData query with bearer token');
 
-    const authClient = await createGraphQLClient({
-      authType: AuthType.BEARER,
-      token: customerToken,
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Send getCurrencyData query with bearer token', async () => {
+      const authClient = await createGraphQLClient({
+        authType: AuthType.BEARER,
+        token: customerToken,
+      });
+
+      response = await authClient.queryWrapped(GET_CURRENCY_QUERY);
+
+      await response.assertNoErrors();
+      await response.assertHasData();
     });
 
-    const response = await authClient.queryWrapped(GET_CURRENCY_QUERY);
+    await logger.step('Step 2 - Assert response', async () => {
+      const data = await response.getData();
 
-    await response.assertNoErrors();
-    await response.assertHasData();
-
-    const data = await response.getData();
-    logger.step('Step 2 - Assert response');
-
-    expect(data.currency).toBeDefined();
-    softExpect(data.currency.default_display_currency_code).toMatch(/^[A-Z]{3}$/);
-    softExpect(data.currency.available_currency_codes).toContain(site.currency);
-    softExpect(data.currency.__typename).toBe('Currency');
+      expect(data.currency).toBeDefined();
+      softExpect(data.currency.default_display_currency_code).toMatch(/^[A-Z]{3}$/);
+      softExpect(data.currency.available_currency_codes).toContain(site.currency);
+      softExpect(data.currency.__typename).toBe('Currency');
+    });
   });
 
   test("TC_02 - GRA_getDynamicData - should get correct dynamic data with valid cartId", async ({
     createGraphQLClient,
   }) => {
     const logger = createTestLogger('TC_02 PLA_getDynamicData - should get correct dynamic data with valid cartId');
-    logger.step('Step 1 - Send GetDynamicData query with bearer token and cartId');
 
     expect(cartId, 'cartId must be set by beforeAll').toBeTruthy();
 
-    const authClient = await createGraphQLClient({
-      authType: AuthType.BEARER,
-      token: customerToken,
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Send GetDynamicData query with bearer token and cartId', async () => {
+      const authClient = await createGraphQLClient({
+        authType: AuthType.BEARER,
+        token: customerToken,
+      });
+
+      response = await authClient.queryWrapped(GET_DYNAMIC_DATA_QUERY, { cart_id: cartId });
+
+      await response.assertNoErrors();
+      await response.assertHasData();
     });
 
-    const response = await authClient.queryWrapped(GET_DYNAMIC_DATA_QUERY, { cart_id: cartId });
+    await logger.step('Step 2 - Assert cart promo blocks and storeConfig flags', async () => {
+      const data = await response.getData();
 
-    await response.assertNoErrors();
-    await response.assertHasData();
-
-    const data = await response.getData();
-    logger.step('Step 2 - Assert cart promo blocks and storeConfig flags');
-
-    expect(data.cart).toBeDefined();
-    expect(data.storeConfig).toBeDefined();
-    softExpect(data.cart.dynamic_promo_blocks.discount).toBeNull();
-    softExpect(data.cart.dynamic_promo_blocks.gift).toBeNull();
-    softExpect(data.cart.dynamic_promo_blocks.message).toBeDefined();
-    softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_general_enable).toBe('boolean');
-    softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_discount_enable).toBe('boolean');
-    softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_gift_enable).toBe('boolean');
-    softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_message_enable).toBe('boolean');
+      expect(data.cart).toBeDefined();
+      expect(data.storeConfig).toBeDefined();
+      softExpect(data.cart.dynamic_promo_blocks.discount).toBeNull();
+      softExpect(data.cart.dynamic_promo_blocks.gift).toBeNull();
+      softExpect(data.cart.dynamic_promo_blocks.message).toBeDefined();
+      softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_general_enable).toBe('boolean');
+      softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_discount_enable).toBe('boolean');
+      softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_gift_enable).toBe('boolean');
+      softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_message_enable).toBe('boolean');
+    });
   });
 });

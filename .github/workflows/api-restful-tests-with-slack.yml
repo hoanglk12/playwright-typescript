@@ -81,6 +81,7 @@ jobs:
         path: |
           playwright-report/
           test-results/
+          test-logs/
         retention-days: 30
 
     - name: Set test status
@@ -180,6 +181,7 @@ jobs:
         path: |
           playwright-report/
           test-results/
+          test-logs/
         retention-days: 30
 
     - name: Extract monocart Misc API summary

@@ -30,6 +30,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { LoyaltyRewardsData } from '../../src/data/api/gra-loyalty-rewards-data';
 import { signInAndStoreToken } from './api-test-helpers';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -227,53 +228,55 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     // ── 2. Create fresh cart ───────────────────────────────────────────────
-    logger.step('Step 1 - Create fresh cart');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-    if ((cartGql.errors?.length ?? 0) > 0) {
-      throw new Error(`beforeAll: createEmptyCart failed: ${cartGql.errors?.[0]?.message ?? 'unknown'}`);
-    }
-    cartId = cartGql.data?.cartId ?? '';
-    if (!cartId) throw new Error('beforeAll: cartId empty after createEmptyCart');
-    logger.action('Cart created', cartId);
+    await logger.step('Step 1 - Create fresh cart', async () => {
+      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+      if ((cartGql.errors?.length ?? 0) > 0) {
+        throw new Error(`beforeAll: createEmptyCart failed: ${cartGql.errors?.[0]?.message ?? 'unknown'}`);
+      }
+      cartId = cartGql.data?.cartId ?? '';
+      if (!cartId) throw new Error('beforeAll: cartId empty after createEmptyCart');
+      logger.action('Cart created', cartId);
+    });
 
     // ── 3. Discover in-stock SKU and add to cart ───────────────────────────
-    logger.step('Step 2 - Discover in-stock SKU and add to cart');
-    const candidateSkus: string[] = [];
-    for (const term of ['shoe', 'a', 'boot', '']) {
-      const productsGql = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-      const items: ProductItem[] = productsGql?.products?.items ?? [];
-      for (const item of items) {
-        if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          candidateSkus.push(item.sku);
-        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          for (const v of item.variants) {
-            if (v.product?.stock_status === 'IN_STOCK') candidateSkus.push(v.product.sku);
+    await logger.step('Step 2 - Discover in-stock SKU and add to cart', async () => {
+      const candidateSkus: string[] = [];
+      for (const term of ['shoe', 'a', 'boot', '']) {
+        const productsGql = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
+        const items: ProductItem[] = productsGql?.products?.items ?? [];
+        for (const item of items) {
+          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
+            candidateSkus.push(item.sku);
+          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+            for (const v of item.variants) {
+              if (v.product?.stock_status === 'IN_STOCK') candidateSkus.push(v.product.sku);
+            }
           }
         }
+        if (candidateSkus.length >= 3) break;
       }
-      if (candidateSkus.length >= 3) break;
-    }
-    if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKUs found');
+      if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKUs found');
 
-    let addedSku = '';
-    for (const sku of candidateSkus.slice(0, 5)) {
-      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-        cartId,
-        cartItems: [{ sku, quantity: 1 }],
-      })).getGraphQLResponse();
-      const userErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
-      if (!(addGql.errors?.length) && !userErrors.length) {
-        addedSku = sku;
-        // Capture the cart item ID so afterAll can remove it
-        const items: CartItem[] = addGql.data?.addProductsToCart?.cart?.items ?? [];
-        const added = items.find((i: CartItem) => i.product?.sku === sku);
-        addedCartItemId = added?.id ? Number(added.id) : 0;
-        break;
+      let addedSku = '';
+      for (const sku of candidateSkus.slice(0, 5)) {
+        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+          cartId,
+          cartItems: [{ sku, quantity: 1 }],
+        })).getGraphQLResponse();
+        const userErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
+        if (!(addGql.errors?.length) && !userErrors.length) {
+          addedSku = sku;
+          // Capture the cart item ID so afterAll can remove it
+          const items: CartItem[] = addGql.data?.addProductsToCart?.cart?.items ?? [];
+          const added = items.find((i: CartItem) => i.product?.sku === sku);
+          addedCartItemId = added?.id ? Number(added.id) : 0;
+          break;
+        }
       }
-    }
-    if (!addedSku) throw new Error('beforeAll: could not add any in-stock product to cart');
-    logger.action('Product added to cart', addedSku);
-    logger.action('beforeAll complete', `cartId=${cartId}`);
+      if (!addedSku) throw new Error('beforeAll: could not add any in-stock product to cart');
+      logger.action('Product added to cart', addedSku);
+      logger.action('beforeAll complete', `cartId=${cartId}`);
+    });
   });
 
   test.afterAll(async ({ createGraphQLClient }) => {
@@ -311,28 +314,31 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Execute applyRewardPointsToCart');
-    logger.action('POST', `applyRewardPointsToCart (cartId=${cartId})`);
-    const response = await authClient.mutateWrapped(APPLY_REWARD_POINTS_MUTATION, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute applyRewardPointsToCart', async () => {
+      logger.action('POST', `applyRewardPointsToCart (cartId=${cartId})`);
+      response = await authClient.mutateWrapped(APPLY_REWARD_POINTS_MUTATION, { cartId });
+    });
 
-    logger.step('Step 2 - Assert no errors and response structure valid');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and response structure valid', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const cart = data?.applyRewardPointsToCart?.cart;
+      const data = await response.getData();
+      const cart = data?.applyRewardPointsToCart?.cart;
 
-    expect(cart, 'cart must be defined in applyRewardPointsToCart response').toBeDefined();
-    logger.verify('cart.id matches', cartId, cart?.id);
-    softExpect(cart?.id).toBe(cartId);
-    softExpect(cart?.__typename).toBe('Cart');
+      expect(cart, 'cart must be defined in applyRewardPointsToCart response').toBeDefined();
+      logger.verify('cart.id matches', cartId, cart?.id);
+      softExpect(cart?.id).toBe(cartId);
+      softExpect(cart?.__typename).toBe('Cart');
 
-    // applied_multiple_rewards is null when account has no PlatyPoints balance — this is not an error
-    logger.verify('applied_multiple_rewards present (null = no balance, not an error)', true, 'applied_multiple_rewards' in cart);
-    expect(
-      'applied_multiple_rewards' in cart,
-      'applied_multiple_rewards field must be present in response (null is valid for zero-balance accounts)',
-    ).toBe(true);
+      // applied_multiple_rewards is null when account has no PlatyPoints balance — this is not an error
+      logger.verify('applied_multiple_rewards present (null = no balance, not an error)', true, 'applied_multiple_rewards' in cart);
+      expect(
+        'applied_multiple_rewards' in cart,
+        'applied_multiple_rewards field must be present in response (null is valid for zero-balance accounts)',
+      ).toBe(true);
+    });
   });
 
   test('TC_02 - applyRewardPointsToCart unauthenticated → graphql-authorization error', async ({ createGraphQLClient }) => {
@@ -340,22 +346,25 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
     const anonClient = await createGraphQLClient();
 
-    logger.step('Step 1 - Execute applyRewardPointsToCart with no auth token');
-    logger.action('POST', `applyRewardPointsToCart (no auth, cartId=${cartId})`);
-    const response = await anonClient.mutateWrapped(APPLY_REWARD_POINTS_MUTATION, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute applyRewardPointsToCart with no auth token', async () => {
+      logger.action('POST', `applyRewardPointsToCart (no auth, cartId=${cartId})`);
+      response = await anonClient.mutateWrapped(APPLY_REWARD_POINTS_MUTATION, { cartId });
+    });
 
-    logger.step('Step 2 - Assert authorization error returned');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert authorization error returned', async () => {
+      await response.assertHasErrors();
 
-    const gql = await response.getGraphQLResponse();
-    const errorMsg = gql.errors?.[0]?.message ?? '';
-    const errorCategory = gql.errors?.[0]?.extensions?.category ?? '';
+      const gql = await response.getGraphQLResponse();
+      const errorMsg = gql.errors?.[0]?.message ?? '';
+      const errorCategory = gql.errors?.[0]?.extensions?.category ?? '';
 
-    logger.verify('Error message present', true, errorMsg.length > 0);
-    const acceptedCategories = ['graphql-authorization', 'graphql-no-such-entity', 'graphql-input'];
-    logger.verify('Error category (authorization-class)', acceptedCategories.join('|'), errorCategory);
-    expect(errorMsg.length, 'Expected an error message for unauthenticated request').toBeGreaterThan(0);
-    softExpect(acceptedCategories.includes(errorCategory)).toBe(true);
+      logger.verify('Error message present', true, errorMsg.length > 0);
+      const acceptedCategories = ['graphql-authorization', 'graphql-no-such-entity', 'graphql-input'];
+      logger.verify('Error category (authorization-class)', acceptedCategories.join('|'), errorCategory);
+      expect(errorMsg.length, 'Expected an error message for unauthenticated request').toBeGreaterThan(0);
+      softExpect(acceptedCategories.includes(errorCategory)).toBe(true);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -372,44 +381,47 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const { memberNumber, pointsBurned, dollarValue, quoteRef } = LoyaltyRewardsData.qffApply;
 
-    logger.step('Step 1 - Execute applyQantasPointsToCart with valid QFF member data');
-    logger.action('POST', `applyQantasPointsToCart (cartId=${cartId}, memberNumber=${memberNumber}, points=${pointsBurned})`);
-    const response = await authClient.mutateWrapped(APPLY_QANTAS_POINTS_MUTATION, {
-      input: {
-        cart_id: cartId,
-        quote_ref: quoteRef,
-        points_burned: pointsBurned,
-        dollar_value: dollarValue,
-        member_number: memberNumber,
-      },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute applyQantasPointsToCart with valid QFF member data', async () => {
+      logger.action('POST', `applyQantasPointsToCart (cartId=${cartId}, memberNumber=${memberNumber}, points=${pointsBurned})`);
+      response = await authClient.mutateWrapped(APPLY_QANTAS_POINTS_MUTATION, {
+        input: {
+          cart_id: cartId,
+          quote_ref: quoteRef,
+          points_burned: pointsBurned,
+          dollar_value: dollarValue,
+          member_number: memberNumber,
+        },
+      });
     });
 
-    logger.step('Step 2 - Observe response (ISE is a known intermittent staging bug; side effect always succeeds)');
-    const gql = await response.getGraphQLResponse();
-    const errorMsg = gql.errors?.[0]?.message ?? '';
-    const hasData = !!gql.data?.applyQantasPointsToCart;
+    await logger.step('Step 2 - Observe response (ISE is a known intermittent staging bug; side effect always succeeds)', async () => {
+      const gql = await response.getGraphQLResponse();
+      const errorMsg = gql.errors?.[0]?.message ?? '';
+      const hasData = !!gql.data?.applyQantasPointsToCart;
 
-    // The staging resolver sometimes returns "Internal server error" on this mutation
-    // (observed when the cart has accumulated many items from repeated test runs).
-    // In both error and success cases the side effect (applied_qantas_points on the cart)
-    // is applied correctly — verified in TC_04 via a separate cart query.
-    logger.verify(
-      'Mutation ran (either success or staging ISE — both result in applied side effect)',
-      true,
-      hasData || errorMsg.length > 0,
-    );
-    expect(
-      hasData || errorMsg.length > 0,
-      'applyQantasPointsToCart must either return cart data or an error — a completely empty response is unexpected',
-    ).toBe(true);
+      // The staging resolver sometimes returns "Internal server error" on this mutation
+      // (observed when the cart has accumulated many items from repeated test runs).
+      // In both error and success cases the side effect (applied_qantas_points on the cart)
+      // is applied correctly — verified in TC_04 via a separate cart query.
+      logger.verify(
+        'Mutation ran (either success or staging ISE — both result in applied side effect)',
+        true,
+        hasData || errorMsg.length > 0,
+      );
+      expect(
+        hasData || errorMsg.length > 0,
+        'applyQantasPointsToCart must either return cart data or an error — a completely empty response is unexpected',
+      ).toBe(true);
 
-    if (errorMsg.length > 0) {
-      logger.action('Staging ISE observed in response', errorMsg);
-      softExpect(errorMsg).toContain('Internal server error');
-    } else {
-      logger.action('Mutation responded without error', 'side effect confirmed via TC_04');
-      softExpect(gql.data?.applyQantasPointsToCart?.cart?.id).toBe(cartId);
-    }
+      if (errorMsg.length > 0) {
+        logger.action('Staging ISE observed in response', errorMsg);
+        softExpect(errorMsg).toContain('Internal server error');
+      } else {
+        logger.action('Mutation responded without error', 'side effect confirmed via TC_04');
+        softExpect(gql.data?.applyQantasPointsToCart?.cart?.id).toBe(cartId);
+      }
+    });
   });
 
   test('TC_04 - applyQantasPointsToCart side effect: cart applied_qantas_points populated after TC_03', async ({ createGraphQLClient }) => {
@@ -418,28 +430,31 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const { memberNumber, pointsBurned, dollarValue } = LoyaltyRewardsData.qffApply;
 
-    logger.step('Step 1 - Query cart loyalty state after applyQantasPointsToCart');
-    logger.action('GET', `cart(cart_id=${cartId}) applied_qantas_points`);
-    const response = await authClient.queryWrapped(GET_CART_LOYALTY_STATE_QUERY, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Query cart loyalty state after applyQantasPointsToCart', async () => {
+      logger.action('GET', `cart(cart_id=${cartId}) applied_qantas_points`);
+      response = await authClient.queryWrapped(GET_CART_LOYALTY_STATE_QUERY, { cartId });
+    });
 
-    logger.step('Step 2 - Assert applied_qantas_points populated with submitted values');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert applied_qantas_points populated with submitted values', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const appliedQff = data?.cart?.applied_qantas_points;
+      const data = await response.getData();
+      const appliedQff = data?.cart?.applied_qantas_points;
 
-    expect(appliedQff, 'applied_qantas_points must be populated after applyQantasPointsToCart').not.toBeNull();
-    expect(appliedQff, 'applied_qantas_points must be defined').toBeDefined();
+      expect(appliedQff, 'applied_qantas_points must be populated after applyQantasPointsToCart').not.toBeNull();
+      expect(appliedQff, 'applied_qantas_points must be defined').toBeDefined();
 
-    logger.verify('points_burned', pointsBurned, appliedQff?.points_burned);
-    logger.verify('dollar_value', dollarValue, appliedQff?.dollar_value);
-    logger.verify('member_number', memberNumber, appliedQff?.member_number);
+      logger.verify('points_burned', pointsBurned, appliedQff?.points_burned);
+      logger.verify('dollar_value', dollarValue, appliedQff?.dollar_value);
+      logger.verify('member_number', memberNumber, appliedQff?.member_number);
 
-    softExpect(appliedQff?.points_burned).toBe(pointsBurned);
-    softExpect(appliedQff?.dollar_value).toBe(dollarValue);
-    softExpect(appliedQff?.member_number).toBe(memberNumber);
-    softExpect(appliedQff?.__typename).toBe('AppliedQantasPoints');
+      softExpect(appliedQff?.points_burned).toBe(pointsBurned);
+      softExpect(appliedQff?.dollar_value).toBe(dollarValue);
+      softExpect(appliedQff?.member_number).toBe(memberNumber);
+      softExpect(appliedQff?.__typename).toBe('AppliedQantasPoints');
+    });
   });
 
   test('TC_05 - applyQantasPointsToCart invalid cart_id → cart-not-found error', async ({ createGraphQLClient }) => {
@@ -448,28 +463,31 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const { memberNumber, pointsBurned, dollarValue, quoteRef } = LoyaltyRewardsData.qffApply;
 
-    logger.step('Step 1 - Execute applyQantasPointsToCart with invalid cart_id');
-    logger.action('POST', `applyQantasPointsToCart (cart_id=${LoyaltyRewardsData.invalidCartId})`);
-    const response = await authClient.mutateWrapped(APPLY_QANTAS_POINTS_MUTATION, {
-      input: {
-        cart_id: LoyaltyRewardsData.invalidCartId,
-        quote_ref: quoteRef,
-        points_burned: pointsBurned,
-        dollar_value: dollarValue,
-        member_number: memberNumber,
-      },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute applyQantasPointsToCart with invalid cart_id', async () => {
+      logger.action('POST', `applyQantasPointsToCart (cart_id=${LoyaltyRewardsData.invalidCartId})`);
+      response = await authClient.mutateWrapped(APPLY_QANTAS_POINTS_MUTATION, {
+        input: {
+          cart_id: LoyaltyRewardsData.invalidCartId,
+          quote_ref: quoteRef,
+          points_burned: pointsBurned,
+          dollar_value: dollarValue,
+          member_number: memberNumber,
+        },
+      });
     });
 
-    logger.step('Step 2 - Assert cart-not-found error');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert cart-not-found error', async () => {
+      await response.assertHasErrors();
 
-    const gql = await response.getGraphQLResponse();
-    const errorMsg = gql.errors?.[0]?.message ?? '';
+      const gql = await response.getGraphQLResponse();
+      const errorMsg = gql.errors?.[0]?.message ?? '';
 
-    logger.verify('Error message present', true, errorMsg.length > 0);
-    logger.verify('Error message contains cart ID reference', true, errorMsg.toLowerCase().includes('cart'));
-    expect(errorMsg.length, 'Expected an error message for invalid cart_id').toBeGreaterThan(0);
-    softExpect(errorMsg.toLowerCase()).toContain('cart');
+      logger.verify('Error message present', true, errorMsg.length > 0);
+      logger.verify('Error message contains cart ID reference', true, errorMsg.toLowerCase().includes('cart'));
+      expect(errorMsg.length, 'Expected an error message for invalid cart_id').toBeGreaterThan(0);
+      softExpect(errorMsg.toLowerCase()).toContain('cart');
+    });
   });
 
   test('TC_06 - removeRewardPointsFromCart → applied_multiple_rewards cleared', async ({ createGraphQLClient }) => {
@@ -477,23 +495,27 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Apply reward points first (to have something to remove)');
-    await authClient.mutateWrapped(APPLY_REWARD_POINTS_MUTATION, { cartId });
+    await logger.step('Step 1 - Apply reward points first (to have something to remove)', async () => {
+      await authClient.mutateWrapped(APPLY_REWARD_POINTS_MUTATION, { cartId });
+    });
 
-    logger.step('Step 2 - Execute removeRewardPointsFromCart');
-    logger.action('POST', `removeRewardPointsFromCart (cartId=${cartId})`);
-    const response = await authClient.mutateWrapped(REMOVE_REWARD_POINTS_MUTATION, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 2 - Execute removeRewardPointsFromCart', async () => {
+      logger.action('POST', `removeRewardPointsFromCart (cartId=${cartId})`);
+      response = await authClient.mutateWrapped(REMOVE_REWARD_POINTS_MUTATION, { cartId });
+    });
 
-    logger.step('Step 3 - Assert no errors and rewards cleared');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 3 - Assert no errors and rewards cleared', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const cart = data?.removeRewardPointsFromCart?.cart;
+      const data = await response.getData();
+      const cart = data?.removeRewardPointsFromCart?.cart;
 
-    expect(cart, 'cart must be defined in removeRewardPointsFromCart response').toBeDefined();
-    logger.verify('applied_multiple_rewards cleared', null, cart?.applied_multiple_rewards);
-    softExpect(cart?.applied_multiple_rewards).toBeNull();
+      expect(cart, 'cart must be defined in removeRewardPointsFromCart response').toBeDefined();
+      logger.verify('applied_multiple_rewards cleared', null, cart?.applied_multiple_rewards);
+      softExpect(cart?.applied_multiple_rewards).toBeNull();
+    });
   });
 
   test('TC_07 - removeQantasPointsFromCart → applied_qantas_points cleared', async ({ createGraphQLClient }) => {
@@ -501,22 +523,25 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Execute removeQantasPointsFromCart');
-    logger.action('POST', `removeQantasPointsFromCart (cart_id=${cartId})`);
-    const response = await authClient.mutateWrapped(REMOVE_QANTAS_POINTS_MUTATION, {
-      input: { cart_id: cartId },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute removeQantasPointsFromCart', async () => {
+      logger.action('POST', `removeQantasPointsFromCart (cart_id=${cartId})`);
+      response = await authClient.mutateWrapped(REMOVE_QANTAS_POINTS_MUTATION, {
+        input: { cart_id: cartId },
+      });
     });
 
-    logger.step('Step 2 - Assert no errors and QFF points cleared');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and QFF points cleared', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const cart = data?.removeQantasPointsFromCart?.cart;
+      const data = await response.getData();
+      const cart = data?.removeQantasPointsFromCart?.cart;
 
-    expect(cart, 'cart must be defined in removeQantasPointsFromCart response').toBeDefined();
-    logger.verify('applied_qantas_points cleared after remove', null, cart?.applied_qantas_points);
-    softExpect(cart?.applied_qantas_points).toBeNull();
+      expect(cart, 'cart must be defined in removeQantasPointsFromCart response').toBeDefined();
+      logger.verify('applied_qantas_points cleared after remove', null, cart?.applied_qantas_points);
+      softExpect(cart?.applied_qantas_points).toBeNull();
+    });
   });
 
 });

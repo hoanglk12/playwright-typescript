@@ -21,13 +21,15 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Steps 1-5 - Navigate to PLP');
-      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+      await logger.step('Steps 1-5 - Navigate to PLP', async () => {
+        await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+      });
 
-      logger.step('Step 6 - Assert product count is greater than zero');
-      const count = await ecommercePLPPage.getProductCount();
-      logger.verify(`${site.name} PLP product count > 0`, '>0', String(count));
-      expect(count, `Expected at least 1 product card on the PLP for ${site.name}`).toBeGreaterThan(0);
+      await logger.step('Step 6 - Assert product count is greater than zero', async () => {
+        const count = await ecommercePLPPage.getProductCount();
+        logger.verify(`${site.name} PLP product count > 0`, '>0', String(count));
+        expect(count, `Expected at least 1 product card on the PLP for ${site.name}`).toBeGreaterThan(0);
+      });
     });
 
     const filterTcId = `E2E-PLP-004-${String(index + 1).padStart(3, '0')}`;
@@ -45,29 +47,38 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Steps 1-5 - Navigate to PLP');
-      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, filterNavLabel);
+      let initialCount = 0;
+      let filteredCount = 0;
 
-      logger.step('Step 6 - Capture initial product count');
-      const initialCount = await ecommercePLPPage.getTotalProductCount();
-      logger.verify('Initial total product count > 0', '>0', String(initialCount));
-      expect(initialCount, 'Expected at least 1 product before filtering').toBeGreaterThan(0);
+      await logger.step('Steps 1-5 - Navigate to PLP', async () => {
+        await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, filterNavLabel);
+      });
 
-      logger.step(`Step 7 - Apply category filter "${site.categoryFilterLabel}"`);
-      await ecommercePLPPage.applyCategoryFilter(site.categoryFilterLabel);
+      await logger.step('Step 6 - Capture initial product count', async () => {
+        initialCount = await ecommercePLPPage.getTotalProductCount();
+        logger.verify('Initial total product count > 0', '>0', String(initialCount));
+        expect(initialCount, 'Expected at least 1 product before filtering').toBeGreaterThan(0);
+      });
 
-      logger.step('Step 8 - Wait for filter to take effect');
-      await ecommercePLPPage.waitForCategoryFilterApplied(site.categoryFilterLabel, initialCount);
+      await logger.step(`Step 7 - Apply category filter "${site.categoryFilterLabel}"`, async () => {
+        await ecommercePLPPage.applyCategoryFilter(site.categoryFilterLabel);
+      });
 
-      logger.step('Step 9 - Capture filtered total product count');
-      const filteredCount = await ecommercePLPPage.getTotalProductCount();
+      await logger.step('Step 8 - Wait for filter to take effect', async () => {
+        await ecommercePLPPage.waitForCategoryFilterApplied(site.categoryFilterLabel, initialCount);
+      });
 
-      logger.step('Step 10 - Assert filtered total count is strictly less than initial count');
-      softAssert.toBeLessThan(
-        filteredCount,
-        initialCount,
-        `Category filter "${site.categoryFilterLabel}" on ${site.name} reduces product count`,
-      );
+      await logger.step('Step 9 - Capture filtered total product count', async () => {
+        filteredCount = await ecommercePLPPage.getTotalProductCount();
+      });
+
+      await logger.step('Step 10 - Assert filtered total count is strictly less than initial count', async () => {
+        softAssert.toBeLessThan(
+          filteredCount,
+          initialCount,
+          `Category filter "${site.categoryFilterLabel}" on ${site.name} reduces product count`,
+        );
+      });
     });
   }
 
@@ -93,29 +104,38 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Steps 1-5 - Navigate to PLP');
-      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, sizeNavLabel);
+      let initialCount = 0;
+      let filteredCount = 0;
 
-      logger.step('Step 6 - Capture initial product count');
-      const initialCount = await ecommercePLPPage.getTotalProductCount();
-      logger.verify('Initial total product count > 0', '>0', String(initialCount));
-      expect(initialCount, 'Expected at least 1 product before filtering').toBeGreaterThan(0);
+      await logger.step('Steps 1-5 - Navigate to PLP', async () => {
+        await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, sizeNavLabel);
+      });
 
-      logger.step(`Step 7 - Apply size filter "${sizeLabel}"`);
-      await ecommercePLPPage.applySizeFilter(sizeLabel);
+      await logger.step('Step 6 - Capture initial product count', async () => {
+        initialCount = await ecommercePLPPage.getTotalProductCount();
+        logger.verify('Initial total product count > 0', '>0', String(initialCount));
+        expect(initialCount, 'Expected at least 1 product before filtering').toBeGreaterThan(0);
+      });
 
-      logger.step('Step 8 - Wait for size filter to take effect');
-      await ecommercePLPPage.waitForSizeFilterApplied(sizeLabel, initialCount);
+      await logger.step(`Step 7 - Apply size filter "${sizeLabel}"`, async () => {
+        await ecommercePLPPage.applySizeFilter(sizeLabel);
+      });
 
-      logger.step('Step 9 - Capture filtered total product count');
-      const filteredCount = await ecommercePLPPage.getTotalProductCount();
+      await logger.step('Step 8 - Wait for size filter to take effect', async () => {
+        await ecommercePLPPage.waitForSizeFilterApplied(sizeLabel, initialCount);
+      });
 
-      logger.step('Step 10 - Assert filtered total count < initial count');
-      softAssert.toBeLessThan(
-        filteredCount,
-        initialCount,
-        `Size filter "${sizeLabel}" on ${site.name} reduces product count`,
-      );
+      await logger.step('Step 9 - Capture filtered total product count', async () => {
+        filteredCount = await ecommercePLPPage.getTotalProductCount();
+      });
+
+      await logger.step('Step 10 - Assert filtered total count < initial count', async () => {
+        softAssert.toBeLessThan(
+          filteredCount,
+          initialCount,
+          `Size filter "${sizeLabel}" on ${site.name} reduces product count`,
+        );
+      });
     });
   }
 
@@ -134,19 +154,22 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Steps 1-5 - Navigate to PLP');
-      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, quickAddNavLabel);
+      await logger.step('Steps 1-5 - Navigate to PLP', async () => {
+        await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, quickAddNavLabel);
+      });
 
-      logger.step('Step 6 - Hover over first product card and click Quick Add button');
-      await ecommercePLPPage.quickAdd(0);
+      await logger.step('Step 6 - Hover over first product card and click Quick Add button', async () => {
+        await ecommercePLPPage.quickAdd(0);
+      });
 
-      logger.step('Step 7 - Assert size selector overlay is visible');
-      const sizeSelectorVisible = await ecommercePLPPage.isSizeSelectorVisible();
-      logger.verify('Size selector is visible after Quick Add click', 'true', String(sizeSelectorVisible));
-      expect(
-        sizeSelectorVisible,
-        `Quick Add on ${site.name} should open a size selector overlay`,
-      ).toBe(true);
+      await logger.step('Step 7 - Assert size selector overlay is visible', async () => {
+        const sizeSelectorVisible = await ecommercePLPPage.isSizeSelectorVisible();
+        logger.verify('Size selector is visible after Quick Add click', 'true', String(sizeSelectorVisible));
+        expect(
+          sizeSelectorVisible,
+          `Quick Add on ${site.name} should open a size selector overlay`,
+        ).toBe(true);
+      });
     });
   }
 
@@ -166,21 +189,25 @@ test.describe('Ecommerce PLP Smoke @ecommerce @smoke @plp', () => {
         return;
       }
 
-      logger.step('Steps 1-5 - Navigate to PLP');
-      await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, pdpNavLabel);
+      await logger.step('Steps 1-5 - Navigate to PLP', async () => {
+        await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, pdpNavLabel);
+      });
 
-      logger.step('Step 6 - Click first product card image/link');
-      await ecommercePLPPage.clickProductCard(0);
+      await logger.step('Step 6 - Click first product card image/link', async () => {
+        await ecommercePLPPage.clickProductCard(0);
+      });
 
-      logger.step('Step 7 - Wait for PDP URL to resolve');
-      await ecommercePLPPage.waitForPdpUrl();
+      await logger.step('Step 7 - Wait for PDP URL to resolve', async () => {
+        await ecommercePLPPage.waitForPdpUrl();
+      });
 
-      logger.step('Step 8 - Assert URL matches PDP pattern');
-      const currentUrl = page.url();
-      logger.verify(`${site.name} PDP URL matches pattern`, 'PDP URL pattern', currentUrl);
-      expect(currentUrl, `Expected PDP URL on ${site.name} but got: ${currentUrl}`).toMatch(
-        /(\/product\/|\/p\/|\/pdp\/|\.html)/i,
-      );
+      await logger.step('Step 8 - Assert URL matches PDP pattern', async () => {
+        const currentUrl = page.url();
+        logger.verify(`${site.name} PDP URL matches pattern`, 'PDP URL pattern', currentUrl);
+        expect(currentUrl, `Expected PDP URL on ${site.name} but got: ${currentUrl}`).toMatch(
+          /(\/product\/|\/p\/|\/pdp\/|\.html)/i,
+        );
+      });
     });
   }
 });

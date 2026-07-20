@@ -28,6 +28,7 @@ export interface ApiTestFixtures {
   createRestfulApiClient: (options?: Partial<ApiClientOptions>) => Promise<RestfulApiClient>;
   createGraphQLClient: (options?: Partial<GraphQLClientOptions>) => Promise<GraphQLClient>;
   softAssert: SoftAssertHelper;
+  attachTestLogs: void;
 }
 
 /**
@@ -167,8 +168,23 @@ export const apiTest = base.extend<ApiTestFixtures>({
     },
 
     softAssert: async ({}, use) => {
-        await use(new SoftAssertHelper(new TestLogger(base.info().title)));
+        const logger = new TestLogger(base.info().title);
+        // Registers at fixture-setup time (before the spec body's own createTestLogger call),
+        // so soft-assert lines land in the attachment ahead of step lines rather than
+        // chronologically interleaved — content is preserved, ordering is approximate.
+        logger.registerForCurrentTest();
+        await use(new SoftAssertHelper(logger));
     },
+
+    // Auto fixture — flushes the per-test logger buffer registered by createTestLogger()
+    // into an attachment so it appears alongside that specific test in HTML/monocart reports.
+    attachTestLogs: [async ({}, use, testInfo) => {
+        await use();
+        const buffer = TestLogger.consumeBuffer(testInfo.testId);
+        if (buffer) {
+            await testInfo.attach('test-steps.log', { body: buffer, contentType: 'text/plain' });
+        }
+    }, { auto: true }],
 
     // Helper to create GraphQL clients with custom options
     createGraphQLClient: async ({ graphqlURL }, use) => {

@@ -5,6 +5,7 @@ import {
   DeviceData,
   ApiObject,
 } from "../../src/api/services/restful-device/restful-api-models";
+import { ApiResponseWrapper } from "../../src/api/ApiResponse";
 
 test.describe.configure({ mode: 'serial' });
 
@@ -171,18 +172,22 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
     test('TC_SA_02 - Pattern B softAssert fixture: structured logging', async ({ restfulApiClient, softAssert }) => {
       const logger = createTestLogger('TC_SA_02 Pattern B softAssert');
 
-      logger.step('Step 1 - Fetch objects list via response wrapper');
-      const wrapper = await restfulApiClient.getAllObjectsWithWrapper();
+      let wrapper!: ApiResponseWrapper;
+      await logger.step('Step 1 - Fetch objects list via response wrapper', async () => {
+        wrapper = await restfulApiClient.getAllObjectsWithWrapper();
+      });
 
-      logger.step('Step 2 - Verify response status and shape');
-      softAssert.toBe(wrapper.statusCode(), 200, 'Response status is 200');
-      softAssert.toBeTruthy(wrapper.isSuccess(), 'Response is in 2xx range');
+      await logger.step('Step 2 - Verify response status and shape', async () => {
+        softAssert.toBe(wrapper.statusCode(), 200, 'Response status is 200');
+        softAssert.toBeTruthy(wrapper.isSuccess(), 'Response is in 2xx range');
+      });
 
-      logger.step('Step 3 - Verify response data array');
-      const objects = await wrapper.json();
-      softAssert.toBeTruthy(Array.isArray(objects), 'Response data is an array');
-      softAssert.toBeGreaterThan(objects.length, 0, 'Response data contains at least one object');
-      softAssert.toBeDefined(objects[0], 'First object is defined');
+      await logger.step('Step 3 - Verify response data array', async () => {
+        const objects = await wrapper.json();
+        softAssert.toBeTruthy(Array.isArray(objects), 'Response data is an array');
+        softAssert.toBeGreaterThan(objects.length, 0, 'Response data contains at least one object');
+        softAssert.toBeDefined(objects[0], 'First object is defined');
+      });
     });
   });
 });

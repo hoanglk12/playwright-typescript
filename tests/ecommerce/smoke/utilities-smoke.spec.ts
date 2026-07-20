@@ -16,11 +16,14 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
         `E2E-UTIL-001 - ${site.name} - Track Order page loads and form is present`,
       );
 
-      logger.step('Step 1 - Navigate to storefront homepage');
-      await ecommerceTrackOrderPage.navigate(site.url);
+      await logger.step('Step 1 - Navigate to storefront homepage', async () => {
+        await ecommerceTrackOrderPage.navigate(site.url);
+      });
 
-      logger.step('Step 2 - Assert Track Order link is present in footer');
-      const linkPresent = await ecommerceTrackOrderPage.isTrackOrderLinkPresent();
+      let linkPresent = false;
+      await logger.step('Step 2 - Assert Track Order link is present in footer', async () => {
+        linkPresent = await ecommerceTrackOrderPage.isTrackOrderLinkPresent();
+      });
       if (!linkPresent) {
         test.skip(
           true,
@@ -29,20 +32,25 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
         return;
       }
 
-      logger.step('Step 3 - Click Track Order link');
-      await ecommerceTrackOrderPage.clickTrackOrderLink();
+      await logger.step('Step 3 - Click Track Order link', async () => {
+        await ecommerceTrackOrderPage.clickTrackOrderLink();
+      });
 
-      logger.step('Step 4 - Assert at least one Track Order form element is present');
-      await ecommerceTrackOrderPage.assertFormPresent(site.name);
+      await logger.step('Step 4 - Assert at least one Track Order form element is present', async () => {
+        await ecommerceTrackOrderPage.assertFormPresent(site.name);
+      });
 
-      logger.step('Step 5 - Soft-assert order number input is visible');
-      softAssert.toBe(await ecommerceTrackOrderPage.isOrderNumberInputVisible(), true, 'Order number input visible');
+      await logger.step('Step 5 - Soft-assert order number input is visible', async () => {
+        softAssert.toBe(await ecommerceTrackOrderPage.isOrderNumberInputVisible(), true, 'Order number input visible');
+      });
 
-      logger.step('Step 6 - Soft-assert email input is visible');
-      softAssert.toBe(await ecommerceTrackOrderPage.isEmailInputVisible(), true, 'Email input visible');
+      await logger.step('Step 6 - Soft-assert email input is visible', async () => {
+        softAssert.toBe(await ecommerceTrackOrderPage.isEmailInputVisible(), true, 'Email input visible');
+      });
 
-      logger.step('Step 7 - Soft-assert submit button is visible');
-      softAssert.toBe(await ecommerceTrackOrderPage.isSubmitButtonVisible(), true, 'Submit button visible');
+      await logger.step('Step 7 - Soft-assert submit button is visible', async () => {
+        softAssert.toBe(await ecommerceTrackOrderPage.isSubmitButtonVisible(), true, 'Submit button visible');
+      });
     });
   }
 
@@ -55,11 +63,14 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
         `E2E-UTIL-005 - ${site.name} - Help/Support page accessible via header link`,
       );
 
-      logger.step('Step 1 - Navigate to storefront homepage');
-      await ecommerceHelpSupportPage.navigate(site.url);
+      await logger.step('Step 1 - Navigate to storefront homepage', async () => {
+        await ecommerceHelpSupportPage.navigate(site.url);
+      });
 
-      logger.step('Step 2 - Assert Help/Support link is present in header');
-      const linkPresent = await ecommerceHelpSupportPage.isHelpSupportLinkPresent();
+      let linkPresent = false;
+      await logger.step('Step 2 - Assert Help/Support link is present in header', async () => {
+        linkPresent = await ecommerceHelpSupportPage.isHelpSupportLinkPresent();
+      });
       if (!linkPresent) {
         test.skip(
           true,
@@ -68,14 +79,17 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
         return;
       }
 
-      logger.step('Step 3 - Click Help/Support link');
-      await ecommerceHelpSupportPage.clickHelpSupportLink();
+      await logger.step('Step 3 - Click Help/Support link', async () => {
+        await ecommerceHelpSupportPage.clickHelpSupportLink();
+      });
 
-      logger.step('Step 4 - Assert navigation to Help/Support page succeeded');
-      await ecommerceHelpSupportPage.assertNavigatedToHelpSupportPage(site.name);
+      await logger.step('Step 4 - Assert navigation to Help/Support page succeeded', async () => {
+        await ecommerceHelpSupportPage.assertNavigatedToHelpSupportPage(site.name);
+      });
 
-      logger.step('Step 5 - Soft-assert landed on help/support destination');
-      softAssert.toBe(ecommerceHelpSupportPage.isOnHelpDestination(), true, 'On help/support destination URL');
+      await logger.step('Step 5 - Soft-assert landed on help/support destination', async () => {
+        softAssert.toBe(ecommerceHelpSupportPage.isOnHelpDestination(), true, 'On help/support destination URL');
+      });
     });
   }
 
@@ -88,11 +102,14 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
         `E2E-UTIL-007 - ${site.name} - Wishlist page renders (empty state for guest)`,
       );
 
-      logger.step('Step 1 - Navigate to storefront homepage');
-      await ecommerceWishlistPage.navigate(site.url);
+      await logger.step('Step 1 - Navigate to storefront homepage', async () => {
+        await ecommerceWishlistPage.navigate(site.url);
+      });
 
-      logger.step('Step 2 - Assert Wishlist link is present in header');
-      const linkPresent = await ecommerceWishlistPage.isWishlistLinkPresent();
+      let linkPresent = false;
+      await logger.step('Step 2 - Assert Wishlist link is present in header', async () => {
+        linkPresent = await ecommerceWishlistPage.isWishlistLinkPresent();
+      });
       if (!linkPresent) {
         test.skip(
           true,
@@ -101,22 +118,25 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
         return;
       }
 
-      logger.step('Step 3 - Click Wishlist link');
-      await ecommerceWishlistPage.clickWishlistLink();
+      await logger.step('Step 3 - Click Wishlist link', async () => {
+        await ecommerceWishlistPage.clickWishlistLink();
+      });
 
-      logger.step('Step 4 - Assert Wishlist page rendered');
-      await ecommerceWishlistPage.assertWishlistPageRendered(site.name);
+      await logger.step('Step 4 - Assert Wishlist page rendered', async () => {
+        await ecommerceWishlistPage.assertWishlistPageRendered(site.name);
+      });
 
-      logger.step('Step 5 - Soft-assert a valid guest empty-state variant is shown');
-      const [emptyMessageVisible, loginPromptVisible] = await Promise.all([
-        ecommerceWishlistPage.isEmptyWishlistMessageVisible(),
-        ecommerceWishlistPage.isLoginPromptVisible(),
-      ]);
-      softAssert.toBe(
-        emptyMessageVisible || loginPromptVisible,
-        true,
-        'Guest empty-state message or sign-in prompt shown',
-      );
+      await logger.step('Step 5 - Soft-assert a valid guest empty-state variant is shown', async () => {
+        const [emptyMessageVisible, loginPromptVisible] = await Promise.all([
+          ecommerceWishlistPage.isEmptyWishlistMessageVisible(),
+          ecommerceWishlistPage.isLoginPromptVisible(),
+        ]);
+        softAssert.toBe(
+          emptyMessageVisible || loginPromptVisible,
+          true,
+          'Guest empty-state message or sign-in prompt shown',
+        );
+      });
     });
   }
 });

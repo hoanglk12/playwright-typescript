@@ -46,6 +46,7 @@ type CustomFixtures = {
   softAssert: SoftAssertHelper;
   consoleHelper: ConsoleHelper;
   makeAxeBuilder: () => AxeBuilder;
+  attachTestLogs: void;
 };
 
 export const test = base.extend<CustomFixtures>({
@@ -109,7 +110,12 @@ export const test = base.extend<CustomFixtures>({
   },
 
   softAssert: async ({}, use) => {
-    await use(new SoftAssertHelper(new TestLogger(base.info().title)));
+    const logger = new TestLogger(base.info().title);
+    // Registers at fixture-setup time (before the spec body's own createTestLogger call),
+    // so soft-assert lines land in the attachment ahead of step lines rather than
+    // chronologically interleaved — content is preserved, ordering is approximate.
+    logger.registerForCurrentTest();
+    await use(new SoftAssertHelper(logger));
   },
 
   consoleHelper: async ({ page }, use, testInfo) => {
@@ -117,6 +123,16 @@ export const test = base.extend<CustomFixtures>({
     await use(helper);
     await helper.summarize(testInfo.title);
   },
+
+  // Auto fixture, no deps on `page` — flushes independently of the Firefox
+  // about:blank teardown sequencing in the ecommerce page-object fixtures below.
+  attachTestLogs: [async ({}, use, testInfo) => {
+    await use();
+    const buffer = TestLogger.consumeBuffer(testInfo.testId);
+    if (buffer) {
+      await testInfo.attach('test-steps.log', { body: buffer, contentType: 'text/plain' });
+    }
+  }, { auto: true }],
 
   ecommercePLPPage: async ({ page }, use) => {
     await use(new EcommercePLPPage(page));

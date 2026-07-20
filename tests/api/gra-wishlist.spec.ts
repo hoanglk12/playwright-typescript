@@ -11,6 +11,8 @@ import {
 } from '../../src/data/api/gra-wishlist-data';
 import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import { GraphQLResponse } from '../../src/api/GraphQLClient';
 
 let customerToken: string = '';
 let wishlistId: string = '';
@@ -139,48 +141,52 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     // ── 2. Discover a SimpleProduct SKU ───────────────────────────────────────
-    logger.step('Discover a SimpleProduct SKU for wishlist tests');
-    const discoverResponse = await publicClient.queryWrapped(DISCOVER_PRODUCTS_QUERY, {
-      search: graWishlistData.productSearchTerm,
-      pageSize: 20,
+    await logger.step('Discover a SimpleProduct SKU for wishlist tests', async () => {
+      const discoverResponse = await publicClient.queryWrapped(DISCOVER_PRODUCTS_QUERY, {
+        search: graWishlistData.productSearchTerm,
+        pageSize: 20,
+      });
+      const discoverGql = await discoverResponse.getGraphQLResponse();
+      const allItems: DiscoveredProduct[] = discoverGql.data?.products?.items ?? [];
+      if (allItems.length === 0) {
+        throw new Error(`No products found for search term "${graWishlistData.productSearchTerm}"`);
+      }
+      // Prefer SimpleProduct; fall back to first item — Magento 2 accepts configurable SKUs in wishlist
+      const pickedProduct = allItems.find((item) => item.__typename === 'SimpleProduct') ?? allItems[0];
+      discoveredProductSku = pickedProduct.sku;
+      logger.action(`Discovered product (${pickedProduct.__typename})`, discoveredProductSku);
     });
-    const discoverGql = await discoverResponse.getGraphQLResponse();
-    const allItems: DiscoveredProduct[] = discoverGql.data?.products?.items ?? [];
-    if (allItems.length === 0) {
-      throw new Error(`No products found for search term "${graWishlistData.productSearchTerm}"`);
-    }
-    // Prefer SimpleProduct; fall back to first item — Magento 2 accepts configurable SKUs in wishlist
-    const pickedProduct = allItems.find((item) => item.__typename === 'SimpleProduct') ?? allItems[0];
-    discoveredProductSku = pickedProduct.sku;
-    logger.action(`Discovered product (${pickedProduct.__typename})`, discoveredProductSku);
 
     // ── 3. Get wishlist ID ────────────────────────────────────────────────────
-    logger.step('Get customer wishlist ID');
-    const wishlistResponse = await authClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
-    const wishlistGql = await wishlistResponse.getGraphQLResponse();
-    if (wishlistGql.errors?.length) {
-      throw new Error(`Failed to get wishlists: ${wishlistGql.errors[0]?.message ?? 'unknown error'}`);
-    }
-    const wishlists: WishlistShape[] = wishlistGql.data?.customer?.wishlists ?? [];
-    if (wishlists.length === 0) throw new Error('Customer has no wishlists');
-    wishlistId = wishlists[0].id;
-    logger.action('Wishlist ID', wishlistId);
+    let wishlists: WishlistShape[] = [];
+    await logger.step('Get customer wishlist ID', async () => {
+      const wishlistResponse = await authClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
+      const wishlistGql = await wishlistResponse.getGraphQLResponse();
+      if (wishlistGql.errors?.length) {
+        throw new Error(`Failed to get wishlists: ${wishlistGql.errors[0]?.message ?? 'unknown error'}`);
+      }
+      wishlists = wishlistGql.data?.customer?.wishlists ?? [];
+      if (wishlists.length === 0) throw new Error('Customer has no wishlists');
+      wishlistId = wishlists[0].id;
+      logger.action('Wishlist ID', wishlistId);
+    });
 
     // ── 4. Clean up existing items ────────────────────────────────────────────
     const existingItems: WishlistItemShape[] = wishlists[0].items_v2.items;
     if (existingItems.length > 0) {
-      logger.step(`Cleanup: removing ${existingItems.length} existing item(s)`);
-      const itemIds = existingItems.map((item) => item.id);
-      const removeResponse = await authClient.mutateWrapped(REMOVE_FROM_WISHLIST_MUTATION, {
-        wishlistId,
-        wishlistItemsIds: itemIds,
+      await logger.step(`Cleanup: removing ${existingItems.length} existing item(s)`, async () => {
+        const itemIds = existingItems.map((item) => item.id);
+        const removeResponse = await authClient.mutateWrapped(REMOVE_FROM_WISHLIST_MUTATION, {
+          wishlistId,
+          wishlistItemsIds: itemIds,
+        });
+        const removeGql = await removeResponse.getGraphQLResponse();
+        expect(
+          wasRejected(removeGql, 'removeProductsFromWishlist'),
+          'beforeAll cleanup: failed to remove existing wishlist items',
+        ).toBe(false);
+        logger.action('Cleanup complete', `removed ${itemIds.length} item(s)`);
       });
-      const removeGql = await removeResponse.getGraphQLResponse();
-      expect(
-        wasRejected(removeGql, 'removeProductsFromWishlist'),
-        'beforeAll cleanup: failed to remove existing wishlist items',
-      ).toBe(false);
-      logger.action('Cleanup complete', `removed ${itemIds.length} item(s)`);
     } else {
       logger.action('Cleanup skipped', 'wishlist already empty');
     }
@@ -191,23 +197,29 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
   test('TC_01 - customer.wishlists → items array is empty after cleanup', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_01 customer.wishlists → empty after cleanup');
 
-    logger.step('Step 1 - Query customer wishlists with auth token');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const response = await authClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Query customer wishlists with auth token', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+      response = await authClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
+    });
 
-    logger.step('Step 2 - Assert no errors');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    let wishlists: WishlistShape[] = [];
+    let items: WishlistItemShape[] = [];
+    await logger.step('Step 2 - Assert no errors', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const wishlists: WishlistShape[] = data.customer?.wishlists ?? [];
-    const items: WishlistItemShape[] = wishlists[0]?.items_v2?.items ?? [];
+      const data = await response.getData();
+      wishlists = data.customer?.wishlists ?? [];
+      items = wishlists[0]?.items_v2?.items ?? [];
+    });
 
-    logger.step('Step 3 - Assert items array is empty');
-    logger.verify('Wishlist items count after cleanup', 0, items.length);
-    expect(wishlists.length, 'Expected at least one wishlist').toBeGreaterThan(0);
-    expect(items, 'Wishlist items must be empty after cleanup').toHaveLength(0);
-    softExpect(wishlists[0]?.items_count, 'items_count should be 0 after cleanup').toBe(0);
+    await logger.step('Step 3 - Assert items array is empty', async () => {
+      logger.verify('Wishlist items count after cleanup', 0, items.length);
+      expect(wishlists.length, 'Expected at least one wishlist').toBeGreaterThan(0);
+      expect(items, 'Wishlist items must be empty after cleanup').toHaveLength(0);
+      softExpect(wishlists[0]?.items_count, 'items_count should be 0 after cleanup').toBe(0);
+    });
   });
 
   // ── TC_02: add valid product ───────────────────────────────────────────────
@@ -215,33 +227,38 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
   test('TC_02 - addProductsToWishlist valid product → item appears in wishlist', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_02 addProductsToWishlist valid product → item appears');
 
-    logger.step('Step 1 - Add product to wishlist');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const response = await authClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
-      wishlistId,
-      items: [{ sku: discoveredProductSku, quantity: graWishlistData.wishlistItemQuantity }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Add product to wishlist', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+      response = await authClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
+        wishlistId,
+        items: [{ sku: discoveredProductSku, quantity: graWishlistData.wishlistItemQuantity }],
+      });
     });
 
-    logger.step('Step 2 - Assert no top-level errors');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    let gql!: GraphQLResponse;
+    await logger.step('Step 2 - Assert no top-level errors', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const gql = await response.getGraphQLResponse();
-    const userErrors: UserError[] = gql.data?.addProductsToWishlist?.user_errors ?? [];
-    logger.verify('No user_errors when adding valid product', 0, userErrors.length);
-    expect(userErrors, 'Expected no user_errors for valid product add').toHaveLength(0);
+      gql = await response.getGraphQLResponse();
+      const userErrors: UserError[] = gql.data?.addProductsToWishlist?.user_errors ?? [];
+      logger.verify('No user_errors when adding valid product', 0, userErrors.length);
+      expect(userErrors, 'Expected no user_errors for valid product add').toHaveLength(0);
+    });
 
-    logger.step('Step 3 - Assert item appears in wishlist');
-    const wishlistItems: WishlistItemShape[] = gql.data?.addProductsToWishlist?.wishlist?.items_v2?.items ?? [];
-    const addedItem = wishlistItems.find((item) => item.product?.sku === discoveredProductSku);
-    logger.verify('Added item found in wishlist', discoveredProductSku, addedItem?.product?.sku);
-    expect(addedItem, 'Added item must appear in wishlist response').toBeDefined();
+    await logger.step('Step 3 - Assert item appears in wishlist', async () => {
+      const wishlistItems: WishlistItemShape[] = gql.data?.addProductsToWishlist?.wishlist?.items_v2?.items ?? [];
+      const addedItem = wishlistItems.find((item) => item.product?.sku === discoveredProductSku);
+      logger.verify('Added item found in wishlist', discoveredProductSku, addedItem?.product?.sku);
+      expect(addedItem, 'Added item must appear in wishlist response').toBeDefined();
 
-    addedItemId = addedItem?.id ?? '';
-    expect(addedItemId, 'addedItemId must be non-empty after add').toBeTruthy();
+      addedItemId = addedItem?.id ?? '';
+      expect(addedItemId, 'addedItemId must be non-empty after add').toBeTruthy();
 
-    softExpect(addedItem?.quantity, 'Wishlist item quantity should match requested value').toBe(graWishlistData.wishlistItemQuantity);
-    softExpect(addedItem?.__typename, 'Wishlist item __typename should include WishlistItem').toContain('WishlistItem');
+      softExpect(addedItem?.quantity, 'Wishlist item quantity should match requested value').toBe(graWishlistData.wishlistItemQuantity);
+      softExpect(addedItem?.__typename, 'Wishlist item __typename should include WishlistItem').toContain('WishlistItem');
+    });
   });
 
   // ── TC_03: add invalid SKU ────────────────────────────────────────────────
@@ -249,18 +266,21 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
   test('TC_03 - addProductsToWishlist invalid SKU → error returned', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_03 addProductsToWishlist invalid SKU → error returned');
 
-    logger.step('Step 1 - Attempt to add non-existent SKU to wishlist');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const response = await authClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
-      wishlistId,
-      items: [{ sku: graWishlistData.nonExistentSku, quantity: graWishlistData.wishlistItemQuantity }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Attempt to add non-existent SKU to wishlist', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+      response = await authClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
+        wishlistId,
+        items: [{ sku: graWishlistData.nonExistentSku, quantity: graWishlistData.wishlistItemQuantity }],
+      });
     });
 
-    logger.step('Step 2 - Assert error is returned');
-    const gql = await response.getGraphQLResponse();
-    const rejected = wasRejected(gql, 'addProductsToWishlist');
-    logger.verify('Invalid SKU causes rejection (top-level error or user_errors)', true, rejected);
-    expect(rejected, 'Expected error when adding product with invalid SKU').toBe(true);
+    await logger.step('Step 2 - Assert error is returned', async () => {
+      const gql = await response.getGraphQLResponse();
+      const rejected = wasRejected(gql, 'addProductsToWishlist');
+      logger.verify('Invalid SKU causes rejection (top-level error or user_errors)', true, rejected);
+      expect(rejected, 'Expected error when adding product with invalid SKU').toBe(true);
+    });
   });
 
   // ── TC_04: add unauthenticated ────────────────────────────────────────────
@@ -268,19 +288,22 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
   test('TC_04 - addProductsToWishlist unauthenticated → UNAUTHORIZED error', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_04 addProductsToWishlist unauthenticated → UNAUTHORIZED');
 
-    logger.step('Step 1 - Attempt to add product without auth token');
-    const publicClient = await createGraphQLClient();
-    const response = await publicClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
-      wishlistId,
-      items: [{ sku: discoveredProductSku, quantity: graWishlistData.wishlistItemQuantity }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Attempt to add product without auth token', async () => {
+      const publicClient = await createGraphQLClient();
+      response = await publicClient.mutateWrapped(ADD_TO_WISHLIST_MUTATION, {
+        wishlistId,
+        items: [{ sku: discoveredProductSku, quantity: graWishlistData.wishlistItemQuantity }],
+      });
     });
 
-    logger.step('Step 2 - Assert graphql-authorization error');
-    await response.assertHasErrors();
-    const gql = await response.getGraphQLResponse();
-    const errorCategory = gql.errors?.[0]?.extensions?.category;
-    logger.verify('Authorization error category', graWishlistErrorCategories.unauthorized, errorCategory);
-    expect(errorCategory).toBe(graWishlistErrorCategories.unauthorized);
+    await logger.step('Step 2 - Assert graphql-authorization error', async () => {
+      await response.assertHasErrors();
+      const gql = await response.getGraphQLResponse();
+      const errorCategory = gql.errors?.[0]?.extensions?.category;
+      logger.verify('Authorization error category', graWishlistErrorCategories.unauthorized, errorCategory);
+      expect(errorCategory).toBe(graWishlistErrorCategories.unauthorized);
+    });
   });
 
   // ── TC_05: wishlists items_count and items after add ─────────────────────
@@ -290,28 +313,34 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
 
     expect(addedItemId, 'addedItemId must be set by TC_02 — TC_05 depends on the add having succeeded').toBeTruthy();
 
-    logger.step('Step 1 - Query customer wishlists with auth token');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const response = await authClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Query customer wishlists with auth token', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+      response = await authClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
+    });
 
-    logger.step('Step 2 - Assert no errors');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    let wishlists: WishlistShape[] = [];
+    await logger.step('Step 2 - Assert no errors', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const wishlists: WishlistShape[] = data.customer?.wishlists ?? [];
-    const items: WishlistItemShape[] = wishlists[0]?.items_v2?.items ?? [];
+      const data = await response.getData();
+      wishlists = data.customer?.wishlists ?? [];
+    });
 
-    logger.step('Step 3 - Assert items_count and items are populated');
-    logger.verify('Wishlist items_count after add', '> 0', wishlists[0]?.items_count);
-    expect(wishlists[0]?.items_count, 'Expected items_count > 0 after add').toBeGreaterThan(0);
-    expect(items.length, 'Expected at least one item in wishlist').toBeGreaterThan(0);
+    await logger.step('Step 3 - Assert items_count and items are populated', async () => {
+      const items: WishlistItemShape[] = wishlists[0]?.items_v2?.items ?? [];
 
-    const addedItem = items.find((item) => item.product?.sku === discoveredProductSku);
-    expect(addedItem, 'Added product must still be in wishlist').toBeDefined();
+      logger.verify('Wishlist items_count after add', '> 0', wishlists[0]?.items_count);
+      expect(wishlists[0]?.items_count, 'Expected items_count > 0 after add').toBeGreaterThan(0);
+      expect(items.length, 'Expected at least one item in wishlist').toBeGreaterThan(0);
 
-    softExpect(wishlists[0]?.__typename, 'Wishlist __typename should be Wishlist').toBe('Wishlist');
-    softExpect(addedItem?.product?.__typename, 'Product __typename should be defined').toBeDefined();
+      const addedItem = items.find((item) => item.product?.sku === discoveredProductSku);
+      expect(addedItem, 'Added product must still be in wishlist').toBeDefined();
+
+      softExpect(wishlists[0]?.__typename, 'Wishlist __typename should be Wishlist').toBe('Wishlist');
+      softExpect(addedItem?.product?.__typename, 'Product __typename should be defined').toBeDefined();
+    });
   });
 
   // ── TC_06: remove existing item ───────────────────────────────────────────
@@ -321,27 +350,32 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
 
     expect(addedItemId, 'addedItemId must be set by TC_02').toBeTruthy();
 
-    logger.step('Step 1 - Remove previously added item from wishlist');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const response = await authClient.mutateWrapped(REMOVE_FROM_WISHLIST_MUTATION, {
-      wishlistId,
-      wishlistItemsIds: [addedItemId],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Remove previously added item from wishlist', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+      response = await authClient.mutateWrapped(REMOVE_FROM_WISHLIST_MUTATION, {
+        wishlistId,
+        wishlistItemsIds: [addedItemId],
+      });
     });
 
-    logger.step('Step 2 - Assert no top-level errors');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    let gql!: GraphQLResponse;
+    await logger.step('Step 2 - Assert no top-level errors', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const gql = await response.getGraphQLResponse();
-    const userErrors: UserError[] = gql.data?.removeProductsFromWishlist?.user_errors ?? [];
-    logger.verify('No user_errors when removing existing item', 0, userErrors.length);
-    expect(userErrors, 'Expected no user_errors for valid item removal').toHaveLength(0);
+      gql = await response.getGraphQLResponse();
+      const userErrors: UserError[] = gql.data?.removeProductsFromWishlist?.user_errors ?? [];
+      logger.verify('No user_errors when removing existing item', 0, userErrors.length);
+      expect(userErrors, 'Expected no user_errors for valid item removal').toHaveLength(0);
+    });
 
-    logger.step('Step 3 - Assert item is no longer in wishlist');
-    const wishlistItems: WishlistItemShape[] = gql.data?.removeProductsFromWishlist?.wishlist?.items_v2?.items ?? [];
-    const removedItem = wishlistItems.find((item) => item.id === addedItemId);
-    logger.verify('Removed item no longer present in wishlist', undefined, removedItem?.id);
-    expect(removedItem, 'Item must no longer appear in wishlist after removal').toBeUndefined();
+    await logger.step('Step 3 - Assert item is no longer in wishlist', async () => {
+      const wishlistItems: WishlistItemShape[] = gql.data?.removeProductsFromWishlist?.wishlist?.items_v2?.items ?? [];
+      const removedItem = wishlistItems.find((item) => item.id === addedItemId);
+      logger.verify('Removed item no longer present in wishlist', undefined, removedItem?.id);
+      expect(removedItem, 'Item must no longer appear in wishlist after removal').toBeUndefined();
+    });
   });
 
   // ── TC_07: remove non-existent item ──────────────────────────────────────
@@ -349,18 +383,21 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
   test('TC_07 - removeProductsFromWishlist non-existent item id → error returned', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_07 removeProductsFromWishlist non-existent item id → error');
 
-    logger.step('Step 1 - Attempt to remove non-existent item from wishlist');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-    const response = await authClient.mutateWrapped(REMOVE_FROM_WISHLIST_MUTATION, {
-      wishlistId,
-      wishlistItemsIds: [graWishlistData.nonExistentWishlistItemId],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Attempt to remove non-existent item from wishlist', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+      response = await authClient.mutateWrapped(REMOVE_FROM_WISHLIST_MUTATION, {
+        wishlistId,
+        wishlistItemsIds: [graWishlistData.nonExistentWishlistItemId],
+      });
     });
 
-    logger.step('Step 2 - Assert error is returned');
-    const gql = await response.getGraphQLResponse();
-    const rejected = wasRejected(gql, 'removeProductsFromWishlist');
-    logger.verify('Non-existent item ID causes rejection (top-level error or user_errors)', true, rejected);
-    expect(rejected, 'Expected error when removing non-existent wishlist item').toBe(true);
+    await logger.step('Step 2 - Assert error is returned', async () => {
+      const gql = await response.getGraphQLResponse();
+      const rejected = wasRejected(gql, 'removeProductsFromWishlist');
+      logger.verify('Non-existent item ID causes rejection (top-level error or user_errors)', true, rejected);
+      expect(rejected, 'Expected error when removing non-existent wishlist item').toBe(true);
+    });
   });
 
   // ── TC_08: wishlists unauthenticated ──────────────────────────────────────
@@ -368,16 +405,19 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
   test('TC_08 - customer.wishlists unauthenticated → UNAUTHORIZED error', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_08 customer.wishlists unauthenticated → UNAUTHORIZED');
 
-    logger.step('Step 1 - Query customer wishlists without auth token');
-    const publicClient = await createGraphQLClient();
-    const response = await publicClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Query customer wishlists without auth token', async () => {
+      const publicClient = await createGraphQLClient();
+      response = await publicClient.queryWrapped(GET_CUSTOMER_WISHLISTS_QUERY);
+    });
 
-    logger.step('Step 2 - Assert graphql-authorization error');
-    await response.assertHasErrors();
-    const gql = await response.getGraphQLResponse();
-    const errorCategory = gql.errors?.[0]?.extensions?.category;
-    logger.verify('Authorization error category', graWishlistErrorCategories.unauthorized, errorCategory);
-    expect(errorCategory).toBe(graWishlistErrorCategories.unauthorized);
+    await logger.step('Step 2 - Assert graphql-authorization error', async () => {
+      await response.assertHasErrors();
+      const gql = await response.getGraphQLResponse();
+      const errorCategory = gql.errors?.[0]?.extensions?.category;
+      logger.verify('Authorization error category', graWishlistErrorCategories.unauthorized, errorCategory);
+      expect(errorCategory).toBe(graWishlistErrorCategories.unauthorized);
+    });
   });
 
 });

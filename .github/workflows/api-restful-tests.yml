@@ -68,4 +68,5 @@ jobs:
           api-results/
           api-report/
           monocart-api-report/
+          test-logs/
         retention-days: 30

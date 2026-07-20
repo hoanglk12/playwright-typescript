@@ -29,6 +29,8 @@ import {
 import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { PlaceOrderData } from '../../src/data/api/gra-place-order-data';
 import { signInAndStoreToken } from './api-test-helpers';
+import { GraphQLResponse } from '../../src/api/GraphQLClient';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -280,148 +282,167 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     // ── 2. Always-fresh cart ───────────────────────────────────────────────
-    logger.step('Step 2 - Create fresh cart for checkout');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-    if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-    checkoutCartId = cartGql.data?.cartId ?? '';
-    if (!checkoutCartId) throw new Error('beforeAll: checkoutCartId is empty after createEmptyCart');
-    logger.action('Cart created', checkoutCartId);
+    await logger.step('Step 2 - Create fresh cart for checkout', async () => {
+      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+      if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
+      checkoutCartId = cartGql.data?.cartId ?? '';
+      if (!checkoutCartId) throw new Error('beforeAll: checkoutCartId is empty after createEmptyCart');
+      logger.action('Cart created', checkoutCartId);
+    });
 
     // ── 3. Discover in-stock SKU ───────────────────────────────────────────
-    logger.step('Step 3 - Discover in-stock product SKUs');
-    const candidateSkus: string[] = [];
-    for (const term of PlaceOrderData.productSearchTerms) {
-      const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-      const items: ProductItem[] = productsData?.products?.items ?? [];
+    let candidateSkus: string[] = [];
+    await logger.step('Step 3 - Discover in-stock product SKUs', async () => {
+      candidateSkus = [];
+      for (const term of PlaceOrderData.productSearchTerms) {
+        const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
+        const items: ProductItem[] = productsData?.products?.items ?? [];
 
-      for (const item of items) {
-        if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
-        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          for (const variant of item.variants) {
-            if (variant.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(variant.product.sku)) {
-              candidateSkus.push(variant.product.sku);
+        for (const item of items) {
+          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
+            if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
+          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+            for (const variant of item.variants) {
+              if (variant.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(variant.product.sku)) {
+                candidateSkus.push(variant.product.sku);
+              }
             }
           }
         }
+        if (candidateSkus.length >= 3) break;
       }
-      if (candidateSkus.length >= 3) break;
-    }
 
-    logger.verify('candidateSkus found', 'at least 1', candidateSkus.length);
-    if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found in any search');
+      logger.verify('candidateSkus found', 'at least 1', candidateSkus.length);
+      if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found in any search');
+    });
 
     // ── 4. Add product to cart (retry until one succeeds) ─────────────────
-    logger.step('Step 4 - Add in-stock product to cart (SKU retry)');
-    let addSucceeded = false;
-    for (const sku of candidateSkus) {
-      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-        cartId: checkoutCartId,
-        cartItems: [{ sku, quantity: 1 }],
-      })).getGraphQLResponse();
-      const addUserErrors: CartUserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
-      if (!(addGql.errors?.length) && !addUserErrors.length) {
-        validSku = sku;
-        addSucceeded = true;
-        logger.action('Product added to cart', sku);
-        break;
+    await logger.step('Step 4 - Add in-stock product to cart (SKU retry)', async () => {
+      let addSucceeded = false;
+      for (const sku of candidateSkus) {
+        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+          cartId: checkoutCartId,
+          cartItems: [{ sku, quantity: 1 }],
+        })).getGraphQLResponse();
+        const addUserErrors: CartUserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
+        if (!(addGql.errors?.length) && !addUserErrors.length) {
+          validSku = sku;
+          addSucceeded = true;
+          logger.action('Product added to cart', sku);
+          break;
+        }
+        logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
       }
-      logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
-    }
-    if (!addSucceeded) throw new Error('beforeAll: no candidate SKU could be added to cart');
+      if (!addSucceeded) throw new Error('beforeAll: no candidate SKU could be added to cart');
+    });
 
     // ── 5. Set shipping address ────────────────────────────────────────────
-    logger.step('Step 5 - Set shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
-    const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId: checkoutCartId,
-      shippingAddresses: [{
-        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      }],
-    })).getGraphQLResponse();
+    let setupOk = true;
+    let shippingGql!: GraphQLResponse;
+    await logger.step('Step 5 - Set shipping address', async () => {
+      const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
+      shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+        cartId: checkoutCartId,
+        shippingAddresses: [{
+          address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+        }],
+      })).getGraphQLResponse();
 
-    if (shippingGql.errors?.length) {
-      logger.action('Shipping address setup failed', shippingGql.errors[0]?.message ?? 'unknown');
-      return;
-    }
+      if (shippingGql.errors?.length) {
+        logger.action('Shipping address setup failed', shippingGql.errors[0]?.message ?? 'unknown');
+        setupOk = false;
+      }
+    });
+    if (!setupOk) return;
 
     // Prefer flatrate_flatrate — instore_pickup requires a Pickup Location before placeOrder
-    logger.step('Step 6 - Set shipping method (prefer flatrate_flatrate)');
-    const availableMethods: ShippingMethod[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
-    const flatrate = availableMethods.find(m => m.available && m.carrier_code === 'flatrate');
-    const firstAvailable = flatrate ?? availableMethods.find(m => m.available && m.carrier_code !== 'instore_pickup');
+    await logger.step('Step 6 - Set shipping method (prefer flatrate_flatrate)', async () => {
+      const availableMethods: ShippingMethod[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
+      const flatrate = availableMethods.find(m => m.available && m.carrier_code === 'flatrate');
+      const firstAvailable = flatrate ?? availableMethods.find(m => m.available && m.carrier_code !== 'instore_pickup');
 
-    if (!firstAvailable) {
-      logger.action('No suitable shipping method found', 'TC_01 and TC_03 will be skipped');
-      return;
-    }
+      if (!firstAvailable) {
+        logger.action('No suitable shipping method found', 'TC_01 and TC_03 will be skipped');
+        setupOk = false;
+        return;
+      }
 
-    const { carrier_code, method_code } = firstAvailable;
-    const methodGql = await (await authClient.mutateWrapped(SET_SHIPPING_METHOD_MUTATION, {
-      cartId: checkoutCartId,
-      carrierCode: carrier_code,
-      methodCode: method_code,
-    })).getGraphQLResponse();
+      const { carrier_code, method_code } = firstAvailable;
+      const methodGql = await (await authClient.mutateWrapped(SET_SHIPPING_METHOD_MUTATION, {
+        cartId: checkoutCartId,
+        carrierCode: carrier_code,
+        methodCode: method_code,
+      })).getGraphQLResponse();
 
-    if (methodGql.errors?.length) {
-      logger.action('Shipping method setup failed', methodGql.errors[0]?.message ?? 'unknown');
-      return;
-    }
-    shippingMethodSet = true;
-    logger.action('Shipping method set', `${carrier_code}_${method_code}`);
+      if (methodGql.errors?.length) {
+        logger.action('Shipping method setup failed', methodGql.errors[0]?.message ?? 'unknown');
+        setupOk = false;
+        return;
+      }
+      shippingMethodSet = true;
+      logger.action('Shipping method set', `${carrier_code}_${method_code}`);
+    });
+    if (!setupOk) return;
 
     // ── 7. Set billing address (same_as_shipping) ──────────────────────────
-    logger.step('Step 7 - Set billing address');
-    const billingGql = await (await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
-      cartId: checkoutCartId,
-      billingAddress: { same_as_shipping: true },
-    })).getGraphQLResponse();
+    await logger.step('Step 7 - Set billing address', async () => {
+      const billingGql = await (await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
+        cartId: checkoutCartId,
+        billingAddress: { same_as_shipping: true },
+      })).getGraphQLResponse();
 
-    if (billingGql.errors?.length) {
-      logger.action('Billing address setup failed', billingGql.errors[0]?.message ?? 'unknown');
-      return;
-    }
+      if (billingGql.errors?.length) {
+        logger.action('Billing address setup failed', billingGql.errors[0]?.message ?? 'unknown');
+        setupOk = false;
+      }
+    });
+    if (!setupOk) return;
 
     // ── 8. Set payment method ──────────────────────────────────────────────
-    logger.step('Step 8 - Set payment method');
-    const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId: checkoutCartId })).getData();
-    const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
-    const paymentCode = methods.map(m => m.code).find(c => SIMPLE_PAYMENT_CODES.includes(c)) ?? '';
+    await logger.step('Step 8 - Set payment method', async () => {
+      const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId: checkoutCartId })).getData();
+      const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
+      const paymentCode = methods.map(m => m.code).find(c => SIMPLE_PAYMENT_CODES.includes(c)) ?? '';
 
-    if (!paymentCode) {
-      logger.action('No simple payment method available', 'TC_01 and TC_03 will be skipped');
-      return;
-    }
+      if (!paymentCode) {
+        logger.action('No simple payment method available', 'TC_01 and TC_03 will be skipped');
+        setupOk = false;
+        return;
+      }
 
-    const payGql = await (await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
-      cartId: checkoutCartId,
-      paymentMethodCode: paymentCode,
-    })).getGraphQLResponse();
+      const payGql = await (await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
+        cartId: checkoutCartId,
+        paymentMethodCode: paymentCode,
+      })).getGraphQLResponse();
 
-    if (payGql.errors?.length) {
-      logger.action('Payment method setup failed', payGql.errors[0]?.message ?? 'unknown');
-      return;
-    }
-    logger.action('Payment method set', paymentCode);
+      if (payGql.errors?.length) {
+        logger.action('Payment method setup failed', payGql.errors[0]?.message ?? 'unknown');
+        setupOk = false;
+        return;
+      }
+      logger.action('Payment method set', paymentCode);
+    });
+    if (!setupOk) return;
 
     // ── 9. Place order → capture order number ─────────────────────────────
-    logger.step('Step 9 - Place order');
-    const placeGql = await (await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: checkoutCartId })).getGraphQLResponse();
+    await logger.step('Step 9 - Place order', async () => {
+      const placeGql = await (await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: checkoutCartId })).getGraphQLResponse();
 
-    if (placeGql.errors?.length) {
-      logger.action('placeOrder failed', placeGql.errors[0]?.message ?? 'unknown');
-      return;
-    }
+      if (placeGql.errors?.length) {
+        logger.action('placeOrder failed', placeGql.errors[0]?.message ?? 'unknown');
+        return;
+      }
 
-    placedOrderNumber = placeGql.data?.placeOrder?.order?.order_number ?? '';
-    if (!placedOrderNumber) {
-      logger.action('placeOrder succeeded but order_number is missing', 'TC_01 will be skipped');
-      return;
-    }
+      placedOrderNumber = placeGql.data?.placeOrder?.order?.order_number ?? '';
+      if (!placedOrderNumber) {
+        logger.action('placeOrder succeeded but order_number is missing', 'TC_01 will be skipped');
+        return;
+      }
 
-    checkoutReady = true;
-    logger.action('Order placed', placedOrderNumber);
-    logger.action('beforeAll complete', 'order history tests ready');
+      checkoutReady = true;
+      logger.action('Order placed', placedOrderNumber);
+      logger.action('beforeAll complete', 'order history tests ready');
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -438,44 +459,52 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Query customer order history after placing order ' + placedOrderNumber);
-    logger.action('GET', `customer.orders (pageSize=10, currentPage=1)`);
-    const response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 10, currentPage: 1 });
+    let orders: CustomerOrdersShape | undefined;
+    let items: CustomerOrderShape[] = [];
+    await logger.step('Step 1 - Query customer order history after placing order ' + placedOrderNumber, async () => {
+      logger.action('GET', `customer.orders (pageSize=10, currentPage=1)`);
+      const response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 10, currentPage: 1 });
 
-    logger.step('Step 2 - Assert no errors and valid structure');
-    await response.assertNoErrors();
-    await response.assertHasData();
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const orders: CustomerOrdersShape | undefined = data?.customer?.orders;
-    const items: CustomerOrderShape[] = orders?.items ?? [];
+      const data = await response.getData();
+      orders = data?.customer?.orders;
+      items = orders?.items ?? [];
+    });
 
-    logger.verify('customer.orders returns CustomerOrders type', 'CustomerOrders', orders?.__typename);
-    expect(orders, 'customer.orders must be defined').toBeDefined();
-    expect(orders?.__typename, '__typename must be CustomerOrders').toBe('CustomerOrders');
-    expect(Array.isArray(orders?.items), 'orders.items must be an array').toBe(true);
-    expect(typeof orders?.total_count, 'orders.total_count must be a number').toBe('number');
+    await logger.step('Step 2 - Assert no errors and valid structure', async () => {
+      logger.verify('customer.orders returns CustomerOrders type', 'CustomerOrders', orders?.__typename);
+      expect(orders, 'customer.orders must be defined').toBeDefined();
+      expect(orders?.__typename, '__typename must be CustomerOrders').toBe('CustomerOrders');
+      expect(Array.isArray(orders?.items), 'orders.items must be an array').toBe(true);
+      expect(typeof orders?.total_count, 'orders.total_count must be a number').toBe('number');
+    });
 
-    logger.step('Step 3 - Verify order presence (staging-aware)');
-    if ((orders?.total_count ?? 0) === 0) {
-      // STAGING BUG: customer.orders consistently returns total_count: 0 on PLA staging
-      // even immediately after a successful placeOrder (order number is issued).
-      // The structure assertions above (type, array, number) still pass.
-      logger.verify('Staging: orders empty after placing — known staging limitation', 'total_count:0', 0);
-      logger.action('STAGING: customer.orders total_count:0 after placing order',
-        `${placedOrderNumber} — known PLA staging limitation`);
-      return;
-    }
+    let ordersEmpty = false;
+    await logger.step('Step 3 - Verify order presence (staging-aware)', async () => {
+      if ((orders?.total_count ?? 0) === 0) {
+        // STAGING BUG: customer.orders consistently returns total_count: 0 on PLA staging
+        // even immediately after a successful placeOrder (order number is issued).
+        // The structure assertions above (type, array, number) still pass.
+        logger.verify('Staging: orders empty after placing — known staging limitation', 'total_count:0', 0);
+        logger.action('STAGING: customer.orders total_count:0 after placing order',
+          `${placedOrderNumber} — known PLA staging limitation`);
+        ordersEmpty = true;
+      }
+    });
+    if (ordersEmpty) return;
 
     // orders ARE returned — verify the placed order is present
-    logger.step('Step 4 - Assert placed order number appears in list');
-    const placedOrder = items.find(item => item.number === placedOrderNumber);
-    logger.verify('Placed order found in list', placedOrderNumber, placedOrder?.number);
-    expect(placedOrder, `Placed order ${placedOrderNumber} must appear in customer.orders`).toBeDefined();
+    await logger.step('Step 4 - Assert placed order number appears in list', async () => {
+      const placedOrder = items.find(item => item.number === placedOrderNumber);
+      logger.verify('Placed order found in list', placedOrderNumber, placedOrder?.number);
+      expect(placedOrder, `Placed order ${placedOrderNumber} must appear in customer.orders`).toBeDefined();
 
-    softExpect(placedOrder?.status, 'Placed order status should be defined').toBeTruthy();
-    softExpect(typeof placedOrder?.grand_total, 'grand_total should be a number').toBe('number');
-    softExpect(PlaceOrderData.orderNumberPattern.test(placedOrderNumber), 'order_number matches /\\S+/').toBe(true);
+      softExpect(placedOrder?.status, 'Placed order status should be defined').toBeTruthy();
+      softExpect(typeof placedOrder?.grand_total, 'grand_total should be a number').toBe('number');
+      softExpect(PlaceOrderData.orderNumberPattern.test(placedOrderNumber), 'order_number matches /\\S+/').toBe(true);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -487,57 +516,64 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
     const publicClient = await createGraphQLClient();
 
-    logger.step('Step 1 - Create a fresh account with no order history');
-    const freshAccount = OrderHistoryDataGenerator.generateFreshAccount();
-    const createGql = await (await publicClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, {
-      email: freshAccount.email,
-      firstname: freshAccount.firstname,
-      lastname: freshAccount.lastname,
-      password: freshAccount.password,
-      phone_number: freshAccount.phone_number,
-      is_subscribed: false,
-      loyalty_program_status: false,
-      order_number: null,
-      gender: freshAccount.gender,
-      date_of_birth: null,
-    })).getGraphQLResponse();
+    let freshAccount!: ReturnType<typeof OrderHistoryDataGenerator.generateFreshAccount>;
+    await logger.step('Step 1 - Create a fresh account with no order history', async () => {
+      freshAccount = OrderHistoryDataGenerator.generateFreshAccount();
+      const createGql = await (await publicClient.mutateWrapped(CREATE_ACCOUNT_MUTATION, {
+        email: freshAccount.email,
+        firstname: freshAccount.firstname,
+        lastname: freshAccount.lastname,
+        password: freshAccount.password,
+        phone_number: freshAccount.phone_number,
+        is_subscribed: false,
+        loyalty_program_status: false,
+        order_number: null,
+        gender: freshAccount.gender,
+        date_of_birth: null,
+      })).getGraphQLResponse();
 
-    if (createGql.errors?.length) {
-      throw new Error(`TC_02 setup: account creation failed: ${createGql.errors[0]?.message ?? 'unknown'}`);
-    }
-    logger.action('Fresh account created', freshAccount.email);
+      if (createGql.errors?.length) {
+        throw new Error(`TC_02 setup: account creation failed: ${createGql.errors[0]?.message ?? 'unknown'}`);
+      }
+      logger.action('Fresh account created', freshAccount.email);
+    });
 
-    logger.step('Step 2 - Sign in to fresh account');
-    const signInGql = await (await publicClient.mutateWrapped(SIGN_IN_MUTATION, {
-      email: freshAccount.email,
-      password: freshAccount.password,
-      remember: false,
-    })).getGraphQLResponse();
+    let freshToken: string = '';
+    await logger.step('Step 2 - Sign in to fresh account', async () => {
+      const signInGql = await (await publicClient.mutateWrapped(SIGN_IN_MUTATION, {
+        email: freshAccount.email,
+        password: freshAccount.password,
+        remember: false,
+      })).getGraphQLResponse();
 
-    if (signInGql.errors?.length) {
-      throw new Error(`TC_02 setup: sign-in failed: ${signInGql.errors[0]?.message ?? 'unknown'}`);
-    }
-    const freshToken: string = signInGql.data?.generateCustomerToken?.token ?? '';
-    expect(freshToken, 'TC_02 setup: token must be present after sign-in').toBeTruthy();
+      if (signInGql.errors?.length) {
+        throw new Error(`TC_02 setup: sign-in failed: ${signInGql.errors[0]?.message ?? 'unknown'}`);
+      }
+      freshToken = signInGql.data?.generateCustomerToken?.token ?? '';
+      expect(freshToken, 'TC_02 setup: token must be present after sign-in').toBeTruthy();
+    });
 
-    logger.step('Step 3 - Query customer.orders for fresh account');
-    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: freshToken });
-    logger.action('GET', `customer.orders for fresh account`);
-    const response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 5, currentPage: 1 });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 3 - Query customer.orders for fresh account', async () => {
+      const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: freshToken });
+      logger.action('GET', `customer.orders for fresh account`);
+      response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 5, currentPage: 1 });
+    });
 
-    logger.step('Step 4 - Assert empty orders list');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 4 - Assert empty orders list', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const orders = data?.customer?.orders;
+      const data = await response.getData();
+      const orders = data?.customer?.orders;
 
-    logger.verify('total_count is 0 for new account', 0, orders?.total_count);
-    logger.verify('items array is empty for new account', 0, orders?.items?.length ?? 0);
+      logger.verify('total_count is 0 for new account', 0, orders?.total_count);
+      logger.verify('items array is empty for new account', 0, orders?.items?.length ?? 0);
 
-    expect(orders?.total_count, 'New account should have 0 orders').toBe(0);
-    expect(orders?.items, 'New account orders items must be empty').toHaveLength(0);
-    softExpect(orders?.__typename, '__typename should be CustomerOrders').toBe('CustomerOrders');
+      expect(orders?.total_count, 'New account should have 0 orders').toBe(0);
+      expect(orders?.items, 'New account orders items must be empty').toHaveLength(0);
+      softExpect(orders?.__typename, '__typename should be CustomerOrders').toBe('CustomerOrders');
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -555,55 +591,67 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const pageSize = OrderHistoryData.paginationPageSize;
 
-    logger.step('Step 1 - Query page 1 with pageSize 1');
-    logger.action('GET', `customer.orders (pageSize=${pageSize}, currentPage=1)`);
-    const page1Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 1 });
+    let page1Orders: CustomerOrdersShape | undefined;
+    let page1Items: CustomerOrderShape[] = [];
+    let totalCount = 0;
+    await logger.step('Step 1 - Query page 1 with pageSize 1', async () => {
+      logger.action('GET', `customer.orders (pageSize=${pageSize}, currentPage=1)`);
+      const page1Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 1 });
 
-    await page1Response.assertNoErrors();
-    const page1Data = await page1Response.getData();
-    const page1Orders: CustomerOrdersShape | undefined = page1Data?.customer?.orders;
-    const page1Items: CustomerOrderShape[] = page1Orders?.items ?? [];
-    const totalCount: number = page1Orders?.total_count ?? 0;
+      await page1Response.assertNoErrors();
+      const page1Data = await page1Response.getData();
+      page1Orders = page1Data?.customer?.orders;
+      page1Items = page1Orders?.items ?? [];
+      totalCount = page1Orders?.total_count ?? 0;
+    });
 
-    logger.step('Step 2 - Handle staging-empty case before pagination assertions');
-    if (totalCount === 0) {
-      // STAGING BUG: customer.orders returns empty even after placing orders.
-      // Verify page 1 has valid structure (array, count) and return early.
-      logger.verify('Staging: customer.orders empty — verifying structure only', 'total_count:0', 0);
-      logger.action('STAGING: customer.orders total_count:0',
-        'Pagination behavior cannot be verified with empty order history on this staging endpoint');
-      expect(Array.isArray(page1Items), 'orders.items must be an array even when empty').toBe(true);
-      softExpect(page1Orders?.__typename, '__typename must be CustomerOrders').toBe('CustomerOrders');
-      return;
-    }
+    let ordersEmpty = false;
+    await logger.step('Step 2 - Handle staging-empty case before pagination assertions', async () => {
+      if (totalCount === 0) {
+        // STAGING BUG: customer.orders returns empty even after placing orders.
+        // Verify page 1 has valid structure (array, count) and return early.
+        logger.verify('Staging: customer.orders empty — verifying structure only', 'total_count:0', 0);
+        logger.action('STAGING: customer.orders total_count:0',
+          'Pagination behavior cannot be verified with empty order history on this staging endpoint');
+        expect(Array.isArray(page1Items), 'orders.items must be an array even when empty').toBe(true);
+        softExpect(page1Orders?.__typename, '__typename must be CustomerOrders').toBe('CustomerOrders');
+        ordersEmpty = true;
+        return;
+      }
 
-    logger.verify('Page 1 has at least 1 item', '>= 1', page1Items.length);
-    expect(page1Items.length, 'Page 1 must have at least 1 order').toBeGreaterThan(0);
+      logger.verify('Page 1 has at least 1 item', '>= 1', page1Items.length);
+      expect(page1Items.length, 'Page 1 must have at least 1 order').toBeGreaterThan(0);
+    });
+    if (ordersEmpty) return;
 
-    logger.step('Step 3 - Query page 2 with pageSize 1');
-    logger.action('GET', `customer.orders (pageSize=${pageSize}, currentPage=2)`);
-    const page2Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 2 });
+    let page2Orders: CustomerOrdersShape | undefined;
+    let page2Items: CustomerOrderShape[] = [];
+    await logger.step('Step 3 - Query page 2 with pageSize 1', async () => {
+      logger.action('GET', `customer.orders (pageSize=${pageSize}, currentPage=2)`);
+      const page2Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 2 });
 
-    await page2Response.assertNoErrors();
-    const page2Data = await page2Response.getData();
-    const page2Orders = page2Data?.customer?.orders;
-    const page2Items: CustomerOrderShape[] = page2Orders?.items ?? [];
+      await page2Response.assertNoErrors();
+      const page2Data = await page2Response.getData();
+      page2Orders = page2Data?.customer?.orders;
+      page2Items = page2Orders?.items ?? [];
+    });
 
-    logger.step('Step 4 - Assert pagination behavior');
-    softExpect(page2Orders?.total_count, 'total_count is consistent across pages').toBe(totalCount);
+    await logger.step('Step 4 - Assert pagination behavior', async () => {
+      softExpect(page2Orders?.total_count, 'total_count is consistent across pages').toBe(totalCount);
 
-    if (totalCount <= pageSize) {
-      // Only 1 order total — page 2 should be empty
-      logger.verify('Page 2 is empty (total_count fits page 1)', 0, page2Items.length);
-      expect(page2Items, 'Page 2 must be empty when total_count <= pageSize').toHaveLength(0);
-    } else {
-      // Multiple orders — page 1 and page 2 should not share the same order number
-      const page1Numbers = page1Items.map(i => i.number);
-      const page2Numbers = page2Items.map(i => i.number);
-      const hasOverlap = page1Numbers.some(n => page2Numbers.includes(n));
-      logger.verify('No overlap between page 1 and page 2 order numbers', false, hasOverlap);
-      expect(hasOverlap, 'Page 1 and page 2 must have non-overlapping orders').toBe(false);
-    }
+      if (totalCount <= pageSize) {
+        // Only 1 order total — page 2 should be empty
+        logger.verify('Page 2 is empty (total_count fits page 1)', 0, page2Items.length);
+        expect(page2Items, 'Page 2 must be empty when total_count <= pageSize').toHaveLength(0);
+      } else {
+        // Multiple orders — page 1 and page 2 should not share the same order number
+        const page1Numbers = page1Items.map(i => i.number);
+        const page2Numbers = page2Items.map(i => i.number);
+        const hasOverlap = page1Numbers.some(n => page2Numbers.includes(n));
+        logger.verify('No overlap between page 1 and page 2 order numbers', false, hasOverlap);
+        expect(hasOverlap, 'Page 1 and page 2 must have non-overlapping orders').toBe(false);
+      }
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -613,18 +661,21 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
   test('TC_04 - customer.orders unauthenticated → graphql-authorization error', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_04 customer.orders unauthenticated → UNAUTHORIZED error');
 
-    logger.step('Step 1 - Query customer.orders without auth token');
-    const publicClient = await createGraphQLClient();
-    logger.action('GET', 'customer.orders (no Authorization header)');
-    const response = await publicClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 5, currentPage: 1 });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Query customer.orders without auth token', async () => {
+      const publicClient = await createGraphQLClient();
+      logger.action('GET', 'customer.orders (no Authorization header)');
+      response = await publicClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 5, currentPage: 1 });
+    });
 
-    logger.step('Step 2 - Assert graphql-authorization error');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert graphql-authorization error', async () => {
+      await response.assertHasErrors();
 
-    const gql = await response.getGraphQLResponse();
-    const errorCategory = gql.errors?.[0]?.extensions?.category;
-    logger.verify('Error category is graphql-authorization', orderHistoryErrorCategories.unauthorized, errorCategory);
-    expect(errorCategory, 'Expected graphql-authorization error for unauthenticated request').toBe(orderHistoryErrorCategories.unauthorized);
+      const gql = await response.getGraphQLResponse();
+      const errorCategory = gql.errors?.[0]?.extensions?.category;
+      logger.verify('Error category is graphql-authorization', orderHistoryErrorCategories.unauthorized, errorCategory);
+      expect(errorCategory, 'Expected graphql-authorization error for unauthenticated request').toBe(orderHistoryErrorCategories.unauthorized);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -634,35 +685,41 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
   test('TC_05 - guestOrder invalid token → error (or schema-not-supported gracefully handled)', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_05 guestOrder invalid token → error or schema gap');
 
-    logger.step('Step 1 - Attempt guestOrder query with invalid token');
-    const publicClient = await createGraphQLClient();
-    logger.action('GET', `guestOrder(token="${OrderHistoryData.invalidGuestToken}")`);
-    const gql = await (await publicClient.queryWrapped(GUEST_ORDER_QUERY, {
-      token: OrderHistoryData.invalidGuestToken,
-    })).getGraphQLResponse();
+    let gql!: GraphQLResponse;
+    let hasErrors = false;
+    let isSchemaGap = false;
+    await logger.step('Step 1 - Attempt guestOrder query with invalid token', async () => {
+      const publicClient = await createGraphQLClient();
+      logger.action('GET', `guestOrder(token="${OrderHistoryData.invalidGuestToken}")`);
+      gql = await (await publicClient.queryWrapped(GUEST_ORDER_QUERY, {
+        token: OrderHistoryData.invalidGuestToken,
+      })).getGraphQLResponse();
 
-    const hasErrors = (gql.errors?.length ?? 0) > 0;
-    const isSchemaError = hasErrors && gql.errors!.some(
-      (e: { message?: string }) =>
-        typeof e.message === 'string' &&
-        e.message.includes('Cannot query field') &&
-        e.message.includes('guestOrder'),
-    );
+      hasErrors = (gql.errors?.length ?? 0) > 0;
+      const isSchemaError = hasErrors && gql.errors!.some(
+        (e: { message?: string }) =>
+          typeof e.message === 'string' &&
+          e.message.includes('Cannot query field') &&
+          e.message.includes('guestOrder'),
+      );
 
-    if (isSchemaError) {
-      // guestOrder is not in the current PLA staging schema — schema gap confirmed
-      logger.verify('guestOrder field not in staging schema (P2 schema gap)', true, isSchemaError);
-      logger.action('STAGING: guestOrder schema gap', 'field not available on this staging endpoint');
-      return;
-    }
+      if (isSchemaError) {
+        // guestOrder is not in the current PLA staging schema — schema gap confirmed
+        logger.verify('guestOrder field not in staging schema (P2 schema gap)', true, isSchemaError);
+        logger.action('STAGING: guestOrder schema gap', 'field not available on this staging endpoint');
+        isSchemaGap = true;
+      }
+    });
+    if (isSchemaGap) return;
 
-    logger.step('Step 2 - guestOrder schema present; assert invalid token returns an error');
-    logger.verify('Invalid guest token causes an error', true, hasErrors);
-    expect(hasErrors, 'Expected error response for invalid guest order token').toBe(true);
+    await logger.step('Step 2 - guestOrder schema present; assert invalid token returns an error', async () => {
+      logger.verify('Invalid guest token causes an error', true, hasErrors);
+      expect(hasErrors, 'Expected error response for invalid guest order token').toBe(true);
 
-    const errorMessage: string = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
-    logger.verify('Error message is non-empty for invalid token', true, errorMessage.length > 0);
-    expect(errorMessage.length, 'Error message must be non-empty for invalid guest token').toBeGreaterThan(0);
+      const errorMessage: string = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
+      logger.verify('Error message is non-empty for invalid token', true, errorMessage.length > 0);
+      expect(errorMessage.length, 'Error message must be non-empty for invalid guest token').toBeGreaterThan(0);
+    });
   });
 
   // TC_06 (guestOrder valid token) is not implemented:

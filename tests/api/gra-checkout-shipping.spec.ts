@@ -12,6 +12,7 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -254,81 +255,85 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     // ── 2. Always-fresh cart ───────────────────────────────────────────────
-    logger.step('Step 2 - Create fresh cart');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-    if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-    cartId = cartGql.data?.cartId ?? '';
-    if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
-    logger.action('Cart created', cartId);
+    await logger.step('Step 2 - Create fresh cart', async () => {
+      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+      if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
+      cartId = cartGql.data?.cartId ?? '';
+      if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
+      logger.action('Cart created', cartId);
+    });
 
     // ── 3. Discover in-stock candidate SKUs ───────────────────────────────
-    logger.step('Step 3 - Discover in-stock product SKU candidates');
     const candidateSkus: string[] = [];
-    for (const term of ['', 'shoe', 'nike', 'a']) {
-      const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-      const items: ProductItem[] = productsData?.products?.items ?? [];
-      for (const item of items) {
-        if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
-        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          for (const v of item.variants) {
-            if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
-              candidateSkus.push(v.product.sku);
+    await logger.step('Step 3 - Discover in-stock product SKU candidates', async () => {
+      for (const term of ['', 'shoe', 'nike', 'a']) {
+        const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
+        const items: ProductItem[] = productsData?.products?.items ?? [];
+        for (const item of items) {
+          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
+            if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
+          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+            for (const v of item.variants) {
+              if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
+                candidateSkus.push(v.product.sku);
+              }
             }
           }
+          // No fallback to item.sku — parent configurable SKUs are not addable to cart
         }
-        // No fallback to item.sku — parent configurable SKUs are not addable to cart
+        if (candidateSkus.length >= 3) break;
       }
-      if (candidateSkus.length >= 3) break;
-    }
-    if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found');
+      if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found');
+    });
 
     // ── 4. Try candidate SKUs until one adds successfully ─────────────────
-    logger.step('Step 4 - Add in-stock product to cart (with SKU retry)');
-    for (const sku of candidateSkus) {
-      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-        cartId,
-        cartItems: [{ sku, quantity: 1 }],
-      })).getGraphQLResponse();
-      const addUserErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
-      if (!(addGql.errors?.length) && !addUserErrors.length) {
-        validSku = sku;
-        logger.action('Product added to cart', sku);
-        break;
+    await logger.step('Step 4 - Add in-stock product to cart (with SKU retry)', async () => {
+      for (const sku of candidateSkus) {
+        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+          cartId,
+          cartItems: [{ sku, quantity: 1 }],
+        })).getGraphQLResponse();
+        const addUserErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
+        if (!(addGql.errors?.length) && !addUserErrors.length) {
+          validSku = sku;
+          logger.action('Product added to cart', sku);
+          break;
+        }
+        logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
       }
-      logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
-    }
-    if (!validSku) throw new Error('beforeAll: no candidate SKU could be added to cart');
-    logger.verify('SKU added', 'truthy', validSku);
+      if (!validSku) throw new Error('beforeAll: no candidate SKU could be added to cart');
+      logger.verify('SKU added', 'truthy', validSku);
+    });
 
     // ── 5. Find or create a saved address ─────────────────────────────────
-    logger.step('Step 5 - Resolve saved customer address');
-    const addrData = await (await authClient.queryWrapped(GET_CUSTOMER_ADDRESSES_QUERY)).getData();
-    const addresses: CustomerAddress[] = addrData?.customer?.addresses ?? [];
+    await logger.step('Step 5 - Resolve saved customer address', async () => {
+      const addrData = await (await authClient.queryWrapped(GET_CUSTOMER_ADDRESSES_QUERY)).getData();
+      const addresses: CustomerAddress[] = addrData?.customer?.addresses ?? [];
 
-    if (addresses.length > 0) {
-      savedAddressId = addresses[0].id;
-      logger.action('Using existing address', `id=${savedAddressId}`);
-    } else {
-      logger.action('No addresses found', 'attempting to create one');
-      const { firstname, lastname, street, city, region, postcode, country_code, telephone, default_shipping, default_billing } = checkoutData.createAddressInput;
-      const createAddrGql = await (await authClient.mutateWrapped(CREATE_CUSTOMER_ADDRESS_MUTATION, {
-        firstname, lastname, street, city,
-        region: { region_code: region.region_code },
-        postcode, country_code, telephone,
-        default_shipping, default_billing,
-      })).getGraphQLResponse();
-
-      if (!(createAddrGql.errors?.length) && createAddrGql.data?.createCustomerAddress?.id) {
-        savedAddressId = createAddrGql.data.createCustomerAddress.id;
-        logger.action('Address created', `id=${savedAddressId}`);
+      if (addresses.length > 0) {
+        savedAddressId = addresses[0].id;
+        logger.action('Using existing address', `id=${savedAddressId}`);
       } else {
-        logger.action('Address creation failed', 'TC_02 will be skipped');
-        savedAddressId = 0;
-      }
-    }
+        logger.action('No addresses found', 'attempting to create one');
+        const { firstname, lastname, street, city, region, postcode, country_code, telephone, default_shipping, default_billing } = checkoutData.createAddressInput;
+        const createAddrGql = await (await authClient.mutateWrapped(CREATE_CUSTOMER_ADDRESS_MUTATION, {
+          firstname, lastname, street, city,
+          region: { region_code: region.region_code },
+          postcode, country_code, telephone,
+          default_shipping, default_billing,
+        })).getGraphQLResponse();
 
-    logger.verify('beforeAll complete', true, true);
+        if (!(createAddrGql.errors?.length) && createAddrGql.data?.createCustomerAddress?.id) {
+          savedAddressId = createAddrGql.data.createCustomerAddress.id;
+          logger.action('Address created', `id=${savedAddressId}`);
+        } else {
+          logger.action('Address creation failed', 'TC_02 will be skipped');
+          savedAddressId = 0;
+        }
+      }
+
+      logger.verify('beforeAll complete', true, true);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -341,35 +346,38 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
 
-    logger.step('Step 1 - Execute setShippingAddressesOnCart with inline address');
-    logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId})`);
-    const response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId,
-      shippingAddresses: [{
-        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setShippingAddressesOnCart with inline address', async () => {
+      logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId})`);
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+        cartId,
+        shippingAddresses: [{
+          address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+        }],
+      });
     });
 
-    logger.step('Step 2 - Assert no errors and address populated');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and address populated', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const shippingAddresses: ShippingAddress[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
+      const data = await response.getData();
+      const shippingAddresses: ShippingAddress[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
 
-    expect(shippingAddresses.length, 'shipping_addresses must not be empty').toBeGreaterThan(0);
-    const addr = shippingAddresses[0];
+      expect(shippingAddresses.length, 'shipping_addresses must not be empty').toBeGreaterThan(0);
+      const addr = shippingAddresses[0];
 
-    logger.verify('firstname', firstname, addr.firstname);
-    logger.verify('lastname', lastname, addr.lastname);
-    logger.verify('postcode', postcode, addr.postcode);
+      logger.verify('firstname', firstname, addr.firstname);
+      logger.verify('lastname', lastname, addr.lastname);
+      logger.verify('postcode', postcode, addr.postcode);
 
-    softExpect(addr.firstname).toBe(firstname);
-    softExpect(addr.lastname).toBe(lastname);
-    softExpect(addr.postcode).toBe(postcode);
-    softExpect(Array.isArray(addr.street)).toBe(true);
-    softExpect(addr.street[0]).toBe(street[0]);
-    softExpect(Array.isArray(addr.available_shipping_methods)).toBe(true);
+      softExpect(addr.firstname).toBe(firstname);
+      softExpect(addr.lastname).toBe(lastname);
+      softExpect(addr.postcode).toBe(postcode);
+      softExpect(Array.isArray(addr.street)).toBe(true);
+      softExpect(addr.street[0]).toBe(street[0]);
+      softExpect(Array.isArray(addr.available_shipping_methods)).toBe(true);
+    });
   });
 
   test('TC_02 - setShippingAddressesOnCart with customer_address_id → saved address applied', async ({ createGraphQLClient }) => {
@@ -382,27 +390,30 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Execute setShippingAddressesOnCart with customer_address_id');
-    logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${savedAddressId})`);
-    const response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId,
-      shippingAddresses: [{ customer_address_id: savedAddressId }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setShippingAddressesOnCart with customer_address_id', async () => {
+      logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${savedAddressId})`);
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+        cartId,
+        shippingAddresses: [{ customer_address_id: savedAddressId }],
+      });
     });
 
-    logger.step('Step 2 - Assert no errors and address applied');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and address applied', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const shippingAddresses: ShippingAddress[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
+      const data = await response.getData();
+      const shippingAddresses: ShippingAddress[] = data?.setShippingAddressesOnCart?.cart?.shipping_addresses ?? [];
 
-    expect(shippingAddresses.length, 'shipping_addresses must not be empty').toBeGreaterThan(0);
+      expect(shippingAddresses.length, 'shipping_addresses must not be empty').toBeGreaterThan(0);
 
-    const addr = shippingAddresses[0];
-    logger.verify('Shipping address present', true, !!addr);
-    softExpect(addr.firstname).toBeTruthy();
-    softExpect(addr.postcode).toBeTruthy();
-    softExpect(Array.isArray(addr.available_shipping_methods)).toBe(true);
+      const addr = shippingAddresses[0];
+      logger.verify('Shipping address present', true, !!addr);
+      softExpect(addr.firstname).toBeTruthy();
+      softExpect(addr.postcode).toBeTruthy();
+      softExpect(Array.isArray(addr.available_shipping_methods)).toBe(true);
+    });
   });
 
   test('TC_03 - setShippingAddressesOnCart with invalid customer_address_id → error', async ({ createGraphQLClient }) => {
@@ -410,21 +421,24 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Execute setShippingAddressesOnCart with invalid address id');
-    logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${checkoutData.invalidCustomerAddressId})`);
-    const response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId,
-      shippingAddresses: [{ customer_address_id: checkoutData.invalidCustomerAddressId }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setShippingAddressesOnCart with invalid address id', async () => {
+      logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${checkoutData.invalidCustomerAddressId})`);
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+        cartId,
+        shippingAddresses: [{ customer_address_id: checkoutData.invalidCustomerAddressId }],
+      });
     });
 
-    logger.step('Step 2 - Assert error returned');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert error returned', async () => {
+      await response.assertHasErrors();
 
-    const gql = await response.getGraphQLResponse();
-    const errorMessage = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
+      const gql = await response.getGraphQLResponse();
+      const errorMessage = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
 
-    logger.verify('Error message present for invalid address id', true, errorMessage.length > 0);
-    expect(errorMessage.length, 'Expected an error message for invalid customer_address_id').toBeGreaterThan(0);
+      logger.verify('Error message present for invalid address id', true, errorMessage.length > 0);
+      expect(errorMessage.length, 'Expected an error message for invalid customer_address_id').toBeGreaterThan(0);
+    });
   });
 
   test('TC_04 - setShippingAddressesOnCart with empty firstname → validation error', async ({ createGraphQLClient }) => {
@@ -433,23 +447,26 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const { lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
 
-    logger.step('Step 1 - Execute setShippingAddressesOnCart with empty firstname');
-    logger.action('POST', 'setShippingAddressesOnCart (firstname empty)');
-    const response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId,
-      shippingAddresses: [{
-        address: { firstname: '', lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setShippingAddressesOnCart with empty firstname', async () => {
+      logger.action('POST', 'setShippingAddressesOnCart (firstname empty)');
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+        cartId,
+        shippingAddresses: [{
+          address: { firstname: '', lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+        }],
+      });
     });
 
-    logger.step('Step 2 - Assert validation error returned');
-    const gql = await response.getGraphQLResponse();
-    const hasErrors = (gql.errors?.length ?? 0) > 0;
-    const errorMessage = hasErrors ? gql.errors![0]?.message ?? '' : '';
+    await logger.step('Step 2 - Assert validation error returned', async () => {
+      const gql = await response.getGraphQLResponse();
+      const hasErrors = (gql.errors?.length ?? 0) > 0;
+      const errorMessage = hasErrors ? gql.errors![0]?.message ?? '' : '';
 
-    logger.verify('Validation error present', true, hasErrors);
-    expect(hasErrors, 'Expected a validation error for empty firstname').toBe(true);
-    softExpect(errorMessage.length).toBeGreaterThan(0);
+      logger.verify('Validation error present', true, hasErrors);
+      expect(hasErrors, 'Expected a validation error for empty firstname').toBe(true);
+      softExpect(errorMessage.length).toBeGreaterThan(0);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -462,54 +479,62 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     // Re-set inline address — TC_04's empty-firstname mutation may have cleared the cart's shipping address on some staging environments
-    logger.step('Step 1 - Re-set inline shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
-    await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId,
-      shippingAddresses: [{
-        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      }],
+    await logger.step('Step 1 - Re-set inline shipping address', async () => {
+      const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
+      await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+        cartId,
+        shippingAddresses: [{
+          address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+        }],
+      });
     });
 
-    logger.step('Step 2 - Query cart for available shipping methods');
-    const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
-    const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
+    let carrier_code!: string;
+    let method_code!: string;
+    await logger.step('Step 2 - Query cart for available shipping methods', async () => {
+      const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
+      const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
 
-    if (!shippingAddrs.length) {
-      test.skip(true, 'No shipping address set on cart — skipping TC_05');
-      return;
-    }
+      if (!shippingAddrs.length) {
+        test.skip(true, 'No shipping address set on cart — skipping TC_05');
+        return;
+      }
 
-    const availableMethods: ShippingMethod[] = shippingAddrs[0]?.available_shipping_methods ?? [];
-    const firstAvailable = availableMethods.find((m: ShippingMethod) => m.available);
+      const availableMethods: ShippingMethod[] = shippingAddrs[0]?.available_shipping_methods ?? [];
+      const firstAvailable = availableMethods.find((m: ShippingMethod) => m.available);
 
-    if (!firstAvailable) {
-      test.skip(true, 'No available shipping methods — skipping TC_05');
-      return;
-    }
+      if (!firstAvailable) {
+        test.skip(true, 'No available shipping methods — skipping TC_05');
+        return;
+      }
 
-    const { carrier_code, method_code } = firstAvailable;
-    logger.action('Using method', `${carrier_code}_${method_code}`);
-
-    logger.step('Step 3 - Execute setShippingMethodsOnCart with first available method');
-    const response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
-      cartId,
-      carrierCode: carrier_code,
-      methodCode: method_code,
+      carrier_code = firstAvailable.carrier_code;
+      method_code = firstAvailable.method_code;
+      logger.action('Using method', `${carrier_code}_${method_code}`);
     });
 
-    logger.step('Step 4 - Assert no errors and selected method matches');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 3 - Execute setShippingMethodsOnCart with first available method', async () => {
+      response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
+        cartId,
+        carrierCode: carrier_code,
+        methodCode: method_code,
+      });
+    });
 
-    const data = await response.getData();
-    const selectedMethod = data?.setShippingMethodsOnCart?.cart?.shipping_addresses?.[0]?.selected_shipping_method;
+    await logger.step('Step 4 - Assert no errors and selected method matches', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    expect(selectedMethod, 'selected_shipping_method must be defined').toBeDefined();
-    logger.verify('carrier_code', carrier_code, selectedMethod?.carrier_code);
-    logger.verify('method_code', method_code, selectedMethod?.method_code);
-    softExpect(selectedMethod?.carrier_code).toBe(carrier_code);
-    softExpect(selectedMethod?.method_code).toBe(method_code);
+      const data = await response.getData();
+      const selectedMethod = data?.setShippingMethodsOnCart?.cart?.shipping_addresses?.[0]?.selected_shipping_method;
+
+      expect(selectedMethod, 'selected_shipping_method must be defined').toBeDefined();
+      logger.verify('carrier_code', carrier_code, selectedMethod?.carrier_code);
+      logger.verify('method_code', method_code, selectedMethod?.method_code);
+      softExpect(selectedMethod?.carrier_code).toBe(carrier_code);
+      softExpect(selectedMethod?.method_code).toBe(method_code);
+    });
   });
 
   test('TC_06 - setShippingMethodsOnCart with alternate method → method applied', async ({ createGraphQLClient }) => {
@@ -518,55 +543,63 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     // Re-set inline address — defensive guard; TC_05 already sets it but re-query may see stale state
-    logger.step('Step 1 - Re-set inline shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
-    await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-      cartId,
-      shippingAddresses: [{
-        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      }],
+    await logger.step('Step 1 - Re-set inline shipping address', async () => {
+      const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
+      await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+        cartId,
+        shippingAddresses: [{
+          address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+        }],
+      });
     });
 
-    logger.step('Step 2 - Query cart for available shipping methods');
-    const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
-    const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
+    let carrier_code!: string;
+    let method_code!: string;
+    await logger.step('Step 2 - Query cart for available shipping methods', async () => {
+      const cartData = await (await authClient.queryWrapped(GET_CART_SHIPPING_METHODS_QUERY, { cartId })).getData();
+      const shippingAddrs: ShippingAddress[] = cartData?.cart?.shipping_addresses ?? [];
 
-    if (!shippingAddrs.length) {
-      test.skip(true, 'No shipping address on cart — skipping TC_06');
-      return;
-    }
+      if (!shippingAddrs.length) {
+        test.skip(true, 'No shipping address on cart — skipping TC_06');
+        return;
+      }
 
-    const availableMethods: ShippingMethod[] = (shippingAddrs[0]?.available_shipping_methods ?? []).filter((m: ShippingMethod) => m.available);
+      const availableMethods: ShippingMethod[] = (shippingAddrs[0]?.available_shipping_methods ?? []).filter((m: ShippingMethod) => m.available);
 
-    if (!availableMethods.length) {
-      test.skip(true, 'No available shipping methods — skipping TC_06');
-      return;
-    }
+      if (!availableMethods.length) {
+        test.skip(true, 'No available shipping methods — skipping TC_06');
+        return;
+      }
 
-    // Pick second method if multiple, otherwise reuse first (idempotent set)
-    const targetMethod = availableMethods.length > 1 ? availableMethods[1] : availableMethods[0];
-    const { carrier_code, method_code } = targetMethod;
-    logger.action('Using method', `${carrier_code}_${method_code}`);
-
-    logger.step('Step 3 - Execute setShippingMethodsOnCart with target method');
-    const response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
-      cartId,
-      carrierCode: carrier_code,
-      methodCode: method_code,
+      // Pick second method if multiple, otherwise reuse first (idempotent set)
+      const targetMethod = availableMethods.length > 1 ? availableMethods[1] : availableMethods[0];
+      carrier_code = targetMethod.carrier_code;
+      method_code = targetMethod.method_code;
+      logger.action('Using method', `${carrier_code}_${method_code}`);
     });
 
-    logger.step('Step 4 - Assert no errors and selected method applied');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 3 - Execute setShippingMethodsOnCart with target method', async () => {
+      response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
+        cartId,
+        carrierCode: carrier_code,
+        methodCode: method_code,
+      });
+    });
 
-    const data = await response.getData();
-    const selectedMethod = data?.setShippingMethodsOnCart?.cart?.shipping_addresses?.[0]?.selected_shipping_method;
+    await logger.step('Step 4 - Assert no errors and selected method applied', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    expect(selectedMethod, 'selected_shipping_method must be defined').toBeDefined();
-    logger.verify('carrier_code applied', carrier_code, selectedMethod?.carrier_code);
-    logger.verify('method_code applied', method_code, selectedMethod?.method_code);
-    softExpect(selectedMethod?.carrier_code).toBe(carrier_code);
-    softExpect(selectedMethod?.method_code).toBe(method_code);
+      const data = await response.getData();
+      const selectedMethod = data?.setShippingMethodsOnCart?.cart?.shipping_addresses?.[0]?.selected_shipping_method;
+
+      expect(selectedMethod, 'selected_shipping_method must be defined').toBeDefined();
+      logger.verify('carrier_code applied', carrier_code, selectedMethod?.carrier_code);
+      logger.verify('method_code applied', method_code, selectedMethod?.method_code);
+      softExpect(selectedMethod?.carrier_code).toBe(carrier_code);
+      softExpect(selectedMethod?.method_code).toBe(method_code);
+    });
   });
 
   test('TC_07 - setShippingMethodsOnCart with invalid carrier/method → error', async ({ createGraphQLClient }) => {
@@ -574,22 +607,25 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Execute setShippingMethodsOnCart with invalid codes');
-    logger.action('POST', `setShippingMethodsOnCart (carrier=${checkoutData.invalidCarrierCode}, method=${checkoutData.invalidMethodCode})`);
-    const response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
-      cartId,
-      carrierCode: checkoutData.invalidCarrierCode,
-      methodCode: checkoutData.invalidMethodCode,
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setShippingMethodsOnCart with invalid codes', async () => {
+      logger.action('POST', `setShippingMethodsOnCart (carrier=${checkoutData.invalidCarrierCode}, method=${checkoutData.invalidMethodCode})`);
+      response = await authClient.mutateWrapped(SET_SHIPPING_METHODS_MUTATION, {
+        cartId,
+        carrierCode: checkoutData.invalidCarrierCode,
+        methodCode: checkoutData.invalidMethodCode,
+      });
     });
 
-    logger.step('Step 2 - Assert error returned');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert error returned', async () => {
+      await response.assertHasErrors();
 
-    const gql = await response.getGraphQLResponse();
-    const errorMessage = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
+      const gql = await response.getGraphQLResponse();
+      const errorMessage = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
 
-    logger.verify('Error message present for invalid carrier/method', true, errorMessage.length > 0);
-    expect(errorMessage.length, 'Expected an error message for invalid carrier/method codes').toBeGreaterThan(0);
+      logger.verify('Error message present for invalid carrier/method', true, errorMessage.length > 0);
+      expect(errorMessage.length, 'Expected an error message for invalid carrier/method codes').toBeGreaterThan(0);
+    });
   });
 
 });

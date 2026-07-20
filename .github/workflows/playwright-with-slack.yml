@@ -234,6 +234,7 @@ jobs:
             monocart-report/
             screenshots/
             videos/
+            test-logs/
           retention-days: 30
 
       - name: Upload Test Summary
@@ -314,6 +315,7 @@ jobs:
             api-report/
             monocart-api-report/
             playwright-report/
+            test-logs/
           retention-days: 30
 
       - name: Upload API Test Summary
@@ -361,6 +363,7 @@ jobs:
             api-report/
             monocart-api-report/
             playwright-report/
+            test-logs/
           retention-days: 30
 
       - name: Upload Misc API Test Summary

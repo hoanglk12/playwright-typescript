@@ -20,6 +20,8 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import { GraphQLResponse } from '../../src/api/GraphQLClient';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -165,74 +167,77 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
     });
 
     // ── 2. Discover in-stock candidate SKUs ────────────────────────────────
-    logger.step('Discover in-stock product SKU candidates');
     const candidateSkus: string[] = [];
-    const searchTerms = ['', 'shoe', 'nike', 'a'];
-    for (const term of searchTerms) {
-      const productsResponse = await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term });
-      const productsData = await productsResponse.getData();
-      const items: ProductItem[] = productsData?.products?.items ?? [];
+    await logger.step('Discover in-stock product SKU candidates', async () => {
+      const searchTerms = ['', 'shoe', 'nike', 'a'];
+      for (const term of searchTerms) {
+        const productsResponse = await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term });
+        const productsData = await productsResponse.getData();
+        const items: ProductItem[] = productsData?.products?.items ?? [];
 
-      for (const item of items) {
-        if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
-        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          for (const v of item.variants) {
-            if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
-              candidateSkus.push(v.product.sku);
+        for (const item of items) {
+          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
+            if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
+          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+            for (const v of item.variants) {
+              if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
+                candidateSkus.push(v.product.sku);
+              }
             }
           }
+          // No fallback to item.sku — parent configurable SKUs return PRODUCT_NOT_FOUND on add
         }
-        // No fallback to item.sku — parent configurable SKUs return PRODUCT_NOT_FOUND on add
+        if (candidateSkus.length >= 3) break;
       }
-      if (candidateSkus.length >= 3) break;
-    }
 
-    if (!candidateSkus.length) {
-      throw new Error('beforeAll: no in-stock product found — cannot run cart operation tests');
-    }
+      if (!candidateSkus.length) {
+        throw new Error('beforeAll: no in-stock product found — cannot run cart operation tests');
+      }
+    });
 
     // ── 3. Create shared cart in the hook (not in a test) ─────────────────
     // Retry workers re-run beforeAll but NOT earlier tests; creating the cart here
     // guarantees cartId is never empty in a retry worker (fixes "cart_id missing" cascade)
-    logger.step('Create shared cart');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-    if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-    cartId = cartGql.data?.cartId ?? '';
-    if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
-    siteState.setCartId(cartId);
-    logger.action('Cart created', cartId);
+    await logger.step('Create shared cart', async () => {
+      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+      if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
+      cartId = cartGql.data?.cartId ?? '';
+      if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
+      siteState.setCartId(cartId);
+      logger.action('Cart created', cartId);
+    });
 
     // ── 4. Verify a candidate SKU is genuinely addable (probe add → remove) ─
-    logger.step('Verify candidate SKU addability (probe add, then remove)');
-    for (const sku of candidateSkus) {
-      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-        cartId,
-        cartItems: [{ sku, quantity: 1 }],
-      })).getGraphQLResponse();
-      const addUserErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
-      if (!(addGql.errors?.length) && !addUserErrors.length) {
-        validSku = sku;
-        // Remove the probe item so TC_01 starts from an empty cart
-        const probeItem = (addGql.data?.addProductsToCart?.cart?.items ?? []).find(
-          (i: CartItem) => i.product.sku === sku,
-        );
-        if (probeItem) {
-          await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
-            input: { cart_id: cartId, cart_item_id: probeItem.id },
-          });
+    await logger.step('Verify candidate SKU addability (probe add, then remove)', async () => {
+      for (const sku of candidateSkus) {
+        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+          cartId,
+          cartItems: [{ sku, quantity: 1 }],
+        })).getGraphQLResponse();
+        const addUserErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
+        if (!(addGql.errors?.length) && !addUserErrors.length) {
+          validSku = sku;
+          // Remove the probe item so TC_01 starts from an empty cart
+          const probeItem = (addGql.data?.addProductsToCart?.cart?.items ?? []).find(
+            (i: CartItem) => i.product.sku === sku,
+          );
+          if (probeItem) {
+            await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
+              input: { cart_id: cartId, cart_item_id: probeItem.id },
+            });
+          }
+          logger.action('SKU verified addable', sku);
+          break;
         }
-        logger.action('SKU verified addable', sku);
-        break;
+        logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
       }
-      logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
-    }
 
-    if (!validSku) {
-      throw new Error('beforeAll: no candidate SKU could be added to cart — cannot run cart operation tests');
-    }
+      if (!validSku) {
+        throw new Error('beforeAll: no candidate SKU could be added to cart — cannot run cart operation tests');
+      }
 
-    logger.verify('beforeAll ready', 'validSku found', validSku);
+      logger.verify('beforeAll ready', 'validSku found', validSku);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -249,23 +254,26 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute createEmptyCart mutation');
-    const response = await authClient.queryWrapped(CREATE_CART_MUTATION);
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute createEmptyCart mutation', async () => {
+      response = await authClient.queryWrapped(CREATE_CART_MUTATION);
+    });
 
-    logger.step('Step 2 - Assert cart created');
-    await response.assertNoErrors();
-    await response.assertHasData();
-    await response.assertStatus(200);
+    await logger.step('Step 2 - Assert cart created', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
+      await response.assertStatus(200);
 
-    const data = await response.getData();
-    cartId = data.cartId;
-    siteState.setCartId(cartId);
+      const data = await response.getData();
+      cartId = data.cartId;
+      siteState.setCartId(cartId);
 
-    expect(cartId).toBeDefined();
-    softExpect(cartId).not.toMatch(specialCharRegex);
+      expect(cartId).toBeDefined();
+      softExpect(cartId).not.toMatch(specialCharRegex);
 
-    logger.verify('Cart created', true, !!cartId);
-    logger.action('Stored', `cartId=${cartId}`);
+      logger.verify('Cart created', true, !!cartId);
+      logger.action('Stored', `cartId=${cartId}`);
+    });
   });
 
   test('GRA_GetItemCount - should show error with wrong cartId', async ({
@@ -275,20 +283,24 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
     const variables = { cartId: site.testData.invalidCartId };
     const graphQLClient = await createGraphQLClient();
 
-    logger.step('Step 1 - Execute getItemCount with invalid cartId');
-    const response = await graphQLClient.queryWrapped(GET_ITEM_COUNT_QUERY, variables);
-    const graphqlResponse = await response.getGraphQLResponse();
+    let response!: GraphQLResponseWrapper;
+    let graphqlResponse!: GraphQLResponse;
+    await logger.step('Step 1 - Execute getItemCount with invalid cartId', async () => {
+      response = await graphQLClient.queryWrapped(GET_ITEM_COUNT_QUERY, variables);
+      graphqlResponse = await response.getGraphQLResponse();
+    });
 
-    logger.step('Step 2 - Assert error returned');
-    await response.assertHasErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert error returned', async () => {
+      await response.assertHasErrors();
+      await response.assertHasData();
 
-    expect(graphqlResponse.errors).toBeDefined();
-    expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
-    softExpect(graphqlResponse.errors![0].message).toContain(graErrorMessages.invalidCartId);
-    softExpect(graphqlResponse.data?.cart).toBeNull();
+      expect(graphqlResponse.errors).toBeDefined();
+      expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
+      softExpect(graphqlResponse.errors![0].message).toContain(graErrorMessages.invalidCartId);
+      softExpect(graphqlResponse.data?.cart).toBeNull();
 
-    logger.verify('Error message', graErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
+      logger.verify('Error message', graErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
+    });
   });
 
   test('GRA_GetItemCount - should return data about cartId, quantity and shipping address', async ({
@@ -304,25 +316,28 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute getItemCount with valid cartId');
-    const response = await authClient.queryWrapped(GET_ITEM_COUNT_QUERY, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute getItemCount with valid cartId', async () => {
+      response = await authClient.queryWrapped(GET_ITEM_COUNT_QUERY, { cartId });
+    });
 
-    logger.step('Step 2 - Assert cart data returned');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert cart data returned', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
+      const data = await response.getData();
 
-    expect(data.cart).not.toBeNull();
-    expect(data.cart).toBeDefined();
+      expect(data.cart).not.toBeNull();
+      expect(data.cart).toBeDefined();
 
-    softExpect(data.cart.id).toBe(cartId);
-    softExpect(data.cart.total_quantity).toBeDefined();
-    softExpect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
-    softExpect(data.cart.__typename).toBe('Cart');
+      softExpect(data.cart.id).toBe(cartId);
+      softExpect(data.cart.total_quantity).toBeDefined();
+      softExpect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
+      softExpect(data.cart.__typename).toBe('Cart');
 
-    logger.verify('Cart ID', cartId, data.cart.id);
-    logger.verify('Cart typename', 'Cart', data.cart.__typename);
+      logger.verify('Cart ID', cartId, data.cart.id);
+      logger.verify('Cart typename', 'Cart', data.cart.__typename);
+    });
   });
 
   test('GRA_MiniCartQuery - should show error with wrong cartId', async ({
@@ -336,20 +351,24 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
     const variables = { cartId: site.testData.invalidCartId };
     const graphQLClient = await createGraphQLClient();
 
-    logger.step('Step 1 - Execute MiniCartQuery with invalid cartId');
-    const response = await graphQLClient.queryWrapped(MINI_CART_QUERY, variables);
-    const graphqlResponse = await response.getGraphQLResponse();
+    let response!: GraphQLResponseWrapper;
+    let graphqlResponse!: GraphQLResponse;
+    await logger.step('Step 1 - Execute MiniCartQuery with invalid cartId', async () => {
+      response = await graphQLClient.queryWrapped(MINI_CART_QUERY, variables);
+      graphqlResponse = await response.getGraphQLResponse();
+    });
 
-    logger.step('Step 2 - Assert error returned');
-    await response.assertHasErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert error returned', async () => {
+      await response.assertHasErrors();
+      await response.assertHasData();
 
-    expect(graphqlResponse.errors).toBeDefined();
-    expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
-    softExpect(graphqlResponse.errors![0].message).toContain(graErrorMessages.invalidCartId);
-    softExpect(graphqlResponse.data?.cart).toBeNull();
+      expect(graphqlResponse.errors).toBeDefined();
+      expect(graphqlResponse.errors?.length).toBeGreaterThan(0);
+      softExpect(graphqlResponse.errors![0].message).toContain(graErrorMessages.invalidCartId);
+      softExpect(graphqlResponse.data?.cart).toBeNull();
 
-    logger.verify('Error message', graErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
+      logger.verify('Error message', graErrorMessages.invalidCartId, graphqlResponse.errors![0].message);
+    });
   });
 
   test('GRA_MiniCartQuery - return data about cartId, quantity, prices, rewards msg, and qff', async ({
@@ -366,47 +385,50 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute MiniCartQuery with valid cartId');
-    const response = await authClient.queryWrapped(MINI_CART_QUERY, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute MiniCartQuery with valid cartId', async () => {
+      response = await authClient.queryWrapped(MINI_CART_QUERY, { cartId });
+    });
 
-    logger.step('Step 2 - Assert mini-cart data returned');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert mini-cart data returned', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
+      const data = await response.getData();
 
-    expect(data.cart).not.toBeNull();
-    expect(data.cart).toBeDefined();
+      expect(data.cart).not.toBeNull();
+      expect(data.cart).toBeDefined();
 
-    softExpect(data.cart.id).toBe(cartId);
-    softExpect(data.cart.total_quantity).toBeDefined();
-    softExpect(data.cart.prices.subtotal_including_tax).toBeDefined();
-    softExpect(data.cart.prices.grand_total).toBeDefined();
-    softExpect(data.cart.prices.special_price_discount).toBeDefined();
-    softExpect(data.cart.prices.discounts).toBeNull();
-    softExpect(data.cart.prices.__typename).toBe('CartPrices');
-    if (site.brand === 'platypus') {
-      softExpect(data.cart.multiple_rewards_message).toBe(
-        'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'
-      );
-    } else {
-      softExpect(
-        data.cart.multiple_rewards_message === null || typeof data.cart.multiple_rewards_message === 'string'
-      ).toBe(true);
-    }
-    if (site.countryCode === 'AU') {
-      softExpect(data.cart.qff_reward.is_qff_member).toBe(false);
-      softExpect(data.cart.qff_reward.qff_points).toBe(0);
-      softExpect(data.cart.qff_reward.qff_reward_message).toBe(
-        'Earn 0 Qantas Points with this purchase'
-      );
-      softExpect(data.cart.qff_reward.__typename).toBe('QffReward');
-      softExpect(data.cart.applied_qantas_points).toBeNull();
-    }
-    softExpect(data.cart.__typename).toBe('Cart');
+      softExpect(data.cart.id).toBe(cartId);
+      softExpect(data.cart.total_quantity).toBeDefined();
+      softExpect(data.cart.prices.subtotal_including_tax).toBeDefined();
+      softExpect(data.cart.prices.grand_total).toBeDefined();
+      softExpect(data.cart.prices.special_price_discount).toBeDefined();
+      softExpect(data.cart.prices.discounts).toBeNull();
+      softExpect(data.cart.prices.__typename).toBe('CartPrices');
+      if (site.brand === 'platypus') {
+        softExpect(data.cart.multiple_rewards_message).toBe(
+          'Spend $100 to earn a $10 voucher on your next shop! Join Kicks Club at checkout.'
+        );
+      } else {
+        softExpect(
+          data.cart.multiple_rewards_message === null || typeof data.cart.multiple_rewards_message === 'string'
+        ).toBe(true);
+      }
+      if (site.countryCode === 'AU') {
+        softExpect(data.cart.qff_reward.is_qff_member).toBe(false);
+        softExpect(data.cart.qff_reward.qff_points).toBe(0);
+        softExpect(data.cart.qff_reward.qff_reward_message).toBe(
+          'Earn 0 Qantas Points with this purchase'
+        );
+        softExpect(data.cart.qff_reward.__typename).toBe('QffReward');
+        softExpect(data.cart.applied_qantas_points).toBeNull();
+      }
+      softExpect(data.cart.__typename).toBe('Cart');
 
-    logger.verify('Cart ID', cartId, data.cart.id);
-    logger.verify('Cart typename', 'Cart', data.cart.__typename);
+      logger.verify('Cart ID', cartId, data.cart.id);
+      logger.verify('Cart typename', 'Cart', data.cart.__typename);
+    });
   });
 
   test('GRA_GetCartDetailsAfterSignIn - return data about cartId, quantity, prices, rewards msg, and qff', async ({
@@ -422,37 +444,40 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute GetCartDetailsAfterSignIn with valid cartId');
-    const response = await authClient.queryWrapped(GET_CART_DETAILS_QUERY, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute GetCartDetailsAfterSignIn with valid cartId', async () => {
+      response = await authClient.queryWrapped(GET_CART_DETAILS_QUERY, { cartId });
+    });
 
-    logger.step('Step 2 - Assert cart details returned');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert cart details returned', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
+      const data = await response.getData();
 
-    expect(data.cart).not.toBeNull();
-    expect(data.cart).toBeDefined();
+      expect(data.cart).not.toBeNull();
+      expect(data.cart).toBeDefined();
 
-    softExpect(data.cart.id).toBe(cartId);
-    softExpect(Array.isArray(data.cart.items)).toBe(true);
-    softExpect(Array.isArray(data.cart.available_payment_methods)).toBe(true);
-    softExpect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
-    softExpect(Array.isArray(data.cart.applied_gift_cards)).toBe(true);
-    softExpect(data.cart.applied_qantas_points).toBeNull();
-    softExpect(data.cart.applied_multiple_rewards).toBeNull();
-    softExpect(data.cart.applied_coupons).toBeNull();
+      softExpect(data.cart.id).toBe(cartId);
+      softExpect(Array.isArray(data.cart.items)).toBe(true);
+      softExpect(Array.isArray(data.cart.available_payment_methods)).toBe(true);
+      softExpect(Array.isArray(data.cart.shipping_addresses)).toBe(true);
+      softExpect(Array.isArray(data.cart.applied_gift_cards)).toBe(true);
+      softExpect(data.cart.applied_qantas_points).toBeNull();
+      softExpect(data.cart.applied_multiple_rewards).toBeNull();
+      softExpect(data.cart.applied_coupons).toBeNull();
 
-    const paymentMethodCodes = data.cart.available_payment_methods.map((m: PaymentMethod) => m.code);
-    const expectedCodes = ['checkmo', 'braintree_applepay', 'free', 'braintree', 'braintree_paypal'];
-    softExpect(paymentMethodCodes).toEqual(expect.arrayContaining(expectedCodes));
+      const paymentMethodCodes = data.cart.available_payment_methods.map((m: PaymentMethod) => m.code);
+      const expectedCodes = ['checkmo', 'braintree_applepay', 'free', 'braintree', 'braintree_paypal'];
+      softExpect(paymentMethodCodes).toEqual(expect.arrayContaining(expectedCodes));
 
-    const paymentMethodTitles = data.cart.available_payment_methods.map((m: PaymentMethod) => m.title);
-    const expectedTitles = ['Check / Money order', 'Apple Pay', 'No Payment Information Required', 'Credit or Debit Card', 'PayPal'];
-    softExpect(paymentMethodTitles).toEqual(expect.arrayContaining(expectedTitles));
+      const paymentMethodTitles = data.cart.available_payment_methods.map((m: PaymentMethod) => m.title);
+      const expectedTitles = ['Check / Money order', 'Apple Pay', 'No Payment Information Required', 'Credit or Debit Card', 'PayPal'];
+      softExpect(paymentMethodTitles).toEqual(expect.arrayContaining(expectedTitles));
 
-    logger.verify('Payment method codes present', true, paymentMethodCodes.length > 0);
-    logger.verify('Payment method titles present', true, paymentMethodTitles.length > 0);
+      logger.verify('Payment method codes present', true, paymentMethodCodes.length > 0);
+      logger.verify('Payment method titles present', true, paymentMethodTitles.length > 0);
+    });
   });
 
   test('GRA_checkUserIsAuthed - return data about cartId, quantity, prices, rewards msg, and qff', async ({
@@ -468,23 +493,26 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute checkUserIsAuthed with valid cartId');
-    const response = await authClient.queryWrapped(CHECK_USER_IS_AUTHED_QUERY, { cartId });
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute checkUserIsAuthed with valid cartId', async () => {
+      response = await authClient.queryWrapped(CHECK_USER_IS_AUTHED_QUERY, { cartId });
+    });
 
-    logger.step('Step 2 - Assert cart accessible for authenticated user');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert cart accessible for authenticated user', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
+      const data = await response.getData();
 
-    expect(data.cart).not.toBeNull();
-    expect(data.cart).toBeDefined();
+      expect(data.cart).not.toBeNull();
+      expect(data.cart).toBeDefined();
 
-    softExpect(data.cart.id).toBe(cartId);
-    softExpect(data.cart.__typename).toBe('Cart');
+      softExpect(data.cart.id).toBe(cartId);
+      softExpect(data.cart.__typename).toBe('Cart');
 
-    logger.verify('Cart ID', cartId, data.cart.id);
-    logger.verify('Cart typename', 'Cart', data.cart.__typename);
+      logger.verify('Cart ID', cartId, data.cart.id);
+      logger.verify('Cart typename', 'Cart', data.cart.__typename);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -503,36 +531,39 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute addProductsToCart mutation');
-    logger.action('POST', `addProductsToCart (cartId=${cartId}, sku=${validSku})`);
-    const response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-      cartId,
-      cartItems: [{ sku: validSku, quantity: CartOperationsData.initialQuantity }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute addProductsToCart mutation', async () => {
+      logger.action('POST', `addProductsToCart (cartId=${cartId}, sku=${validSku})`);
+      response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+        cartId,
+        cartItems: [{ sku: validSku, quantity: CartOperationsData.initialQuantity }],
+      });
     });
 
-    logger.step('Step 2 - Assert response has no errors and item appears in cart');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert response has no errors and item appears in cart', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const cartData = data.addProductsToCart?.cart;
-    const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
+      const data = await response.getData();
+      const cartData = data.addProductsToCart?.cart;
+      const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
 
-    logger.verify('No user_errors', 0, userErrors.length);
-    expect(userErrors).toHaveLength(0);
-    expect(cartData).toBeDefined();
-    expect(cartData.items.length).toBeGreaterThan(0);
+      logger.verify('No user_errors', 0, userErrors.length);
+      expect(userErrors).toHaveLength(0);
+      expect(cartData).toBeDefined();
+      expect(cartData.items.length).toBeGreaterThan(0);
 
-    const addedItem = cartData.items.find((i: CartItem) => i.product.sku === validSku);
-    expect(addedItem).toBeDefined();
+      const addedItem = cartData.items.find((i: CartItem) => i.product.sku === validSku);
+      expect(addedItem).toBeDefined();
 
-    cartItemId = addedItem!.id;
+      cartItemId = addedItem!.id;
 
-    logger.verify('Item SKU in cart', validSku, addedItem!.product.sku);
-    softExpect(addedItem!.quantity).toBe(CartOperationsData.initialQuantity);
-    softExpect(cartData.total_quantity).toBeGreaterThan(0);
+      logger.verify('Item SKU in cart', validSku, addedItem!.product.sku);
+      softExpect(addedItem!.quantity).toBe(CartOperationsData.initialQuantity);
+      softExpect(cartData.total_quantity).toBeGreaterThan(0);
 
-    logger.action('Cart item added', `cartItemId=${cartItemId}, qty=${addedItem!.quantity}`);
+      logger.action('Cart item added', `cartItemId=${cartItemId}, qty=${addedItem!.quantity}`);
+    });
   });
 
   test('TC_02 - addProductsToCart should return user_errors for invalid SKU', async ({ createGraphQLClient }) => {
@@ -543,21 +574,24 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute addProductsToCart with invalid SKU');
-    logger.action('POST', `addProductsToCart (sku=${CartOperationsData.invalidSku})`);
-    const response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-      cartId,
-      cartItems: [{ sku: CartOperationsData.invalidSku, quantity: 1 }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute addProductsToCart with invalid SKU', async () => {
+      logger.action('POST', `addProductsToCart (sku=${CartOperationsData.invalidSku})`);
+      response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+        cartId,
+        cartItems: [{ sku: CartOperationsData.invalidSku, quantity: 1 }],
+      });
     });
 
-    logger.step('Step 2 - Assert user_errors present for invalid SKU');
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert user_errors present for invalid SKU', async () => {
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
+      const data = await response.getData();
+      const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
 
-    logger.verify('user_errors present', true, userErrors.length > 0);
-    expect(userErrors.length).toBeGreaterThan(0);
+      logger.verify('user_errors present', true, userErrors.length > 0);
+      expect(userErrors.length).toBeGreaterThan(0);
+    });
   });
 
   test('TC_03 - addProductsToCart should return error for invalid cartId', async ({ createGraphQLClient }) => {
@@ -568,21 +602,24 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute addProductsToCart with invalid cartId');
-    logger.action('POST', `addProductsToCart (cartId=${CartOperationsData.invalidCartId})`);
-    const response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-      cartId: CartOperationsData.invalidCartId,
-      cartItems: [{ sku: validSku, quantity: 1 }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute addProductsToCart with invalid cartId', async () => {
+      logger.action('POST', `addProductsToCart (cartId=${CartOperationsData.invalidCartId})`);
+      response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+        cartId: CartOperationsData.invalidCartId,
+        cartItems: [{ sku: validSku, quantity: 1 }],
+      });
     });
 
-    logger.step('Step 2 - Assert error returned (GraphQL-level or user_errors)');
-    const graphqlResponse = await response.getGraphQLResponse();
-    const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
-    const hasUserErrors =
-      (graphqlResponse.data?.addProductsToCart?.user_errors?.length ?? 0) > 0;
+    await logger.step('Step 2 - Assert error returned (GraphQL-level or user_errors)', async () => {
+      const graphqlResponse = await response.getGraphQLResponse();
+      const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
+      const hasUserErrors =
+        (graphqlResponse.data?.addProductsToCart?.user_errors?.length ?? 0) > 0;
 
-    logger.verify('Error returned for invalid cartId', true, hasGqlErrors || hasUserErrors);
-    expect(hasGqlErrors || hasUserErrors).toBe(true);
+      logger.verify('Error returned for invalid cartId', true, hasGqlErrors || hasUserErrors);
+      expect(hasGqlErrors || hasUserErrors).toBe(true);
+    });
   });
 
   test('TC_04 - addProductsToCart should increment quantity when same product added twice', async ({ createGraphQLClient }) => {
@@ -595,31 +632,34 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Add same SKU again to cart');
-    logger.action('POST', `addProductsToCart duplicate (sku=${validSku})`);
-    const response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-      cartId,
-      cartItems: [{ sku: validSku, quantity: CartOperationsData.initialQuantity }],
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Add same SKU again to cart', async () => {
+      logger.action('POST', `addProductsToCart duplicate (sku=${validSku})`);
+      response = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+        cartId,
+        cartItems: [{ sku: validSku, quantity: CartOperationsData.initialQuantity }],
+      });
     });
 
-    logger.step('Step 2 - Assert quantity incremented to 2');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert quantity incremented to 2', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
-    expect(userErrors).toHaveLength(0);
+      const data = await response.getData();
+      const userErrors: UserError[] = data.addProductsToCart?.user_errors ?? [];
+      expect(userErrors).toHaveLength(0);
 
-    const cartData = data.addProductsToCart?.cart;
-    const item = cartData.items.find((i: CartItem) => i.product.sku === validSku);
-    expect(item).toBeDefined();
+      const cartData = data.addProductsToCart?.cart;
+      const item = cartData.items.find((i: CartItem) => i.product.sku === validSku);
+      expect(item).toBeDefined();
 
-    cartItemId = item!.id;
+      cartItemId = item!.id;
 
-    logger.verify('Quantity is 2 after second add', 2, item!.quantity);
-    softExpect(item!.quantity).toBe(2);
+      logger.verify('Quantity is 2 after second add', 2, item!.quantity);
+      softExpect(item!.quantity).toBe(2);
 
-    logger.action('Cart item updated', `cartItemId=${cartItemId}, qty=${item!.quantity}`);
+      logger.action('Cart item updated', `cartItemId=${cartItemId}, qty=${item!.quantity}`);
+    });
   });
 
   // ── updateCartItems ────────────────────────────────────────────────────────
@@ -634,37 +674,40 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Update cart item quantity to increased value');
-    logger.action('POST', `updateCartItems (cartItemId=${cartItemId}, qty=${CartOperationsData.increasedQuantity})`);
-    const response = await authClient.mutateWrapped(UPDATE_CART_ITEMS_MUTATION, {
-      input: {
-        cart_id: cartId,
-        cart_items: [{ cart_item_id: cartItemId, quantity: CartOperationsData.increasedQuantity }],
-      },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Update cart item quantity to increased value', async () => {
+      logger.action('POST', `updateCartItems (cartItemId=${cartItemId}, qty=${CartOperationsData.increasedQuantity})`);
+      response = await authClient.mutateWrapped(UPDATE_CART_ITEMS_MUTATION, {
+        input: {
+          cart_id: cartId,
+          cart_items: [{ cart_item_id: cartItemId, quantity: CartOperationsData.increasedQuantity }],
+        },
+      });
     });
 
-    logger.step('Step 2 - Assert quantity updated or stock constraint returned');
-    const graphqlResponse = await response.getGraphQLResponse();
-    const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
+    await logger.step('Step 2 - Assert quantity updated or stock constraint returned', async () => {
+      const graphqlResponse = await response.getGraphQLResponse();
+      const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
 
-    if (hasGqlErrors) {
-      const errMsg = graphqlResponse.errors![0]?.message ?? '';
-      // Staging products may have limited stock; "qty not available" is a valid API response
-      const isStockError = errMsg.toLowerCase().includes('qty') && errMsg.toLowerCase().includes('available');
-      logger.verify('Stock limit reached (acceptable on staging)', true, isStockError);
-      expect(isStockError, `Unexpected GQL error: ${errMsg}`).toBe(true);
-      return;
-    }
+      if (hasGqlErrors) {
+        const errMsg = graphqlResponse.errors![0]?.message ?? '';
+        // Staging products may have limited stock; "qty not available" is a valid API response
+        const isStockError = errMsg.toLowerCase().includes('qty') && errMsg.toLowerCase().includes('available');
+        logger.verify('Stock limit reached (acceptable on staging)', true, isStockError);
+        expect(isStockError, `Unexpected GQL error: ${errMsg}`).toBe(true);
+        return;
+      }
 
-    await response.assertHasData();
-    const data = await response.getData();
-    const cartData = data.updateCartItems?.cart;
-    const updatedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
+      await response.assertHasData();
+      const data = await response.getData();
+      const cartData = data.updateCartItems?.cart;
+      const updatedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
 
-    expect(updatedItem).toBeDefined();
-    logger.verify('Quantity increased', CartOperationsData.increasedQuantity, updatedItem!.quantity);
-    softExpect(updatedItem!.quantity).toBe(CartOperationsData.increasedQuantity);
-    softExpect(cartData.total_quantity).toBeGreaterThanOrEqual(CartOperationsData.increasedQuantity);
+      expect(updatedItem).toBeDefined();
+      logger.verify('Quantity increased', CartOperationsData.increasedQuantity, updatedItem!.quantity);
+      softExpect(updatedItem!.quantity).toBe(CartOperationsData.increasedQuantity);
+      softExpect(cartData.total_quantity).toBeGreaterThanOrEqual(CartOperationsData.increasedQuantity);
+    });
   });
 
   test('TC_06 - updateCartItems should decrease item quantity', async ({ createGraphQLClient }) => {
@@ -677,26 +720,29 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Update cart item quantity to decreased value');
-    logger.action('POST', `updateCartItems (cartItemId=${cartItemId}, qty=${CartOperationsData.decreasedQuantity})`);
-    const response = await authClient.mutateWrapped(UPDATE_CART_ITEMS_MUTATION, {
-      input: {
-        cart_id: cartId,
-        cart_items: [{ cart_item_id: cartItemId, quantity: CartOperationsData.decreasedQuantity }],
-      },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Update cart item quantity to decreased value', async () => {
+      logger.action('POST', `updateCartItems (cartItemId=${cartItemId}, qty=${CartOperationsData.decreasedQuantity})`);
+      response = await authClient.mutateWrapped(UPDATE_CART_ITEMS_MUTATION, {
+        input: {
+          cart_id: cartId,
+          cart_items: [{ cart_item_id: cartItemId, quantity: CartOperationsData.decreasedQuantity }],
+        },
+      });
     });
 
-    logger.step('Step 2 - Assert quantity decreased');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert quantity decreased', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const cartData = data.updateCartItems?.cart;
-    const updatedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
+      const data = await response.getData();
+      const cartData = data.updateCartItems?.cart;
+      const updatedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
 
-    expect(updatedItem).toBeDefined();
-    logger.verify('Quantity decreased', CartOperationsData.decreasedQuantity, updatedItem!.quantity);
-    softExpect(updatedItem!.quantity).toBe(CartOperationsData.decreasedQuantity);
+      expect(updatedItem).toBeDefined();
+      logger.verify('Quantity decreased', CartOperationsData.decreasedQuantity, updatedItem!.quantity);
+      softExpect(updatedItem!.quantity).toBe(CartOperationsData.decreasedQuantity);
+    });
   });
 
   test('TC_07 - updateCartItems with quantity 0 should remove item or return error', async ({ createGraphQLClient }) => {
@@ -709,39 +755,45 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Update cart item quantity to 0');
-    logger.action('POST', `updateCartItems (cartItemId=${cartItemId}, qty=0)`);
-    const response = await authClient.mutateWrapped(UPDATE_CART_ITEMS_MUTATION, {
-      input: {
-        cart_id: cartId,
-        cart_items: [{ cart_item_id: cartItemId, quantity: 0 }],
-      },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Update cart item quantity to 0', async () => {
+      logger.action('POST', `updateCartItems (cartItemId=${cartItemId}, qty=0)`);
+      response = await authClient.mutateWrapped(UPDATE_CART_ITEMS_MUTATION, {
+        input: {
+          cart_id: cartId,
+          cart_items: [{ cart_item_id: cartItemId, quantity: 0 }],
+        },
+      });
     });
 
-    logger.step('Step 2 - Assert item removed or validation error returned');
-    const graphqlResponse = await response.getGraphQLResponse();
-    const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
-    const cartItems: CartItem[] = graphqlResponse.data?.updateCartItems?.cart?.items ?? [];
-    const itemRemoved = !hasGqlErrors && !cartItems.find((i: CartItem) => i.id === cartItemId);
+    let graphqlResponse!: GraphQLResponse;
+    let itemRemoved!: boolean;
+    await logger.step('Step 2 - Assert item removed or validation error returned', async () => {
+      graphqlResponse = await response.getGraphQLResponse();
+      const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
+      const cartItems: CartItem[] = graphqlResponse.data?.updateCartItems?.cart?.items ?? [];
+      itemRemoved = !hasGqlErrors && !cartItems.find((i: CartItem) => i.id === cartItemId);
 
-    logger.verify('Item removed or error returned for qty=0', true, hasGqlErrors || itemRemoved);
-    expect(hasGqlErrors || itemRemoved).toBe(true);
+      logger.verify('Item removed or error returned for qty=0', true, hasGqlErrors || itemRemoved);
+      expect(hasGqlErrors || itemRemoved).toBe(true);
+    });
 
     // Re-add the item so TC_08 has a valid target to remove
     if (itemRemoved) {
-      logger.step('Item removed by qty=0 — re-adding for TC_08');
-      const reAddResponse = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-        cartId,
-        cartItems: [{ sku: validSku, quantity: CartOperationsData.initialQuantity }],
+      await logger.step('Item removed by qty=0 — re-adding for TC_08', async () => {
+        const reAddResponse = await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+          cartId,
+          cartItems: [{ sku: validSku, quantity: CartOperationsData.initialQuantity }],
+        });
+        const reAddData = await reAddResponse.getData();
+        const reAddedItem = reAddData.addProductsToCart?.cart?.items?.find(
+          (i: CartItem) => i.product.sku === validSku
+        );
+        if (reAddedItem) {
+          cartItemId = reAddedItem.id;
+          logger.action('Re-added item', `new cartItemId=${cartItemId}`);
+        }
       });
-      const reAddData = await reAddResponse.getData();
-      const reAddedItem = reAddData.addProductsToCart?.cart?.items?.find(
-        (i: CartItem) => i.product.sku === validSku
-      );
-      if (reAddedItem) {
-        cartItemId = reAddedItem.id;
-        logger.action('Re-added item', `new cartItemId=${cartItemId}`);
-      }
     } else {
       const errMsg = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
       logger.verify('GQL error for qty=0', true, errMsg.length > 0);
@@ -760,22 +812,25 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute removeItemFromCart mutation');
-    logger.action('POST', `removeItemFromCart (cartItemId=${cartItemId})`);
-    const response = await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
-      input: { cart_id: cartId, cart_item_id: cartItemId },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute removeItemFromCart mutation', async () => {
+      logger.action('POST', `removeItemFromCart (cartItemId=${cartItemId})`);
+      response = await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
+        input: { cart_id: cartId, cart_item_id: cartItemId },
+      });
     });
 
-    logger.step('Step 2 - Assert item no longer in cart');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert item no longer in cart', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const cartData = data.removeItemFromCart?.cart;
-    const removedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
+      const data = await response.getData();
+      const cartData = data.removeItemFromCart?.cart;
+      const removedItem = cartData?.items?.find((i: CartItem) => i.id === cartItemId);
 
-    logger.verify('Item absent from cart after removal', undefined, removedItem);
-    expect(removedItem).toBeUndefined();
+      logger.verify('Item absent from cart after removal', undefined, removedItem);
+      expect(removedItem).toBeUndefined();
+    });
   });
 
   test('TC_09 - removeItemFromCart should return error for invalid cart_item_id', async ({ createGraphQLClient }) => {
@@ -786,20 +841,23 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute removeItemFromCart with non-existent cart_item_id');
-    logger.action('POST', `removeItemFromCart (cartItemId=${CartOperationsData.invalidCartItemId})`);
-    const response = await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
-      input: { cart_id: cartId, cart_item_id: CartOperationsData.invalidCartItemId },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute removeItemFromCart with non-existent cart_item_id', async () => {
+      logger.action('POST', `removeItemFromCart (cartItemId=${CartOperationsData.invalidCartItemId})`);
+      response = await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
+        input: { cart_id: cartId, cart_item_id: CartOperationsData.invalidCartItemId },
+      });
     });
 
-    logger.step('Step 2 - Assert error returned');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert error returned', async () => {
+      await response.assertHasErrors();
 
-    const graphqlResponse = await response.getGraphQLResponse();
-    const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
+      const graphqlResponse = await response.getGraphQLResponse();
+      const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
 
-    logger.verify('Error message present', true, errorMessage.length > 0);
-    expect(errorMessage.length).toBeGreaterThan(0);
+      logger.verify('Error message present', true, errorMessage.length > 0);
+      expect(errorMessage.length).toBeGreaterThan(0);
+    });
   });
 
   test('TC_10 - removeItemFromCart should return authorization error when unauthenticated', async ({ createGraphQLClient }) => {
@@ -807,20 +865,23 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     const unauthClient = await createGraphQLClient();
 
-    logger.step('Step 1 - Execute removeItemFromCart without authentication');
-    logger.action('POST', 'removeItemFromCart unauthenticated');
-    const response = await unauthClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
-      input: { cart_id: cartId, cart_item_id: CartOperationsData.invalidCartItemId },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute removeItemFromCart without authentication', async () => {
+      logger.action('POST', 'removeItemFromCart unauthenticated');
+      response = await unauthClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
+        input: { cart_id: cartId, cart_item_id: CartOperationsData.invalidCartItemId },
+      });
     });
 
-    logger.step('Step 2 - Assert authorization error returned');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert authorization error returned', async () => {
+      await response.assertHasErrors();
 
-    const graphqlResponse = await response.getGraphQLResponse();
-    const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
+      const graphqlResponse = await response.getGraphQLResponse();
+      const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
 
-    logger.verify('Auth error returned', true, errorMessage.length > 0);
-    expect(errorMessage.length).toBeGreaterThan(0);
+      logger.verify('Auth error returned', true, errorMessage.length > 0);
+      expect(errorMessage.length).toBeGreaterThan(0);
+    });
   });
 
   // ── applyCouponToCart ──────────────────────────────────────────────────────
@@ -833,20 +894,23 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
       token: customerToken,
     });
 
-    logger.step('Step 1 - Execute applyCouponToCart with invalid coupon code');
-    logger.action('POST', `applyCouponToCart (coupon=${CartOperationsData.invalidCouponCode})`);
-    const response = await authClient.mutateWrapped(APPLY_COUPON_MUTATION, {
-      input: { cart_id: cartId, coupon_code: CartOperationsData.invalidCouponCode },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute applyCouponToCart with invalid coupon code', async () => {
+      logger.action('POST', `applyCouponToCart (coupon=${CartOperationsData.invalidCouponCode})`);
+      response = await authClient.mutateWrapped(APPLY_COUPON_MUTATION, {
+        input: { cart_id: cartId, coupon_code: CartOperationsData.invalidCouponCode },
+      });
     });
 
-    logger.step('Step 2 - Assert error returned for invalid coupon');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert error returned for invalid coupon', async () => {
+      await response.assertHasErrors();
 
-    const graphqlResponse = await response.getGraphQLResponse();
-    const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
+      const graphqlResponse = await response.getGraphQLResponse();
+      const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
 
-    logger.verify('Error present for invalid coupon', true, errorMessage.length > 0);
-    expect(errorMessage.length).toBeGreaterThan(0);
+      logger.verify('Error present for invalid coupon', true, errorMessage.length > 0);
+      expect(errorMessage.length).toBeGreaterThan(0);
+    });
   });
 
   test('TC_12 - applyCouponToCart should return authorization error when unauthenticated', async ({ createGraphQLClient }) => {
@@ -854,20 +918,23 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     const unauthClient = await createGraphQLClient();
 
-    logger.step('Step 1 - Execute applyCouponToCart without authentication');
-    logger.action('POST', 'applyCouponToCart unauthenticated');
-    const response = await unauthClient.mutateWrapped(APPLY_COUPON_MUTATION, {
-      input: { cart_id: cartId, coupon_code: CartOperationsData.invalidCouponCode },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute applyCouponToCart without authentication', async () => {
+      logger.action('POST', 'applyCouponToCart unauthenticated');
+      response = await unauthClient.mutateWrapped(APPLY_COUPON_MUTATION, {
+        input: { cart_id: cartId, coupon_code: CartOperationsData.invalidCouponCode },
+      });
     });
 
-    logger.step('Step 2 - Assert authorization error returned');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert authorization error returned', async () => {
+      await response.assertHasErrors();
 
-    const graphqlResponse = await response.getGraphQLResponse();
-    const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
+      const graphqlResponse = await response.getGraphQLResponse();
+      const errorMessage = graphqlResponse.errors?.length ? graphqlResponse.errors[0]?.message ?? '' : '';
 
-    logger.verify('Auth error returned', true, errorMessage.length > 0);
-    expect(errorMessage.length).toBeGreaterThan(0);
+      logger.verify('Auth error returned', true, errorMessage.length > 0);
+      expect(errorMessage.length).toBeGreaterThan(0);
+    });
   });
 
 });

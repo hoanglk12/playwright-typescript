@@ -489,7 +489,9 @@ NODE_ENV=staging npm test       # loads .env.staging
 NODE_ENV=production npm test    # loads .env.production
 ```
 
-Key env vars: `FRONT_SITE_URL`, `ADMIN_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `TRACE_MODE`, `SCREENSHOT_MODE`, `VIDEO_MODE`, `PERCY_TOKEN`.
+Key env vars: `FRONT_SITE_URL`, `ADMIN_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `TRACE_MODE`, `SCREENSHOT_MODE`, `VIDEO_MODE`, `PERCY_TOKEN`, `VERBOSE_LOGS`.
+
+`VERBOSE_LOGS` — default **ON**. Every `apiClientExt`/`createClientExt` call (`*WithWrapper` methods) attaches a redacted request+response JSON per call to that test's report entry. Redaction (`src/utils/redact.ts`) is a denylist of known-sensitive keys/patterns, not a provably complete one — extend `SENSITIVE_KEYS`/`redactSensitiveText` there before any new spec sends a field/header that could carry a token or PII through `apiClientExt`. Set `VERBOSE_LOGS=false` (or `=0`) to opt out for a run. There is no dedicated regression test for the redaction (removed after Phase 3 — see git history for `tests/api/verbose-logging.spec.ts`).
 
 Both `playwright.config.ts` and `api.config.ts` auto-detect CI environments (`CI`, `GITLAB_CI`, `TF_BUILD`, `GITHUB_ACTIONS`) to adjust retries and timeouts automatically.
 
@@ -528,7 +530,7 @@ logger.verify('assertion description', 'expected', 'actual');
 logger.error(error, 'context');
 ```
 
-Logs write to `./test-logs/test-execution.log` and attach to Playwright HTML report via `test.info().annotations`.
+Logs write to `./test-logs/test-execution.log` (shared, all tests) and are also attached per-test as `test-steps.log` via `testInfo.attach()` — visible in the HTML report, monocart report, and CI artifacts for that specific test only. An `auto` fixture (`attachTestLogs` in `base-test.ts` / `ApiTest.ts`) flushes each test's buffered lines at teardown; `softAssert` verify lines are included but land in registration order rather than fully chronologically interleaved with step lines. Loggers created inside `test.beforeAll()` are not captured in the per-test attachment (test-scoped only) — their output remains in the shared log file.
 
 ## Timeouts
 

@@ -12,6 +12,7 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -189,103 +190,109 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
     // ── 2. Always-fresh cart ───────────────────────────────────────────────
-    logger.step('Step 2 - Create fresh cart');
-    const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-    if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-    cartId = cartGql.data?.cartId ?? '';
-    if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
-    logger.action('Cart created', cartId);
+    await logger.step('Step 2 - Create fresh cart', async () => {
+      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
+      if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
+      cartId = cartGql.data?.cartId ?? '';
+      if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
+      logger.action('Cart created', cartId);
+    });
 
     // ── 3. Discover in-stock candidate SKUs ───────────────────────────────
-    logger.step('Step 3 - Discover in-stock product SKU candidates');
     const candidateSkus: string[] = [];
-    for (const term of ['', 'shoe', 'nike', 'a']) {
-      const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-      const items: ProductItem[] = productsData?.products?.items ?? [];
-      for (const item of items) {
-        if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-          if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
-        } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-          for (const v of item.variants) {
-            if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
-              candidateSkus.push(v.product.sku);
+    await logger.step('Step 3 - Discover in-stock product SKU candidates', async () => {
+      for (const term of ['', 'shoe', 'nike', 'a']) {
+        const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
+        const items: ProductItem[] = productsData?.products?.items ?? [];
+        for (const item of items) {
+          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
+            if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
+          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
+            for (const v of item.variants) {
+              if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
+                candidateSkus.push(v.product.sku);
+              }
             }
           }
+          // No fallback to item.sku — parent configurable SKUs are not addable to cart
         }
-        // No fallback to item.sku — parent configurable SKUs are not addable to cart
+        if (candidateSkus.length >= 3) break;
       }
-      if (candidateSkus.length >= 3) break;
-    }
-    if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found');
+      if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found');
+    });
 
     // ── 4. Try candidate SKUs until one adds successfully ─────────────────
-    logger.step('Step 4 - Add in-stock product to cart (with SKU retry)');
-    let validSku: string = '';
-    for (const sku of candidateSkus) {
-      const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-        cartId,
-        cartItems: [{ sku, quantity: 1 }],
-      })).getGraphQLResponse();
-      const addUserErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
-      if (!(addGql.errors?.length) && !addUserErrors.length) {
-        validSku = sku;
-        logger.action('Product added to cart', sku);
-        break;
+    await logger.step('Step 4 - Add in-stock product to cart (with SKU retry)', async () => {
+      let validSku: string = '';
+      for (const sku of candidateSkus) {
+        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
+          cartId,
+          cartItems: [{ sku, quantity: 1 }],
+        })).getGraphQLResponse();
+        const addUserErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
+        if (!(addGql.errors?.length) && !addUserErrors.length) {
+          validSku = sku;
+          logger.action('Product added to cart', sku);
+          break;
+        }
+        logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
       }
-      logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
-    }
-    if (!validSku) throw new Error('beforeAll: no candidate SKU could be added to cart');
-    logger.verify('SKU added', 'truthy', validSku);
+      if (!validSku) throw new Error('beforeAll: no candidate SKU could be added to cart');
+      logger.verify('SKU added', 'truthy', validSku);
+    });
 
     // ── 5. Set shipping address (required for same_as_shipping and payment) ─
-    logger.step('Step 5 - Set shipping address');
-    const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
-    const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_SETUP_MUTATION, {
-      cartId,
-      shippingAddresses: [{
-        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      }],
-    })).getGraphQLResponse();
+    await logger.step('Step 5 - Set shipping address', async () => {
+      const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
+      const shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_SETUP_MUTATION, {
+        cartId,
+        shippingAddresses: [{
+          address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+        }],
+      })).getGraphQLResponse();
 
-    if (shippingGql.errors?.length) {
-      logger.action('Shipping address setup failed', shippingGql.errors[0]?.message ?? 'unknown');
-    } else {
-      // ── 6. Set first available shipping method ─────────────────────────
-      logger.step('Step 6 - Set first available shipping method');
-      const availableMethods: ShippingMethod[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
-      const firstAvailable = availableMethods.find((m: ShippingMethod) => m.available);
-
-      if (firstAvailable) {
-        const { carrier_code, method_code } = firstAvailable;
-        const methodGql = await (await authClient.mutateWrapped(SET_SHIPPING_METHOD_SETUP_MUTATION, {
-          cartId,
-          carrierCode: carrier_code,
-          methodCode: method_code,
-        })).getGraphQLResponse();
-
-        if (!(methodGql.errors?.length)) {
-          shippingMethodSet = true;
-          logger.action('Shipping method set', `${carrier_code}_${method_code}`);
-        } else {
-          logger.action('Shipping method setup failed', methodGql.errors[0]?.message ?? 'unknown');
-        }
+      if (shippingGql.errors?.length) {
+        logger.action('Shipping address setup failed', shippingGql.errors[0]?.message ?? 'unknown');
       } else {
-        logger.action('No available shipping methods found', 'TC_03/TC_04 may be skipped');
+        // ── 6. Set first available shipping method ─────────────────────────
+        await logger.step('Step 6 - Set first available shipping method', async () => {
+          const availableMethods: ShippingMethod[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
+          const firstAvailable = availableMethods.find((m: ShippingMethod) => m.available);
+
+          if (firstAvailable) {
+            const { carrier_code, method_code } = firstAvailable;
+            const methodGql = await (await authClient.mutateWrapped(SET_SHIPPING_METHOD_SETUP_MUTATION, {
+              cartId,
+              carrierCode: carrier_code,
+              methodCode: method_code,
+            })).getGraphQLResponse();
+
+            if (!(methodGql.errors?.length)) {
+              shippingMethodSet = true;
+              logger.action('Shipping method set', `${carrier_code}_${method_code}`);
+            } else {
+              logger.action('Shipping method setup failed', methodGql.errors[0]?.message ?? 'unknown');
+            }
+          } else {
+            logger.action('No available shipping methods found', 'TC_03/TC_04 may be skipped');
+          }
+        });
       }
-    }
+    });
 
     // ── 7. Query available payment methods ─────────────────────────────────
-    logger.step('Step 7 - Query available payment methods');
-    try {
-      const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId })).getData();
-      const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
-      availablePaymentMethods = methods.map((m: PaymentMethod) => m.code);
-      logger.action('Available payment methods', availablePaymentMethods.join(', ') || 'none');
-    } catch {
-      logger.action('Payment methods query failed', 'may be unavailable without shipping method');
-    }
+    await logger.step('Step 7 - Query available payment methods', async () => {
+      try {
+        const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId })).getData();
+        const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
+        availablePaymentMethods = methods.map((m: PaymentMethod) => m.code);
+        logger.action('Available payment methods', availablePaymentMethods.join(', ') || 'none');
+      } catch {
+        logger.action('Payment methods query failed', 'may be unavailable without shipping method');
+      }
 
-    logger.action('beforeAll complete', 'all setup steps finished');
+      logger.action('beforeAll complete', 'all setup steps finished');
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -297,28 +304,31 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Execute setBillingAddressOnCart with same_as_shipping: true');
-    logger.action('POST', `setBillingAddressOnCart (cartId=${cartId}, same_as_shipping=true)`);
-    const response = await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
-      cartId,
-      billingAddress: { same_as_shipping: true },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setBillingAddressOnCart with same_as_shipping: true', async () => {
+      logger.action('POST', `setBillingAddressOnCart (cartId=${cartId}, same_as_shipping=true)`);
+      response = await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
+        cartId,
+        billingAddress: { same_as_shipping: true },
+      });
     });
 
-    logger.step('Step 2 - Assert no errors and billing address populated');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and billing address populated', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const billingAddr = data?.setBillingAddressOnCart?.cart?.billing_address;
+      const data = await response.getData();
+      const billingAddr = data?.setBillingAddressOnCart?.cart?.billing_address;
 
-    expect(billingAddr, 'billing_address must be defined and not null — staging confirms same_as_shipping populates it').not.toBeNull();
+      expect(billingAddr, 'billing_address must be defined and not null — staging confirms same_as_shipping populates it').not.toBeNull();
 
-    const { firstname, postcode } = checkoutBillingData.shippingInlineAddress;
-    logger.verify('firstname matches shipping', firstname, billingAddr?.firstname);
-    logger.verify('postcode matches shipping', postcode, billingAddr?.postcode);
-    softExpect(billingAddr?.firstname).toBe(firstname);
-    softExpect(billingAddr?.postcode).toBe(postcode);
-    softExpect(Array.isArray(billingAddr?.street)).toBe(true);
+      const { firstname, postcode } = checkoutBillingData.shippingInlineAddress;
+      logger.verify('firstname matches shipping', firstname, billingAddr?.firstname);
+      logger.verify('postcode matches shipping', postcode, billingAddr?.postcode);
+      softExpect(billingAddr?.firstname).toBe(firstname);
+      softExpect(billingAddr?.postcode).toBe(postcode);
+      softExpect(Array.isArray(billingAddr?.street)).toBe(true);
+    });
   });
 
   test('TC_02 - setBillingAddressOnCart inline address → custom billing address set', async ({ createGraphQLClient }) => {
@@ -327,34 +337,37 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.billingInlineAddress;
 
-    logger.step('Step 1 - Execute setBillingAddressOnCart with inline billing address');
-    logger.action('POST', `setBillingAddressOnCart (cartId=${cartId})`);
-    const response = await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
-      cartId,
-      billingAddress: {
-        address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-      },
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setBillingAddressOnCart with inline billing address', async () => {
+      logger.action('POST', `setBillingAddressOnCart (cartId=${cartId})`);
+      response = await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
+        cartId,
+        billingAddress: {
+          address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
+        },
+      });
     });
 
-    logger.step('Step 2 - Assert no errors and billing address matches input');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and billing address matches input', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const billingAddr = data?.setBillingAddressOnCart?.cart?.billing_address;
+      const data = await response.getData();
+      const billingAddr = data?.setBillingAddressOnCart?.cart?.billing_address;
 
-    expect(billingAddr, 'billing_address must be defined').toBeDefined();
-    expect(billingAddr, 'billing_address must not be null for inline address').not.toBeNull();
+      expect(billingAddr, 'billing_address must be defined').toBeDefined();
+      expect(billingAddr, 'billing_address must not be null for inline address').not.toBeNull();
 
-    logger.verify('firstname', firstname, billingAddr?.firstname);
-    logger.verify('lastname', lastname, billingAddr?.lastname);
-    logger.verify('postcode', postcode, billingAddr?.postcode);
+      logger.verify('firstname', firstname, billingAddr?.firstname);
+      logger.verify('lastname', lastname, billingAddr?.lastname);
+      logger.verify('postcode', postcode, billingAddr?.postcode);
 
-    softExpect(billingAddr?.firstname).toBe(firstname);
-    softExpect(billingAddr?.lastname).toBe(lastname);
-    softExpect(billingAddr?.postcode).toBe(postcode);
-    softExpect(Array.isArray(billingAddr?.street)).toBe(true);
-    softExpect(billingAddr?.street?.[0]).toBe(street[0]);
+      softExpect(billingAddr?.firstname).toBe(firstname);
+      softExpect(billingAddr?.lastname).toBe(lastname);
+      softExpect(billingAddr?.postcode).toBe(postcode);
+      softExpect(Array.isArray(billingAddr?.street)).toBe(true);
+      softExpect(billingAddr?.street?.[0]).toBe(street[0]);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -375,24 +388,27 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step(`Step 1 - Execute setPaymentMethodOnCart with code=${targetCode}`);
-    logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${targetCode})`);
-    const response = await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
-      cartId,
-      paymentMethodCode: targetCode,
+    let response!: GraphQLResponseWrapper;
+    await logger.step(`Step 1 - Execute setPaymentMethodOnCart with code=${targetCode}`, async () => {
+      logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${targetCode})`);
+      response = await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
+        cartId,
+        paymentMethodCode: targetCode,
+      });
     });
 
-    logger.step('Step 2 - Assert no errors and payment method applied');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and payment method applied', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const selectedMethod = data?.setPaymentMethodOnCart?.cart?.selected_payment_method;
+      const data = await response.getData();
+      const selectedMethod = data?.setPaymentMethodOnCart?.cart?.selected_payment_method;
 
-    expect(selectedMethod, 'selected_payment_method must be defined').toBeDefined();
-    logger.verify('payment code', targetCode, selectedMethod?.code);
-    softExpect(selectedMethod?.code).toBe(targetCode);
-    softExpect(selectedMethod?.title).toBeTruthy();
+      expect(selectedMethod, 'selected_payment_method must be defined').toBeDefined();
+      logger.verify('payment code', targetCode, selectedMethod?.code);
+      softExpect(selectedMethod?.code).toBe(targetCode);
+      softExpect(selectedMethod?.title).toBeTruthy();
+    });
   });
 
   test('TC_04 - setPaymentMethodOnCart alternate method → payment method applied', async ({ createGraphQLClient }) => {
@@ -418,24 +434,27 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step(`Step 1 - Execute setPaymentMethodOnCart with alternate code=${targetCode}`);
-    logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${targetCode})`);
-    const response = await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
-      cartId,
-      paymentMethodCode: targetCode,
+    let response!: GraphQLResponseWrapper;
+    await logger.step(`Step 1 - Execute setPaymentMethodOnCart with alternate code=${targetCode}`, async () => {
+      logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${targetCode})`);
+      response = await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
+        cartId,
+        paymentMethodCode: targetCode,
+      });
     });
 
-    logger.step('Step 2 - Assert no errors and alternate payment method applied');
-    await response.assertNoErrors();
-    await response.assertHasData();
+    await logger.step('Step 2 - Assert no errors and alternate payment method applied', async () => {
+      await response.assertNoErrors();
+      await response.assertHasData();
 
-    const data = await response.getData();
-    const selectedMethod = data?.setPaymentMethodOnCart?.cart?.selected_payment_method;
+      const data = await response.getData();
+      const selectedMethod = data?.setPaymentMethodOnCart?.cart?.selected_payment_method;
 
-    expect(selectedMethod, 'selected_payment_method must be defined').toBeDefined();
-    logger.verify('alternate payment code applied', targetCode, selectedMethod?.code);
-    softExpect(selectedMethod?.code).toBe(targetCode);
-    softExpect(selectedMethod?.title).toBeTruthy();
+      expect(selectedMethod, 'selected_payment_method must be defined').toBeDefined();
+      logger.verify('alternate payment code applied', targetCode, selectedMethod?.code);
+      softExpect(selectedMethod?.code).toBe(targetCode);
+      softExpect(selectedMethod?.title).toBeTruthy();
+    });
   });
 
   test('TC_05 - setPaymentMethodOnCart invalid code → error returned', async ({ createGraphQLClient }) => {
@@ -443,21 +462,24 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
-    logger.step('Step 1 - Execute setPaymentMethodOnCart with invalid code');
-    logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${checkoutBillingData.invalidPaymentCode})`);
-    const response = await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
-      cartId,
-      paymentMethodCode: checkoutBillingData.invalidPaymentCode,
+    let response!: GraphQLResponseWrapper;
+    await logger.step('Step 1 - Execute setPaymentMethodOnCart with invalid code', async () => {
+      logger.action('POST', `setPaymentMethodOnCart (cartId=${cartId}, code=${checkoutBillingData.invalidPaymentCode})`);
+      response = await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
+        cartId,
+        paymentMethodCode: checkoutBillingData.invalidPaymentCode,
+      });
     });
 
-    logger.step('Step 2 - Assert error returned for invalid payment code');
-    await response.assertHasErrors();
+    await logger.step('Step 2 - Assert error returned for invalid payment code', async () => {
+      await response.assertHasErrors();
 
-    const gql = await response.getGraphQLResponse();
-    const errorMessage = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
+      const gql = await response.getGraphQLResponse();
+      const errorMessage = gql.errors?.length ? gql.errors[0]?.message ?? '' : '';
 
-    logger.verify('Error message present for invalid payment code', true, errorMessage.length > 0);
-    expect(errorMessage.length, 'Expected an error message for invalid payment code').toBeGreaterThan(0);
+      logger.verify('Error message present for invalid payment code', true, errorMessage.length > 0);
+      expect(errorMessage.length, 'Expected an error message for invalid payment code').toBeGreaterThan(0);
+    });
   });
 
 });
