@@ -145,6 +145,56 @@ export const REMOVE_ITEM_MUTATION = `
   }
 `;
 
+// Shared between gra-loyalty-rewards (AU) and gra-loyalty-rewards-nz — both previously
+// duplicated these three verbatim.
+export const GET_CART_ITEMS_QUERY = `
+  query GetCartItems($cartId: String!) {
+    cart(cart_id: $cartId) {
+      items { id quantity product { sku __typename } __typename }
+      total_quantity
+      __typename
+    }
+  }
+`;
+
+export const APPLY_REWARD_POINTS_MUTATION = `
+  mutation ApplyRewardPointsToCart($cartId: ID!) {
+    applyRewardPointsToCart(cartId: $cartId) {
+      cart {
+        id
+        applied_multiple_rewards {
+          applied_amount
+          applied_rewards {
+            applied
+            left
+            reward_id
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export const REMOVE_REWARD_POINTS_MUTATION = `
+  mutation RemoveRewardPointsFromCart($cartId: ID!) {
+    removeRewardPointsFromCart(cartId: $cartId) {
+      cart {
+        id
+        applied_multiple_rewards {
+          applied_amount
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
 export interface ShippingMethod {
   carrier_code: string;
   method_code: string;

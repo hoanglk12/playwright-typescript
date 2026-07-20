@@ -36,7 +36,12 @@ import {
   addFirstAddableProduct,
 } from './api-test-helpers';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
-import { REMOVE_ITEM_MUTATION } from '../../src/data/api/gra-graphql-operations';
+import {
+  REMOVE_ITEM_MUTATION,
+  GET_CART_ITEMS_QUERY,
+  APPLY_REWARD_POINTS_MUTATION,
+  REMOVE_REWARD_POINTS_MUTATION,
+} from '../../src/data/api/gra-graphql-operations';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -50,54 +55,6 @@ let customerToken: string = '';
 let cartId: string = '';
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
-
-const GET_CART_ITEMS_QUERY = `
-  query GetCartItems($cartId: String!) {
-    cart(cart_id: $cartId) {
-      items { id quantity product { sku __typename } __typename }
-      total_quantity
-      __typename
-    }
-  }
-`;
-
-const APPLY_REWARD_POINTS_MUTATION = `
-  mutation ApplyRewardPointsToCart($cartId: ID!) {
-    applyRewardPointsToCart(cartId: $cartId) {
-      cart {
-        id
-        applied_multiple_rewards {
-          applied_amount
-          applied_rewards {
-            applied
-            left
-            reward_id
-            __typename
-          }
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const REMOVE_REWARD_POINTS_MUTATION = `
-  mutation RemoveRewardPointsFromCart($cartId: ID!) {
-    removeRewardPointsFromCart(cartId: $cartId) {
-      cart {
-        id
-        applied_multiple_rewards {
-          applied_amount
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
 
 const APPLY_QANTAS_POINTS_MUTATION = `
   mutation ApplyQantasPointsToCart($input: ApplyQantasPointsInput!) {
