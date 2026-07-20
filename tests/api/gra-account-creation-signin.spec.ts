@@ -10,54 +10,11 @@ import { graErrorMessages } from '../../src/data/api/gra-test-data';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import { SIGN_IN_MUTATION, CREATE_ACCOUNT_MUTATION } from '../../src/data/api/gra-graphql-operations';
+import { assertNoCriticalErrors } from './api-test-helpers';
 
 let customerToken: string = '';
 let customerId: string = '';
-
-const CREATE_ACCOUNT_MUTATION = `
-  mutation CreateAccount(
-    $email: String!,
-    $firstname: String!,
-    $lastname: String!,
-    $password: String!,
-    $phone_number: String!,
-    $is_subscribed: Boolean!,
-    $loyalty_program_status: Boolean,
-    $order_number: String,
-    $gender: Int,
-    $date_of_birth: String
-  ) {
-    createCustomer(input: {
-      email: $email,
-      firstname: $firstname,
-      lastname: $lastname,
-      password: $password,
-      phone_number: $phone_number,
-      is_subscribed: $is_subscribed,
-      loyalty_program_status: $loyalty_program_status,
-      order_number: $order_number,
-      gender: $gender,
-      date_of_birth: $date_of_birth
-    }) {
-      customer {
-        id
-        firstname
-        lastname
-        email
-        __typename
-      }
-    }
-  }
-`;
-
-const SIGN_IN_MUTATION = `
-  mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
-    generateCustomerToken(email: $email, password: $password, remember: $remember) {
-      token
-      __typename
-    }
-  }
-`;
 
 const GET_CUSTOMER_DETAILS_QUERY = `
   query getCustomerDetails {
@@ -253,10 +210,7 @@ test.describe('GRA GraphQL API - Account Management', () => {
       // Non-loyalty brands (drm-au, van-au) return a partial error on the loyalty path —
       // filter it out so the rest of the customer data can still be verified
       const gql = await response.getGraphQLResponse();
-      const criticalErrors = (gql.errors ?? []).filter(
-        (e) => !(Array.isArray(e.path) && (e.path as string[]).some((p) => p === 'loyalty' || p === 'loyalty_program_status')),
-      );
-      expect(criticalErrors, 'Unexpected GraphQL errors in getCustomerDetails').toHaveLength(0);
+      assertNoCriticalErrors(gql, ['loyalty', 'loyalty_program_status']);
       await response.assertHasData();
       await response.assertDataField('customer.id', expect.any(Number));
 

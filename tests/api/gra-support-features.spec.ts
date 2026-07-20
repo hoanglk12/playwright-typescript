@@ -1,14 +1,12 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { AuthType } from "../../src/api/ApiClient";
-import { signInAndStoreToken } from './api-test-helpers';
+import { signInAndStoreToken, createFreshCart } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 
 let customerToken: string = '';
 let cartId: string = '';
-
-const CREATE_CART_MUTATION = `mutation CreateCartAfterSignIn { createEmptyCart }`;
 
 const GET_CURRENCY_QUERY = `
   query getCurrencyData {
@@ -33,14 +31,7 @@ test.describe("GRA GraphQL API - Support Features @api @graphql @regression", ()
 
     await logger.step('Create fresh cart for this session', async () => {
       const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-      const cartResponse = await authClient.mutateWrapped(CREATE_CART_MUTATION);
-      const cartGql = await cartResponse.getGraphQLResponse();
-      if (cartGql.errors?.length) {
-        throw new Error(`Cart creation failed: ${cartGql.errors[0]?.message ?? ''}`);
-      }
-      const newCartId = cartGql.data?.createEmptyCart;
-      if (!newCartId) throw new Error('Cart creation returned no cartId');
-      cartId = newCartId;
+      cartId = await createFreshCart(authClient);
       siteState.setCartId(cartId);
       logger.action('Fresh cart created', cartId);
     });

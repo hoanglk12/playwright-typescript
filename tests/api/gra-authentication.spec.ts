@@ -5,34 +5,9 @@ import { graAuthData, graAuthErrorMessages } from '../../src/data/api/gra-auth-d
 import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import { SIGN_IN_MUTATION } from '../../src/data/api/gra-graphql-operations';
 
 let testEmail: string = '';
-
-const SIGN_IN_MUTATION = `
-  mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
-    generateCustomerToken(email: $email, password: $password, remember: $remember) {
-      token
-    }
-  }
-`;
-
-const CREATE_ACCOUNT_MUTATION = `
-  mutation CreateAccount(
-    $email: String!, $firstname: String!, $lastname: String!,
-    $password: String!, $phone_number: String!, $is_subscribed: Boolean!,
-    $loyalty_program_status: Boolean, $order_number: String,
-    $gender: Int, $date_of_birth: String
-  ) {
-    createCustomer(input: {
-      email: $email, firstname: $firstname, lastname: $lastname,
-      password: $password, phone_number: $phone_number,
-      is_subscribed: $is_subscribed, loyalty_program_status: $loyalty_program_status,
-      order_number: $order_number, gender: $gender, date_of_birth: $date_of_birth
-    }) {
-      customer { id email __typename }
-    }
-  }
-`;
 
 const REVOKE_TOKEN_MUTATION = `
   mutation RevokeCustomerToken {
@@ -88,7 +63,8 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
     let disposableToken!: string;
     await logger.step('Step 1 - Sign in to obtain a disposable token', async () => {
       const publicClient = await createGraphQLClient();
-      const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, site.testData.validCredentials);
+      const { email, password, remember } = site.testData.validCredentials;
+      const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, { email, password, remember });
       await signInResponse.assertNoErrors();
       const signInData = await signInResponse.getData();
       disposableToken = signInData.generateCustomerToken.token;
@@ -122,7 +98,8 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
     let disposableToken!: string;
     await logger.step('Step 1 - Sign in to obtain a disposable token', async () => {
       const publicClient = await createGraphQLClient();
-      const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, site.testData.validCredentials);
+      const { email, password, remember } = site.testData.validCredentials;
+      const signInResponse = await publicClient.mutateWrapped(SIGN_IN_MUTATION, { email, password, remember });
       await signInResponse.assertNoErrors();
       const signInData = await signInResponse.getData();
       disposableToken = signInData.generateCustomerToken.token;

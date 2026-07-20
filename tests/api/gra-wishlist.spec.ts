@@ -9,7 +9,7 @@ import {
   WishlistItemShape,
   WishlistShape,
 } from '../../src/data/api/gra-wishlist-data';
-import { signInAndStoreToken } from './api-test-helpers';
+import { signInAndStoreToken, wasRejected } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLResponse } from '../../src/api/GraphQLClient';
@@ -110,21 +110,6 @@ const REMOVE_FROM_WISHLIST_MUTATION = `
     }
   }
 `;
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-interface GqlWithUserErrors {
-  user_errors?: UserError[];
-}
-
-function wasRejected(
-  gql: { errors?: { message?: string }[]; data?: Record<string, GqlWithUserErrors | undefined> },
-  opName: string,
-): boolean {
-  if ((gql.errors?.length ?? 0) > 0) return true;
-  const userErrors = gql.data?.[opName]?.user_errors;
-  return Array.isArray(userErrors) && userErrors.length > 0;
-}
 
 // ── Test suite ─────────────────────────────────────────────────────────────────
 

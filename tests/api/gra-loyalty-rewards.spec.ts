@@ -29,80 +29,27 @@ import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { LoyaltyRewardsData } from '../../src/data/api/gra-loyalty-rewards-data';
-import { signInAndStoreToken } from './api-test-helpers';
+import {
+  signInAndStoreToken,
+  createFreshCart,
+  discoverInStockSkus,
+  addFirstAddableProduct,
+} from './api-test-helpers';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import { REMOVE_ITEM_MUTATION } from '../../src/data/api/gra-graphql-operations';
 
 // ── Local types ───────────────────────────────────────────────────────────────
-
-interface ProductVariant {
-  product: { sku: string; stock_status: string };
-}
-
-interface ProductItem {
-  sku: string;
-  stock_status: string;
-  __typename: string;
-  variants?: ProductVariant[];
-}
 
 interface CartItem {
   id: number | string;
   product: { sku: string };
 }
 
-interface UserError {
-  code: string;
-  message: string;
-}
-
 // ── Module-level state ────────────────────────────────────────────────────────
 let customerToken: string = '';
 let cartId: string = '';
-let addedCartItemId: number = 0;
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
-
-const CREATE_CART_MUTATION = `mutation CreateCart { cartId: createEmptyCart }`;
-
-const GET_PRODUCTS_QUERY = `
-  query GetTestProducts($search: String!) {
-    products(search: $search, pageSize: 20, currentPage: 1) {
-      items {
-        sku
-        stock_status
-        __typename
-        ... on ConfigurableProduct {
-          variants {
-            product { sku stock_status __typename }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const ADD_PRODUCTS_MUTATION = `
-  mutation AddProductsToCart($cartId: String!, $cartItems: [CartItemInput!]!) {
-    addProductsToCart(cartId: $cartId, cartItems: $cartItems) {
-      cart {
-        items { id quantity product { sku __typename } __typename }
-        total_quantity
-        __typename
-      }
-      user_errors { code message __typename }
-      __typename
-    }
-  }
-`;
-
-const REMOVE_ITEM_MUTATION = `
-  mutation RemoveItemFromCart($input: RemoveItemFromCartInput!) {
-    removeItemFromCart(input: $input) {
-      cart { total_quantity __typename }
-      __typename
-    }
-  }
-`;
 
 const GET_CART_ITEMS_QUERY = `
   query GetCartItems($cartId: String!) {
@@ -229,52 +176,20 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
 
     // ── 2. Create fresh cart ───────────────────────────────────────────────
     await logger.step('Step 1 - Create fresh cart', async () => {
-      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-      if ((cartGql.errors?.length ?? 0) > 0) {
-        throw new Error(`beforeAll: createEmptyCart failed: ${cartGql.errors?.[0]?.message ?? 'unknown'}`);
-      }
-      cartId = cartGql.data?.cartId ?? '';
-      if (!cartId) throw new Error('beforeAll: cartId empty after createEmptyCart');
-      logger.action('Cart created', cartId);
+      cartId = await createFreshCart(authClient, logger);
     });
 
     // ── 3. Discover in-stock SKU and add to cart ───────────────────────────
     await logger.step('Step 2 - Discover in-stock SKU and add to cart', async () => {
-      const candidateSkus: string[] = [];
-      for (const term of ['shoe', 'a', 'boot', '']) {
-        const productsGql = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-        const items: ProductItem[] = productsGql?.products?.items ?? [];
-        for (const item of items) {
-          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-            candidateSkus.push(item.sku);
-          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-            for (const v of item.variants) {
-              if (v.product?.stock_status === 'IN_STOCK') candidateSkus.push(v.product.sku);
-            }
-          }
-        }
-        if (candidateSkus.length >= 3) break;
-      }
+      const candidateSkus = await discoverInStockSkus(authClient, {
+        searchTerms: ['shoe', 'a', 'boot', ''],
+        pageSize: 20,
+      });
       if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKUs found');
 
-      let addedSku = '';
-      for (const sku of candidateSkus.slice(0, 5)) {
-        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-          cartId,
-          cartItems: [{ sku, quantity: 1 }],
-        })).getGraphQLResponse();
-        const userErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
-        if (!(addGql.errors?.length) && !userErrors.length) {
-          addedSku = sku;
-          // Capture the cart item ID so afterAll can remove it
-          const items: CartItem[] = addGql.data?.addProductsToCart?.cart?.items ?? [];
-          const added = items.find((i: CartItem) => i.product?.sku === sku);
-          addedCartItemId = added?.id ? Number(added.id) : 0;
-          break;
-        }
-      }
-      if (!addedSku) throw new Error('beforeAll: could not add any in-stock product to cart');
-      logger.action('Product added to cart', addedSku);
+      const result = await addFirstAddableProduct(authClient, cartId, candidateSkus.slice(0, 5));
+      if (!result.added) throw new Error('beforeAll: could not add any in-stock product to cart');
+      logger.action('Product added to cart', result.sku);
       logger.action('beforeAll complete', `cartId=${cartId}`);
     });
   });
@@ -360,7 +275,7 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
       const errorCategory = gql.errors?.[0]?.extensions?.category ?? '';
 
       logger.verify('Error message present', true, errorMsg.length > 0);
-      const acceptedCategories = ['graphql-authorization', 'graphql-no-such-entity', 'graphql-input'];
+      const acceptedCategories = LoyaltyRewardsData.unauthenticatedErrorCategories;
       logger.verify('Error category (authorization-class)', acceptedCategories.join('|'), errorCategory);
       expect(errorMsg.length, 'Expected an error message for unauthenticated request').toBeGreaterThan(0);
       softExpect(acceptedCategories.includes(errorCategory)).toBe(true);

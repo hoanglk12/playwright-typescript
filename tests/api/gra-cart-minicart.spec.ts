@@ -16,40 +16,33 @@ import {
   graErrorMessages,
 } from '../../src/data/api/gra-test-data';
 import { CartOperationsData } from '../../src/data/api/gra-cart-operations-data';
-import { signInAndStoreToken } from './api-test-helpers';
+import {
+  signInAndStoreToken,
+  wasRejected,
+  createFreshCart,
+  discoverInStockSkus,
+  addFirstAddableProduct,
+} from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLResponse } from '../../src/api/GraphQLClient';
+import {
+  CREATE_CART_MUTATION,
+  ADD_PRODUCTS_MUTATION,
+  REMOVE_ITEM_MUTATION,
+  UserError,
+  SKU_DISCOVERY_DEFAULTS,
+  PaymentMethod,
+} from '../../src/data/api/gra-graphql-operations';
 
 // ── Local types ───────────────────────────────────────────────────────────────
-
-interface ProductVariant {
-  product: { sku: string; stock_status: string; __typename: string };
-}
-
-interface ProductItem {
-  sku: string;
-  stock_status: string;
-  __typename: string;
-  variants?: ProductVariant[];
-}
 
 interface CartItem {
   id: number;
   quantity: number;
   product: { sku: string; __typename: string };
-}
-
-interface UserError {
-  code: string;
-  message: string;
-}
-
-interface PaymentMethod {
-  code: string;
-  title: string;
 }
 
 // ── Module-level state ────────────────────────────────────────────────────────
@@ -61,38 +54,6 @@ let cartItemId: number = 0;
 const specialCharRegex = /[^a-zA-Z0-9._-]/;
 
 // ── Reusable mutation/query strings ──────────────────────────────────────────
-
-const ADD_PRODUCTS_MUTATION = `
-  mutation AddProductsToCart($cartId: String!, $cartItems: [CartItemInput!]!) {
-    addProductsToCart(cartId: $cartId, cartItems: $cartItems) {
-      cart {
-        items {
-          id
-          quantity
-          product { sku name __typename }
-          __typename
-        }
-        total_quantity
-        __typename
-      }
-      user_errors { code message __typename }
-      __typename
-    }
-  }
-`;
-
-const REMOVE_ITEM_MUTATION = `
-  mutation RemoveItemFromCart($input: RemoveItemFromCartInput!) {
-    removeItemFromCart(input: $input) {
-      cart {
-        items { id quantity product { sku __typename } __typename }
-        total_quantity
-        __typename
-      }
-      __typename
-    }
-  }
-`;
 
 const UPDATE_CART_ITEMS_MUTATION = `
   mutation UpdateCartItems($input: UpdateCartItemsInput!) {
@@ -118,26 +79,6 @@ const APPLY_COUPON_MUTATION = `
     }
   }
 `;
-
-const GET_PRODUCTS_QUERY = `
-  query GetTestProducts($search: String!) {
-    products(search: $search, pageSize: 10, currentPage: 1) {
-      items {
-        sku
-        name
-        stock_status
-        __typename
-        ... on ConfigurableProduct {
-          variants {
-            product { sku stock_status __typename }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const CREATE_CART_MUTATION = `mutation CreateCartAfterSignIn { cartId: createEmptyCart }`;
 
 const GET_ITEM_COUNT_QUERY = `query getItemCount($cartId:String!){cart(cart_id:$cartId){id ...CartTriggerFragment __typename}}fragment CartTriggerFragment on Cart{id total_quantity shipping_addresses{street selected_shipping_method{method_code __typename}__typename}__typename}`;
 
@@ -167,28 +108,9 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
     });
 
     // ── 2. Discover in-stock candidate SKUs ────────────────────────────────
-    const candidateSkus: string[] = [];
+    let candidateSkus: string[] = [];
     await logger.step('Discover in-stock product SKU candidates', async () => {
-      const searchTerms = ['', 'shoe', 'nike', 'a'];
-      for (const term of searchTerms) {
-        const productsResponse = await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term });
-        const productsData = await productsResponse.getData();
-        const items: ProductItem[] = productsData?.products?.items ?? [];
-
-        for (const item of items) {
-          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-            if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
-          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-            for (const v of item.variants) {
-              if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
-                candidateSkus.push(v.product.sku);
-              }
-            }
-          }
-          // No fallback to item.sku — parent configurable SKUs return PRODUCT_NOT_FOUND on add
-        }
-        if (candidateSkus.length >= 3) break;
-      }
+      candidateSkus = await discoverInStockSkus(authClient, SKU_DISCOVERY_DEFAULTS);
 
       if (!candidateSkus.length) {
         throw new Error('beforeAll: no in-stock product found — cannot run cart operation tests');
@@ -199,42 +121,18 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
     // Retry workers re-run beforeAll but NOT earlier tests; creating the cart here
     // guarantees cartId is never empty in a retry worker (fixes "cart_id missing" cascade)
     await logger.step('Create shared cart', async () => {
-      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-      if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-      cartId = cartGql.data?.cartId ?? '';
-      if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
+      cartId = await createFreshCart(authClient, logger);
       siteState.setCartId(cartId);
-      logger.action('Cart created', cartId);
     });
 
     // ── 4. Verify a candidate SKU is genuinely addable (probe add → remove) ─
     await logger.step('Verify candidate SKU addability (probe add, then remove)', async () => {
-      for (const sku of candidateSkus) {
-        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-          cartId,
-          cartItems: [{ sku, quantity: 1 }],
-        })).getGraphQLResponse();
-        const addUserErrors: UserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
-        if (!(addGql.errors?.length) && !addUserErrors.length) {
-          validSku = sku;
-          // Remove the probe item so TC_01 starts from an empty cart
-          const probeItem = (addGql.data?.addProductsToCart?.cart?.items ?? []).find(
-            (i: CartItem) => i.product.sku === sku,
-          );
-          if (probeItem) {
-            await authClient.mutateWrapped(REMOVE_ITEM_MUTATION, {
-              input: { cart_id: cartId, cart_item_id: probeItem.id },
-            });
-          }
-          logger.action('SKU verified addable', sku);
-          break;
-        }
-        logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
-      }
+      const result = await addFirstAddableProduct(authClient, cartId, candidateSkus, { removeAfterProbe: true }, logger);
 
-      if (!validSku) {
+      if (!result.added) {
         throw new Error('beforeAll: no candidate SKU could be added to cart — cannot run cart operation tests');
       }
+      validSku = result.sku;
 
       logger.verify('beforeAll ready', 'validSku found', validSku);
     });
@@ -613,12 +511,10 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
 
     await logger.step('Step 2 - Assert error returned (GraphQL-level or user_errors)', async () => {
       const graphqlResponse = await response.getGraphQLResponse();
-      const hasGqlErrors = (graphqlResponse.errors?.length ?? 0) > 0;
-      const hasUserErrors =
-        (graphqlResponse.data?.addProductsToCart?.user_errors?.length ?? 0) > 0;
+      const rejected = wasRejected(graphqlResponse, 'addProductsToCart');
 
-      logger.verify('Error returned for invalid cartId', true, hasGqlErrors || hasUserErrors);
-      expect(hasGqlErrors || hasUserErrors).toBe(true);
+      logger.verify('Error returned for invalid cartId', true, rejected);
+      expect(rejected).toBe(true);
     });
   });
 

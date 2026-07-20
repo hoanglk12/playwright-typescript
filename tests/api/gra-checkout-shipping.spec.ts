@@ -8,24 +8,18 @@
 
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createCheckoutShippingData } from '../../src/data/api/gra-checkout-shipping-data';
-import { signInAndStoreToken } from './api-test-helpers';
+import { signInAndStoreToken, createFreshCart, discoverInStockSkus, addFirstAddableProduct } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import {
+  SET_SHIPPING_ADDRESSES_RICH_MUTATION,
+  SET_SHIPPING_METHODS_MUTATION,
+  SKU_DISCOVERY_DEFAULTS,
+} from '../../src/data/api/gra-graphql-operations';
 
 // ── Local types ───────────────────────────────────────────────────────────────
-
-interface ProductVariant {
-  product: { sku: string; stock_status: string };
-}
-
-interface ProductItem {
-  sku: string;
-  stock_status: string;
-  __typename: string;
-  variants?: ProductVariant[];
-}
 
 interface CustomerAddress {
   id: number;
@@ -53,40 +47,6 @@ let savedAddressId: number = 0;
 let checkoutData = createCheckoutShippingData('AU');
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
-
-const GET_PRODUCTS_QUERY = `
-  query GetTestProducts($search: String!) {
-    products(search: $search, pageSize: 10, currentPage: 1) {
-      items {
-        sku
-        name
-        stock_status
-        __typename
-        ... on ConfigurableProduct {
-          variants {
-            product { sku stock_status __typename }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const CREATE_CART_MUTATION = `mutation CreateCart { cartId: createEmptyCart }`;
-
-const ADD_PRODUCTS_MUTATION = `
-  mutation AddProductsToCart($cartId: String!, $cartItems: [CartItemInput!]!) {
-    addProductsToCart(cartId: $cartId, cartItems: $cartItems) {
-      cart {
-        items { id quantity product { sku __typename } __typename }
-        total_quantity
-        __typename
-      }
-      user_errors { code message __typename }
-      __typename
-    }
-  }
-`;
 
 const GET_CUSTOMER_ADDRESSES_QUERY = `
   query GetCustomerAddresses {
@@ -148,71 +108,6 @@ const CREATE_CUSTOMER_ADDRESS_MUTATION = `
   }
 `;
 
-const SET_SHIPPING_ADDRESSES_MUTATION = `
-  mutation SetShippingAddressesOnCart($cartId: String!, $shippingAddresses: [ShippingAddressInput!]!) {
-    setShippingAddressesOnCart(input: {
-      cart_id: $cartId,
-      shipping_addresses: $shippingAddresses
-    }) {
-      cart {
-        shipping_addresses {
-          firstname
-          lastname
-          street
-          city
-          region { label __typename }
-          postcode
-          country { label __typename }
-          telephone
-          available_shipping_methods {
-            carrier_code
-            method_code
-            carrier_title
-            method_title
-            available
-            amount { value currency __typename }
-            __typename
-          }
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const SET_SHIPPING_METHODS_MUTATION = `
-  mutation SetShippingMethodsOnCart($cartId: String!, $carrierCode: String!, $methodCode: String!) {
-    setShippingMethodsOnCart(input: {
-      cart_id: $cartId,
-      shipping_methods: [{ carrier_code: $carrierCode, method_code: $methodCode }]
-    }) {
-      cart {
-        shipping_addresses {
-          selected_shipping_method {
-            carrier_code
-            method_code
-            carrier_title
-            method_title
-            amount { value currency __typename }
-            __typename
-          }
-          available_shipping_methods {
-            carrier_code
-            method_code
-            available
-            __typename
-          }
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
 const GET_CART_SHIPPING_METHODS_QUERY = `
   query GetCartShippingMethods($cartId: String!) {
     cart(cart_id: $cartId) {
@@ -256,52 +151,21 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
 
     // ── 2. Always-fresh cart ───────────────────────────────────────────────
     await logger.step('Step 2 - Create fresh cart', async () => {
-      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-      if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-      cartId = cartGql.data?.cartId ?? '';
-      if (!cartId) throw new Error('beforeAll: cartId is empty after createEmptyCart');
-      logger.action('Cart created', cartId);
+      cartId = await createFreshCart(authClient, logger);
     });
 
     // ── 3. Discover in-stock candidate SKUs ───────────────────────────────
-    const candidateSkus: string[] = [];
+    let candidateSkus: string[] = [];
     await logger.step('Step 3 - Discover in-stock product SKU candidates', async () => {
-      for (const term of ['', 'shoe', 'nike', 'a']) {
-        const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-        const items: ProductItem[] = productsData?.products?.items ?? [];
-        for (const item of items) {
-          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-            if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
-          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-            for (const v of item.variants) {
-              if (v.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(v.product.sku)) {
-                candidateSkus.push(v.product.sku);
-              }
-            }
-          }
-          // No fallback to item.sku — parent configurable SKUs are not addable to cart
-        }
-        if (candidateSkus.length >= 3) break;
-      }
+      candidateSkus = await discoverInStockSkus(authClient, SKU_DISCOVERY_DEFAULTS);
       if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found');
     });
 
     // ── 4. Try candidate SKUs until one adds successfully ─────────────────
     await logger.step('Step 4 - Add in-stock product to cart (with SKU retry)', async () => {
-      for (const sku of candidateSkus) {
-        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-          cartId,
-          cartItems: [{ sku, quantity: 1 }],
-        })).getGraphQLResponse();
-        const addUserErrors = addGql.data?.addProductsToCart?.user_errors ?? [];
-        if (!(addGql.errors?.length) && !addUserErrors.length) {
-          validSku = sku;
-          logger.action('Product added to cart', sku);
-          break;
-        }
-        logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
-      }
-      if (!validSku) throw new Error('beforeAll: no candidate SKU could be added to cart');
+      const result = await addFirstAddableProduct(authClient, cartId, candidateSkus, undefined, logger);
+      if (!result.added) throw new Error('beforeAll: no candidate SKU could be added to cart');
+      validSku = result.sku;
       logger.verify('SKU added', 'truthy', validSku);
     });
 
@@ -349,7 +213,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Execute setShippingAddressesOnCart with inline address', async () => {
       logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId})`);
-      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_RICH_MUTATION, {
         cartId,
         shippingAddresses: [{
           address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
@@ -393,7 +257,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Execute setShippingAddressesOnCart with customer_address_id', async () => {
       logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${savedAddressId})`);
-      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_RICH_MUTATION, {
         cartId,
         shippingAddresses: [{ customer_address_id: savedAddressId }],
       });
@@ -424,7 +288,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Execute setShippingAddressesOnCart with invalid address id', async () => {
       logger.action('POST', `setShippingAddressesOnCart (cartId=${cartId}, addressId=${checkoutData.invalidCustomerAddressId})`);
-      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_RICH_MUTATION, {
         cartId,
         shippingAddresses: [{ customer_address_id: checkoutData.invalidCustomerAddressId }],
       });
@@ -450,7 +314,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Execute setShippingAddressesOnCart with empty firstname', async () => {
       logger.action('POST', 'setShippingAddressesOnCart (firstname empty)');
-      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      response = await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_RICH_MUTATION, {
         cartId,
         shippingAddresses: [{
           address: { firstname: '', lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
@@ -481,7 +345,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     // Re-set inline address — TC_04's empty-firstname mutation may have cleared the cart's shipping address on some staging environments
     await logger.step('Step 1 - Re-set inline shipping address', async () => {
       const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
-      await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_RICH_MUTATION, {
         cartId,
         shippingAddresses: [{
           address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
@@ -545,7 +409,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
     // Re-set inline address — defensive guard; TC_05 already sets it but re-query may see stale state
     await logger.step('Step 1 - Re-set inline shipping address', async () => {
       const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutData.inlineAddress;
-      await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
+      await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_RICH_MUTATION, {
         cartId,
         shippingAddresses: [{
           address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },

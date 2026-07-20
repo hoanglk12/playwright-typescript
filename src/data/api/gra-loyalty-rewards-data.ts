@@ -8,6 +8,7 @@ export interface QffApplyInput {
 export interface LoyaltyRewardsDataShape {
   qffApply: QffApplyInput;
   invalidCartId: string;
+  unauthenticatedErrorCategories: string[];
 }
 
 export const LoyaltyRewardsData: LoyaltyRewardsDataShape = {
@@ -18,4 +19,5 @@ export const LoyaltyRewardsData: LoyaltyRewardsDataShape = {
     quoteRef: 'TESTREF-AUTOMATION',
   },
   invalidCartId: 'INVALID_LOYALTY_TEST_CART',
+  unauthenticatedErrorCategories: ['graphql-authorization', 'graphql-no-such-entity', 'graphql-input'],
 };

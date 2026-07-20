@@ -28,42 +28,23 @@ import {
 } from '../../src/data/api/gra-order-history-data';
 import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { PlaceOrderData } from '../../src/data/api/gra-place-order-data';
-import { signInAndStoreToken } from './api-test-helpers';
+import {
+  signInAndStoreToken,
+  createFreshCart,
+  discoverInStockSkus,
+  addFirstAddableProduct,
+  setShippingAddressOnCart,
+  selectShippingMethod,
+  setBillingAddress,
+  setPaymentMethod,
+} from './api-test-helpers';
 import { GraphQLResponse } from '../../src/api/GraphQLClient';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
-
-// ── Local types ───────────────────────────────────────────────────────────────
-
-interface ShippingMethod {
-  carrier_code: string;
-  method_code: string;
-  available: boolean;
-}
-
-interface PaymentMethod {
-  code: string;
-  title: string;
-}
-
-interface CartUserError {
-  code: string;
-  message: string;
-}
-
-interface ProductVariant {
-  product: { sku: string; stock_status: string; __typename: string };
-}
-
-interface ProductItem {
-  sku: string;
-  stock_status: string;
-  __typename: string;
-  variants?: ProductVariant[];
-}
-
-// ── Module-level constants ────────────────────────────────────────────────────
-
-const SIMPLE_PAYMENT_CODES = ['checkmo', 'afterpay', 'free', 'cashondelivery'];
+import {
+  SIGN_IN_MUTATION,
+  CREATE_ACCOUNT_MUTATION,
+  PLACE_ORDER_MUTATION,
+} from '../../src/data/api/gra-graphql-operations';
 
 // ── Module-level state ────────────────────────────────────────────────────────
 
@@ -76,162 +57,6 @@ let checkoutBillingData = createCheckoutBillingPaymentData('AU');
 let checkoutReady: boolean = false;
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
-
-const SIGN_IN_MUTATION = `
-  mutation SignIn($email: String!, $password: String!, $remember: Boolean) {
-    generateCustomerToken(email: $email, password: $password, remember: $remember) {
-      token
-      __typename
-    }
-  }
-`;
-
-const CREATE_ACCOUNT_MUTATION = `
-  mutation CreateAccount(
-    $email: String!,
-    $firstname: String!,
-    $lastname: String!,
-    $password: String!,
-    $phone_number: String!,
-    $is_subscribed: Boolean!,
-    $loyalty_program_status: Boolean,
-    $order_number: String,
-    $gender: Int,
-    $date_of_birth: String
-  ) {
-    createCustomer(input: {
-      email: $email,
-      firstname: $firstname,
-      lastname: $lastname,
-      password: $password,
-      phone_number: $phone_number,
-      is_subscribed: $is_subscribed,
-      loyalty_program_status: $loyalty_program_status,
-      order_number: $order_number,
-      gender: $gender,
-      date_of_birth: $date_of_birth
-    }) {
-      customer { id email __typename }
-    }
-  }
-`;
-
-const GET_PRODUCTS_QUERY = `
-  query GetTestProducts($search: String!) {
-    products(search: $search, pageSize: 20, currentPage: 1) {
-      items {
-        sku
-        name
-        stock_status
-        __typename
-        ... on ConfigurableProduct {
-          variants {
-            product { sku stock_status __typename }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const CREATE_CART_MUTATION = `mutation CreateCart { cartId: createEmptyCart }`;
-
-const ADD_PRODUCTS_MUTATION = `
-  mutation AddProductsToCart($cartId: String!, $cartItems: [CartItemInput!]!) {
-    addProductsToCart(cartId: $cartId, cartItems: $cartItems) {
-      cart {
-        items { id quantity product { sku __typename } __typename }
-        total_quantity
-        __typename
-      }
-      user_errors { code message __typename }
-      __typename
-    }
-  }
-`;
-
-const SET_SHIPPING_ADDRESSES_MUTATION = `
-  mutation SetShippingAddressesOnCart($cartId: String!, $shippingAddresses: [ShippingAddressInput!]!) {
-    setShippingAddressesOnCart(input: {
-      cart_id: $cartId,
-      shipping_addresses: $shippingAddresses
-    }) {
-      cart {
-        shipping_addresses {
-          available_shipping_methods {
-            carrier_code
-            method_code
-            available
-            __typename
-          }
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const SET_SHIPPING_METHOD_MUTATION = `
-  mutation SetShippingMethodsOnCart($cartId: String!, $carrierCode: String!, $methodCode: String!) {
-    setShippingMethodsOnCart(input: {
-      cart_id: $cartId,
-      shipping_methods: [{ carrier_code: $carrierCode, method_code: $methodCode }]
-    }) {
-      cart { __typename }
-      __typename
-    }
-  }
-`;
-
-const SET_BILLING_ADDRESS_MUTATION = `
-  mutation SetBillingAddressOnCart($cartId: String!, $billingAddress: BillingAddressInput!) {
-    setBillingAddressOnCart(input: {
-      cart_id: $cartId,
-      billing_address: $billingAddress
-    }) {
-      cart {
-        billing_address { firstname lastname __typename }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const GET_AVAILABLE_PAYMENT_METHODS_QUERY = `
-  query GetAvailablePaymentMethods($cartId: String!) {
-    cart(cart_id: $cartId) {
-      available_payment_methods { code title __typename }
-      __typename
-    }
-  }
-`;
-
-const SET_PAYMENT_METHOD_MUTATION = `
-  mutation SetPaymentMethodOnCart($cartId: String!, $paymentMethodCode: String!) {
-    setPaymentMethodOnCart(input: {
-      cart_id: $cartId,
-      payment_method: { code: $paymentMethodCode }
-    }) {
-      cart {
-        selected_payment_method { code title __typename }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const PLACE_ORDER_MUTATION = `
-  mutation PlaceOrder($cartId: String!) {
-    placeOrder(input: { cart_id: $cartId }) {
-      order { order_number __typename }
-      __typename
-    }
-  }
-`;
 
 const GET_CUSTOMER_ORDERS_QUERY = `
   query GetCustomerOrders($pageSize: Int, $currentPage: Int) {
@@ -283,34 +108,16 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
     // ── 2. Always-fresh cart ───────────────────────────────────────────────
     await logger.step('Step 2 - Create fresh cart for checkout', async () => {
-      const cartGql = await (await authClient.mutateWrapped(CREATE_CART_MUTATION)).getGraphQLResponse();
-      if (cartGql.errors?.length) throw new Error(`createEmptyCart failed: ${cartGql.errors[0]?.message ?? 'unknown'}`);
-      checkoutCartId = cartGql.data?.cartId ?? '';
-      if (!checkoutCartId) throw new Error('beforeAll: checkoutCartId is empty after createEmptyCart');
-      logger.action('Cart created', checkoutCartId);
+      checkoutCartId = await createFreshCart(authClient, logger);
     });
 
     // ── 3. Discover in-stock SKU ───────────────────────────────────────────
     let candidateSkus: string[] = [];
     await logger.step('Step 3 - Discover in-stock product SKUs', async () => {
-      candidateSkus = [];
-      for (const term of PlaceOrderData.productSearchTerms) {
-        const productsData = await (await authClient.queryWrapped(GET_PRODUCTS_QUERY, { search: term })).getData();
-        const items: ProductItem[] = productsData?.products?.items ?? [];
-
-        for (const item of items) {
-          if (item.stock_status === 'IN_STOCK' && item.__typename === 'SimpleProduct') {
-            if (!candidateSkus.includes(item.sku)) candidateSkus.push(item.sku);
-          } else if (item.__typename === 'ConfigurableProduct' && Array.isArray(item.variants)) {
-            for (const variant of item.variants) {
-              if (variant.product?.stock_status === 'IN_STOCK' && !candidateSkus.includes(variant.product.sku)) {
-                candidateSkus.push(variant.product.sku);
-              }
-            }
-          }
-        }
-        if (candidateSkus.length >= 3) break;
-      }
+      candidateSkus = await discoverInStockSkus(authClient, {
+        searchTerms: PlaceOrderData.productSearchTerms,
+        pageSize: 20,
+      });
 
       logger.verify('candidateSkus found', 'at least 1', candidateSkus.length);
       if (!candidateSkus.length) throw new Error('beforeAll: no in-stock product SKU found in any search');
@@ -318,109 +125,46 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
     // ── 4. Add product to cart (retry until one succeeds) ─────────────────
     await logger.step('Step 4 - Add in-stock product to cart (SKU retry)', async () => {
-      let addSucceeded = false;
-      for (const sku of candidateSkus) {
-        const addGql = await (await authClient.mutateWrapped(ADD_PRODUCTS_MUTATION, {
-          cartId: checkoutCartId,
-          cartItems: [{ sku, quantity: 1 }],
-        })).getGraphQLResponse();
-        const addUserErrors: CartUserError[] = addGql.data?.addProductsToCart?.user_errors ?? [];
-        if (!(addGql.errors?.length) && !addUserErrors.length) {
-          validSku = sku;
-          addSucceeded = true;
-          logger.action('Product added to cart', sku);
-          break;
-        }
-        logger.action(`SKU ${sku} not addable`, addUserErrors[0]?.message ?? addGql.errors?.[0]?.message ?? 'unknown');
-      }
-      if (!addSucceeded) throw new Error('beforeAll: no candidate SKU could be added to cart');
+      const result = await addFirstAddableProduct(authClient, checkoutCartId, candidateSkus, undefined, logger);
+      if (!result.added) throw new Error('beforeAll: no candidate SKU could be added to cart');
+      validSku = result.sku;
     });
 
     // ── 5. Set shipping address ────────────────────────────────────────────
     let setupOk = true;
-    let shippingGql!: GraphQLResponse;
+    let shippingResult: Awaited<ReturnType<typeof setShippingAddressOnCart>> | undefined;
     await logger.step('Step 5 - Set shipping address', async () => {
-      const { firstname, lastname, street, city, region, postcode, country_code, telephone } = checkoutBillingData.shippingInlineAddress;
-      shippingGql = await (await authClient.mutateWrapped(SET_SHIPPING_ADDRESSES_MUTATION, {
-        cartId: checkoutCartId,
-        shippingAddresses: [{
-          address: { firstname, lastname, street, city, region, postcode, country_code, telephone, save_in_address_book: false },
-        }],
-      })).getGraphQLResponse();
-
-      if (shippingGql.errors?.length) {
-        logger.action('Shipping address setup failed', shippingGql.errors[0]?.message ?? 'unknown');
-        setupOk = false;
-      }
+      shippingResult = await setShippingAddressOnCart(authClient, checkoutCartId, checkoutBillingData.shippingInlineAddress);
+      if (!shippingResult.ok) setupOk = false;
     });
     if (!setupOk) return;
 
     // Prefer flatrate_flatrate — instore_pickup requires a Pickup Location before placeOrder
     await logger.step('Step 6 - Set shipping method (prefer flatrate_flatrate)', async () => {
-      const availableMethods: ShippingMethod[] = shippingGql.data?.setShippingAddressesOnCart?.cart?.shipping_addresses?.[0]?.available_shipping_methods ?? [];
-      const flatrate = availableMethods.find(m => m.available && m.carrier_code === 'flatrate');
-      const firstAvailable = flatrate ?? availableMethods.find(m => m.available && m.carrier_code !== 'instore_pickup');
-
-      if (!firstAvailable) {
-        logger.action('No suitable shipping method found', 'TC_01 and TC_03 will be skipped');
-        setupOk = false;
-        return;
-      }
-
-      const { carrier_code, method_code } = firstAvailable;
-      const methodGql = await (await authClient.mutateWrapped(SET_SHIPPING_METHOD_MUTATION, {
-        cartId: checkoutCartId,
-        carrierCode: carrier_code,
-        methodCode: method_code,
-      })).getGraphQLResponse();
-
-      if (methodGql.errors?.length) {
-        logger.action('Shipping method setup failed', methodGql.errors[0]?.message ?? 'unknown');
+      const methodResult = await selectShippingMethod(authClient, checkoutCartId, shippingResult!.availableMethods, undefined, logger);
+      if (!methodResult.ok) {
+        logger.action('No suitable shipping method found', methodResult.error ?? 'TC_01 and TC_03 will be skipped');
         setupOk = false;
         return;
       }
       shippingMethodSet = true;
-      logger.action('Shipping method set', `${carrier_code}_${method_code}`);
     });
     if (!setupOk) return;
 
     // ── 7. Set billing address (same_as_shipping) ──────────────────────────
     await logger.step('Step 7 - Set billing address', async () => {
-      const billingGql = await (await authClient.mutateWrapped(SET_BILLING_ADDRESS_MUTATION, {
-        cartId: checkoutCartId,
-        billingAddress: { same_as_shipping: true },
-      })).getGraphQLResponse();
-
-      if (billingGql.errors?.length) {
-        logger.action('Billing address setup failed', billingGql.errors[0]?.message ?? 'unknown');
-        setupOk = false;
-      }
+      const billingResult = await setBillingAddress(authClient, checkoutCartId, { sameAsShipping: true });
+      if (!billingResult.ok) setupOk = false;
     });
     if (!setupOk) return;
 
     // ── 8. Set payment method ──────────────────────────────────────────────
     await logger.step('Step 8 - Set payment method', async () => {
-      const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId: checkoutCartId })).getData();
-      const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
-      const paymentCode = methods.map(m => m.code).find(c => SIMPLE_PAYMENT_CODES.includes(c)) ?? '';
-
-      if (!paymentCode) {
-        logger.action('No simple payment method available', 'TC_01 and TC_03 will be skipped');
+      const paymentResult = await setPaymentMethod(authClient, checkoutCartId, { preferredCodes: OrderHistoryData.simplePaymentCodes }, logger);
+      if (!paymentResult.ok) {
+        logger.action('No simple payment method available', paymentResult.error ?? 'TC_01 and TC_03 will be skipped');
         setupOk = false;
-        return;
       }
-
-      const payGql = await (await authClient.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
-        cartId: checkoutCartId,
-        paymentMethodCode: paymentCode,
-      })).getGraphQLResponse();
-
-      if (payGql.errors?.length) {
-        logger.action('Payment method setup failed', payGql.errors[0]?.message ?? 'unknown');
-        setupOk = false;
-        return;
-      }
-      logger.action('Payment method set', paymentCode);
     });
     if (!setupOk) return;
 

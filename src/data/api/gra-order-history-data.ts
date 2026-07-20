@@ -32,12 +32,14 @@ export interface OrderHistoryDataShape {
   invalidGuestToken: string;
   orderNumberPattern: RegExp;
   paginationPageSize: number;
+  simplePaymentCodes: string[];
 }
 
 export const OrderHistoryData: Readonly<OrderHistoryDataShape> = {
   invalidGuestToken: 'INVALID-GUEST-TOKEN-99999999',
   orderNumberPattern: /^\S+$/,
   paginationPageSize: 1,
+  simplePaymentCodes: ['checkmo', 'afterpay', 'free', 'cashondelivery'],
 };
 
 export class OrderHistoryDataGenerator {

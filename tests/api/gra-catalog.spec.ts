@@ -4,6 +4,7 @@ import { GraCatalogData } from '../../src/data/api/gra-catalog-data';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLClient } from '../../src/api/GraphQLClient';
+import { assertNoCriticalErrors as assertNoCriticalErrorsShared } from './api-test-helpers';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -41,10 +42,7 @@ let discoveredCategoryUrlKey: string = '';
  * errors that occur on PLA staging when some products have broken price data.
  */
 function assertNoCriticalErrors(gql: { errors?: Array<{ path?: unknown }> }): void {
-  const criticalErrors = (gql.errors ?? []).filter(
-    (e) => !(Array.isArray(e.path) && e.path.includes('price_range')),
-  );
-  expect(criticalErrors, 'unexpected GraphQL errors').toHaveLength(0);
+  assertNoCriticalErrorsShared(gql, ['price_range']);
 }
 
 // ── GraphQL query constants ──
