@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhancing globalSetup / globalTeardown for UI Tests</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222636;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141824;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #232842 100%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(108,99,255,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .header h1 { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+    .header .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .badge {
+      display: inline-block;
+      background: rgba(108,99,255,0.2);
+      color: #a5a0ff;
+      border: 1px solid rgba(108,99,255,0.35);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.7rem;
+      margin-top: 0.8rem;
+      margin-right: 0.4rem;
+      letter-spacing: 0.03em;
+    }
+    .badge.green { background: rgba(0,212,170,0.15); color: #5eead4; border-color: rgba(0,212,170,0.3); }
+    .badge.warn { background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.3); }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .section h2 .icon {
+      width: 28px; height: 28px;
+      background: rgba(108,99,255,0.2);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .section h3 { font-size: 0.95rem; font-weight: 600; color: #c4cae0; margin: 1.2rem 0 0.6rem; }
+    p { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+    p strong { color: var(--text); }
+    ul, ol { color: var(--muted); font-size: 0.9rem; margin: 0.5rem 0 0.75rem 1.2rem; }
+    li { margin-bottom: 0.35rem; }
+    li strong { color: var(--text); }
+    code {
+      background: var(--code-bg);
+      color: #82aaff;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      font-size: 0.82em;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+    th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td { padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(46,50,80,0.5); vertical-align: top; color: var(--muted); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(108,99,255,0.04); }
+    td:first-child { color: var(--text); font-weight: 500; }
+    .check { color: #22d3ee; font-weight: 700; }
+
+    .scope-rule {
+      background: rgba(0,212,170,0.08);
+      border-left: 3px solid var(--accent2);
+      border-radius: 0 8px 8px 0;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.88rem;
+      color: #5eead4;
+      margin: 1rem 0;
+    }
+    .scope-rule strong { color: #a7f3d0; }
+
+    .note {
+      background: rgba(245,158,11,0.08);
+      border-left: 3px solid var(--warn);
+      border-radius: 0 8px 8px 0;
+      padding: 0.8rem 1rem;
+      font-size: 0.85rem;
+      color: #fde68a;
+      margin: 1rem 0;
+    }
+    .note strong { color: #fbbf24; }
+
+    .risk-tag { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; }
+    .risk-low { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .risk-med { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .risk-high { background: rgba(239,68,68,0.15); color: #f87171; }
+
+    .verify-steps { list-style: none; margin-top: 0.5rem; }
+    .verify-steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(46,50,80,0.4);
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .verify-steps li:last-child { border-bottom: none; }
+    .step-num {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      background: rgba(108,99,255,0.2);
+      color: #a5a0ff;
+      border-radius: 50%;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .filepath {
+      display: block;
+      background: var(--surface2);
+      color: var(--accent2);
+      font-family: monospace;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      margin: 0.3rem 0;
+      border: 1px solid var(--border);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Enhancing globalSetup / globalTeardown for UI Tests</h1>
+    <p class="subtitle">Playwright TypeScript Framework · Technical Research Report</p>
+    <span class="badge">Research Only — No Code Changed</span>
+    <span class="badge green">Direction A Approved</span>
+    <span class="badge warn">Direction B Conditional</span>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">📋</span> Summary</h2>
+    <p>
+      The current UI lifecycle (<code>src/config/global-setup.ts</code>, <code>src/config/global-teardown.ts</code>)
+      works but carries several concrete correctness gaps:
+    </p>
+    <ul>
+      <li><strong>No fail-fast on connectivity</strong> — a down environment only <code>console.warn</code>s; the full suite runs and fails downstream instead of aborting.</li>
+      <li><strong>Connectivity checks miss the real targets</strong> — only <code>adminUrl</code>/<code>frontSiteUrl</code> are pinged; the 8 Accent storefronts that ecommerce specs depend on aren't gated by setup at all.</li>
+      <li><strong>Wasteful browser validation</strong> — launches Chromium, Firefox, <em>and</em> WebKit every run, even though WebKit's project is commented out and Firefox is excluded from ecommerce in CI.</li>
+      <li><strong><code>archiveTestArtifacts()</code> is a silent no-op</strong> — a <code>fs.statSync(...).isFile()</code> guard means report directories are never archived; only <code>test-summary.txt</code> gets copied, and CI's <code>upload-artifact</code> already covers everything real.</li>
+      <li>No <code>storageState</code> auth reuse, no required-secrets validation, hardcoded <code>15000</code> timeout instead of a <code>TIMEOUTS</code> constant, unused imports (<code>path</code>, <code>exec</code>/<code>execAsync</code>/<code>os</code>).</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">🗂️</span> Scope</h2>
+    <p>Files affected by the approved Direction A implementation:</p>
+    <span class="filepath">src/config/global-setup.ts</span>
+    <span class="filepath">src/config/global-teardown.ts</span>
+    <p>Read-only references (no changes): <code>playwright.config.ts</code>, <code>src/config/environment.ts</code>, <code>src/constants/timeouts.ts</code>, <code>.github/workflows/playwright-with-slack.yml</code>, <code>.github/workflows/playwright.yml</code>.</p>
+    <div class="note">
+      <strong>Invariant:</strong> teardown must never touch <code>monocart-report/</code> — CI's trend-cache step depends on that file surviving. Cleanup stays in setup (pre-test), as it already is today.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">🧭</span> Options</h2>
+    <table>
+      <thead>
+        <tr><th>Option</th><th>Pros</th><th>Cons</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>A. Harden raw global files</td>
+          <td>Minimal churn; no config restructure; low regression surface; fast to ship</td>
+          <td>Setup stays invisible in reports; no traces/fixtures; runs regardless of <code>--project</code> filter</td>
+        </tr>
+        <tr>
+          <td>B. Setup/teardown projects (project dependencies)</td>
+          <td>Docs-recommended; report visibility + traces; fixtures + <code>browser</code> fixture; idiomatic home for <code>storageState</code> auth</td>
+          <td>Restructures <code>playwright.config.ts</code> across all projects; larger regression surface across the 6-shard matrix</td>
+        </tr>
+        <tr>
+          <td>C. Do nothing</td>
+          <td>Zero effort</td>
+          <td>Leaves fail-fast gap, wrong connectivity targets, wasted browser launches, dead archive code in place</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">✅</span> Recommended Approach — Direction A (Approved)</h2>
+    <p>
+      Harden the existing two files first: the highest-value problems (no fail-fast, wrong connectivity targets,
+      redundant browser launches, dead archive function) are all fixable inline with a small, low-risk, easily
+      reversible change — no restructure of <code>playwright.config.ts</code> and no impact on the 6-shard CI matrix
+      or the monocart trend pipeline.
+    </p>
+    <p>Direction B (project-dependencies + <code>storageState</code> auth caching) remains conditional on a future count of login-heavy specs and is <strong>out of scope</strong> for this implementation pass.</p>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">⚠️</span> Risk Assessment</h2>
+    <table>
+      <thead>
+        <tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Teardown cleanup deletes <code>monocart-report/index.json</code> before CI copies it to cache</td>
+          <td><span class="risk-tag risk-high">High</span></td>
+          <td>Low</td>
+          <td>Never touch <code>monocart-report/</code> in teardown; keep cleanup in setup only</td>
+        </tr>
+        <tr>
+          <td>Fail-fast gating aborts runs on transient storefront cold-starts</td>
+          <td><span class="risk-tag risk-high">High</span></td>
+          <td>Medium</td>
+          <td>Retry/backoff; storefronts warn-only; hard-fail only on core env URLs</td>
+        </tr>
+        <tr>
+          <td>Removing <code>archiveTestArtifacts()</code> loses an archive someone relies on</td>
+          <td><span class="risk-tag risk-low">Low</span></td>
+          <td>Low</td>
+          <td>It only ever archived <code>test-summary.txt</code>; CI <code>upload-artifact</code> covers all real outputs</td>
+        </tr>
+        <tr>
+          <td>Secrets-validation fail-fast blocks legitimate local runs missing optional vars</td>
+          <td><span class="risk-tag risk-med">Medium</span></td>
+          <td>Medium</td>
+          <td>Validate only vars required for the selected <code>NODE_ENV</code>; optional vars warn only</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>Rollback plan:</strong> all changes confined to <code>global-setup.ts</code> / <code>global-teardown.ts</code>; revert the commit — no data migrations, no dependency changes.</p>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">🛠️</span> Implementation Steps (Direction A)</h2>
+    <ol>
+      <li>Fail-fast + correct connectivity targets — retry/backoff, <code>TIMEOUTS</code> constants, storefronts warn-only, core URLs hard-fail</li>
+      <li>Scope browser validation to <code>config.projects</code> only (drop unused/excluded engines)</li>
+      <li>Add required-env-var validation, redaction-aware, keyed to <code>NODE_ENV</code></li>
+      <li>Delete dead <code>archiveTestArtifacts()</code> and unused imports (<code>path</code>; <code>exec</code>/<code>execAsync</code>/<code>os</code>)</li>
+      <li>Guard cleanup so it never removes <code>monocart-report/</code></li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">🔍</span> Validation</h2>
+    <ul class="verify-steps">
+      <li><span class="step-num">1</span> <code>npm run lint</code> (tsc <code>--noEmit</code>) passes</li>
+      <li><span class="step-num">2</span> <code>npm run test:simple</code> — setup log shows only configured browsers; teardown writes <code>test-summary.txt</code>; <code>monocart-report/</code> intact</li>
+      <li><span class="step-num">3</span> Point a core URL at an unreachable host → run aborts fast with a clear message and non-zero exit</li>
+      <li><span class="step-num">4</span> Unset a required env var → immediate, explicit abort</li>
+      <li><span class="step-num">5</span> Full CI run of <code>playwright-with-slack.yml</code> — all shards run, monocart trend renders, step summary + Slack payload populate</li>
+    </ul>
+  </div>
+
+  <footer>
+    Generated by technical-research-agent · Playwright TypeScript Automation Framework
+  </footer>
+
+</div>
+</body>
+</html>

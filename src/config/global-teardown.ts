@@ -1,12 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { FullConfig } from '@playwright/test';
-import { Environment, getEnvironment } from './environment';
-import * as os from 'os';
-
-const execAsync = promisify(exec);
+import { getEnvironment } from './environment';
 
 /**
  * Global teardown configuration for Playwright tests
@@ -21,23 +16,18 @@ const execAsync = promisify(exec);
 async function globalTeardown(config: FullConfig) {
 
   console.log('🧹 Starting global teardown...');
-  
-  // Load environment configuration
-  const environment: Environment = getEnvironment();
-  
+
   // 1. Close any remaining browser instances and clean up driver processes
  // 2. Generate final test reports and summaries
   await generateFinalReports();
-  
+
   // 3. Clean up temporary files and authentication states
   await cleanupTemporaryFiles();
-    // 4. Archive logs and screenshots if needed
-  await archiveTestArtifacts(environment);
-  
-  // 5. Show summary statistics
+
+  // 4. Show summary statistics
   await showTestSummary();
-  
-  // 6. Validate cleanup completed successfully
+
+  // 5. Validate cleanup completed successfully
   await validateCleanup();
   
   console.log('✅ Global teardown completed successfully');
@@ -149,48 +139,6 @@ async function cleanupTemporaryFiles(): Promise<void> {
     } catch (error) {
       console.warn(`   ⚠️ Could not clean ${dir}/: ${error}`);
     }
-  }
-}
-
-/**
- * Archive test artifacts for long-term storage
- */
-async function archiveTestArtifacts(environment: Environment): Promise<void> {
-  console.log('📦 Archiving test artifacts...');
-  
-  try {
-    // Only archive in CI or specific environments
-    if (process.env.CI || environment.reportDir !== 'test-results') {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const archiveDir = path.resolve(process.cwd(), 'archived-results', timestamp);      
-      if (!fs.existsSync(archiveDir)) {
-        fs.mkdirSync(archiveDir, { recursive: true });
-      }
-      
-      // Archive important files
-      const filesToArchive = [
-        'test-summary.txt',
-        'playwright-report',
-        'test-results'
-      ];
-      
-      for (const item of filesToArchive) {
-        const sourcePath = path.resolve(process.cwd(), item);
-        if (fs.existsSync(sourcePath)) {
-          const targetPath = path.join(archiveDir, item);
-          // Simple copy for files, recursive copy for directories would need additional logic
-          if (fs.statSync(sourcePath).isFile()) {
-            fs.copyFileSync(sourcePath, targetPath);
-          }
-        }
-      }
-      
-      console.log(`   ✅ Test artifacts archived to: ${archiveDir}`);
-    } else {
-      console.log('   ⏭️ Archiving skipped (not in CI environment)');
-    }
-  } catch (error) {
-    console.warn(`   ⚠️ Archiving warning: ${error}`);
   }
 }
 
