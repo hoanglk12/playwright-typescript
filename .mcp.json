@@ -1,4 +1,13 @@
 {
   "mcpServers": {
+    "lightrag": {
+      "command": "uvx",
+      "args": [
+        "--from", "lightrag-mcp",
+        "lightrag-mcp",
+        "--host", "localhost",
+        "--port", "9621"
+      ]
+    }
   }
 }
