@@ -15,6 +15,10 @@ for /f "usebackq eol=# tokens=1,* delims==" %%A in (".lightrag.env") do (
     if not "%%A"=="" if not "%%B"=="" set "%%A=%%B"
 )
 
+REM --- lightrag-server >=1.5.3 prints a Unicode banner that crashes on the
+REM     default Windows console codepage (cp1252) unless forced to UTF-8 ---
+set PYTHONIOENCODING=utf-8
+
 call .lightrag-venv\Scripts\activate
 lightrag-server ^
     --host 0.0.0.0 ^

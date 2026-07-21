@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LightRAG 1.5.2 → 1.5.4 Upgrade Runbook</title>
+<style>
+  :root {
+    --bg: #F4F7F7;
+    --surface: #FFFFFF;
+    --surface-alt: #E7EEED;
+    --border: #D3DEDC;
+    --ink: #142524;
+    --ink-soft: #4D6260;
+    --ink-faint: #7C908D;
+    --accent: #0F6E6B;
+    --accent-soft: #DCEBEA;
+    --good: #2E7D5B;
+    --good-soft: #DEEFE6;
+    --warn: #9A5E0C;
+    --warn-soft: #F5E7D2;
+    --critical: #A23B2E;
+    --critical-soft: #F3E0DC;
+    --code-bg: #142524;
+    --code-ink: #E7EFEE;
+    --shadow: 0 1px 2px rgba(20,37,36,0.06), 0 6px 16px rgba(20,37,36,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1716;
+      --surface: #16211F;
+      --surface-alt: #1D2B29;
+      --border: #2B3A38;
+      --ink: #E7EFEE;
+      --ink-soft: #9FB3B0;
+      --ink-faint: #6C827F;
+      --accent: #3FBDB6;
+      --accent-soft: #17302E;
+      --good: #57B98B;
+      --good-soft: #16302650;
+      --warn: #E0A438;
+      --warn-soft: #2E2515;
+      --critical: #E2695A;
+      --critical-soft: #2E1B17;
+      --code-bg: #0A1211;
+      --code-ink: #DCE9E7;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1716; --surface: #16211F; --surface-alt: #1D2B29; --border: #2B3A38;
+    --ink: #E7EFEE; --ink-soft: #9FB3B0; --ink-faint: #6C827F;
+    --accent: #3FBDB6; --accent-soft: #17302E;
+    --good: #57B98B; --good-soft: #16302650;
+    --warn: #E0A438; --warn-soft: #2E2515;
+    --critical: #E2695A; --critical-soft: #2E1B17;
+    --code-bg: #0A1211; --code-ink: #DCE9E7;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #F4F7F7; --surface: #FFFFFF; --surface-alt: #E7EEED; --border: #D3DEDC;
+    --ink: #142524; --ink-soft: #4D6260; --ink-faint: #7C908D;
+    --accent: #0F6E6B; --accent-soft: #DCEBEA;
+    --good: #2E7D5B; --good-soft: #DEEFE6;
+    --warn: #9A5E0C; --warn-soft: #F5E7D2;
+    --critical: #A23B2E; --critical-soft: #F3E0DC;
+    --code-bg: #142524; --code-ink: #E7EFEE;
+    --shadow: 0 1px 2px rgba(20,37,36,0.06), 0 6px 16px rgba(20,37,36,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+  .eyebrow {
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 680;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+  .subtitle {
+    font-size: 16px;
+    color: var(--ink-soft);
+    max-width: 58ch;
+    margin: 0 0 24px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+    background: var(--surface);
+  }
+  .chip.risk-low { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 44px;
+    box-shadow: var(--shadow);
+  }
+  .stat {
+    background: var(--surface);
+    padding: 18px 18px 16px;
+  }
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+  }
+  .stat-value {
+    font-size: 19px;
+    font-weight: 650;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .stat-value.mono { font-size: 18px; }
+  .stat-value .arrow { color: var(--ink-faint); font-weight: 500; margin: 0 4px; }
+  .stat-sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 4px; }
+
+  section { margin-bottom: 44px; }
+  h2 {
+    font-size: 13px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  p { margin: 0 0 14px; color: var(--ink); }
+  p.lede { color: var(--ink-soft); }
+
+  .panel {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+  }
+  .panel.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .panel.critical { border-left-color: var(--critical); background: var(--critical-soft); }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .panel-title .tag {
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: var(--surface);
+    font-weight: 700;
+  }
+  .panel.warn .panel-title .tag { background: var(--warn); }
+  .panel.critical .panel-title .tag { background: var(--critical); }
+  .panel p { margin: 0 0 8px; font-size: 14.5px; color: var(--ink); }
+  .panel p:last-child { margin-bottom: 0; }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .step {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 24px 44px;
+    border-left: 1px solid var(--border);
+    margin-left: 15px;
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .step::before {
+    content: counter(step);
+    position: absolute;
+    left: -15px;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-title { font-weight: 650; font-size: 15.5px; margin: 2px 0 6px; }
+  .step-why { font-size: 13.5px; color: var(--ink-faint); margin: 0 0 10px; }
+
+  .codeblock {
+    position: relative;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 8px;
+    padding: 12px 46px 12px 14px;
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.16);
+    color: var(--code-ink);
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.16); }
+  .copy-btn:focus-visible, a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .checklist li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .checklist .box {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--ink-faint);
+    border-radius: 4px;
+    margin-top: 2px;
+  }
+  .checklist .lbl { font-size: 14px; }
+  .checklist .lbl .cmd { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-faint); }
+  .checklist li.blocked { opacity: 0.75; }
+  .checklist li.blocked .box { border-color: var(--warn); background: var(--warn-soft); }
+  .status-inline {
+    font-family: ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--warn);
+    background: var(--warn-soft);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+
+  .rollback-box {
+    border: 1px solid var(--critical);
+    background: var(--critical-soft);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .rollback-box ol { margin: 10px 0 0; padding-left: 20px; }
+  .rollback-box li { margin-bottom: 6px; font-size: 14px; }
+  .rollback-box code { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 4px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 560px) {
+    .stat-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="eyebrow">Memory Infrastructure &middot; Upgrade Runbook</p>
+  <h1>LightRAG 1.5.2 &rarr; 1.5.4</h1>
+  <p class="subtitle">Local memory-vault sync backend. In-minor patch bump, no breaking changes, closes auth-bypass and path-traversal fixes relevant to this deployment.</p>
+  <div class="meta-row">
+    <span class="chip risk-low"><span class="dot"></span>Executed &amp; verified</span>
+    <span class="chip">Scope: local machine only</span>
+    <span class="chip">CI impact: none</span>
+    <span class="chip">Executed 2026-07-21</span>
+  </div>
+
+  <div class="panel critical">
+    <p class="panel-title"><span class="tag">Per-machine</span>Two gotchas hit during the actual run &mdash; not in upstream release notes</p>
+    <p><strong>1. Startup now requires a root <code class="mono">.env</code> file.</strong> lightrag-server &ge;1.5.3 added a "multi-instance support" check that blocks or crashes startup if no <code class="mono">.env</code> exists in the working directory. Because <code class="mono">.env*</code> is gitignored, <strong>this file will not exist on a fresh machine</strong> even after pulling this repo &mdash; it must be recreated there too. Minimum content: <code class="mono">LIGHTRAG_RUNTIME_TARGET=host</code>. It does not interfere with Node's <code class="mono">.env.{NODE_ENV}</code> loading.</p>
+    <p><strong>2. Unicode banner crash on Windows.</strong> The new splash-screen banner uses box-drawing characters that crash on a cp1252 console codepage with <code class="mono">UnicodeEncodeError</code>. This one <em>can</em> travel with git &mdash; the fix (<code class="mono">set PYTHONIOENCODING=utf-8</code>) is already applied inside <code class="mono">scripts\start-rag.bat</code> on this machine, but as an <strong>uncommitted</strong> change. It only reaches another machine once this repo change is committed and pushed. No action needed there once it lands, only mentioned so the cause is understood if seen elsewhere (e.g. running <code class="mono">lightrag-server</code> directly instead of via the script).</p>
+    <p style="margin-top:10px;"><strong>Neither fix has shipped yet.</strong> <code class="mono">scripts/start-rag.bat</code>, <code class="mono">scripts/lightrag-requirements.txt</code>, and this document itself are still uncommitted on this machine. Commit and push them before assuming another machine benefits from any of the above.</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <p class="stat-label">Version change</p>
+      <p class="stat-value mono">1.5.2 <span class="arrow">&rarr;</span> 1.5.4</p>
+      <p class="stat-sub">Same minor line</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Breaking changes</p>
+      <p class="stat-value">None documented</p>
+      <p class="stat-sub">REST + MCP surface unchanged</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Security fixes landed</p>
+      <p class="stat-value">4</p>
+      <p class="stat-sub">Auth bypass, CORS, path traversal, API-key enforcement</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Install location</p>
+      <p class="stat-value mono" style="font-size:15px;">.lightrag-venv</p>
+      <p class="stat-sub">Python 3.14.4, gitignored</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Server bind</p>
+      <p class="stat-value mono" style="font-size:15px;">0.0.0.0:9621</p>
+      <p class="stat-sub">Confirmed intentional</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Do not install</p>
+      <p class="stat-value mono" style="font-size:15px;">1.5.5rc1</p>
+      <p class="stat-sub">Release candidate</p>
+    </div>
+  </div>
+
+  <section>
+    <h2>Why upgrade</h2>
+    <p>The installed backend, <code class="mono">lightrag_hku 1.5.2</code>, is two patch releases behind the latest stable <code class="mono">1.5.4</code>. Release notes for 1.5.3 and 1.5.4 document no changes to the REST or MCP surface this project depends on &mdash; <code class="mono">query_document</code>, <code class="mono">insert_file</code>, <code class="mono">get_documents</code>, <code class="mono">delete_by_doc_ids</code>, <code class="mono">check_lightrag_health</code>, <code class="mono">get_pipeline_status</code> are all unaffected. What changed is a set of security and reliability fixes: a guest-token authentication bypass was closed, X-API-Key enforcement was tightened, path-traversal in asset materialization was prevented, and a CORS wildcard-with-credentials conflict was resolved.</p>
+
+    <div class="panel">
+      <p class="panel-title"><span class="tag">Confirmed</span>0.0.0.0 bind is intentional</p>
+      <p>Since the wide bind is a deliberate choice rather than an oversight, this upgrade isn't being framed as a fix for the bind itself. It matters because <code class="mono">.lightrag.env</code> still has no <code class="mono">LIGHTRAG_API_KEY</code> or <code class="mono">AUTH_ACCOUNTS</code> set &mdash; so the server is unauthenticated on whatever network it's reachable from, and 1.5.4's fixes land squarely on that exposure class regardless of which interface it's bound to.</p>
+    </div>
+
+    <div class="panel warn">
+      <p class="panel-title"><span class="tag">Separate finding</span>mcp__lightrag__* has no backing server</p>
+      <p>The <code class="mono">mcp__lightrag__*</code> tools referenced in <code class="mono">.claude/settings.json</code> permissions, <code class="mono">CLAUDE.md</code>, the <code class="mono">vault-updater</code> agent, and the <code class="mono">sync-vault</code> skill aren't resolving to a registered MCP server &mdash; consistent with <code class="mono">ToolSearch("lightrag")</code> returning nothing. This is independent of the version bump and out of scope for this runbook, but it means the MCP-level validation step below is currently <strong>not runnable</strong> and is marked accordingly. The vault sync pipeline itself talks to the REST API directly (<code class="mono">scripts/sync-vault-to-lightrag.mjs</code>), so it isn't affected by this gap.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Upgrade steps</h2>
+    <ol class="steps">
+      <li class="step">
+        <p class="step-title">Stop the server</p>
+        <p class="step-why">Confirm nothing is bound to port 9621 before touching the venv.</p>
+        <div class="codeblock mono" id="cmd-0">netstat -ano | findstr :9621</div>
+      </li>
+      <li class="step">
+        <p class="step-title">Back up the working directory</p>
+        <p class="step-why">File-based storage (nano_vectordb + networkx) means a directory copy is a complete, restorable snapshot.</p>
+        <div class="codeblock mono" id="cmd-1">xcopy .lightrag .lightrag.bak-1.5.2 /E /I /H</div>
+      </li>
+      <li class="step">
+        <p class="step-title">Activate the venv and record the current version</p>
+        <p class="step-why">Keeps a reference point for rollback.</p>
+        <div class="codeblock mono" id="cmd-2">.lightrag-venv\Scripts\activate
+pip show lightrag-hku</div>
+      </li>
+      <li class="step">
+        <p class="step-title">Install 1.5.4, pinned</p>
+        <p class="step-why">Stable only &mdash; do not install <code class="mono">1.5.5rc1</code>.</p>
+        <div class="codeblock mono" id="cmd-3">pip install "lightrag-hku==1.5.4"</div>
+      </li>
+      <li class="step">
+        <p class="step-title">Commit a version pin</p>
+        <p class="step-why"><code class="mono">.lightrag-venv</code> and <code class="mono">.lightrag.env</code> are gitignored with no lockfile, so a fresh machine setup currently installs whatever's latest rather than a known version. Done on this machine, but still <strong>uncommitted</strong> &mdash; must be committed and pushed before another machine's fresh setup can install straight from this file (<code class="mono">pip install -r scripts/lightrag-requirements.txt</code>) instead of installing latest then upgrading.</p>
+        <div class="codeblock mono" id="cmd-4">echo lightrag-hku==1.5.4 > scripts\lightrag-requirements.txt</div>
+      </li>
+      <li class="step">
+        <p class="step-title">Create the root <code class="mono">.env</code> file</p>
+        <p class="step-why">Gitignored, so this does not travel with the repo &mdash; required on <strong>every</strong> machine, not just this one, or startup blocks/crashes on the 1.5.3+ multi-instance check. The check only requires the file to <em>exist</em>; <code class="mono">LIGHTRAG_RUNTIME_TARGET</code> is optional and any value other than <code class="mono">host</code>/<code class="mono">compose</code>/<code class="mono">docker</code> fails validation, so leaving it unset is also safe &mdash; an empty file passes too.</p>
+        <div class="codeblock mono" id="cmd-4b">echo LIGHTRAG_RUNTIME_TARGET=host > .env</div>
+      </li>
+      <li class="step">
+        <p class="step-title">Restart and confirm clean startup</p>
+        <p class="step-why">Watch console output for startup errors before relying on the instance. The Unicode-banner fix is already baked into the script, so this should run clean with no extra flags.</p>
+        <div class="codeblock mono" id="cmd-5">scripts\start-rag.bat</div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Validation</h2>
+    <ul class="checklist">
+      <li>
+        <span class="box"></span>
+        <span class="lbl">Package version reports 1.5.4<span class="cmd mono">pip show lightrag-hku</span></span>
+      </li>
+      <li>
+        <span class="box"></span>
+        <span class="lbl">Health endpoint returns healthy, with <code class="mono">pipeline_busy</code> / <code class="mono">pipeline_destructive_busy</code> fields intact<span class="cmd mono">GET http://localhost:9621/health</span></span>
+      </li>
+      <li>
+        <span class="box"></span>
+        <span class="lbl">Document list returns processed statuses with id / file_path / content_length<span class="cmd mono">GET http://localhost:9621/documents</span></span>
+      </li>
+      <li>
+        <span class="box"></span>
+        <span class="lbl">Full vault sync completes with no errors<span class="cmd mono">node scripts/sync-vault-to-lightrag.mjs</span></span>
+      </li>
+      <li>
+        <span class="box"></span>
+        <span class="lbl">Editing a vault note triggers the PostToolUse hook sync successfully<span class="cmd mono">.claude/hooks/sync-memory.js</span></span>
+      </li>
+      <li class="blocked">
+        <span class="box"></span>
+        <span class="lbl">MCP query round-trip against a known note<span class="status-inline">Blocked</span><span class="cmd mono">mcp__lightrag__query_document (mode: hybrid)</span></span>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Rollback</h2>
+    <div class="rollback-box">
+      <p style="margin:0; font-weight:650;">If validation fails, revert in four steps &mdash; state is file-based, so the backup is a full restore:</p>
+      <ol>
+        <li>Stop <code>lightrag-server</code></li>
+        <li>Delete <code>.lightrag</code>, restore <code>.lightrag.bak-1.5.2</code> in its place</li>
+        <li>Inside <code>.lightrag-venv</code>, run <code>pip install "lightrag-hku==1.5.2"</code></li>
+        <li>Restart via <code>scripts\start-rag.bat</code> and re-check <code>/health</code></li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <span>Based on the Technical Research Report, 2026-07-21 &mdash; PyPI &amp; HKUDS/LightRAG release notes.</span>
+    <span>Executed and validated on this machine, 2026-07-21. Repo changes still uncommitted.</span>
+  </footer>
+
+</div>
+
+<script>
+  document.querySelectorAll('.codeblock').forEach(function (block) {
+    var btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = block.textContent.replace('Copy', '').trim();
+      navigator.clipboard.writeText(block.firstChild ? block.childNodes[0].textContent.trim() : text).then(function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1400);
+      });
+    });
+    block.appendChild(btn);
+  });
+</script>
+</body>
+</html>
