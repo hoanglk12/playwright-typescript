@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research: Multi-Page-Type Lighthouse Audits (PDP / PLP / Wishlist)</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #f6821f;
+      --accent2: #4a9eff;
+      --text: #e2e4ed;
+      --muted: #8b8fa8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --code-bg: #12151f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12151f 100%);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+    }
+    .header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .header .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-ci { background: #1e3a5f; color: var(--accent2); }
+    .badge-cf { background: #3a1e0a; color: var(--accent); }
+    .badge-lhci { background: #1e3a1e; color: var(--green); }
+    .badge-research { background: #2a1e3a; color: #c084fc; }
+    .badge-phased { background: #1e2a3a; color: #7dd3fc; }
+
+    h2 {
+      font-size: 1.1rem; font-weight: 700; color: var(--accent);
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 0.95rem; font-weight: 700; color: var(--accent2); margin: 1.5rem 0 0.5rem; }
+
+    .context-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      color: var(--text);
+    }
+    .context-box p { margin-bottom: 0.6rem; }
+    .context-box p:last-child { margin-bottom: 0; }
+
+    .quote-box {
+      background: #1e1a0a;
+      border: 1px solid #3a2f0a;
+      border-left: 4px solid var(--yellow);
+      border-radius: 6px;
+      padding: 1rem 1.5rem;
+      margin: 1rem 0;
+      color: var(--text);
+    }
+
+    .decisions {
+      background: #0d1f0d;
+      border: 1px solid #1a3a1a;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin-top: 1rem;
+    }
+    .decisions ul { list-style: none; }
+    .decisions li { padding: 0.3rem 0; }
+    .decisions li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8rem 0;
+      font-size: 0.875rem;
+    }
+    thead { background: #12151f; }
+    th {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .file-cell { font-family: 'Cascadia Code', 'Fira Code', monospace; color: var(--accent2); font-size: 0.82rem; }
+    .new-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .rec-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .reject-badge {
+      display: inline-block;
+      background: #3a1e1e; color: var(--red);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .blocker-badge {
+      display: inline-block;
+      background: #3a1e1e; color: var(--red);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .ready-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+
+    .steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+    .step {
+      display: grid;
+      grid-template-columns: 2.2rem 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .step-num {
+      width: 2rem; height: 2rem;
+      background: var(--accent); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .step-body h4 { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+    .step-body p { color: var(--muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #c9d1d9;
+      margin: 0.5rem 0;
+    }
+    code {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      background: var(--code-bg);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      color: var(--accent2);
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+
+    .risk-high { color: var(--red); font-weight: 600; }
+    .risk-medium { color: var(--yellow); font-weight: 600; }
+    .risk-low { color: var(--green); font-weight: 600; }
+
+    .checklist { list-style: none; margin: 0.5rem 0; }
+    .checklist li {
+      padding: 0.35rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+    .checklist li::before {
+      content: "□";
+      position: absolute; left: 0;
+      color: var(--accent); font-size: 1rem;
+    }
+    .checklist-group { margin-bottom: 1rem; }
+    .checklist-group h4 { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+
+    ul.plain { list-style: none; margin: 0.5rem 0; }
+    ul.plain li { padding: 0.3rem 0 0.3rem 1.2rem; position: relative; font-size: 0.9rem; }
+    ul.plain li::before { content: "–"; position: absolute; left: 0; color: var(--muted); }
+
+    .phase-timeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin: 1rem 0;
+    }
+    .phase-card {
+      flex: 1;
+      min-width: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+    }
+    .phase-card h4 { font-size: 0.85rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem; }
+    .phase-card p { font-size: 0.82rem; color: var(--muted); }
+
+    .approval-box {
+      background: #1e1a0a;
+      border: 1px solid #3a2f0a;
+      border-left: 4px solid var(--yellow);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+      font-weight: 600;
+      color: var(--yellow);
+    }
+
+    .compose-box {
+      background: #0a1a2a;
+      border: 1px solid #163a5a;
+      border-left: 4px solid var(--accent2);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Multi-Page-Type Lighthouse Audits: PDP, PLP &amp; Wishlist</h1>
+    <div class="subtitle">Technical Research Report: Playwright TypeScript Framework</div>
+    <div class="badges">
+      <span class="badge badge-research">Research Only, Not Implemented</span>
+      <span class="badge badge-ci">CI/CD Change</span>
+      <span class="badge badge-lhci">@lhci/cli ^0.15.0</span>
+      <span class="badge badge-phased">Phased Rollout</span>
+    </div>
+  </div>
+
+  <h2>1. Research Objective</h2>
+  <div class="context-box">
+    <p>
+      Today's Lighthouse CI setup audits exactly one page type per storefront: the homepage. This report
+      investigates (a) whether PDP (product detail), PLP (product listing), and Wishlist pages can be added to
+      the audit, and (b) what the report landing page (<code>scripts/generate-lhci-index.js</code>) should look
+      like once multiple page types exist per storefront, since the current layout is built around exactly
+      one row per storefront with no concept of "page type."
+    </p>
+  </div>
+
+  <h2>2. Executive Summary</h2>
+  <div class="context-box">
+    <p><strong>Feasible: yes, technically.</strong> LHCI's <code>ci.collect.url</code> already accepts an arbitrary
+    URL array, and per-page-type assertion thresholds are natively supported via <code>assertMatrix</code> /
+    <code>matchingUrlPattern</code>. <strong>But it cannot ship as a single change</strong>, for three independent
+    reasons:</p>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Blocker</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Runtime blowout</td>
+        <td>8 &rarr; 32 URLs takes the run from ~48 min to <strong>~192 min at 3 runs, ~320 min at the <code>number_of_runs=5</code> dispatch option</strong>. The latter approaches GitHub's 6-hour hosted-runner ceiling and far exceeds today's <code>timeout-minutes: 90</code>. Fix: a GitHub Actions job matrix, not a timeout bump.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Data readiness</td>
+        <td>Only homepage and wishlist have usable stable URLs today. <code>pdpPath</code> is a placeholder on all 8 storefronts. A bad slug on a Magento PWA SPA most likely renders a soft-404 (HTTP 200), producing plausible-but-wrong scores rather than failing loudly. PLP has no URL field at all.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Wishlist is degenerate for performance</td>
+        <td>An anonymous LHCI crawl (no cookies/session) always hits the empty-state wishlist ("You have no items in your list."), confirmed on all 8 storefronts. Valid for a11y/BP/SEO, but misleading for the performance metric: the LCP element is empty-state text, not a product grid.</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="decisions">
+    <strong style="color: var(--green);">Recommended shape</strong>
+    <ul style="margin-top: 0.5rem;">
+      <li>Phased rollout: Wishlist &rarr; PLP &rarr; PDP</li>
+      <li>A shared <code>lighthouse-urls.js</code> module consumed by both LHCI configs and the generator</li>
+      <li><strong>Option A</strong> (section-per-page-type) report layout</li>
+      <li>Per-page-type thresholds via <code>assertMatrix</code></li>
+      <li>Bake a <code>pageType</code> key into the (not-yet-approved) trend <code>history.json</code> shape now, to avoid a later schema migration</li>
+    </ul>
+  </div>
+
+  <h2>3. Current State (Confirmed in Repo)</h2>
+  <table>
+    <thead><tr><th>Fact</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td><code>lighthouserc.js</code> / <code>.mobile.js</code></td><td>Hardcode an 8-element homepage-only <code>ECOMMERCE_URLS</code> array each; do NOT import <code>storefronts.ts</code> (a <code>.js</code> LHCI config cannot import a <code>.ts</code> module). Storefront data edits do not currently propagate to LHCI.</td></tr>
+      <tr><td><code>numberOfRuns</code></td><td>Global per config (default 3); LHCI has no per-URL run-count override</td></tr>
+      <tr><td><code>assertMatrix</code> + <code>matchingUrlPattern</code></td><td>LHCI natively supports different assertion thresholds for different URL patterns (confirmed in official config docs)</td></tr>
+      <tr><td><code>generate-lhci-index.js</code>: <code>labelFromUrl()</code></td><td>Derives the display label from <strong>hostname substring only</strong>. Multiple URLs sharing a hostname (home/PDP/PLP/wishlist) would all collapse to the same label, e.g. three-plus rows all reading "Platypus AU" with no way to tell them apart. This is the central layout defect to solve.</td></tr>
+      <tr><td><code>Storefront.pdpPath?</code></td><td>Exists in <code>storefronts.ts</code> but is a <strong>placeholder on all 8 storefronts</strong> (e.g. <code>/some-product.html</code>, each marked <code>// TODO: replace with real slug</code>)</td></tr>
+      <tr><td>PLP URL</td><td><strong>No field exists.</strong> PLP navigation in tests happens via clicking nav/category links, not a direct URL. <code>saleNavLabel</code> for DM NZ is literally <code>'BLACK FRIDAY'</code> &rarr; <code>/shop/sale</code>, a rotating promotional path, not safe to reuse as a stable PLP.</td></tr>
+      <tr><td>Wishlist URL</td><td>Stable <code>{baseUrl}wishlist</code> pattern across all 8 storefronts, confirmed in <code>wishlist-page.ts</code>. No auth required to load, but an anonymous load always renders the empty state ("MY WISHLIST" + "You have no items in your list.")</td></tr>
+      <tr><td>Pending trend research</td><td><code>docs/technical-research/lighthouse-trend-monitoring.research.html</code> (also awaiting approval) segments its planned <code>history.json</code> by <code>{storefront, environment, formFactor}</code>, with no <code>pageType</code> dimension yet</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Scope: Files Affected</h2>
+  <table>
+    <thead><tr><th>File</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="file-cell">lighthouse-urls.js <span class="new-badge">NEW</span></td>
+        <td>Shared module exporting <code>{ url, storefront, pageType }</code> tuples: a single source of truth consumed by both LHCI configs and the report generator</td>
+      </tr>
+      <tr>
+        <td class="file-cell">lighthouserc.js / lighthouserc.mobile.js</td>
+        <td>Replace hardcoded <code>ECOMMERCE_URLS</code> with the shared module's URL list; add <code>assertMatrix</code> blocks scoped by <code>matchingUrlPattern</code> for per-page-type thresholds</td>
+      </tr>
+      <tr>
+        <td class="file-cell">src/data/ecommerce/storefronts.ts</td>
+        <td>Add new <code>plpPath</code> field (evergreen category URL per storefront); replace placeholder <code>pdpPath</code> values with real, verified product slugs (Phase 3, gated)</td>
+      </tr>
+      <tr>
+        <td class="file-cell">scripts/generate-lhci-index.js</td>
+        <td>Replace hostname-only <code>labelFromUrl()</code> with an exact URL&rarr;{storefront,pageType} lookup via the shared module; render Option A (section-per-page-type) layout</td>
+      </tr>
+      <tr>
+        <td class="file-cell">.github/workflows/lighthouse-ci.yml</td>
+        <td>Introduce a GitHub Actions job matrix (form-factor &times; page-type) once URL count crosses the runtime-safe threshold; add a dependent aggregation job that concatenates shard manifests before generate/deploy; update hardcoded "8 storefronts" job-summary text</td>
+      </tr>
+      <tr>
+        <td class="file-cell">package.json</td>
+        <td>No new dependencies required; optionally add <code>lhci:*</code> convenience script variants per phase</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color: var(--muted); font-size: 0.8rem; margin-top: 0.4rem;">
+    No changes to: <code>playwright.config.ts</code>, <code>api.config.ts</code>, <code>base-test.ts</code>, any Playwright test files, page objects, or helpers.
+  </p>
+
+  <h2>5. Runtime Impact</h2>
+  <table>
+    <thead><tr><th>Scenario</th><th>URLs</th><th>Runs (&times;3, &times;2 form factors)</th><th>Est. wall time @60s</th><th>vs 90-min timeout</th></tr></thead>
+    <tbody>
+      <tr><td>Today (home only)</td><td>8</td><td>48</td><td>~48 min</td><td class="risk-low">OK</td></tr>
+      <tr><td>+Wishlist</td><td>16</td><td>96</td><td>~96 min</td><td class="risk-high">Exceeds</td></tr>
+      <tr><td>+Wishlist +PLP</td><td>24</td><td>144</td><td>~144 min</td><td class="risk-high">Exceeds</td></tr>
+      <tr><td>Full (home+PDP+PLP+wishlist)</td><td>32</td><td>192</td><td>~192 min</td><td class="risk-high">Exceeds badly</td></tr>
+      <tr><td>Full @ <code>number_of_runs=5</code></td><td>32</td><td>320</td><td>~320 min</td><td class="risk-high">Near 6h GH runner cap</td></tr>
+    </tbody>
+  </table>
+  <div class="context-box">
+    <p>
+      <strong>Recommended lever: a GitHub Actions job matrix</strong>, not a <code>timeout-minutes</code> bump.
+      Because <code>numberOfRuns</code> is global (no per-URL override), the only real concurrency lever is
+      job-level. A 2-axis matrix (form-factor &times; page-type) yields up to 8 parallel jobs of ~24 min each,
+      and every shard stays under today's budget while the feedback loop stays fast. A timeout bump to 240 min would
+      technically work at 3 runs but degrades the feedback loop, burns more Actions minutes, and still breaks at
+      <code>number_of_runs=5</code>.
+    </p>
+    <p>
+      <strong>Matrix consequence to plan for:</strong> splitting into N jobs breaks today's single-job assumption
+      that the generator reads exactly one desktop + one mobile <code>manifest.json</code>. A dependent aggregation
+      job must download all shard artifacts and concatenate their manifests into one array before generate/deploy.
+    </p>
+  </div>
+
+  <h2>6. Data Source Per Page Type</h2>
+  <table>
+    <thead><tr><th>Page type</th><th>Data source</th><th>Status</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Homepage</td>
+        <td>existing <code>url</code></td>
+        <td><span class="ready-badge">READY</span></td>
+        <td>Ship as-is</td>
+      </tr>
+      <tr>
+        <td>Wishlist</td>
+        <td><code>{baseUrl}wishlist</code> (suffix on <code>url</code>)</td>
+        <td><span class="ready-badge">READY</span></td>
+        <td>Easiest to wire; exclude from performance trend or hard-label "empty-state" (see below)</td>
+      </tr>
+      <tr>
+        <td>PLP</td>
+        <td>new <code>plpPath</code> field (evergreen category URL)</td>
+        <td><span class="blocker-badge">NEW DATA DEPENDENCY</span></td>
+        <td>Must add field + verify stability; avoid promo/seasonal paths</td>
+      </tr>
+      <tr>
+        <td>PDP</td>
+        <td><code>pdpPath</code> field</td>
+        <td><span class="blocker-badge">HARD BLOCKER</span></td>
+        <td>Placeholder on all 8 sites; requires real, verified Magento slugs before this is meaningful</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="context-box">
+    <p>
+      <strong>PDP silent-failure risk:</strong> a bad slug on a Magento PWA SPA most likely renders a soft-404
+      (HTTP 200 "product not found"). LHCI will not fail collect; it will produce plausible-looking scores
+      for the wrong page and pollute trend data. This is more dangerous than a hard failure and must be framed as
+      a blocking, silent-failure data-quality gate, not just a "nice to have."
+    </p>
+    <p>
+      <strong>PLP stability:</strong> use an evergreen womens/mens category URL, explicitly not the seasonal
+      <code>saleNavLabel</code> targets (DM NZ's "BLACK FRIDAY" &rarr; <code>/shop/sale</code> is exactly the kind
+      of rotating path that would 404/redirect mid-quarter).
+    </p>
+    <p>
+      <strong>Wishlist degeneracy (split verdict):</strong> an anonymous crawl always hits the empty state. This is
+      degenerate for performance (empty-state text becomes the LCP element, not a product grid) but still valid
+      for accessibility / best-practices / SEO (the empty-state markup and sign-in prompt are real page content).
+      Recommendation: include wishlist for a11y/BP/SEO, but exclude it from the performance trend or hard-label it
+      "empty-state" so it does not create a misleadingly-green performance line.
+    </p>
+  </div>
+
+  <h2>7. Labeling Mechanism (URL &rarr; {storefront, pageType})</h2>
+  <div class="context-box">
+    <p>Today's <code>labelFromUrl()</code> matches hostname only and cannot distinguish page types. Two approaches were considered:</p>
+  </div>
+  <table>
+    <thead><tr><th>Approach</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Path-regex heuristic in the generator (<code>/wishlist</code> &rarr; Wishlist; match configured <code>pdpPath</code>/<code>plpPath</code> per site &rarr; PDP/PLP; root &rarr; Homepage)</td>
+        <td class="risk-medium">Fragile: PDP/PLP paths are storefront-specific, not a shared pattern across brands</td>
+      </tr>
+      <tr>
+        <td><strong>Shared URL module</strong>: a plain <code>lighthouse-urls.js</code>/<code>.json</code> exporting exact <code>{ url, storefront, pageType }</code> tuples, consumed by both LHCI configs and the generator</td>
+        <td class="risk-low"><strong>Recommended</strong>: kills URL duplication between configs, replaces the fragile heuristic with an exact lookup, and hands the pending trend feature its <code>pageType</code> value for free</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color: var(--muted); font-size: 0.85rem; margin-top: 0.4rem;">
+    Constraint: the LHCI CLI cannot import a <code>.ts</code> module, so this shared module must be plain
+    <code>.js</code>/<code>.json</code>, a small curated projection of <code>storefronts.ts</code> data, not
+    a direct import of it.
+  </p>
+
+  <h2>8. Assertion / Threshold Implications</h2>
+  <div class="context-box">
+    <p>
+      A uniform <code>performance minScore 0.9</code> / <code>LCP &le; 2500 ms</code> is not realistic across all
+      page types. PDPs carry heavy image galleries, and empty-state wishlist scores will be misleadingly
+      high. LHCI's <code>assertMatrix</code> with <code>matchingUrlPattern</code> is the native mechanism to scope
+      different thresholds to different URL patterns. Recommended structure:
+    </p>
+  </div>
+  <ul class="plain">
+    <li>Keep today's thresholds for homepage</li>
+    <li>Relax performance / LCP for PDP (heavier media) and PLP (product grids) via <code>matchingUrlPattern</code>-scoped blocks</li>
+    <li>Keep the accessibility <code>error</code> gate (<code>minScore 0.9</code>, <code>image-alt</code>, <code>document-title</code>, <code>html-has-lang</code>) uniform across all page types: it is a compliance gate, not a performance one, and must not be relaxed</li>
+  </ul>
+
+  <h2>9. Report Layout Options</h2>
+
+  <h3>Option A: Section-per-page-type <span class="rec-badge">RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>Keep today's exact one-table-per-form-factor structure, but nest an additional section level: Desktop &rarr; Homepage (8-row table) / PDP (8-row table) / PLP (8-row table) / Wishlist (8-row table), same again under Mobile.</p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Minimal deviation from the current <code>renderTable</code>/<code>mobileSection</code> pattern</li>
+            <li>Preserves the full 4-category table detail the accessibility <code>error</code>-gate depends on</li>
+            <li>Matches the "plain Node.js, no new deps" precedent exactly</li>
+            <li>Easiest to build incrementally: add one section per phase (Wishlist, then PLP, then PDP)</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li>More vertical scrolling</li>
+            <li>Side-by-side page-type comparison requires scrolling between sections</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Option B: Matrix table per form factor <span class="reject-badge">NOT RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>Rows = storefront, columns = page type (Home/PDP/PLP/Wishlist), each cell a compact score with a link to the full report.</p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Denser, more scannable for comparing page types side by side</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li>Compresses to one score per cell, losing the 4-category detail the a11y gate surfaces</li>
+            <li>Requires a wholly new render function, not an extension of the existing one</li>
+            <li>Harder to read on mobile-width viewports</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Option C: Tabs / JS toggle between page types <span class="reject-badge">NOT RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>A single-screen view with client-side tabs switching between page types.</p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Compact, single-screen</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li><strong>Introduces the first client-side JS</strong> into an otherwise fully static-generated page, a precedent shift worth flagging explicitly</li>
+            <li>Adds no data value over Option A</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color: var(--muted); font-size: 0.85rem; margin-top: 0.4rem;">
+    Note: the URL&rarr;{storefront, pageType} map (Section 7) is required by both A and B. It is not a
+    differentiator between them. The real differentiator is rendering complexity and information density, where A
+    wins on preserving the 4-category accessibility detail.
+  </p>
+
+  <h2>10. Recommendation</h2>
+  <div class="decisions">
+    <strong style="color: var(--green);">Recommended: phased rollout + shared URL module + Option A layout + assertMatrix thresholds</strong>
+    <ul style="margin-top: 0.5rem;">
+      <li>Ships value immediately without waiting on missing PDP data</li>
+      <li>Ties runtime risk and data-quality risk to concrete, phase-specific gates</li>
+      <li>The shared <code>.js</code>/<code>.json</code> URL module removes config duplication and fixes the duplicate-label defect</li>
+      <li>Hands the pending trend-monitoring feature its <code>pageType</code> value for free</li>
+      <li>Option A preserves the accessibility <code>error</code>-gate detail</li>
+    </ul>
+  </div>
+
+  <div class="phase-timeline">
+    <div class="phase-card">
+      <h4>Phase 1: Wishlist</h4>
+      <p>No data dependency. Include for a11y/BP/SEO only; exclude or label performance as "empty-state." Re-measure real runtime before proceeding.</p>
+    </div>
+    <div class="phase-card">
+      <h4>Phase 2: PLP</h4>
+      <p>Add evergreen <code>plpPath</code> per storefront; verify stability against staging. Introduce the Actions matrix here if runtime demands it.</p>
+    </div>
+    <div class="phase-card">
+      <h4>Phase 3: PDP <span class="blocker-badge">GATED</span></h4>
+      <p>Blocked until the team supplies real, verified, in-stock product slugs for all 8 storefronts. Add a collect-time URL health check to catch soft-404s.</p>
+    </div>
+  </div>
+
+  <p style="color: var(--muted); font-size: 0.875rem;">
+    <strong>Conditions:</strong> real PDP slugs verified live before Phase 3; PLP URLs confirmed evergreen (not
+    promo); Actions matrix (or reduced <code>numberOfRuns</code>) in place before URL count crosses the
+    ~16-URL / ~96-min line; <code>pageType</code> baked into <code>history.json</code> shape now if the trend
+    feature ships first.<br/><br/>
+    <strong>Not recommended if:</strong> the team cannot supply stable PDP slugs (skip Phase 3 entirely rather than
+    audit soft-404s), or if there is appetite only for a <code>timeout-minutes</code> bump without the matrix
+    (degrades the feedback loop and still breaks at <code>number_of_runs=5</code>).
+  </p>
+
+  <h2>11. Risk Assessment</h2>
+  <table>
+    <thead><tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>CI runtime blowout (~192 min @3 runs, ~320 min @5) exceeds 90-min timeout</td>
+        <td class="risk-high">High</td>
+        <td>High (certain at 32 URLs)</td>
+        <td>GitHub Actions matrix (form-factor &times; page-type) &rarr; ~24 min/shard; phase the rollout</td>
+      </tr>
+      <tr>
+        <td>Placeholder PDP slugs &rarr; silent soft-404 &rarr; plausible-but-wrong scores pollute trend data</td>
+        <td class="risk-high">High</td>
+        <td>High until slugs supplied</td>
+        <td>Hard gate: no PDP audits until real slugs verified live; add a collect-time URL health check</td>
+      </tr>
+      <tr>
+        <td>Empty-state wishlist misrepresents performance</td>
+        <td class="risk-medium">Medium</td>
+        <td>Certain (anonymous crawl)</td>
+        <td>Exclude wishlist from performance trend or hard-label "empty-state"; keep for a11y/BP/SEO</td>
+      </tr>
+      <tr>
+        <td>PLP category URL is a rotating/promo path that expires</td>
+        <td class="risk-medium">Medium</td>
+        <td>Medium</td>
+        <td>Use evergreen womens/mens category; explicitly avoid <code>saleNavLabel</code> targets</td>
+      </tr>
+      <tr>
+        <td>Duplicate-looking labels ("Platypus AU" &times;4) in current renderer</td>
+        <td class="risk-medium">Medium</td>
+        <td>Certain if URLs added without generator change</td>
+        <td>Shared URL&rarr;{storefront,pageType} module + new renderer (Option A)</td>
+      </tr>
+      <tr>
+        <td>Trend research ships first with 3-key shape &rarr; later pageType add forces history migration</td>
+        <td class="risk-medium">Medium</td>
+        <td>Medium (ordering-dependent)</td>
+        <td>Bake <code>pageType</code> into <code>history.json</code> record shape now, defaulting to <code>'homepage'</code></td>
+      </tr>
+      <tr>
+        <td>Matrix split breaks single-manifest generator assumption</td>
+        <td class="risk-medium">Medium</td>
+        <td>High if not planned</td>
+        <td>Aggregation job concatenates shard manifests into one array before generate/deploy</td>
+      </tr>
+      <tr>
+        <td>Larger report dir / more Actions minutes consumed</td>
+        <td class="risk-low">Low</td>
+        <td>Medium</td>
+        <td>Phased rollout; consider dropping to <code>numberOfRuns: 1</code> for exploratory runs</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Rollback Plan</h3>
+  <div class="context-box">
+    <p>
+      Purely additive and staged. To roll back any phase: revert the URL module additions (drop the extra
+      page-type tuples), revert <code>generate-lhci-index.js</code> to the prior renderer, and restore the
+      single-job workflow. The dashboard reverts to the homepage-only table on the next run. No destructive
+      changes to existing data.
+    </p>
+  </div>
+
+  <div class="compose-box">
+    <strong>Composability note: pending trend-monitoring research</strong>
+    <p style="margin-top: 0.5rem;">
+      This proposal and <code>docs/technical-research/lighthouse-trend-monitoring.research.html</code> overlap in
+      <code>scripts/generate-lhci-index.js</code> and <code>.github/workflows/lighthouse-ci.yml</code> and should
+      be sequenced deliberately. The trend research's <code>history.json</code> shape is keyed by
+      <code>{storefront, environment, formFactor}</code>, with no <code>pageType</code>. Whichever ships second
+      must not force a schema migration: bake a <code>pageType</code> key (default <code>'homepage'</code>) into
+      the record shape now. Both features are additive and non-conflicting if the shared URL module lands first,
+      since it supplies the <code>pageType</code> value both the layout and the trend series need.
+    </p>
+  </div>
+
+  <h2>12. Implementation Steps (For a Future Implementation Agent, After Approval)</h2>
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Extract the shared URL module</h4>
+        <p>Create <code>lighthouse-urls.js</code>/<code>.json</code> exporting <code>{ url, storefront, pageType }</code> tuples; refactor both LHCI configs to consume it (Phase 1: homepage + wishlist only). Verify: <code>npx lhci collect</code> picks up the expanded URL set.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Rework the generator's labeling and layout</h4>
+        <p>Replace <code>labelFromUrl()</code> with an exact URL&rarr;{storefront,pageType} lookup keyed off the shared module; render Option A sections. Verify: local run shows distinct per-page-type tables, no duplicate labels.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Add per-page-type assertion thresholds</h4>
+        <p><code>assertMatrix</code> blocks: uniform a11y <code>error</code> gate across all page types; relaxed perf/LCP for PDP/PLP; wishlist perf excluded or labeled. Verify: <code>npx lhci assert</code> applies correct thresholds per URL pattern.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Introduce the CI job matrix</h4>
+        <p>GitHub Actions matrix (form-factor &times; page-type) with a dependent aggregation job that downloads shard artifacts and concatenates manifests before generate/deploy. Update the hardcoded "8 storefronts" job-summary text. Verify: each shard completes under ~30 min; aggregation produces one valid <code>index.html</code>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>Phase 2: PLP data</h4>
+        <p>Add evergreen <code>plpPath</code> to all 8 storefronts (after a live stability check); add PLP tuples to the shared URL module.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h4>Phase 3: PDP data (gated)</h4>
+        <p>Replace placeholder <code>pdpPath</code> values with verified real slugs; add PDP tuples; add a collect-time URL health check to catch soft-404s before they pollute results.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h4>Coordinate with the trend-monitoring feature</h4>
+        <p>If trend monitoring is not yet implemented, ensure its <code>history.json</code> records carry a <code>pageType</code> key (default <code>'homepage'</code>) to avoid a later migration.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <h4>Hand off for verification</h4>
+        <p>Route through <code>qa-orchestrator</code> (WORKFLOW-10) for <code>qa-code-reviewer</code> + <code>devops-cicd-specialist</code> verification once implemented.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>13. Validation</h2>
+  <div class="checklist-group">
+    <h4>Local</h4>
+    <ul class="checklist">
+      <li>Run <code>node scripts/generate-lhci-index.js</code> against a fixture <code>lighthouse-reports/</code> containing multiple page-type URLs per hostname &rarr; confirm distinct rows/sections per page type with correct labels (no "Platypus AU" &times;4 collapse)</li>
+      <li>Run <code>npx lhci collect --config=lighthouserc.js</code> with the expanded URL module &rarr; confirm all intended URLs are audited and none soft-404 (spot-check <code>*.report.json</code>'s <code>finalUrl</code> and <code>document-title</code>)</li>
+      <li>Run <code>npx lhci assert</code> &rarr; confirm <code>assertMatrix</code> applies homepage vs PDP/PLP thresholds correctly and the a11y <code>error</code> gate fires uniformly</li>
+    </ul>
+  </div>
+  <div class="checklist-group">
+    <h4>CI (after merge)</h4>
+    <ul class="checklist">
+      <li>Dispatch the workflow; confirm each matrix shard completes under its timeout and the aggregation job merges all manifests into one valid array</li>
+      <li>Confirm the deployed dashboard shows per-page-type sections and correct labels</li>
+      <li>Confirm the 25 MiB deploy guard and <code>continue-on-error</code> deploy step still behave; confirm the job summary reflects the new page-type counts</li>
+      <li>Dispatch with <code>number_of_runs=5</code> and confirm total runtime stays within the (matrix-reduced) budget</li>
+    </ul>
+  </div>
+
+  <h2>14. Open Questions</h2>
+  <ul class="plain">
+    <li>Which evergreen category URL should represent PLP per storefront, and is a live stability check needed against staging before locking in <code>plpPath</code> values?</li>
+    <li>Who owns supplying verified, in-stock PDP product slugs for all 8 storefronts, and by when?</li>
+    <li>Should the wishlist performance metric be dropped entirely from the trend, or kept but visually flagged as "empty-state" data?</li>
+    <li>Does the trend-monitoring research or this one land first? (Affects whether <code>pageType</code> is added to <code>history.json</code> from day one or via a follow-up migration.)</li>
+  </ul>
+
+  <div class="approval-box">
+    ⚠ This is a research report only. No files have been modified. Implementation requires explicit user
+    approval before the technical-implementation-agent is dispatched (qa-orchestrator WORKFLOW-10 gate).
+  </div>
+
+  <footer>
+    Generated by Claude Code &middot; Technical Research Report &middot; Playwright TypeScript Framework<br/>
+    Related: lighthouse-trend-monitoring.research.html (pending, composability dependency)
+  </footer>
+
+</div>
+</body>
+</html>

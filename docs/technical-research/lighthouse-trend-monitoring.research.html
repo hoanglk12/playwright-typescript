@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research: Week-on-Week Trend Monitoring for Lighthouse Reports</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #f6821f;
+      --accent2: #4a9eff;
+      --text: #e2e4ed;
+      --muted: #8b8fa8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --code-bg: #12151f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12151f 100%);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+    }
+    .header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .header .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-ci { background: #1e3a5f; color: var(--accent2); }
+    .badge-cf { background: #3a1e0a; color: var(--accent); }
+    .badge-lhci { background: #1e3a1e; color: var(--green); }
+    .badge-research { background: #2a1e3a; color: #c084fc; }
+
+    h2 {
+      font-size: 1.1rem; font-weight: 700; color: var(--accent);
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 0.95rem; font-weight: 700; color: var(--accent2); margin: 1.5rem 0 0.5rem; }
+
+    .context-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      color: var(--text);
+    }
+    .context-box p { margin-bottom: 0.6rem; }
+    .context-box p:last-child { margin-bottom: 0; }
+
+    .quote-box {
+      background: #1e1a0a;
+      border: 1px solid #3a2f0a;
+      border-left: 4px solid var(--yellow);
+      border-radius: 6px;
+      padding: 1rem 1.5rem;
+      margin: 1rem 0;
+      font-style: italic;
+      color: var(--text);
+    }
+    .quote-box .attribution { display: block; margin-top: 0.6rem; font-style: normal; font-size: 0.8rem; color: var(--muted); }
+
+    .decisions {
+      background: #0d1f0d;
+      border: 1px solid #1a3a1a;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin-top: 1rem;
+    }
+    .decisions ul { list-style: none; }
+    .decisions li { padding: 0.3rem 0; }
+    .decisions li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8rem 0;
+      font-size: 0.875rem;
+    }
+    thead { background: #12151f; }
+    th {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .file-cell { font-family: 'Cascadia Code', 'Fira Code', monospace; color: var(--accent2); font-size: 0.82rem; }
+    .new-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .rec-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .reject-badge {
+      display: inline-block;
+      background: #3a1e1e; color: var(--red);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+
+    .steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+    .step {
+      display: grid;
+      grid-template-columns: 2.2rem 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .step-num {
+      width: 2rem; height: 2rem;
+      background: var(--accent); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .step-body h4 { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+    .step-body p { color: var(--muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #c9d1d9;
+      margin: 0.5rem 0;
+    }
+    code {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      background: var(--code-bg);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      color: var(--accent2);
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+
+    .risk-high { color: var(--red); font-weight: 600; }
+    .risk-medium { color: var(--yellow); font-weight: 600; }
+    .risk-low { color: var(--green); font-weight: 600; }
+
+    .checklist { list-style: none; margin: 0.5rem 0; }
+    .checklist li {
+      padding: 0.35rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+    .checklist li::before {
+      content: "□";
+      position: absolute; left: 0;
+      color: var(--accent); font-size: 1rem;
+    }
+    .checklist-group { margin-bottom: 1rem; }
+    .checklist-group h4 { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+
+    ul.plain { list-style: none; margin: 0.5rem 0; }
+    ul.plain li { padding: 0.3rem 0 0.3rem 1.2rem; position: relative; font-size: 0.9rem; }
+    ul.plain li::before { content: "–"; position: absolute; left: 0; color: var(--muted); }
+
+    .approval-box {
+      background: #1e1a0a;
+      border: 1px solid #3a2f0a;
+      border-left: 4px solid var(--yellow);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+      font-weight: 600;
+      color: var(--yellow);
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Week-on-Week Trend Monitoring for Lighthouse Reports</h1>
+    <div class="subtitle">Technical Research Report &mdash; Playwright TypeScript Framework</div>
+    <div class="badges">
+      <span class="badge badge-research">Research Only &mdash; Not Implemented</span>
+      <span class="badge badge-ci">CI/CD Change</span>
+      <span class="badge badge-cf">Cloudflare Pages</span>
+      <span class="badge badge-lhci">@lhci/cli</span>
+    </div>
+  </div>
+
+  <h2>1. Trigger &amp; Context</h2>
+  <div class="context-box">
+    <p>
+      On the Confluence page <strong>"Non-Functional Testing Proposal: Frontend Performance."</strong>
+      (space GRA1, page 3924492332), section 3.6 <em>"When &amp; Where to Run"</em> defines two report-only
+      cadences &mdash; post-deploy to staging, and a weekly scheduled run against production &mdash; both
+      explicitly labelled for <strong>trend monitoring</strong>. A reviewer left this inline comment anchored
+      to that row:
+    </p>
+    <div class="quote-box">
+      "I would also like to include the trend monitoring within your Reporting tool. That would be the best
+      opportunity to monitor week-on-week"
+      <span class="attribution">Inline comment ID 4113760262, on the "Warning only &mdash; trend monitoring" cell</span>
+    </div>
+    <p>
+      "Your Reporting tool" refers to the Cloudflare Pages dashboard at
+      <code>playwright-lighthouse-reports.pages.dev</code>, built by the proposal author (Lincoln Pham) as a POC
+      and demoed in section 3.8 of the same document.
+    </p>
+  </div>
+
+  <h2>2. Current State (Confirmed in Repo)</h2>
+  <div class="context-box">
+    <p>
+      The dashboard already exists and is fully implemented &mdash; but it is a <strong>single-run snapshot only</strong>.
+      <code>scripts/generate-lhci-index.js</code> reads the current run's <code>manifest.json</code>
+      (desktop + mobile) and <strong>overwrites</strong> <code>lighthouse-reports/index.html</code> on every deploy.
+      No historical data is persisted anywhere &mdash; not in the repo, not in a GitHub Actions cache, not in
+      Cloudflare.
+    </p>
+  </div>
+  <table>
+    <thead><tr><th>Fact</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Category scores</td><td>Present in <code>manifest.json</code> &rarr; <code>summary</code> (Performance / Accessibility / Best Practices / SEO, 0&ndash;1 scale)</td></tr>
+      <tr><td>Core Web Vitals (LCP / CLS / TBT / FCP)</td><td><strong>Not</strong> in the manifest &mdash; only in each run's <code>*.report.json</code> under <code>audits[id].numericValue</code></td></tr>
+      <tr><td>Existing in-repo trend precedent</td><td>Monocart reporter uses <code>MONOCART_TREND_FILE</code> via a branch-scoped <code>actions/cache</code> &mdash; but it uses a <strong>static cache key</strong>, so the cache is never re-saved after the first run per branch. This pattern does <strong>not</strong> actually accumulate history and should not be copied as-is.</td></tr>
+      <tr><td>Production LHCI config</td><td>Does not exist yet &mdash; both <code>lighthouserc.js</code> and <code>lighthouserc.mobile.js</code> target staging URLs only</td></tr>
+      <tr><td>Cloudflare deploy secrets</td><td><code>CLOUDFLARE_API_TOKEN</code> / <code>CLOUDFLARE_ACCOUNT_ID</code> already exist at repo level &mdash; no new secrets required</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Scope &mdash; Files Affected</h2>
+  <table>
+    <thead><tr><th>File</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="file-cell">scripts/generate-lhci-index.js</td>
+        <td>Extend to: accept an existing <code>history.json</code> (default <code>[]</code>); read each representative run's <code>*.report.json</code> for CWV <code>numericValue</code>s; append one record per <code>{storefront, environment, formFactor}</code>; trim to last N runs; write <code>history.json</code> back out; render an inline-SVG sparkline per storefront/metric below the existing snapshot table</td>
+      </tr>
+      <tr>
+        <td class="file-cell">.github/workflows/lighthouse-ci.yml</td>
+        <td>Add a step before landing-page generation to fetch the live <code>history.json</code> from the deployed Pages URL (404-tolerant); pass trigger/environment metadata as new env vars; add a 90-day artifact upload step for <code>history.json</code> as a durability backup</td>
+      </tr>
+      <tr>
+        <td class="file-cell">package.json</td>
+        <td>No new dependencies. Optionally add a convenience script to run the generator against a local fixture <code>history.json</code></td>
+      </tr>
+      <tr>
+        <td class="file-cell">lighthouserc.js / lighthouserc.mobile.js</td>
+        <td>No changes required for the trend feature itself (production URL set is a separate, follow-on dependency &mdash; see Open Questions)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color: var(--muted); font-size: 0.8rem; margin-top: 0.4rem;">
+    No changes to: <code>playwright.config.ts</code>, <code>api.config.ts</code>, <code>base-test.ts</code>, any Playwright test files, any page objects/helpers.
+  </p>
+
+  <h2>4. Options Compared</h2>
+
+  <h3>Option A &mdash; Read-back from the live Cloudflare Pages deployment <span class="rec-badge">RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>Before generating the landing page, the CI job fetches the currently-deployed <code>history.json</code> from <code>https://playwright-lighthouse-reports.pages.dev/history.json</code> (treating a 404 as an empty first-run history), appends this run's record, and redeploys the updated file alongside the regenerated <code>index.html</code>. The generator renders inline-SVG sparklines &mdash; no charting library needed.</p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Literally "within your Reporting tool" &mdash; satisfies the ask exactly</li>
+            <li>Zero new npm dependencies</li>
+            <li>Zero new infrastructure or server-side code</li>
+            <li>Immune to GitHub Actions cache eviction</li>
+            <li>Matches this repo's established "plain Node.js, no new deps, static host" precedent</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li>Single point of failure if the Cloudflare Pages project is ever deleted (mitigated with a 90-day artifact backup)</li>
+            <li>Generator must be extended to read per-run report JSON, not just the manifest</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Option B &mdash; GitHub Actions cache (reuse monocart pattern) <span class="reject-badge">NOT RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>Store <code>history.json</code> in a branch-scoped <code>actions/cache</code>, following the same mechanism CLAUDE.md documents for monocart trend charts.</p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Reuses a mechanism already familiar in this repo</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li>The existing monocart implementation uses a <strong>static</strong> cache key &mdash; <code>actions/cache</code> skips the post-job save on an exact-key match, so copied verbatim, history never actually grows</li>
+            <li>Fixing this needs a unique key per run + <code>restore-keys</code> prefix, adding complexity</li>
+            <li>GitHub evicts cache entries unused for &gt;7 days &mdash; sits exactly on the boundary of the weekly-production cadence, risking silent history loss</li>
+            <li>History is invisible outside CI &mdash; doesn't live "within the Reporting tool" itself</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Option C &mdash; LHCI Server mode (<code>@lhci/server</code>) <span class="reject-badge">NOT RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>Google's official Lighthouse CI server provides native trend graphs and build-to-build regression comparison out of the box.</p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Native trend/regression dashboard, maintained by Google</li>
+            <li>Richer comparison features than a hand-rolled sparkline</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li>Requires standing up and hosting a persistent Node server + database (SQLite/MySQL/Postgres)</li>
+            <li><strong>Replaces</strong> the current static dashboard rather than extending it &mdash; does not satisfy "within your Reporting tool"</li>
+            <li>Contradicts the static-host, zero-infra precedent this repo has followed so far</li>
+            <li>New hosting cost and operational burden for an incremental ask</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Honorable mentions (not primary options)</h3>
+  <table>
+    <thead><tr><th>Approach</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Git <code>lighthouse-history</code> data branch</td><td>Durable and free, but noisy automated commits and needs a write-enabled token. Good as a <strong>backup</strong> to Option A, not a replacement.</td></tr>
+      <tr><td>Cloudflare D1 / KV / R2</td><td>Cloudflare-native and durable, but a static Pages site can't query it at render time without adding Pages Functions &mdash; more moving parts than the KB of data justifies.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Recommendation</h2>
+  <div class="decisions">
+    <strong style="color: var(--green);">Recommended: Option A &mdash; read-back &amp; append history on the live Cloudflare Pages deployment</strong>
+    <ul style="margin-top: 0.5rem;">
+      <li>Fetch <code>history.json</code> from the live dashboard URL before each run (empty on first run / 404)</li>
+      <li>Extend <code>generate-lhci-index.js</code> to read CWV values from each representative run's report JSON</li>
+      <li>Append one record per <code>{storefront, environment, formFactor}</code>, trimmed to the last N runs (proposed: 26 &asymp; 6 months weekly)</li>
+      <li>Render inline-SVG sparklines per storefront/metric below the existing snapshot table &mdash; no new dependencies</li>
+      <li>Redeploy <code>history.json</code> alongside <code>index.html</code> so the site is its own history store</li>
+      <li>Back up <code>history.json</code> as a 90-day GitHub Actions artifact in case the Pages project is ever lost</li>
+      <li>Never merge staging and production series &mdash; segment every line by environment and form factor</li>
+    </ul>
+  </div>
+  <p style="margin-top: 0.8rem; color: var(--muted); font-size: 0.875rem;">
+    This dominates Option B on durability (no cache-eviction risk) and Option C on scope/cost (no new infrastructure), while being the only option that literally places the trend "within" the existing Reporting tool as the reviewer requested.
+  </p>
+
+  <h2>6. Risk Assessment</h2>
+  <table>
+    <thead>
+      <tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Copying the monocart static-key cache pattern &rarr; history never grows</td>
+        <td class="risk-high">High</td>
+        <td>High if attempted</td>
+        <td>Do not use the cache option; Option A avoids caches entirely</td>
+      </tr>
+      <tr>
+        <td>GitHub cache eviction (7-day unused) loses weekly-production history</td>
+        <td class="risk-high">High</td>
+        <td>Medium (cache option only)</td>
+        <td>Not applicable to Option A &mdash; immune by design</td>
+      </tr>
+      <tr>
+        <td>Cloudflare Pages project deleted &rarr; history lost (Option A's SPOF)</td>
+        <td class="risk-medium">Medium</td>
+        <td>Low</td>
+        <td>Also upload <code>history.json</code> as a 90-day artifact, or commit to a <code>lighthouse-history</code> data branch</td>
+      </tr>
+      <tr>
+        <td>Staging and production merged into one misleading trend line</td>
+        <td class="risk-medium">Medium</td>
+        <td>Medium</td>
+        <td>Segment every series by <code>{environment, formFactor}</code>; never merge</td>
+      </tr>
+      <tr>
+        <td>Production trend line stays empty</td>
+        <td class="risk-low">Low</td>
+        <td>Certain today</td>
+        <td>No production LHCI config exists yet &mdash; design for segmentation now, wire production config as a separate follow-up</td>
+      </tr>
+      <tr>
+        <td>CWV numeric values missing because generator only reads the manifest today</td>
+        <td class="risk-medium">Medium</td>
+        <td>Medium</td>
+        <td>Extend the script to read each representative run's <code>*.report.json</code></td>
+      </tr>
+      <tr>
+        <td><code>history.json</code> grows unbounded over time</td>
+        <td class="risk-low">Low</td>
+        <td>Low</td>
+        <td>Trim to the last N runs per series on every append (proposed N = 26)</td>
+      </tr>
+      <tr>
+        <td>Cloudflare 25&nbsp;MiB per-file limit</td>
+        <td class="risk-low">Very Low</td>
+        <td>Very Low</td>
+        <td><code>history.json</code> is KB-scale; existing <code>find -size +25M -delete</code> guard remains untouched</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Rollback Plan</h3>
+  <div class="context-box">
+    <p>
+      The trend feature is purely additive. To roll back: revert <code>generate-lhci-index.js</code> to the
+      current snapshot-only version and remove the fetch-history and artifact-backup workflow steps. The live
+      dashboard reverts to today's single-snapshot table on the next run. Deleting the deployed
+      <code>history.json</code> is optional and harmless.
+    </p>
+  </div>
+
+  <h2>7. Implementation Steps (For the Implementation Agent &mdash; After Approval)</h2>
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Confirm segmentation keys and retention window</h4>
+        <p>Confirm with stakeholder: segment by <code>{environment, formFactor, storefront}</code>; retain last 26 runs per series (&asymp; 6 months at weekly cadence).</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Extend scripts/generate-lhci-index.js</h4>
+        <p>Accept an existing <code>lighthouse-reports/history.json</code> (default <code>[]</code> if absent). For each representative manifest entry, open its <code>jsonPath</code> report and extract <code>numericValue</code> for LCP / CLS / TBT / FCP. Append one record per storefront/form-factor with <code>timestamp</code>, <code>trigger</code>, <code>commit</code>, the 4 category scores, the CWV values, and an <code>environment</code> tag. Trim each series to the last N runs. Write <code>history.json</code> back out. Render an inline-SVG sparkline per storefront per metric below the existing table. Keep the script pure and network-free &mdash; the workflow does the fetching.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Add a history fetch step to lighthouse-ci.yml</h4>
+        <p>Insert before the landing-page generation step:</p>
+        <pre><code>- name: Fetch existing trend history
+  if: always()
+  run: |
+    curl -f https://playwright-lighthouse-reports.pages.dev/history.json \
+      -o lighthouse-reports/history.json \
+      || echo '[]' &gt; lighthouse-reports/history.json
+  continue-on-error: true</code></pre>
+        <p>Pass trigger/environment metadata to the generator via new env vars, reusing the existing <code>GITHUB_SHA</code> / <code>GITHUB_REF_NAME</code> pattern (e.g. add <code>LHCI_ENVIRONMENT</code>, <code>LHCI_TRIGGER</code>).</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Add a durability backup step</h4>
+        <p>Upload <code>lighthouse-reports/history.json</code> as a 90-day <code>actions/upload-artifact</code> (or commit it to a dedicated <code>lighthouse-history</code> branch if write permissions allow), independent of the Cloudflare Pages deploy.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>package.json</h4>
+        <p>No new dependencies required. Optionally add a convenience script to run the generator locally against a fixture <code>history.json</code> for testing.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h4>Flag the production LHCI config gap as a separate follow-up</h4>
+        <p>Wiring a production URL set and a scheduled weekly trigger so the production series can actually populate is a distinct piece of work &mdash; not part of this trend increment.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h4>Hand off for verification</h4>
+        <p>Route through <code>qa-orchestrator</code> (WORKFLOW-10) for <code>qa-code-reviewer</code> + <code>devops-cicd-specialist</code> verification once implemented.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>8. Validation</h2>
+  <div class="checklist-group">
+    <h4>Local</h4>
+    <ul class="checklist">
+      <li>Seed a fixture <code>lighthouse-reports/history.json</code> with 2&ndash;3 synthetic runs across both environments and form factors; run <code>node scripts/generate-lhci-index.js</code> &rarr; confirm <code>index.html</code> shows the existing table plus sparklines, and <code>history.json</code> grew by one run</li>
+      <li>Delete the fixture <code>history.json</code> and re-run &rarr; confirm no crash (empty-history path handled) and a valid single-point series</li>
+      <li>Confirm CWV values in the rendered sparkline match the <code>displayValue</code>/<code>numericValue</code> in the representative <code>*.report.json</code></li>
+      <li>Seed a fake production record and confirm staging and production render as separate, non-merged series</li>
+    </ul>
+  </div>
+  <div class="checklist-group">
+    <h4>CI (after merge)</h4>
+    <ul class="checklist">
+      <li>Trigger the workflow; confirm the history-fetch step succeeds (or falls back to <code>[]</code> on first run)</li>
+      <li>Confirm the deployed dashboard shows sparklines and <code>https://playwright-lighthouse-reports.pages.dev/history.json</code> is fetchable</li>
+      <li>Trigger a second run; confirm <code>history.json</code> grew by exactly one entry per storefront/form-factor and each sparkline gained a point</li>
+      <li>Confirm the 90-day <code>history.json</code> artifact is attached to the run</li>
+      <li>Confirm the existing 25&nbsp;MiB deploy guard and <code>continue-on-error</code> behaviour are unaffected</li>
+    </ul>
+  </div>
+
+  <h2>9. Open Questions</h2>
+  <ul class="plain">
+    <li>Which metrics should actually be trended on the dashboard &mdash; all 4 categories + all 4 CWVs, or a curated subset for readability?</li>
+    <li>Confirm retention window N (proposed: 26 runs &asymp; 6 months weekly)</li>
+    <li>Is a git <code>lighthouse-history</code> branch acceptable (needs write permissions), or is the 90-day artifact backup sufficient?</li>
+    <li>When will a production URL set / weekly-production LHCI config be provided so the production trend line can start populating?</li>
+  </ul>
+
+  <div class="approval-box">
+    ⚠ This is a research report only. No files have been modified. Implementation requires explicit user
+    approval before the technical-implementation-agent is dispatched (qa-orchestrator WORKFLOW-10 gate).
+  </div>
+
+  <footer>
+    Generated by Claude Code &mdash; Technical Research Report &mdash; Playwright TypeScript Framework<br/>
+    Source: Confluence "Non-Functional Testing Proposal: Frontend Performance." (GRA1 space, page 3924492332), inline comment 4113760262
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research: New Relic vs. Lighthouse CI for Frontend Performance Monitoring</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #f6821f;
+      --accent2: #4a9eff;
+      --text: #e2e4ed;
+      --muted: #8b8fa8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --code-bg: #12151f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 980px; margin: 0 auto; }
+
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12151f 100%);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+    }
+    .header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .header .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-ci { background: #1e3a5f; color: var(--accent2); }
+    .badge-cf { background: #3a1e0a; color: var(--accent); }
+    .badge-lhci { background: #1e3a1e; color: var(--green); }
+    .badge-nr { background: #2a1e3a; color: #c084fc; }
+    .badge-research { background: #2a1e3a; color: #c084fc; }
+
+    h2 {
+      font-size: 1.1rem; font-weight: 700; color: var(--accent);
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 0.95rem; font-weight: 700; color: var(--accent2); margin: 1.5rem 0 0.5rem; }
+
+    .context-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      color: var(--text);
+    }
+    .context-box p { margin-bottom: 0.6rem; }
+    .context-box p:last-child { margin-bottom: 0; }
+
+    .quote-box {
+      background: #1e1a0a;
+      border: 1px solid #3a2f0a;
+      border-left: 4px solid var(--yellow);
+      border-radius: 6px;
+      padding: 1rem 1.5rem;
+      margin: 1rem 0;
+      font-style: italic;
+      color: var(--text);
+    }
+    .quote-box .attribution { display: block; margin-top: 0.6rem; font-style: normal; font-size: 0.8rem; color: var(--muted); }
+
+    .decisions {
+      background: #0d1f0d;
+      border: 1px solid #1a3a1a;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin-top: 1rem;
+    }
+    .decisions ul { list-style: none; }
+    .decisions li { padding: 0.3rem 0; }
+    .decisions li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8rem 0;
+      font-size: 0.875rem;
+    }
+    thead { background: #12151f; }
+    th {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .file-cell { font-family: 'Cascadia Code', 'Fira Code', monospace; color: var(--accent2); font-size: 0.82rem; }
+    .new-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .rec-badge {
+      display: inline-block;
+      background: #1e3a1e; color: var(--green);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .reject-badge {
+      display: inline-block;
+      background: #3a1e1e; color: var(--red);
+      padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+      margin-left: 0.4rem;
+    }
+    .confirmed { color: var(--green); font-weight: 700; }
+    .gap { color: var(--red); font-weight: 700; }
+    .hedge { color: var(--yellow); font-weight: 700; }
+
+    .steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem; }
+    .step {
+      display: grid;
+      grid-template-columns: 2.2rem 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .step-num {
+      width: 2rem; height: 2rem;
+      background: var(--accent); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .step-body h4 { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+    .step-body p { color: var(--muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #c9d1d9;
+      margin: 0.5rem 0;
+    }
+    code {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      background: var(--code-bg);
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      color: var(--accent2);
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+
+    .risk-high { color: var(--red); font-weight: 600; }
+    .risk-medium { color: var(--yellow); font-weight: 600; }
+    .risk-low { color: var(--green); font-weight: 600; }
+
+    .checklist { list-style: none; margin: 0.5rem 0; }
+    .checklist li {
+      padding: 0.35rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+    .checklist li::before {
+      content: "□";
+      position: absolute; left: 0;
+      color: var(--accent); font-size: 1rem;
+    }
+    .checklist-group { margin-bottom: 1rem; }
+    .checklist-group h4 { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+
+    ul.plain { list-style: none; margin: 0.5rem 0; }
+    ul.plain li { padding: 0.3rem 0 0.3rem 1.2rem; position: relative; font-size: 0.9rem; }
+    ul.plain li::before { content: "–"; position: absolute; left: 0; color: var(--muted); }
+
+    .approval-box {
+      background: #1e1a0a;
+      border: 1px solid #3a2f0a;
+      border-left: 4px solid var(--yellow);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+      font-weight: 600;
+      color: var(--yellow);
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>New Relic vs. Lighthouse CI for Frontend Performance Monitoring</h1>
+    <div class="subtitle">Technical Research Report: Playwright TypeScript Framework</div>
+    <div class="badges">
+      <span class="badge badge-research">Research Only, Not Implemented</span>
+      <span class="badge badge-lhci">Lighthouse CI</span>
+      <span class="badge badge-nr">New Relic Browser (RUM)</span>
+      <span class="badge badge-cf">Cloudflare Pages</span>
+    </div>
+  </div>
+
+  <h2>1. Trigger &amp; Context</h2>
+  <div class="context-box">
+    <p>
+      On the Confluence page <strong>"Non-Functional Testing Proposal: Frontend Performance."</strong>
+      (space GRA1, page 3924492332, author Lincoln Pham), Hoang Dinh left an inline comment anchored on the
+      <strong>"Lighthouse CI (Google Chrome Labs)"</strong> tool-selection cell:
+    </p>
+    <div class="quote-box">
+      "I have an idea popped up in mind that we may want to utilize our New Relic on the performance? A quick
+      research showed that New Relic is capable of doing performance monitoring. New Relic is currently used
+      across all brands including both GRA and TAF; It has live data, days, weeks, months. Please let me know
+      your thought!"
+      <span class="attribution">Inline comment ID 4115300392, 2026-07-23</span>
+    </div>
+    <p>
+      This repo already contains the Lighthouse CI implementation the proposal describes:
+      <code>lighthouserc.js</code>, <code>lighthouserc.mobile.js</code>, <code>.github/workflows/lighthouse-ci.yml</code>,
+      and the Cloudflare Pages dashboard at <code>playwright-lighthouse-reports.pages.dev</code> demoed in
+      proposal &sect;3.8. This is not a greenfield tool choice. It is a decision about what to add to
+      something already running in production CI.
+    </p>
+  </div>
+
+  <h2>2. Summary</h2>
+  <div class="context-box">
+    <p>
+      Hoang's comment is anchored on the tool-selection row, but its substance (dashboards, trend
+      history, cross-brand coverage) maps to concerns raised later in the same review thread
+      by others: comment 4064641033 ("could we turn this into a dashboard?"), comment 4113760262
+      ("include trend monitoring within your reporting tool"), and comment 4113793037 ("is New Relic RUM
+      something we can currently set up/configure?").
+    </p>
+    <p>
+      The proposal itself already commits to New Relic in &sect;3.7:
+    </p>
+    <div class="quote-box">
+      "INP monitored via New Relic Browser / CrUX field data for real-user validation alongside Lighthouse lab results"
+    </div>
+    <p>
+      <strong>This is not an either/or decision.</strong> Lighthouse CI is lab/synthetic testing run
+      pre-deploy against staging. New Relic Browser is field/RUM monitoring of
+      real production users, already instrumented on every brand. Hoang's idea is best read as
+      "surface the New Relic data we already have to close the gaps the reviewer is asking about," not as a
+      competing tool to replace Lighthouse.
+    </p>
+  </div>
+
+  <h2>3. What Was Verified in New Relic (Live Data, via New Relic MCP)</h2>
+  <table>
+    <thead><tr><th>Claim</th><th>Status</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>NR is provisioned for all GRA brands + TAF</td>
+        <td><span class="confirmed">Confirmed</span></td>
+        <td>5 accounts: Dr Martens (3845367), Skechers (3562370), Vans (3736705), Platypus (2956572), TAF (4570064)</td>
+      </tr>
+      <tr>
+        <td>Browser/RUM agent is actually installed (not just APM)</td>
+        <td><span class="confirmed">Confirmed</span></td>
+        <td><code>BROWSER</code> domain entities exist per brand for production + 2 staging slots each (e.g. <code>fpv2lfvzogav4</code>, <code>fpv2lfvzogav4_stg</code>, <code>fpv2lfvzogav4_stg2</code> for DRM; same pattern for Skechers, Vans, TAF)</td>
+      </tr>
+      <tr>
+        <td>Real user LCP / CLS data exists</td>
+        <td><span class="confirmed">Confirmed</span></td>
+        <td><code>PageViewTiming</code> NRQL, DRM AU prod, last 5 weeks: LCP p75 desktop 2.3 to 4.9s, mobile 2.3 to 2.6s; CLS p75 desktop &asymp;0.066, mobile 0.034 to 0.041</td>
+      </tr>
+      <tr>
+        <td><strong>Real INP is captured</strong> (the one official Core Web Vital Lighthouse structurally cannot measure)</td>
+        <td><span class="confirmed">Confirmed</span></td>
+        <td><code>interactionToNextPaint</code> field present and populated in <code>PageViewTiming</code>. DRM AU prod p75 = <strong>211ms</strong> (n=315,277, 90-day window); Platypus staging p75 = 97ms. Directly answers reviewer comment 4113793037.</td>
+      </tr>
+      <tr>
+        <td>Dashboards already exist</td>
+        <td><span class="hedge">Partial</span></td>
+        <td>DRM account has a purpose-built "Customer experience quality foundation / All Pages" dashboard (LCP/CLS/TTFB/FID/JS-error-rate billboards, split by device type). Platypus account has no equivalent, only generic "GRA"/"Digital Delivery" dashboards. Not standardized across brands.</td>
+      </tr>
+      <tr>
+        <td>Dashboard uses INP (not the deprecated FID)</td>
+        <td><span class="gap">Gap found</span></td>
+        <td>The existing DRM widget is titled "First Input Delay" and queries <code>firstInputDelay</code> (the metric Google retired in March 2024 in favor of INP; the proposal's own &sect;3.3 notes this). Needs updating to query <code>interactionToNextPaint</code>.</td>
+      </tr>
+      <tr>
+        <td>"Live data, days, weeks, months" (history depth)</td>
+        <td><span class="hedge">Needs hedging</span></td>
+        <td><code>PageViewTiming</code> for DRM AU prod spans <strong>&asymp;32 days</strong> (<code>earliest.timestamp</code> &rarr; <code>latest.timestamp</code>), zero events before that. Cannot distinguish a retention cap from the instrumentation start date via NRQL alone. Confirm with the NR admin/platform team before quoting "months" in the proposal.</td>
+      </tr>
+      <tr>
+        <td>NR does accessibility / SEO / best-practices auditing</td>
+        <td><span class="gap">No</span></td>
+        <td>New Relic Browser is a RUM/error/performance product with no equivalent to Lighthouse's a11y, SEO, or best-practices categories. Out of scope for NR entirely.</td>
+      </tr>
+      <tr>
+        <td>NR Synthetics already does Lighthouse-style page audits</td>
+        <td><span class="gap">No</span></td>
+        <td>Existing Synthetic monitors across all 5 accounts are <code>SIMPLE</code> (ping/uptime) and <code>SCRIPT_API</code> (cart-creation GraphQL) checks only, with no scripted-browser CWV audits configured.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. Scope: Files Affected</h2>
+  <div class="context-box">
+    <p>
+      None of the current Lighthouse CI files need to change for New Relic to be adopted. This is
+      additive, not a replacement.
+    </p>
+  </div>
+  <table>
+    <thead><tr><th>Surface</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>New Relic (5 accounts, NR UI/dashboards)</td>
+        <td>Dashboard authoring/standardization across Skechers, Vans, Platypus, TAF (DRM already has a base); swap <code>firstInputDelay</code> &rarr; <code>interactionToNextPaint</code>; add week-on-week trend widgets. Not this repo; done in the New Relic UI (or NR-as-code/Terraform if the team adopts it later).</td>
+      </tr>
+      <tr class="file-cell">
+        <td class="file-cell">.github/workflows/lighthouse-ci.yml</td>
+        <td>No change required. Continues to run the existing pre-deploy Lighthouse gate on staging exactly as configured.</td>
+      </tr>
+      <tr>
+        <td class="file-cell">lighthouserc.js / lighthouserc.mobile.js</td>
+        <td>No change required.</td>
+      </tr>
+      <tr>
+        <td class="file-cell">docs/technical-research/lighthouse-trend-monitoring.research.html<br/>docs/technical-research/lighthouse-multi-page-urls.research.html</td>
+        <td>Related, pre-existing research on Lighthouse-side trend/multi-page reporting. Read alongside this decision since Hoang's ask and reviewer comment 4113760262 overlap with what those docs already investigated.</td>
+      </tr>
+      <tr>
+        <td>Confluence proposal &sect;3.7 (optional, follow-on)</td>
+        <td>Clarify that Lighthouse (lab/gate) and New Relic Browser (field/trend/INP) are complementary, resolving the ambiguity created by anchoring Hoang's comment on the tool-selection line.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. Options Compared</h2>
+
+  <h3>Option A: Keep Lighthouse CI as the gate, add New Relic Browser as the field-data trend layer <span class="rec-badge">RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>
+      Lighthouse CI stays exactly as configured (pre-deploy lab gate on staging, warn-only per &sect;3.6).
+      New Relic Browser, already instrumented on all 5 brands + TAF, becomes the source for
+      week-on-week CWV trend monitoring, real INP validation, and cross-brand dashboard standardization.
+    </p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Zero new CI runtime cost: RUM data is already flowing, no new instrumentation needed</li>
+            <li>Closes the exact gap the proposal itself flagged (INP cannot be measured in Lighthouse lab runs)</li>
+            <li>Directly answers three outstanding reviewer comments (dashboard, trend, RUM feasibility)</li>
+            <li>Preserves the working Lighthouse CI gate, artifacts, and Cloudflare dashboard</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li>Dashboard/NRQL authoring work required across 5 NR accounts (manual, no IaC found in this repo)</li>
+            <li>Requires NR dashboard-edit access from whoever implements it</li>
+            <li>Data-retention window needs confirmation before publishing exact numbers</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Option B: Replace Lighthouse CI with New Relic Synthetics scripted-browser monitors <span class="reject-badge">NOT RECOMMENDED</span></h3>
+  <div class="context-box">
+    <p>
+      Configure NR Synthetics <code>SCRIPT_BROWSER</code> monitors to run Lighthouse-equivalent audits against
+      staging on a schedule, replacing the GitHub Actions Lighthouse job entirely.
+    </p>
+  </div>
+  <table>
+    <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          <ul class="plain">
+            <li>Single vendor for both synthetic and field monitoring</li>
+          </ul>
+        </td>
+        <td>
+          <ul class="plain">
+            <li>NR Synthetics has no native Lighthouse-equivalent a11y/SEO/best-practices scoring, so it would require rebuilding audit logic NR doesn't provide</li>
+            <li>Loses the existing Cloudflare Pages dashboard and assertion-based hard-gate model already working in this repo</li>
+            <li>Loses the PR-blocking artifact integration already in <code>.github/workflows/lighthouse-ci.yml</code></li>
+            <li>Higher rebuild cost for a worse feature match, and it throws away a working POC</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Option C: New Relic Browser only, drop Lighthouse entirely <span class="reject-badge">REJECTED</span></h3>
+  <div class="context-box">
+    <p>
+      Rejected outright. Forfeits pre-deploy gating: NR RUM only sees traffic <em>after</em> deploy, so
+      regressions ship before being caught. Forfeits accessibility/SEO/best-practices auditing entirely (NR has
+      no equivalent). Forfeits the ability to test pages with no real traffic yet (new PDPs, pre-release pages).
+      Does not meet the proposal's stated goal of blocking regressions before production (&sect;3.2, &sect;4 Phase 2).
+    </p>
+  </div>
+
+  <h2>6. Recommended Approach</h2>
+  <div class="decisions">
+    <p style="margin-bottom: 0.8rem; color: var(--text);">
+      <strong>Option A.</strong> The proposal already anticipated this combination in &sect;3.7. Hoang's
+      suggestion isn't a competing tool choice; it's the missing execution detail for a data source the
+      document already commits to.
+    </p>
+    <ul>
+      <li>Standardize the "Customer experience quality foundation" dashboard pattern (currently DRM-only) across Skechers, Vans, Platypus, and TAF accounts</li>
+      <li>Replace the <code>firstInputDelay</code> widget with <code>interactionToNextPaint</code> (confirmed available and populated) in every brand's dashboard</li>
+      <li>Add a week-on-week trend view (<code>TIMESERIES 1 week</code>) to directly answer reviewer comment 4113760262</li>
+      <li>Confirm actual <code>PageViewTiming</code> data retention with the NR account admin before stating "months" in the proposal; state the observed &asymp;32-day window and its ambiguity instead</li>
+      <li>Update proposal &sect;3.7 to make explicit that Lighthouse (lab, pre-deploy, gate) and New Relic Browser (field, post-deploy, trend + INP) are complementary, not alternatives</li>
+    </ul>
+  </div>
+
+  <h2>7. Risk Assessment</h2>
+  <table>
+    <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Reviewer/Hoang reads this as "pick one tool" and scope gets re-litigated</td>
+        <td class="risk-medium">Medium</td>
+        <td>Proposal edit (step 5 above) closes this explicitly, backed by the technical evidence in section 3</td>
+      </tr>
+      <tr>
+        <td>Retention window assumption is wrong ("months" claim)</td>
+        <td class="risk-medium">Medium</td>
+        <td>Confirm with NR account owner before finalizing wording. Do not ship an inaccurate claim into a proposal already under stakeholder review</td>
+      </tr>
+      <tr>
+        <td>Dashboard standardization becomes a bigger effort than expected (5 accounts, manual NRQL/UI work, no IaC found for NR dashboards in this repo)</td>
+        <td class="risk-medium">Medium</td>
+        <td>Scope it as its own small workstream, not a blocker to approving the existing Lighthouse CI plan</td>
+      </tr>
+      <tr>
+        <td>INP sample sizes are low for lower-traffic brands/environments (e.g. Platypus staging n=5,071 vs DRM prod n=315,277)</td>
+        <td class="risk-low">Low</td>
+        <td>Field-data trend monitoring should run against production, not staging, for statistically meaningful INP percentiles</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color: var(--muted); font-size: 0.85rem; margin-top: 0.6rem;">
+    <strong>Rollback:</strong> None needed. This is purely additive (dashboard/reporting work), and nothing in the existing Lighthouse CI pipeline is touched.
+  </p>
+
+  <h2>8. Implementation Steps</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Reply to Hoang's comment</h4>
+        <p>Clarify the complementary framing (field vs. lab), referencing &sect;3.7 already in the proposal.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Confirm data retention</h4>
+        <p>Get NR admin confirmation on actual retention for <code>PageViewTiming</code>/Browser data before the &asymp;32-day observation is generalized as "months" of history.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Update &amp; standardize the dashboard</h4>
+        <p>Swap <code>firstInputDelay</code> &rarr; <code>interactionToNextPaint</code> in the DRM dashboard; replicate the pattern to Skechers, Vans, Platypus, and TAF accounts.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Add trend view</h4>
+        <p>Week-on-week CWV movement per brand, directly answering reviewer comment 4113760262.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>Update the proposal document</h4>
+        <p>Revise &sect;3.7 wording and, if desired, add a short "New Relic Browser (Field)" subsection alongside &sect;3.2 "Lighthouse CI" documenting the split of responsibilities.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h4>Optional follow-on (this repo)</h4>
+        <p>If leadership wants trend data surfaced in CI artifacts rather than only NR's UI, scope a small script that runs the NRQL queries above and appends results to the GitHub Step Summary alongside the existing Lighthouse summary. This would be a separate research/implementation item, not part of this decision.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>9. Validation</h2>
+  <div class="checklist-group">
+    <h4>New Relic side</h4>
+    <ul class="checklist">
+      <li>Re-run the NRQL queries above post-dashboard-update to confirm <code>interactionToNextPaint</code> renders correctly in the new widget</li>
+      <li>Confirm the standardized dashboard exists and reports data in all 5 NR accounts (DRM, Skechers, Vans, Platypus, TAF)</li>
+      <li>Confirm with the reviewer that comments 4064641033, 4113760262, and 4113793037 are resolved by the updated proposal wording</li>
+    </ul>
+  </div>
+  <div class="checklist-group">
+    <h4>This repo</h4>
+    <ul class="checklist">
+      <li>No changes to <code>npm run lint</code>, <code>npm test</code>, or the Lighthouse CI workflow are required; nothing in section 8 touches those</li>
+    </ul>
+  </div>
+
+  <div class="approval-box">
+    ⚠ This is a decision/proposal research report, not a code change. There is nothing to implement in
+    this repository from this report alone. Any dashboard or Confluence edits require the relevant stakeholder's
+    sign-off before being made.
+  </div>
+
+  <footer>
+    Generated by Claude Code for the Playwright TypeScript Framework (Technical Research Report)<br/>
+    Source: Confluence "Non-Functional Testing Proposal: Frontend Performance." (GRA1 space, page 3924492332), inline comment 4115300392.
+    Verified live against New Relic accounts 3845367 / 3562370 / 3736705 / 4570064 / 2956572 via the New Relic MCP server
+  </footer>
+
+</div>
+</body>
+</html>
