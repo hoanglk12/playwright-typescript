@@ -559,6 +559,58 @@ const atcEvent = await getAddToCartDataLayerEvent(page); // integration-helpers
 
 ---
 
+### 16. AI-Generated Code Smells
+
+Apply this section to every file reviewed, in addition to Sections 1–15. **Every item below is tagged `[SUGGESTION]`** — the lowest severity this file uses — **unless a specific instance also independently violates one of Sections 1–15's rules, in which case flag it under that section's tier instead of here.** Findings in this section are advisory only and must **never**, by themselves, cause a review's Verdict to be CHANGES REQUIRED or withhold APPROVED — at most they land in the Suggestions list of an otherwise-approved review.
+
+- [ ] **[SUGGESTION]** Comments that restate what the code already says (e.g. `// increment counter` above `counter++`) instead of explaining a non-obvious WHY (a business rule, a workaround, a constraint that isn't visible from the code itself)
+- [ ] **[SUGGESTION]** JSDoc blocks that repeat the function signature (`@param page - the page` above `page: Page`) without adding rationale, edge cases, or context not already visible in the types
+- [ ] **[SUGGESTION]** Defensive `try/catch` or null/undefined guards for states that cannot occur given this codebase's actual guarantees (e.g. re-checking a value already narrowed upstream, or guarding against a fixture the framework guarantees is initialized) — if the guard also masks a genuine unsafe access, flag it under Section 6 instead
+- [ ] **[SUGGESTION]** A generic type parameter, interface, or abstraction layer introduced for code with exactly one call site and no near-term second use
+- [ ] **[SUGGESTION]** Overly verbose or redundant naming that adds length without adding clarity (e.g. `getUserAccountProfileDataInformation` instead of `getUserProfile`)
+- [ ] **[SUGGESTION]** Emoji inside code comments (`// ✅ done`, `// 🚀 optimized`) — plain text only; this does not apply to `logger.*` log-line output, which has its own emoji convention (see Logging)
+- [ ] **[SUGGESTION]** "Rule of three" padding in comments — a comment lists three items, reasons, or considerations where the code only needs one to be understood
+- [ ] **[SUGGESTION]** Stylistic inconsistency with the rest of the file it's in — a block with noticeably denser commentary, a different naming convention, or a formatting pattern used nowhere else in that file
+
+```ts
+// SUGGESTION — restates the code, no WHY; JSDoc repeats the signature; rule-of-three padding
+/**
+ * Clicks the submit button.
+ * @param page - the page
+ * @returns void
+ */
+async clickSubmit(page: Page): Promise<void> {
+  // Click the submit button
+  // This is important for form submission, user flow, and test coverage
+  await this.elements.clickElement(this.submitBtn); // ✅ clicked
+}
+
+// Correct — comment (if any) explains non-obvious WHY only
+async clickSubmit(): Promise<void> {
+  // Retry once: submit briefly disables on first click while validation runs
+  await this.elements.clickElement(this.submitBtn);
+}
+```
+
+```ts
+// SUGGESTION — defensive catch for a state this codebase guarantees can't happen;
+// single-use generic for a helper with exactly one caller
+function wrapResult<T, E extends Error>(value: T, errType: new (msg: string) => E): T {
+  try {
+    return value;
+  } catch {
+    throw new errType('unreachable');
+  }
+}
+
+// Correct — no speculative generality, no catch for an impossible path
+function getFirstItem(items: string[]): string | undefined {
+  return items.length > 0 ? items[0] : undefined;
+}
+```
+
+---
+
 ### Graph Tools (optional supplement)
 
 When reviewing code that references symbols across multiple files, use these to navigate efficiently instead of sequential Grep calls:

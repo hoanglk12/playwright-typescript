@@ -612,6 +612,8 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
+See `qa-code-reviewer.md` §16 for the explicit AI-generated-code-smell checklist enforced during review (advisory only, never blocking).
+
 ### 3. Surgical Changes
 
 **Touch only what you must. Clean up only your own mess.**

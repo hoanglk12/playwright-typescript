@@ -15,6 +15,14 @@ on:
 
   push:
     branches: [main, master, develop]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.html'
+      - '**/*.txt'
+      - '**/*.pdf'
+      - '**/*.docx'
+      - '**/*.csv'
+      - '**/*.xlsx'
 
   # Uncomment to audit on every PR that touches e-commerce files.
   # Note: 8 storefronts × 3 runs ≈ 20–30 min of execution time.

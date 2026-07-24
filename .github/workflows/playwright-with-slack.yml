@@ -3,8 +3,24 @@ name: Playwright Tests (Slack Notifications)
 on:
   push:
     branches: [ main, master, develop ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.html'
+      - '**/*.txt'
+      - '**/*.pdf'
+      - '**/*.docx'
+      - '**/*.csv'
+      - '**/*.xlsx'
   pull_request:
     branches: [ main, master, develop ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.html'
+      - '**/*.txt'
+      - '**/*.pdf'
+      - '**/*.docx'
+      - '**/*.csv'
+      - '**/*.xlsx'
   workflow_dispatch:
     inputs:
       environment:
