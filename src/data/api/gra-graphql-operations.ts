@@ -55,6 +55,252 @@ export const CREATE_ACCOUNT_MUTATION = `
 // unaliased (data.createEmptyCart) — its consuming code has been updated to read data.cartId.
 export const CREATE_CART_MUTATION = `mutation CreateCart { cartId: createEmptyCart }`;
 
+// ── Customer read queries ──────────────────────────────────────────────────────
+// Three distinct customer{} queries used across gra-my-details, gra-authentication, and
+// gra-account-creation-signin. Each has a different selection set and none can be safely
+// merged into one superset:
+// - GET_CUSTOMER_ID_QUERY resolves a bare id only, when shared-state has none cached.
+// - GET_CUSTOMER_QUERY (gra-authentication) is polled repeatedly in TC_02 to detect token
+//   revocation — the poll treats *any* GraphQL error as the "revoked" signal, so it must
+//   stay minimal (id + email only). Adding loyalty fields would break the poll on
+//   non-loyalty brands (drm-au, van-au), which return a loyalty partial-error even for a
+//   still-valid token, causing a false-positive "revoked" reading on iteration 1.
+// - GET_CUSTOMER_DETAILS_QUERY (gra-account-creation-signin) intentionally reads the full
+//   CustomerInformationFragment + CustomerLoyaltyFragment set and tolerates loyalty
+//   partial-errors via assertNoCriticalErrors(gql, ['loyalty', 'loyalty_program_status']).
+// Do NOT collapse these into one query.
+//
+// A fourth query, GetCustomerPersonalInfo, previously existed as a local const in
+// gra-customer-profile.spec.ts but was never invoked by any test in that file — it has been
+// removed as dead code rather than hoisted here.
+export const GET_CUSTOMER_ID_QUERY = `
+  query GetCustomerId {
+    customer { id }
+  }
+`;
+
+export const GET_CUSTOMER_QUERY = `
+  query GetCustomer {
+    customer {
+      id
+      email
+    }
+  }
+`;
+
+export const GET_CUSTOMER_DETAILS_QUERY = `
+  query getCustomerDetails {
+    customer {
+      id
+      ...CustomerInformationFragment
+      ...CustomerLoyaltyFragment
+      __typename
+    }
+  }
+
+  fragment CustomerInformationFragment on Customer {
+    id
+    firstname
+    lastname
+    email
+    phone_number
+    date_of_birth
+    is_subscribed
+    gender
+    apparel21_id
+    is_qff_member
+    qff_member_number
+    __typename
+  }
+
+  fragment CustomerLoyaltyFragment on Customer {
+    id
+    loyalty_program_status
+    loyalty {
+      level {
+        accrual_points
+        auto_reward_threshold
+        auto_reward_value
+        description
+        level_id
+        level_point_bonus
+        name
+        sequence
+        __typename
+      }
+      points_balance
+      points_to_next_reward
+      program {
+        apply_reward_threshold
+        description
+        name
+        __typename
+      }
+      rewards {
+        available
+        customer_reward_id
+        expiry_date
+        pending
+        redeemed
+        status
+        total
+        __typename
+      }
+      reward_account_id
+      rewards_balance
+      spend_value_to_next_reward
+      positive_rewards_balance_message
+      __typename
+    }
+    __typename
+  }
+`;
+
+export interface SetNewsletterSubscriptionVariables {
+  is_subscribed: boolean;
+}
+
+export interface SetLoyaltyAndNewsletterSubscriptionVariables {
+  is_subscribed: boolean;
+  loyalty_program_status?: boolean | null;
+}
+
+export interface UpdateFirstnameLastnameVariables {
+  firstname?: string;
+  lastname?: string;
+}
+
+export interface UpdateDateOfBirthVariables {
+  date_of_birth?: string;
+}
+
+export interface UpdatePhoneNumberVariables {
+  phone_number?: string;
+}
+
+export interface UpdateEmailVariables {
+  email?: string;
+}
+
+// The following six mutations all invoke the updateCustomerV2 resolver with different input
+// shapes: gra-my-details (SetNewsletterSubscription, SetLoyaltyAndNewsletterSubscription) and
+// gra-customer-profile (UpdateFirstnameLastname, UpdateDateOfBirth, UpdatePhoneNumber,
+// UpdateEmail). They are NOT merged into one mutation — each spec sends only its own input
+// field(s) and reads back only the customer fields it asserts on; combining inputs would
+// change what each test actually exercises.
+// Note: ChangeCustomerPassword (gra-customer-profile) uses the separate
+// changeCustomerPassword resolver, not updateCustomerV2, and is intentionally left local to
+// that spec — it is not part of this cluster.
+export const SET_NEWSLETTER_MUTATION = `
+  mutation SetNewsletterSubscription($is_subscribed: Boolean!) {
+    updateCustomerV2(input: {is_subscribed: $is_subscribed}) {
+      customer {
+        id
+        is_subscribed
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export const SET_LOYALTY_NEWSLETTER_MUTATION = `
+  mutation SetLoyaltyAndNewsletterSubscription($is_subscribed: Boolean!, $loyalty_program_status: Boolean) {
+    updateCustomerV2(input: {is_subscribed: $is_subscribed, loyalty_program_status: $loyalty_program_status}) {
+      customer {
+        id
+        is_subscribed
+        loyalty_program_status
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export const UPDATE_NAME_MUTATION = `
+  mutation UpdateFirstnameLastname($firstname: String, $lastname: String) {
+    updateCustomerV2(input: {firstname: $firstname, lastname: $lastname}) {
+      customer {
+        id
+        firstname
+        lastname
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export const UPDATE_DOB_MUTATION = `
+  mutation UpdateDateOfBirth($date_of_birth: String) {
+    updateCustomerV2(input: {date_of_birth: $date_of_birth}) {
+      customer {
+        id
+        date_of_birth
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export const UPDATE_PHONE_MUTATION = `
+  mutation UpdatePhoneNumber($phone_number: String) {
+    updateCustomerV2(input: {phone_number: $phone_number}) {
+      customer {
+        id
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export const UPDATE_EMAIL_MUTATION = `
+  mutation UpdateEmail($email: String) {
+    updateCustomerV2(input: {email: $email}) {
+      customer {
+        id
+        email
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+// Two distinct customer.addresses queries — kept as named variants, not merged.
+// GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY (gra-my-details) reads company, middlename,
+// custom_attributes, default_billing, and region.region, plus a top-level countries query —
+// all asserted on directly by that spec. GET_CUSTOMER_ADDRESSES_QUERY (gra-checkout-shipping)
+// is a lighter query used only to discover an existing saved address id inside a beforeAll
+// hook, and reads region.region_code (not region.region). Both are single-use (no third
+// caller), so merging would only add fields to each caller's request that it never reads,
+// for no deduplication benefit.
+export const GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY = `query GetCustomerAddressesForAddressBook{customer{id addresses{id ...CustomerAddressFragment __typename}__typename}countries{id full_name_locale __typename}}fragment CustomerAddressFragment on CustomerAddress{__typename id city company country_code default_billing default_shipping firstname lastname middlename postcode region{region __typename}custom_attributes{attribute_code value __typename}street telephone}`;
+
+export const GET_CUSTOMER_ADDRESSES_QUERY = `
+  query GetCustomerAddresses {
+    customer {
+      addresses {
+        id
+        firstname
+        lastname
+        street
+        city
+        region { region_code __typename }
+        postcode
+        country_code
+        telephone
+        default_shipping
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
 export interface ProductVariant {
   product: { sku: string; stock_status: string; __typename?: string };
 }
@@ -85,6 +331,10 @@ export const SKU_DISCOVERY_DEFAULTS: Readonly<SkuDiscoveryOptions> = {
 };
 
 // pageSize hoisted to a variable — previously hardcoded to 10 or 20 depending on the spec.
+// Also a strict superset of gra-wishlist's former local DiscoverWishlistProducts query
+// (same $search/$pageSize variables, selecting only sku/name/__typename) — the extra
+// stock_status/variants/currentPage fields are harmless since that spec only reads
+// sku/name/__typename from the result.
 export const GET_PRODUCTS_QUERY = `
   query GetTestProducts($search: String!, $pageSize: Int) {
     products(search: $search, pageSize: $pageSize, currentPage: 1) {

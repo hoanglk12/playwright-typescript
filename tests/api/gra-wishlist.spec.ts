@@ -13,6 +13,7 @@ import { signInAndStoreToken, wasRejected } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLResponse } from '../../src/api/GraphQLClient';
+import { GET_PRODUCTS_QUERY } from '../../src/data/api/gra-graphql-operations';
 
 let customerToken: string = '';
 let wishlistId: string = '';
@@ -20,18 +21,6 @@ let addedItemId: string = '';
 let discoveredProductSku: string = '';
 
 // ── GraphQL constants ──────────────────────────────────────────────────────────
-
-const DISCOVER_PRODUCTS_QUERY = `
-  query DiscoverWishlistProducts($search: String!, $pageSize: Int) {
-    products(search: $search, pageSize: $pageSize) {
-      items {
-        sku
-        name
-        __typename
-      }
-    }
-  }
-`;
 
 const GET_CUSTOMER_WISHLISTS_QUERY = `
   query GetCustomerWishlists {
@@ -127,7 +116,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
 
     // ── 2. Discover a SimpleProduct SKU ───────────────────────────────────────
     await logger.step('Discover a SimpleProduct SKU for wishlist tests', async () => {
-      const discoverResponse = await publicClient.queryWrapped(DISCOVER_PRODUCTS_QUERY, {
+      const discoverResponse = await publicClient.queryWrapped(GET_PRODUCTS_QUERY, {
         search: graWishlistData.productSearchTerm,
         pageSize: 20,
       });

@@ -10,79 +10,15 @@ import { graErrorMessages } from '../../src/data/api/gra-test-data';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
-import { SIGN_IN_MUTATION, CREATE_ACCOUNT_MUTATION } from '../../src/data/api/gra-graphql-operations';
+import {
+  SIGN_IN_MUTATION,
+  CREATE_ACCOUNT_MUTATION,
+  GET_CUSTOMER_DETAILS_QUERY,
+} from '../../src/data/api/gra-graphql-operations';
 import { assertNoCriticalErrors } from './api-test-helpers';
 
 let customerToken: string = '';
 let customerId: string = '';
-
-const GET_CUSTOMER_DETAILS_QUERY = `
-  query getCustomerDetails {
-    customer {
-      id
-      ...CustomerInformationFragment
-      ...CustomerLoyaltyFragment
-      __typename
-    }
-  }
-
-  fragment CustomerInformationFragment on Customer {
-    id
-    firstname
-    lastname
-    email
-    phone_number
-    date_of_birth
-    is_subscribed
-    gender
-    apparel21_id
-    is_qff_member
-    qff_member_number
-    __typename
-  }
-
-  fragment CustomerLoyaltyFragment on Customer {
-    id
-    loyalty_program_status
-    loyalty {
-      level {
-        accrual_points
-        auto_reward_threshold
-        auto_reward_value
-        description
-        level_id
-        level_point_bonus
-        name
-        sequence
-        __typename
-      }
-      points_balance
-      points_to_next_reward
-      program {
-        apply_reward_threshold
-        description
-        name
-        __typename
-      }
-      rewards {
-        available
-        customer_reward_id
-        expiry_date
-        pending
-        redeemed
-        status
-        total
-        __typename
-      }
-      reward_account_id
-      rewards_balance
-      spend_value_to_next_reward
-      positive_rewards_balance_message
-      __typename
-    }
-    __typename
-  }
-`;
 
 test.describe('GRA GraphQL API - Account Management', () => {
 

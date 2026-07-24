@@ -391,6 +391,18 @@ await graphqlClient.queryWrapped(
 );
 ```
 
+### GraphQL Operation & Variable Data Placement
+
+- **Every operation string is a module-level `const` in its spec file at minimum** — never inline inside `test()`/`beforeAll()` bodies.
+- **Hoist to a shared file only when the same operation identity (not necessarily byte-identical) is used by 2+ spec files** — e.g. `src/data/api/gra-graphql-operations.ts` for GRA specs. Single-use operations stay as a local `const`; do not relocate them "for consistency" — that adds churn with no convention benefit.
+- When two specs need the *same underlying query/mutation* but with different selection sets, decide per-cluster, not by default:
+  - **Superset union** (one shared export with the union of fields) — only when every extra field is provably harmless to every caller, e.g. no strict `assertNoErrors()` caller depends on the field's absence, and no field is sensitive to staging quirks (e.g. `price_range`, `aggregations`).
+  - **Named variants** (multiple distinct exports in the shared file, e.g. `GET_CUSTOMER_ID_QUERY` vs `GET_CUSTOMER_QUERY`) — when a merge risks breaking a caller. This is the safer default when in doubt.
+  - Same rule for mutations that share a resolver name but take different input args (e.g. multiple `updateCustomerV2` calls) — keep them as **distinct named exports**, grouped together with a comment noting the shared resolver; never merge into one operation.
+  - Before merging or hoisting, verify operations actually share a resolver — two operations with similar names can call entirely different resolvers (confirmed case: `ChangeCustomerPassword` calls `changeCustomerPassword`, not `updateCustomerV2`).
+- Test **data/variables** passed to `queryWrapped`/`mutateWrapped` follow the normal Test Data convention (`src/data/api/`) — inline literals are only acceptable when the value is trivial and single-use (e.g. a hardcoded invalid ID for a negative test); anything reused or domain-meaningful gets a named interface in `src/data/api/`.
+- New named interfaces are required for any new exported variable/response shape introduced during hoisting, per the Test Data convention — do not rely on inferred types even for internal-only shared exports.
+
 ### REST API Test Template
 
 ```ts

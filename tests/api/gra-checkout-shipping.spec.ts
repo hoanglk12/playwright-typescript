@@ -17,6 +17,7 @@ import {
   SET_SHIPPING_ADDRESSES_RICH_MUTATION,
   SET_SHIPPING_METHODS_MUTATION,
   SKU_DISCOVERY_DEFAULTS,
+  GET_CUSTOMER_ADDRESSES_QUERY,
 } from '../../src/data/api/gra-graphql-operations';
 
 // ── Local types ───────────────────────────────────────────────────────────────
@@ -47,27 +48,6 @@ let savedAddressId: number = 0;
 let checkoutData = createCheckoutShippingData('AU');
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
-
-const GET_CUSTOMER_ADDRESSES_QUERY = `
-  query GetCustomerAddresses {
-    customer {
-      addresses {
-        id
-        firstname
-        lastname
-        street
-        city
-        region { region_code __typename }
-        postcode
-        country_code
-        telephone
-        default_shipping
-        __typename
-      }
-      __typename
-    }
-  }
-`;
 
 const CREATE_CUSTOMER_ADDRESS_MUTATION = `
   mutation CreateCustomerAddress(

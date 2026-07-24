@@ -4,18 +4,18 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLClient } from '../../src/api/GraphQLClient';
+import {
+  GET_CUSTOMER_ID_QUERY,
+  GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY,
+  SET_NEWSLETTER_MUTATION,
+  SET_LOYALTY_NEWSLETTER_MUTATION,
+} from '../../src/data/api/gra-graphql-operations';
 
 let customerToken: string = '';
 let customerId: string = '';
 let addressId: string = '';
 
 const intRegex = /^\d+$/;
-
-const GET_CUSTOMER_ID_QUERY = `
-  query GetCustomerId {
-    customer { id }
-  }
-`;
 
 const ADD_ADDRESS_MUTATION = `
   mutation AddNewCustomerAddressToAddressBook($address: CustomerAddressInput!) {
@@ -25,8 +25,6 @@ const ADD_ADDRESS_MUTATION = `
     }
   }
 `;
-
-const GET_ADDRESSES_QUERY = `query GetCustomerAddressesForAddressBook{customer{id addresses{id ...CustomerAddressFragment __typename}__typename}countries{id full_name_locale __typename}}fragment CustomerAddressFragment on CustomerAddress{__typename id city company country_code default_billing default_shipping firstname lastname middlename postcode region{region __typename}custom_attributes{attribute_code value __typename}street telephone}`;
 
 const UPDATE_ADDRESS_MUTATION = `
   mutation UpdateCustomerAddressInAddressBook($addressId: Int!, $updated_address: CustomerAddressInput!) {
@@ -42,33 +40,6 @@ const UPDATE_ADDRESS_MUTATION = `
 const DELETE_ADDRESS_MUTATION = `
   mutation DeleteCustomerAddressFromAddressBook($addressId: Int!) {
     deleteCustomerAddress(id: $addressId)
-  }
-`;
-
-const SET_NEWSLETTER_MUTATION = `
-  mutation SetNewsletterSubscription($is_subscribed: Boolean!) {
-    updateCustomerV2(input: {is_subscribed: $is_subscribed}) {
-      customer {
-        id
-        is_subscribed
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const SET_LOYALTY_NEWSLETTER_MUTATION = `
-  mutation SetLoyaltyAndNewsletterSubscription($is_subscribed: Boolean!, $loyalty_program_status: Boolean) {
-    updateCustomerV2(input: {is_subscribed: $is_subscribed, loyalty_program_status: $loyalty_program_status}) {
-      customer {
-        id
-        is_subscribed
-        loyalty_program_status
-        __typename
-      }
-      __typename
-    }
   }
 `;
 
@@ -147,7 +118,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
         token: customerToken,
       });
 
-      const response = await authClient.queryWrapped(GET_ADDRESSES_QUERY);
+      const response = await authClient.queryWrapped(GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY);
 
       await response.assertNoErrors();
       await response.assertHasData();

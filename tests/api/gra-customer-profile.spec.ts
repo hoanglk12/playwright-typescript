@@ -9,76 +9,20 @@ import {
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLClient } from '../../src/api/GraphQLClient';
+import {
+  UPDATE_NAME_MUTATION,
+  UPDATE_DOB_MUTATION,
+  UPDATE_PHONE_MUTATION,
+  UPDATE_EMAIL_MUTATION,
+} from '../../src/data/api/gra-graphql-operations';
 
+// ChangeCustomerPassword uses the separate changeCustomerPassword resolver (not
+// updateCustomerV2) and has no cross-spec duplicate — kept local per Phase 1 scope.
 const CHANGE_PASSWORD_MUTATION = `
   mutation ChangeCustomerPassword($currentPassword: String!, $newPassword: String!) {
     changeCustomerPassword(currentPassword: $currentPassword, newPassword: $newPassword) {
       id
       email
-      __typename
-    }
-  }
-`;
-
-const UPDATE_NAME_MUTATION = `
-  mutation UpdateFirstnameLastname($firstname: String, $lastname: String) {
-    updateCustomerV2(input: {firstname: $firstname, lastname: $lastname}) {
-      customer {
-        id
-        firstname
-        lastname
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const UPDATE_DOB_MUTATION = `
-  mutation UpdateDateOfBirth($date_of_birth: String) {
-    updateCustomerV2(input: {date_of_birth: $date_of_birth}) {
-      customer {
-        id
-        date_of_birth
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const UPDATE_PHONE_MUTATION = `
-  mutation UpdatePhoneNumber($phone_number: String) {
-    updateCustomerV2(input: {phone_number: $phone_number}) {
-      customer {
-        id
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const UPDATE_EMAIL_MUTATION = `
-  mutation UpdateEmail($email: String) {
-    updateCustomerV2(input: {email: $email}) {
-      customer {
-        id
-        email
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const GET_CUSTOMER_QUERY = `
-  query GetCustomerPersonalInfo {
-    customer {
-      id
-      firstname
-      lastname
-      date_of_birth
       __typename
     }
   }

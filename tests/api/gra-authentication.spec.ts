@@ -5,7 +5,7 @@ import { graAuthData, graAuthErrorMessages } from '../../src/data/api/gra-auth-d
 import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
-import { SIGN_IN_MUTATION } from '../../src/data/api/gra-graphql-operations';
+import { SIGN_IN_MUTATION, GET_CUSTOMER_QUERY } from '../../src/data/api/gra-graphql-operations';
 
 let testEmail: string = '';
 
@@ -13,15 +13,6 @@ const REVOKE_TOKEN_MUTATION = `
   mutation RevokeCustomerToken {
     revokeCustomerToken {
       result
-    }
-  }
-`;
-
-const CUSTOMER_QUERY = `
-  query GetCustomer {
-    customer {
-      id
-      email
     }
   }
 `;
@@ -122,7 +113,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
       for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
         if (attempt > 1) await new Promise(r => setTimeout(r, TIMEOUTS.POLL_INTERVAL_NORMAL));
         const revokedClient = await createGraphQLClient({ authType: AuthType.BEARER, token: disposableToken });
-        const customerResponse = await revokedClient.queryWrapped(CUSTOMER_QUERY);
+        const customerResponse = await revokedClient.queryWrapped(GET_CUSTOMER_QUERY);
         const gql = await customerResponse.getGraphQLResponse();
         pollErrors = gql.errors ?? [];
         if (pollErrors.length > 0) break;
