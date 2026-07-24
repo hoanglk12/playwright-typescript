@@ -9,6 +9,7 @@ import {
   GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY,
   SET_NEWSLETTER_MUTATION,
   SET_LOYALTY_NEWSLETTER_MUTATION,
+  ADD_CUSTOMER_ADDRESS_MUTATION,
 } from '../../src/data/api/gra-graphql-operations';
 
 let customerToken: string = '';
@@ -16,15 +17,6 @@ let customerId: string = '';
 let addressId: string = '';
 
 const intRegex = /^\d+$/;
-
-const ADD_ADDRESS_MUTATION = `
-  mutation AddNewCustomerAddressToAddressBook($address: CustomerAddressInput!) {
-    createCustomerAddress(input: $address) {
-      id
-      __typename
-    }
-  }
-`;
 
 const UPDATE_ADDRESS_MUTATION = `
   mutation UpdateCustomerAddressInAddressBook($addressId: Int!, $updated_address: CustomerAddressInput!) {
@@ -85,7 +77,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       const variables = site.testData.addNewCustomerAddressForAddressBook;
       logger.action('Mutation variables', JSON.stringify(variables));
 
-      const response = await authClient.mutateWrapped(ADD_ADDRESS_MUTATION, variables);
+      const response = await authClient.mutateWrapped(ADD_CUSTOMER_ADDRESS_MUTATION, variables);
 
       await response.assertNoErrors();
       await response.assertHasData();

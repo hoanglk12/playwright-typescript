@@ -4,6 +4,7 @@ import { signInAndStoreToken, createFreshCart } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import { EWAVE_STORE_CONFIG_FRAGMENT } from '../../src/data/api/gra-graphql-operations';
 
 let customerToken: string = '';
 let cartId: string = '';
@@ -18,7 +19,7 @@ const GET_CURRENCY_QUERY = `
   }
 `;
 
-const GET_DYNAMIC_DATA_QUERY = `query GetDynamicData($cart_id:String!){cart(cart_id:$cart_id){dynamic_promo_blocks{discount{phrase __typename}gift{phrase __typename}message{progress_percent phrase success_phrase __typename}__typename}__typename}storeConfig{id store_code ewave_dynamicpromoblocks_discount_enable ewave_dynamicpromoblocks_general_enable ewave_dynamicpromoblocks_gift_enable ewave_dynamicpromoblocks_message_enable __typename}}`;
+const GET_DYNAMIC_DATA_QUERY = `query GetDynamicData($cart_id:String!){cart(cart_id:$cart_id){dynamic_promo_blocks{discount{phrase __typename}gift{phrase __typename}message{progress_percent phrase success_phrase __typename}__typename}__typename}storeConfig{...EwaveStoreConfigFragment}}${EWAVE_STORE_CONFIG_FRAGMENT}`;
 
 test.describe("GRA GraphQL API - Support Features @api @graphql @regression", () => {
 

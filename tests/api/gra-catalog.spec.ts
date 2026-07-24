@@ -5,6 +5,7 @@ import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLClient } from '../../src/api/GraphQLClient';
 import { assertNoCriticalErrors as assertNoCriticalErrorsShared } from './api-test-helpers';
+import { EWAVE_STORE_CONFIG_FRAGMENT } from '../../src/data/api/gra-graphql-operations';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -63,29 +64,6 @@ const DISCOVER_PRODUCTS_QUERY = `
           value
           label
           count
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-  }
-`;
-
-const DISCOVER_CATEGORIES_QUERY = `
-  query DiscoverCategories {
-    categories {
-      total_count
-      items {
-        id
-        uid
-        name
-        url_key
-        children {
-          id
-          uid
-          name
-          url_key
           __typename
         }
         __typename
@@ -226,17 +204,12 @@ const CATEGORIES_QUERY = `
 const STORE_CONFIG_QUERY = `
   query GetStoreConfig {
     storeConfig {
-      id
-      store_code
       locale
       base_currency_code
-      ewave_dynamicpromoblocks_general_enable
-      ewave_dynamicpromoblocks_discount_enable
-      ewave_dynamicpromoblocks_gift_enable
-      ewave_dynamicpromoblocks_message_enable
-      __typename
+      ...EwaveStoreConfigFragment
     }
   }
+  ${EWAVE_STORE_CONFIG_FRAGMENT}
 `;
 
 const URL_RESOLVER_QUERY = `
@@ -307,7 +280,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     }
 
     await logger.step('Discover category url_key from categories root tree', async () => {
-      const catGql = await (await client.queryWrapped(DISCOVER_CATEGORIES_QUERY)).getGraphQLResponse();
+      const catGql = await (await client.queryWrapped(CATEGORIES_QUERY, {})).getGraphQLResponse();
       if (!(catGql.errors?.length) && (catGql.data?.categories?.items?.length ?? 0) > 0) {
         const rootCat = catGql.data!.categories.items[0];
         if ((rootCat?.children?.length ?? 0) > 0) {

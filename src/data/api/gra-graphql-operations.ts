@@ -301,6 +301,62 @@ export const GET_CUSTOMER_ADDRESSES_QUERY = `
   }
 `;
 
+// Two distinct createCustomerAddress mutations — kept as named variants, not merged.
+// ADD_CUSTOMER_ADDRESS_MUTATION (gra-my-details) sends a single $address: CustomerAddressInput!
+// object variable and reads back only id/__typename — that spec asserts on the address fields
+// separately via GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY instead. CREATE_CUSTOMER_ADDRESS_MUTATION
+// (gra-checkout-shipping) sends flat scalar variables and echoes back a richer selection set
+// (firstname, lastname, street, city, region.region_code, postcode, country_code, telephone) that
+// its beforeAll reads directly off the mutation response. Both call the same createCustomerAddress
+// resolver, but with different call conventions and selection sets — do NOT merge them.
+export const ADD_CUSTOMER_ADDRESS_MUTATION = `
+  mutation AddNewCustomerAddressToAddressBook($address: CustomerAddressInput!) {
+    createCustomerAddress(input: $address) {
+      id
+      __typename
+    }
+  }
+`;
+
+export const CREATE_CUSTOMER_ADDRESS_MUTATION = `
+  mutation CreateCustomerAddress(
+    $firstname: String!,
+    $lastname: String!,
+    $street: [String!]!,
+    $city: String!,
+    $region: CustomerAddressRegionInput,
+    $postcode: String!,
+    $country_code: CountryCodeEnum!,
+    $telephone: String!,
+    $default_shipping: Boolean,
+    $default_billing: Boolean
+  ) {
+    createCustomerAddress(input: {
+      firstname: $firstname,
+      lastname: $lastname,
+      street: $street,
+      city: $city,
+      region: $region,
+      postcode: $postcode,
+      country_code: $country_code,
+      telephone: $telephone,
+      default_shipping: $default_shipping,
+      default_billing: $default_billing
+    }) {
+      id
+      firstname
+      lastname
+      street
+      city
+      region { region_code __typename }
+      postcode
+      country_code
+      telephone
+      __typename
+    }
+  }
+`;
+
 export interface ProductVariant {
   product: { sku: string; stock_status: string; __typename?: string };
 }
@@ -629,3 +685,10 @@ export const PLACE_ORDER_MUTATION = `
     }
   }
 `;
+
+// Shared sub-selection of storeConfig fields, spread into two DIFFERENT root operations that
+// are NOT merged: gra-catalog's GetStoreConfig (no variables, also reads locale/base_currency_code
+// outside this fragment) and gra-support-features' GetDynamicData($cart_id) (requires a cart_id,
+// reads dynamic_promo_blocks alongside storeConfig). Only the fields both callers actually read
+// are included here — do not add fields one caller needs but not the other.
+export const EWAVE_STORE_CONFIG_FRAGMENT = `fragment EwaveStoreConfigFragment on StoreConfig{id store_code ewave_dynamicpromoblocks_general_enable ewave_dynamicpromoblocks_discount_enable ewave_dynamicpromoblocks_gift_enable ewave_dynamicpromoblocks_message_enable __typename}`;
