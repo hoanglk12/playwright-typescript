@@ -6,7 +6,7 @@ import { TestLogger } from '../utils/test-logger';
 import { TIMEOUTS } from '../constants/timeouts';
 import { redactSensitiveText } from '../utils/redact';
 
-const REQUIRED_ENV_VARS = ['ADMIN_URL', 'FRONTSITE_URL', 'USER_NAME', 'PASSWORD'] as const;
+const REQUIRED_ENV_VARS = ['ADMIN_URL', 'FRONTSITE_URL'] as const;
 const CONNECTIVITY_RETRY_ATTEMPTS = 3;
 
 async function globalSetup(config: FullConfig) {
