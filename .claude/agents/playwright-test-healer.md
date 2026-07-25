@@ -20,7 +20,7 @@ broken Playwright tests using a methodical approach.
 This project uses a composition-based Page Object Model. Every fix must respect these rules or
 it will break the architecture even if the test passes.
 
-### Page class interactions — use the 8 helpers, never direct page calls
+### Page class interactions — use the 11 helpers, never direct page calls
 
 ```ts
 // WRONG — introduces direct Playwright calls into page classes
@@ -53,7 +53,7 @@ async search(term: string): Promise<void> {
 }
 ```
 
-The 8 helpers and when to use each:
+The 11 helpers and when to use each:
 | Property | Use for |
 |---|---|
 | `this.elements` | Clicks, text input, queries, scroll, drag-drop |
@@ -64,6 +64,9 @@ The 8 helpers and when to use each:
 | `this.storage` | Cookies, localStorage, sessionStorage |
 | `this.network` | Route mocking, request interception |
 | `this.tables` | HTML table interactions |
+| `this.tabs` | Window/tab switching, dialog accept/dismiss |
+| `this.dom` | Non-throwing DOM inspection queries |
+| `this.overlays` | Cookie banner / popup / modal dismissal |
 
 ### Timeouts — no magic numbers
 
@@ -171,9 +174,17 @@ Skip to step 3 if failures are already classified from the JSON.
    # Example: node scripts/dom-inspector.mjs --url https://staging.example.com/cart --description "add to cart button"
    # Load URL from .env.testing automatically:
    node scripts/dom-inspector.mjs --env testing --description "add to cart button"
+   # Target one of the 8 ecommerce storefronts by slug (see src/data/ecommerce/storefronts.ts):
+   node scripts/dom-inspector.mjs --storefront vans-au --description "WOMEN"
    ```
-   This returns ranked locator candidates as JSON (score ≥ 0.90 = stable, role-based).
-   Pick the top stable candidate and hoist it to the page object class field.
+   `--description` is matched against the element's visible text / accessible name, not a
+   free-form description of what the element is — pass the real label (e.g. `"WOMEN"`, not
+   `"the womens nav link"`). This returns ranked locator candidates as JSON. `score` ranks
+   locator *type*
+   (role/label/text/css) and is not DOM-aware; `stable`/`count` report whether the locator
+   uniquely matches. Treat a candidate as safe to hoist only when score ≥ 0.90 **and**
+   `stable: true` (`count === 1`) — a high score with `count > 1` is a strict-mode violation
+   waiting to happen. Pick the top such candidate and hoist it to the page object class field.
    **Do not call `playwright-cli snapshot`** for locator hunts — it dumps the full DOM tree
    and costs 4,000–8,000 tokens per call.
 
@@ -226,3 +237,32 @@ Skip to step 3 if failures are already classified from the JSON.
   expected behavior
 - Do not ask user questions — make the most reasonable fix possible
 - Never use `networkidle` or other deprecated Playwright APIs
+- **Never auto-commit.** You may edit files, but never run `git commit`, `git push`, or open a
+  pull request. All changes are left in the working tree for a human to review and commit
+  themselves.
+- **Cross-storefront check for shared ecommerce page objects.** Any change to a shared page
+  object under `src/pages/ecommerce/` affects all 8 storefronts (see
+  `src/data/ecommerce/storefronts.ts`) — one class backs all 8 brands, and a fix validated
+  against only one brand's DOM can silently break the other 7. Before reporting the fix, produce
+  a per-brand table with one row per storefront: `brand | evidence checked | verdict (verified /
+  unverified / at-risk)`. Acceptable evidence is either a `dom-inspector.mjs --storefront <slug>`
+  run showing the new locator resolves with `count === 1`, or a spec run scoped to that brand.
+  Any brand you could not verify must be listed as `unverified` by name, never omitted and never
+  described as covered.
+
+### Required output contract for selector changes
+
+For every selector change you make, report:
+1. **Old selector** — the exact locator that was failing
+2. **New selector** — the exact replacement locator
+3. **DOM evidence for why the old one broke** — not just "it didn't match"; cite what actually
+   changed in the DOM (e.g. removed attribute, renamed class, restructured markup, new wrapping
+   element) based on what dom-inspector or the page snapshot showed
+4. **dom-inspector.mjs stability score and stability for the new selector.** Prefer score ≥ 0.90
+   with `stable: true`. If the best *correct* candidate scores lower, or matches more than one
+   element, report the actual score/stable/count and state why no higher-scoring locator is
+   valid, citing the DOM reason. For example, `src/pages/ecommerce/pdp-page.ts:22-24` documents
+   that GRA storefronts render `aria-label="Justify"` on Add to Cart buttons, overriding the
+   accessible name and breaking `getByRole` matching there — a text-based locator scoring lower
+   is the *correct* fix on those pages, not a shortfall to explain away. Never raise the reported
+   score by choosing a locator that does not uniquely match the intended element.

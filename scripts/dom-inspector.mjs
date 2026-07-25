@@ -4,8 +4,23 @@
  * Usage:
  *   node scripts/dom-inspector.mjs --url <url> --description "<element>"
  *   node scripts/dom-inspector.mjs --env testing --description "<element>"
+ *   node scripts/dom-inspector.mjs --storefront <slug> --description "<element>"
+ *   node scripts/dom-inspector.mjs --storefront <slug> --page pdp --description "<element>"
  *
- * Output: JSON  { url, query, candidates: [{ locator, score, stable, count }] }
+ * --storefront resolves against the 8 ecommerce storefronts in
+ * src/data/ecommerce/storefronts.ts, matched by a slugified form of `name`
+ * (e.g. "Vans AU" -> vans-au, "Dr. Martens AU" -> dr-martens-au).
+ * --page selects which URL on the storefront to probe: `pdp` (storefront's
+ * pdpPath — errors if that storefront has none configured) or `home`/`default`
+ * (storefront's bare url, the default when --page is omitted).
+ * --storefront takes precedence over --url/--env when both are supplied.
+ *
+ * A non-2xx response for the resolved URL is treated as an error, not a page to scan.
+ *
+ * Output: JSON  { url, query, popupDismissed, candidates: [{ locator, score, stable, count }] }
+ * `score` ranks locator *type* (role/label/text/css); it is not DOM-aware. Treat a
+ * candidate as safe to hoist only when score >= 0.90 AND stable === true (count === 1) —
+ * a high score with count > 1 is a strict-mode violation waiting to happen.
  *
  * Designed for playwright-test-healer to use instead of browser_snapshot when
  * hunting a replacement locator after SELECTOR_STALE failures. One call replaces
@@ -24,9 +39,11 @@ const PROJECT_ROOT = join(fileURLToPath(import.meta.url), '..', '..');
 const args = process.argv.slice(2);
 const getArg = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] ?? null : null; };
 
-const description = getArg('--description');
-const explicitUrl = getArg('--url');
-const envName     = getArg('--env') ?? 'testing';
+const description     = getArg('--description');
+const explicitUrl     = getArg('--url');
+const envName         = getArg('--env') ?? 'testing';
+const storefrontSlug  = getArg('--storefront');
+const pageKey         = getArg('--page') ?? 'home';
 
 if (!description) {
   console.log(JSON.stringify({ error: 'Required: --description "<element to find>"' }));
@@ -45,10 +62,75 @@ function loadEnvUrl(env) {
   return null;
 }
 
-const url = explicitUrl ?? loadEnvUrl(envName);
+// ── storefront resolution (src/data/ecommerce/storefronts.ts, read as text) ──
+// storefronts.ts is TypeScript; this script is plain Node ESM with no TS loader.
+// Parse it as text (same pattern as loadEnvUrl above) instead of importing it —
+// no build step, no new dependency.
+
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function loadStorefronts() {
+  const file = join(PROJECT_ROOT, 'src', 'data', 'ecommerce', 'storefronts.ts');
+  if (!existsSync(file)) return [];
+  const text = readFileSync(file, 'utf8');
+  const arrayMatch = text.match(/storefronts:\s*readonly Storefront\[\]\s*=\s*\[([\s\S]*)\];/);
+  if (!arrayMatch) return [];
+  const blocks = arrayMatch[1].match(/\{[^{}]*\}/g) ?? [];
+  const parsed = blocks.map((block) => ({
+    name:    block.match(/name:\s*'([^']*)'/)?.[1],
+    url:     block.match(/url:\s*'([^']*)'/)?.[1],
+    pdpPath: block.match(/pdpPath:\s*'([^']*)'/)?.[1],
+  }));
+  const valid = parsed.filter((s) => s.name && s.url);
+  if (valid.length !== blocks.length) {
+    console.error(
+      `[dom-inspector] warning: parsed ${blocks.length} storefront block(s) from ${file} but ` +
+      `only ${valid.length} yielded both name and url — storefronts.ts formatting may have changed.`
+    );
+  }
+  return valid;
+}
+
+function resolveStorefrontUrl(slug, page) {
+  const storefronts = loadStorefronts();
+  if (storefronts.length === 0) {
+    console.log(JSON.stringify({
+      error: 'Could not parse any storefronts from src/data/ecommerce/storefronts.ts — ' +
+             'the file may have moved or its format changed.',
+    }));
+    process.exit(1);
+  }
+  const match = storefronts.find((s) => slugify(s.name) === slug);
+  if (!match) {
+    console.log(JSON.stringify({
+      error: `Unknown --storefront "${slug}"`,
+      available: storefronts.map((s) => slugify(s.name)),
+    }));
+    process.exit(1);
+  }
+  if (page !== 'pdp' && page !== 'home' && page !== 'default') {
+    console.log(JSON.stringify({ error: `Unknown --page "${page}". Valid values: pdp, home, default` }));
+    process.exit(1);
+  }
+  if (page === 'pdp') {
+    if (!match.pdpPath) {
+      console.log(JSON.stringify({ error: `"${slug}" has no pdpPath configured in storefronts.ts; --page pdp is unavailable for it` }));
+      process.exit(1);
+    }
+    return match.url.replace(/\/$/, '') + match.pdpPath;
+  }
+  return match.url;
+}
+
+const url = storefrontSlug
+  ? resolveStorefrontUrl(storefrontSlug, pageKey)
+  : (explicitUrl ?? loadEnvUrl(envName));
+
 if (!url) {
   console.log(JSON.stringify({
-    error: `No URL. Pass --url <url> or ensure FRONT_SITE_URL is set in .env.${envName}`,
+    error: `No URL. Pass --url <url>, --storefront <slug>, or ensure FRONT_SITE_URL is set in .env.${envName}`,
   }));
   process.exit(1);
 }
@@ -151,7 +233,23 @@ async function main() {
   const page    = await context.newPage();
 
   try {
-    await page.goto(url, { waitUntil: 'load', timeout: 30000 });
+    const response = await page.goto(url, { waitUntil: 'load', timeout: 30000 });
+    const status = response?.status();
+    if (status && status >= 400) {
+      console.log(JSON.stringify({
+        error: `HTTP ${status} for ${url} — candidates from this page would not be trustworthy.`,
+        url,
+      }));
+      process.exit(1);
+    }
+
+    // Vans AU/NZ serve a Bloomreach acquisition popup that injects its own buttons/links
+    // (which can win .first() and inflate count) and may aria-hide the app root. No-op,
+    // and reported below, on every storefront that doesn't have this popup.
+    const popupDismissed = await page.locator('#popup-close')
+      .click({ timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
 
     const candidates = buildCandidates(page, description);
     const results    = [];
@@ -176,7 +274,7 @@ async function main() {
     results.sort((a, b) => b.score - a.score);
     const top = results.slice(0, 5);
 
-    console.log(JSON.stringify({ url, query: description, candidates: top }, null, 2));
+    console.log(JSON.stringify({ url, query: description, popupDismissed, candidates: top }, null, 2));
   } finally {
     await browser.close();
   }

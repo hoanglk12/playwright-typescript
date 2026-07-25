@@ -554,6 +554,52 @@ Monocart appends a test count table to `$GITHUB_STEP_SUMMARY` automatically in C
 
 ---
 
+## Specialized Agents
+
+`.claude/agents/` holds 13 sub-agents Claude Code can dispatch for QA work. `qa-orchestrator` is the default entry point: give it a goal and it picks the right agent, or sequence of agents, and coordinates the handoffs. Each agent below can also be invoked directly when you already know which specialist a task needs.
+
+| Agent | Purpose |
+|---|---|
+| `qa-orchestrator` | Single entry point for multi-step QA work. Reads the request and dispatches the right sub-agent pipeline. |
+| `playwright-test-healer` | Debugs and fixes failing Playwright tests. |
+| `automation-test-architect` | Converts manual test cases, requirements, or a saved test plan into Playwright TypeScript scripts. |
+| `playwright-test-generator` | Records real user interactions against the live app and writes a raw spec file. |
+| `playwright-test-planner` | Navigates the live app and writes a structured markdown test plan. |
+| `qa-code-reviewer` | Audits test code for quality, correctness, security, and framework-convention adherence. |
+| `devops-cicd-specialist` | Parses build reports and CI logs, classifies test failures into 8 categories. |
+| `security-reviewer` | Scans for committed secrets, vulnerable dependencies, unsafe `page.evaluate()` calls, and workflow permission issues. |
+| `technical-debt-agent` | Audits the codebase for architecture violations and pattern drift, writes `TECH_DEBT_REPORT.md`. |
+| `technical-debt-fixer` | Applies targeted fixes for specific items from that report. |
+| `technical-research-agent` | Researches integrations, SDK/Playwright upgrades, and architecture options. Produces a report only, no code changes. |
+| `technical-implementation-agent` | Implements a technical change once its research report is approved. |
+| `memory-vault-curator` | Syncs live Claude Code memory to the Obsidian vault and links related notes. |
+| `vault-updater` | Fetches a Jira issue or Confluence page and writes a formatted vault note. |
+
+Full responsibility and tool-usage breakdowns are added below one agent at a time.
+
+### playwright-test-healer
+
+Debugs and fixes failing Playwright tests, dev-time only, invoked either directly or as a step in a `qa-orchestrator` pipeline (typically after `devops-cicd-specialist` has classified a CI failure). It edits page objects and spec files but never commits: `git commit`, `git push`, and opening a pull request are off-limits by its own instructions, so every fix stays in the working tree for a human to review.
+
+**Declared tools:** `Glob`, `Grep`, `Read`, `LS`, `Edit`, `MultiEdit`, `Write`, `Bash`, plus five `mcp__playwright-test__*` tools (`browser_verify_element_visible`, `browser_verify_text_visible`, `browser_verify_list_visible`, `browser_verify_value`, `browser_wait_for`) and five `mcp__codebase-memory-mcp__*` tools (`index_status`, `search_graph`, `trace_path`, `get_code_snippet`, `search_code`).
+
+**Diagnostic sequence:**
+
+1. Reads `test-results/results.json` (UI) or `api-results/results.json` (API) through a `Bash` + `node -e` one-liner instead of parsing raw stdout, pulling structured failure data (test name, error, project) for roughly 200 tokens.
+2. Classifies the failure from the error message text against six categories: `SELECTOR_STALE`, `TIMEOUT`, `ASSERTION`, `NETWORK`, `AUTH`, `FLAKY`.
+3. Reruns the failing spec via `Bash` (`npx playwright test <spec-file> --project=chromium`), then can attach to a CLI debug session (`playwright-cli attach tw-XXXX`) to pause at the failure point. `playwright-cli` is an external CLI invoked through `Bash`, not one of its declared MCP tools.
+4. For `SELECTOR_STALE` failures, shells out to `scripts/dom-inspector.mjs` through `Bash` (`--url`/`--env`/`--storefront` plus `--description`) and reads back ranked locator candidates as JSON. This is the same standalone, non-LLM scoring script covered earlier in this project, not an MCP tool either. The agent's own rule: treat a candidate as safe to hoist only when its score is 0.90 or higher **and** it is `stable: true` (`count === 1`); a high score with more than one match is a strict-mode violation waiting to happen.
+5. For other failure types, runs targeted `playwright-cli` commands through `Bash` (`console`, `requests`, `eval`, `generate-locator`).
+6. Before falling back to `Grep`, traces the call chain with `mcp__codebase-memory-mcp__trace_path` and locates symbols with `search_graph`, `get_code_snippet`, and `search_code`.
+7. Edits the page object's locator field and/or the spec file with `Edit`/`MultiEdit`, following the framework's composition-based POM rules: locators as `private readonly` class fields, the 11 `BasePage` helpers instead of direct `page.*` calls, `TIMEOUTS.*` constants instead of magic numbers, no `page.waitForTimeout()`, and `@config/base-test` as the only import source.
+8. Reruns the spec via `Bash` after each fix and repeats until it passes, using the lightweight `mcp__playwright-test__browser_verify_*` tools for post-fix confirmation rather than locator discovery.
+
+**Extra rule for shared ecommerce page objects:** a change under `src/pages/ecommerce/` affects all 8 storefronts defined in `src/data/ecommerce/storefronts.ts`, since one class backs all of them. Before reporting a fix there, the agent must produce a per-brand table (`brand | evidence checked | verdict`) built from either a `dom-inspector.mjs --storefront <slug>` run showing `count === 1` or a spec run scoped to that brand. Any brand it could not verify is named as `unverified`, never left out or claimed as covered.
+
+**Reporting contract for selector changes:** every selector fix must state the old selector, the new one, the DOM evidence for why the old one broke (an actual cause, such as a removed attribute or renamed class, not just "it didn't match"), and the `dom-inspector.mjs` score/stability for the replacement.
+
+---
+
 ## Test Naming Conventions
 
 | Suite | Pattern | Example |
