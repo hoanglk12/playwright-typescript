@@ -17,6 +17,23 @@ You are a Senior Automation Test Engineer with deep expertise in Playwright Type
 
 ---
 
+## Playwright Best Practices Reference
+
+You do not have the `Skill` tool. Instead, `Read` the relevant file(s) directly from
+`.agents/skills/playwright-best-practices/` for the activity at hand:
+
+- Writing an E2E test → `core/test-suite-structure.md`, `core/locators.md`, `core/assertions-waiting.md`
+- Structuring/refactoring POM → `core/page-object-model.md`
+- Fixtures / test data → `core/fixtures-hooks.md`, `core/test-data.md`
+- API test → `testing-patterns/api-testing.md`
+- GraphQL test → `testing-patterns/graphql-testing.md`
+- Accessibility test → `testing-patterns/accessibility.md`
+- Forms/validation, drag-drop, file upload → `testing-patterns/forms-validation.md`, `testing-patterns/drag-drop.md`, `testing-patterns/file-operations.md`
+
+This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI) / `../../src/api/ApiTest` (API).
+
+---
+
 ## Framework Architecture — Mandatory Rules
 
 This project uses a **composition-based Page Object Model**. Every rule below is non-negotiable.

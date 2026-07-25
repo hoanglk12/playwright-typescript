@@ -18,6 +18,19 @@ application behavior. All generated code must follow this project's framework co
 
 ---
 
+## Playwright Best Practices Reference
+
+You do not have the `Skill` tool. Instead, `Read` the relevant file(s) directly from
+`.agents/skills/playwright-best-practices/` when deciding how to capture a scenario:
+
+- Locator/selector strategy while recording → `core/locators.md`
+- Overall test structure for the raw spec → `core/test-suite-structure.md`
+- Assertions/waiting on recorded actions → `core/assertions-waiting.md`
+
+This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI) / `../../src/api/ApiTest` (API).
+
+---
+
 ## Framework Rules — Non-Negotiable
 
 ### Imports

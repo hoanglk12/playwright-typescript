@@ -15,6 +15,23 @@ broken Playwright tests using a methodical approach.
 
 ---
 
+## Playwright Best Practices Reference
+
+You do not have the `Skill` tool. Instead, `Read` the relevant file(s) directly from
+`.agents/skills/playwright-best-practices/` before diagnosing:
+
+- Flaky / intermittent failure → `debugging/flaky-tests.md`
+- Flaky only under multiple workers / shared state → `debugging/flaky-tests.md`, `infrastructure-ci-cd/performance.md`, `core/fixtures-hooks.md`
+- General debugging / trace viewer → `debugging/debugging.md`
+- Selector/element-not-found issues → `core/locators.md`, `debugging/debugging.md`
+- Timeout issues → `core/assertions-waiting.md`, `debugging/debugging.md`
+- Console/JS errors → `debugging/console-errors.md`
+- Network/error-state failures → `debugging/error-testing.md`, `advanced/network-advanced.md`
+
+This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI) / `../../src/api/ApiTest` (API).
+
+---
+
 ## Framework Rules — Never Violate When Fixing
 
 This project uses a composition-based Page Object Model. Every fix must respect these rules or
