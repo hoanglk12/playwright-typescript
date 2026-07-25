@@ -4,6 +4,7 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLClient } from '../../src/api/GraphQLClient';
+import { redactSensitiveData } from '../../src/utils/redact';
 import {
   GET_CUSTOMER_ID_QUERY,
   GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY,
@@ -75,7 +76,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       });
 
       const variables = site.testData.addNewCustomerAddressForAddressBook;
-      logger.action('Mutation variables', JSON.stringify(variables));
+      logger.action('Mutation variables', JSON.stringify(redactSensitiveData(variables)));
 
       const response = await authClient.mutateWrapped(ADD_CUSTOMER_ADDRESS_MUTATION, variables);
 
@@ -182,7 +183,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
 
     let data: any;
     await logger.step('Step 2 - Send UpdateCustomerAddress mutation', async () => {
-      logger.action('Update variables', JSON.stringify(variables));
+      logger.action('Update variables', JSON.stringify(redactSensitiveData(variables)));
 
       const response = await authClient.mutateWrapped(UPDATE_ADDRESS_MUTATION, variables);
 

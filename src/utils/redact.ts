@@ -38,15 +38,24 @@ const SENSITIVE_KEYS: readonly string[] = [
   'dob',
   'dateofbirth',
   'address',
+  'street',
+  'city',
   'postcode',
   'zipcode',
   'gender',
   'username',
 ];
 
+// Strips separators (`_`, `-`, spaces, etc.) before lowercasing, so snake_case/kebab-case/camelCase
+// variants of a key (e.g. `date_of_birth`, `dateOfBirth`) all match the same `SENSITIVE_KEYS` entry
+// without needing a separate literal per naming style.
+function normalizeKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 function isSensitiveKey(key: string): boolean {
-  const normalized = key.toLowerCase();
-  return SENSITIVE_KEYS.some(sensitive => normalized.includes(sensitive));
+  const normalized = normalizeKey(key);
+  return SENSITIVE_KEYS.some(sensitive => normalized.includes(normalizeKey(sensitive)));
 }
 
 function redactValue(value: unknown): unknown {
