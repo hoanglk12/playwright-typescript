@@ -8,6 +8,8 @@ import { DummyJsonService } from './services/dummyjson';
 import { getApiEnvironment } from './config/environment';
 import { SoftAssertHelper } from '../utils/soft-assert-helper';
 import { TestLogger } from '../utils/test-logger';
+import { consumeVerboseLogBuffer } from '../utils/verbose-log-buffer';
+import { redactSensitiveText } from '../utils/redact';
 
 /**
  * API Test fixture interface
@@ -29,6 +31,7 @@ export interface ApiTestFixtures {
   createGraphQLClient: (options?: Partial<GraphQLClientOptions>) => Promise<GraphQLClient>;
   softAssert: SoftAssertHelper;
   attachTestLogs: void;
+  attachVerboseLogFailureContext: void;
 }
 
 /**
@@ -184,6 +187,25 @@ export const apiTest = base.extend<ApiTestFixtures>({
         if (buffer) {
             await testInfo.attach('test-steps.log', { body: buffer, contentType: 'text/plain' });
         }
+    }, { auto: true }],
+
+    // Auto fixture — buffer-then-flush-on-failure for `ApiClientExt`/`GraphQLClient` verbose
+    // logging (Option B). Buffered entries are only ever attached when this test failed —
+    // passing tests get no attachment, bounding monocart's index.json by failing-test count
+    // instead of total call count. Playwright's own failure predicate: skipped tests are
+    // never "failed", and a test that ran but didn't reach its expected status has failed.
+    attachVerboseLogFailureContext: [async ({}, use, testInfo) => {
+        await use();
+        const entries = consumeVerboseLogBuffer(testInfo.testId);
+        if (!entries || entries.length === 0) {
+            return;
+        }
+        const isFailure = testInfo.status !== 'skipped' && testInfo.status !== testInfo.expectedStatus;
+        if (!isFailure) {
+            return;
+        }
+        const body = redactSensitiveText(JSON.stringify({ calls: entries }, null, 2));
+        await testInfo.attach('api-verbose-failure-context.json', { body, contentType: 'application/json' });
     }, { auto: true }],
 
     // Helper to create GraphQL clients with custom options

@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom Fixtures That Attach Failure Context Automatically: Technical Research</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); margin-top: 6px; }
+    .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .nav-en { font-size: 13px; }
+    .nav-vi { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+    .hero {
+      padding: 64px 56px 48px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 38px; font-weight: 900; line-height: 1.18; margin-bottom: 18px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 16px; color: var(--muted); max-width: 700px; margin-bottom: 28px; }
+
+    .hero-meta { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 32px; }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .hero-meta-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .hero-meta-value { font-size: 13.5px; font-weight: 700; }
+
+    .topic-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
+    }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .content-section { padding: 52px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
+    }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .sub-heading { font-size: 16px; font-weight: 700; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .sub-heading .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+    .content-section > .sub-heading:first-of-type { margin-top: 0; }
+
+    /* ── Bilingual side-by-side columns ── */
+    .lang-pair { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
+    .lang-col { padding-right: 26px; }
+    .lang-col + .lang-col { padding-right: 0; padding-left: 26px; border-left: 1px solid var(--border); }
+    .lang-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface2);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .lang-col p { color: var(--muted); font-size: 14.5px; }
+    .lang-col code { white-space: normal; overflow-wrap: break-word; }
+
+    /* ── Finding / breakdown boxes ── */
+    .breakdown {
+      margin: 6px 0 30px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 10px;
+    }
+    .breakdown-row .lang-pair { margin-bottom: 0; }
+    .breakdown-row .lang-col p { font-size: 13.5px; }
+    .breakdown-row ul { margin: 0; padding-left: 18px; }
+    .breakdown-row li { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .breakdown-row li:last-child { margin-bottom: 0; }
+    .breakdown-row li code { color: var(--text); }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 18px 0 28px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout .lang-pair { flex: 1; margin-bottom: 0; }
+    .callout .lang-tag { background: color-mix(in srgb, var(--cb) 22%, var(--surface2)); }
+    .callout .lang-col p { color: var(--text); font-size: 13.5px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+    .callout.solo .lang-pair { display: block; }
+    .callout.solo .lang-col + .lang-col { padding-left: 0; border-left: none; }
+
+    /* ── Data tables ── */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin: 6px 0 30px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    thead th {
+      padding: 11px 16px; text-align: left;
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); font-weight: 700; white-space: nowrap;
+    }
+    tbody tr { border-top: 1px solid var(--border); }
+    tbody td { padding: 12px 16px; font-size: 12.8px; vertical-align: top; color: var(--text); }
+    tbody td.muted { color: var(--muted); }
+    tbody td code { white-space: normal; }
+    .tag { display: inline-block; border-radius: 4px; padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tag-high, .tag-reject { background: rgba(255,82,82,.15); color: #ff8a80; }
+    .tag-medium, .tag-partial { background: rgba(255,179,0,.15); color: #ffcc66; }
+    .tag-low, .tag-confirmed, .tag-adopt { background: rgba(61,220,132,.15); color: #6ee7a0; }
+    .tag-neutral { background: rgba(136,146,176,.15); color: var(--muted); }
+
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border); border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 14px;
+    }
+    .code-filename { font-size: 12px; color: var(--muted); font-family: 'Fira Code', Consolas, monospace; }
+    .code-lang { font-size: 11px; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 0 0 8px 8px;
+      padding: 18px; overflow-x: auto; font-size: 12.5px; line-height: 1.65;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace; margin-bottom: 26px;
+    }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type{ color: #ffcb6b; }
+    .num { color: #f78c6c; }
+    .prop{ color: #89ddff; }
+    code:not(pre code) {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    .ordered { padding-left: 22px; margin: 0 0 26px; }
+    .ordered li { font-size: 13.8px; color: var(--text); margin-bottom: 10px; padding-left: 4px; }
+    .ordered li:last-child { margin-bottom: 0; }
+    .ordered li code { font-size: 12px; }
+
+    .approval-banner {
+      margin: 0 56px 40px; padding: 18px 22px; border-radius: 10px;
+      background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.35);
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .approval-banner .icon { font-size: 18px; color: var(--amber); }
+    .approval-banner p { font-size: 13.5px; color: var(--text); }
+    .approval-banner strong { color: var(--amber); }
+
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 1000px) { .hero, .content-section, .footer, .approval-banner { margin-left: 0; margin-right: 0; padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+      .lang-pair { grid-template-columns: 1fr; }
+      .lang-col + .lang-col {
+        padding-left: 0; border-left: none;
+        border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px;
+      }
+      .callout { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Failure Context Fixtures</h2>
+      <p>Technical Research Report &middot; 2026-07-25</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Report</div>
+      <a href="#summary" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Summary</span><span class="nav-vi">Tóm tắt</span></span></a>
+      <a href="#scope" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Scope</span><span class="nav-vi">Phạm vi</span></span></a>
+      <a href="#options" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Options</span><span class="nav-vi">Các phương án</span></span></a>
+      <a href="#recommendation" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Recommendation</span><span class="nav-vi">Đề xuất</span></span></a>
+      <a href="#risks" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Risk assessment</span><span class="nav-vi">Đánh giá rủi ro</span></span></a>
+      <a href="#steps" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Implementation steps</span><span class="nav-vi">Các bước triển khai</span></span></a>
+      <a href="#validation" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Validation</span><span class="nav-vi">Xác minh</span></span></a>
+      <a href="#open-questions" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Open questions</span><span class="nav-vi">Câu hỏi còn mở</span></span></a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">Technical research report &middot; research only, no code changed</div>
+      <h1>Custom Fixtures That Attach Failure Context Automatically</h1>
+      <p class="hero-sub">
+        Section 05 of the internal study guide (<code>docs/study/advanced-api-handle.html</code>) proposes a
+        fixture that attaches request status only when a test fails. This report checks that proposal against
+        what the framework already does, verifies the underlying Playwright 1.61 fixture and <code>testInfo</code>
+        semantics against the installed source rather than assuming the study got them right, and lays out what,
+        if anything, is worth building.
+      </p>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Repo</span>
+          <span class="hero-meta-value">playwright-typescript</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Verified against</span>
+          <span class="hero-meta-value">@playwright/test 1.61.1</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">API verdict</span>
+          <span class="tag tag-reject">Reject smartRequest</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">UI verdict</span>
+          <span class="tag tag-adopt">Adopt Option C, scoped</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Status</span>
+          <span class="tag tag-medium">Awaiting user approval</span>
+        </div>
+      </div>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Summary</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">02</div><div class="label">Scope</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">03</div><div class="label">Options</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">04</div><div class="label">Recommendation</div></div>
+      </div>
+    </section>
+
+    <!-- 01 Summary -->
+    <section class="content-section" id="summary" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Summary</h2>
+          <div class="section-desc">What section 05 proposes, and what this framework already has</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The study document proposes a third attachment mechanism for this framework: a fixture called
+          <code>smartRequest</code> that wraps the built-in <code>request</code> fixture, lets the test run,
+          then checks <code>testInfo.status !== testInfo.expectedStatus</code> at teardown and attaches a JSON
+          blob with the status and error message, but only when the test failed.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Tài liệu study đề xuất một cơ chế đính kèm thứ ba cho framework này: một fixture tên
+          <code>smartRequest</code> bọc quanh fixture <code>request</code> có sẵn, để test chạy qua, rồi kiểm
+          tra <code>testInfo.status !== testInfo.expectedStatus</code> ở bước teardown và đính kèm một blob JSON
+          gồm status và error message, nhưng chỉ khi test đó fail.</p>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Two mechanisms already cover a large part of this ground, and they run today, not as a proposal:</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Có hai cơ chế đã bao phủ phần lớn phạm vi này, và chúng đang chạy thật trong dự án, không phải chỉ
+          là đề xuất:</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Mechanism</th><th>Location</th><th>Gate</th><th>What it attaches</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>attachVerboseLog()</code></td>
+              <td class="muted"><code>src/api/ApiClientExt.ts:104</code></td>
+              <td class="muted"><code>VERBOSE_LOGS</code> env var, default ON, not tied to pass or fail</td>
+              <td>Redacted request+response JSON, one attachment per <code>*WithWrapper</code> call</td>
+            </tr>
+            <tr>
+              <td><code>attachTestLogs</code> auto-fixture</td>
+              <td class="muted"><code>src/config/base-test.ts:129</code>, <code>src/api/ApiTest.ts:181</code></td>
+              <td class="muted">none, runs on every test</td>
+              <td><code>test-steps.log</code>, the per-test <code>TestLogger</code> buffer</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--red)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><strong>Top-line conclusion:</strong> the proposed <code>smartRequest</code> fixture should not
+            be adopted as written. It is inert in this repo, and on the API side it solves a problem that is
+            already solved twice over.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><strong>Kết luận chính:</strong> không nên áp dụng fixture <code>smartRequest</code> đúng như đề
+            xuất. Nó không có tác dụng gì trong repo này, và ở phía API nó giải quyết một vấn đề đã được giải
+            quyết sẵn, thậm chí hai lần.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent)"><span class="dot"></span>Three findings behind that conclusion</div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Finding 1 &middot; The fixture captures nothing new</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>await use(request)</code> hands the test the same <code>APIRequestContext</code> object back. <code>APIRequestContext</code> has no request or response events, so the fixture cannot observe traffic the way the study implies. Its attachment body is just status plus the first error message, both of which every reporter in this repo already shows (html, json, junit, list, monocart). Net new information is zero, which is the opposite of the section's own stated motivation.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p><code>await use(request)</code> trả về đúng đối tượng <code>APIRequestContext</code> ban đầu cho test. <code>APIRequestContext</code> không có event nào cho request hay response, nên fixture không thể quan sát traffic theo cách mà study document ngụ ý. Nội dung đính kèm chỉ là status và error message đầu tiên, cả hai đều đã hiển thị sẵn trên mọi reporter của repo (html, json, junit, list, monocart). Thông tin mới thêm vào bằng không, ngược hẳn với chính mục đích mà mục 05 nêu ra.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Finding 2 &middot; It never touches the code paths this repo uses</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>No API spec in this repo consumes Playwright's built-in <code>request</code> fixture. <code>ApiClient.init()</code> (<code>src/api/ApiClient.ts:75</code>) builds its own context through <code>request.newContext()</code>, and every fixture in <code>ApiTest.ts</code> hands the test one of those clients instead. A fixture that wraps <code>request</code> sits outside every call path in the suite.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Không có spec API nào trong repo dùng fixture <code>request</code> có sẵn của Playwright. <code>ApiClient.init()</code> (<code>src/api/ApiClient.ts:75</code>) tự dựng context riêng qua <code>request.newContext()</code>, và mọi fixture trong <code>ApiTest.ts</code> đều đưa cho test một trong các client đó thay vì <code>request</code> gốc. Một fixture bọc quanh <code>request</code> nằm ngoài toàn bộ đường gọi thực tế của suite.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Finding 3 &middot; The real gap is on the UI side, and it is narrower than section 05 suggests</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Playwright 1.61 already writes an <code>error-context.md</code> ARIA snapshot on any failing test with a browser context, and screenshots and video are already configured for failures. What is missing on a first-attempt UI failure is browser console errors, uncaught page errors, and failed network requests. Trace would carry those, but <code>TRACE_MODE</code> defaults to <code>on-first-retry</code> (<code>src/config/environment.ts:114</code>), so local runs (<code>retries: 0</code>) and the first CI attempt get no trace at all.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Playwright 1.61 đã tự ghi ARIA snapshot <code>error-context.md</code> cho mọi test fail có browser context, cùng với screenshot và video khi fail. Thứ còn thiếu ở lần fail đầu tiên trên UI là console error của browser, page error chưa bắt, và các request bị fail. Trace sẽ ghi lại những thứ đó, nhưng <code>TRACE_MODE</code> mặc định là <code>on-first-retry</code> (<code>src/config/environment.ts:114</code>), nên chạy local (<code>retries: 0</code>) và lần chạy đầu trên CI hoàn toàn không có trace.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent)"><span class="dot"></span>Playwright 1.61.1 semantics, verified against installed source</div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Every claim below was checked against <code>node_modules/playwright/lib</code>, not assumed from the study text or from general Playwright knowledge.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Mọi khẳng định dưới đây đều được đối chiếu trực tiếp với <code>node_modules/playwright/lib</code>, không suy đoán từ nội dung study document hay từ kiến thức Playwright chung chung.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Claim</th><th>Verdict</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="muted"><code>testInfo.status</code> is final by the time a test-scoped fixture tears down</td>
+              <td><span class="tag tag-partial">Confirmed, with a caveat</span></td>
+              <td class="muted">Teardown runs in the "After Hooks" step, after the test body and every <code>afterEach</code>. A fixture that tears down later can still fail and flip status after yours already ran.</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>testInfo.error?.message</code> is populated at that point</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted">The <code>error</code> getter returns <code>errors[0]</code>; <code>_failWithError</code> appends to <code>errors</code> during the test body.</td>
+            </tr>
+            <tr>
+              <td class="muted">Soft assertions are visible to the gate before teardown</td>
+              <td><span class="tag tag-confirmed">Confirmed, brief's worry does not hold</span></td>
+              <td class="muted">A failed soft-assert step calls <code>_failWithError</code> immediately, which sets <code>status = 'failed'</code> right away, not at end of test.</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>status !== expectedStatus</code> is the correct guard</td>
+              <td><span class="tag tag-partial">Partially: the study's version is subtly wrong</span></td>
+              <td class="muted">Playwright's own predicate is <code>status !== 'skipped' && status !== expectedStatus</code>. The bare comparison can fire on skipped tests.</td>
+            </tr>
+            <tr>
+              <td class="muted">Behaviour with <code>test.fail()</code> / <code>test.skip()</code></td>
+              <td><span class="tag tag-partial">Handled, one blind spot</span></td>
+              <td class="muted">Runtime modifiers mutate <code>expectedStatus</code>. A <code>test.fail()</code> test that fails as expected gets no attachment, correct but unhelpful for debugging. An unexpectedly-passing <code>test.fail()</code> test does attach.</td>
+            </tr>
+            <tr>
+              <td class="muted">Fixture teardown order is deterministic</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted">Teardown is the strict reverse of setup order. Auto fixtures are set up first, so they tear down last, after the ecommerce fixtures' Firefox <code>about:blank</code> navigation.</td>
+            </tr>
+            <tr>
+              <td class="muted">Teardown gets its own time budget after a timeout</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted">The After Hooks phase gets a fresh slot sized to the larger of the project and test timeouts, so an attachment on a timed-out test still gets written.</td>
+            </tr>
+            <tr>
+              <td class="muted">Retries duplicate attachments</td>
+              <td><span class="tag tag-neutral">Per result, not per test</span></td>
+              <td class="muted">Each retry is its own <code>TestResult</code> with its own attachments. With <code>retries: 2</code> in CI, a persistently failing test can end up with three copies.</td>
+            </tr>
+            <tr>
+              <td class="muted">API calls are traceable if tracing were enabled</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>ArtifactsRecorder.didCreateRequestContext()</code> starts a trace chunk for every <code>APIRequestContext</code>, including ones from <code>request.newContext()</code>. Neither config sets a <code>trace</code> option today.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent)"><span class="dot"></span>The report-size fact that reframes the question</div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>monocart inlines body attachments straight into <code>index.json</code> as a <code>content</code>
+          string, with no size cap. That is confirmed two ways: by reading the local
+          <code>monocart-api-report/index.json</code> directly, and from the reporter source
+          (<code>visitor.js</code>, <code>saveAttachmentBodyHandler()</code>). If the content type is
+          text-like, which covers plain text and JSON, the body goes straight into <code>item.content</code>
+          with no threshold check.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>monocart nhúng thẳng nội dung attachment vào <code>index.json</code> dưới dạng chuỗi
+          <code>content</code>, không giới hạn kích thước. Điều này được xác nhận theo hai cách: đọc trực tiếp
+          <code>monocart-api-report/index.json</code> ở local, và từ source của reporter
+          (<code>visitor.js</code>, <code>saveAttachmentBodyHandler()</code>). Nếu content type dạng
+          văn bản (bao gồm plain text và JSON), nội dung được gán thẳng vào <code>item.content</code>, không có
+          bước kiểm tra ngưỡng nào cả.</p>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--red)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The CI pipeline runs a <code>find ... -size +25M -delete</code> sweep before every Cloudflare
+            Pages deploy. If attachments push <code>index.json</code> past 25 MiB, that step deletes the entire
+            report data file, and the deploy still proceeds because the gate only checks that
+            <code>index.html</code> exists. The result is a published report with no data behind it. This is a
+            live risk on the existing <code>VERBOSE_LOGS</code>-default-ON path today, independent of anything
+            proposed here.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Pipeline CI chạy bước quét <code>find ... -size +25M -delete</code> trước mỗi lần deploy lên
+            Cloudflare Pages. Nếu attachment khiến <code>index.json</code> vượt quá 25 MiB, bước đó sẽ xóa toàn
+            bộ file dữ liệu report, và deploy vẫn tiếp tục vì điều kiện gate chỉ kiểm tra sự tồn tại của
+            <code>index.html</code>. Kết quả là một report được publish nhưng rỗng dữ liệu. Đây là rủi ro đang
+            tồn tại thật trên đường đi <code>VERBOSE_LOGS</code> mặc định BẬT hiện nay, không liên quan gì đến
+            đề xuất trong report này.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Scope -->
+    <section class="content-section" id="scope" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Scope</h2>
+          <div class="section-desc">Which files change, and only under which option</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The affected files depend entirely on which option gets picked in section 03. None of them touch
+          <code>BasePage</code> or the eleven shared helpers, except Option C, which only reaches into
+          <code>ConsoleHelper</code>.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Danh sách file bị ảnh hưởng phụ thuộc hoàn toàn vào phương án được chọn ở mục 03. Không phương án
+          nào động đến <code>BasePage</code> hay 11 helper dùng chung, ngoại trừ Option C, và Option C cũng chỉ
+          chạm vào đúng <code>ConsoleHelper</code>.</p>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">API side</div>
+          <ul>
+            <li><code>src/api/ApiTest.ts</code>: fixture interface and registration (Options A, B)</li>
+            <li><code>src/api/ApiClientExt.ts</code>: <code>attachVerboseLog()</code> / <code>isVerboseLoggingEnabled()</code> (Option B only, buffer-then-flush conversion)</li>
+            <li><code>api.config.ts</code>: only if trace is enabled (Option D); no <code>trace</code> key today</li>
+            <li><code>src/utils/redact.ts</code>: reused as-is for any API payload attachment; must be extended before any new field class gets attached</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">UI side</div>
+          <ul>
+            <li><code>src/config/base-test.ts</code>: <code>CustomFixtures</code> interface and registration (Option C). This type declares 23 members (18 page objects plus <code>percyHelper</code>, <code>softAssert</code>, <code>consoleHelper</code>, <code>makeAxeBuilder</code>, <code>attachTestLogs</code>). Per CLAUDE.md this is an advisor-gated, high-impact file: every UI test loads it.</li>
+            <li><code>src/pages/helpers/console-helper.ts</code>: <code>ConsoleHelper</code> already buffers console messages and is the natural home for a failure-gated attach (Option C)</li>
+            <li><code>src/config/environment.ts</code>: <code>traceMode</code> default (Option D)</li>
+            <li><code>playwright.config.ts</code>: unchanged under every option; trace is env-driven</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">CI and reporting</div>
+          <ul>
+            <li><code>.github/workflows/playwright-with-slack.yml</code>: shard artifact upload, <code>npx monocart merge</code>, the 25 MiB strip, and public deploys to the three Cloudflare Pages sites</li>
+            <li><code>.github/workflows/api-restful-tests-with-slack.yml</code>: same pattern for the API suite</li>
+            <li><code>VERBOSE_LOGS</code> is unset in every workflow and in <code>.env.testing</code>, so it stays ON for every CI API run, and those redacted payloads reach a public Pages site. This is the binding constraint on every option that touches attachments</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Options -->
+    <section class="content-section" id="options" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Options</h2>
+          <div class="section-desc">Five ways to close the gap, from adopting section 05 almost as written to doing nothing</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Each option below is independent. Adopting one does not require adopting another, and Options A
+          through D are not mutually exclusive with Option E, which is the baseline they get compared against.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Mỗi phương án dưới đây độc lập với nhau. Chọn một phương án không bắt buộc phải chọn thêm phương án
+          khác, và Option A đến D đều được so sánh với Option E, phương án nền để đối chiếu.</p>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option A: Failure-gated auto-fixture on top of <code>attachVerboseLog</code> (API)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Add a new auto fixture to <code>ApiTest.ts</code> that attaches a summary blob, status and the first error message, only when a test fails, while <code>attachVerboseLog</code> keeps running exactly as it does today.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Thêm một auto fixture mới vào <code>ApiTest.ts</code>, chỉ đính kèm một blob tóm tắt gồm status và error message đầu tiên khi test fail, trong khi <code>attachVerboseLog</code> vẫn chạy y như hiện tại.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Purely additive; no behaviour change for passing tests</td><td>Duplicates data already in the report unless it also buffers payloads, and buffering payloads duplicates <code>attachVerboseLog</code> instead</td></tr>
+            <tr><td>Cheap to revert, one fixture to delete</td><td>Adds a third attachment pattern to a codebase that already has two, which runs against the framework's own "simplicity first" convention</td></tr>
+            <tr><td>Matches the study's proposed shape, so it is defensible as a teaching artefact</td><td>Grows the report on exactly the tests that already carry the largest attachments, the failing ones</td></tr>
+            <tr><td class="muted">None</td><td>Does nothing for the <code>index.json</code> bloat risk</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option B: Convert <code>attachVerboseLog</code> to buffer-then-flush-on-failure (API)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Buffer the redacted payloads during the test; a teardown fixture flushes them into one attachment, only when the failure gate says the test failed. This is the only variant of the section-05 pattern that shrinks report size instead of adding to it.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Đệm (buffer) các payload đã redact trong lúc test chạy; một fixture ở bước teardown gom chúng lại thành một attachment duy nhất, chỉ khi cổng kiểm tra failure xác nhận test đó fail. Đây là biến thể duy nhất của pattern mục 05 làm report nhỏ đi thay vì phình to.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Directly attacks the 25 MiB <code>index.json</code> risk: one attachment per failing test instead of one per call</td><td>Reverses a decision CLAUDE.md documents as an explicit, accepted-risk product decision. It needs its own user sign-off, not just implementation approval</td></tr>
+            <tr><td>Fewer, larger attachments merge better in monocart than many small ones</td><td>Loses pass-case debugging: today a passing-but-suspicious test's payloads are inspectable, afterward they are gone</td></tr>
+            <tr><td>Shrinks the public-report surface, since redacted payloads for passing tests stop being published at all</td><td>The buffer must outlive individual client instances, so it needs a shared sink keyed by test ID, similar to how <code>TestLogger</code> already works</td></tr>
+            <tr><td>Redaction reuse is free, same <code>redact.ts</code> call, just deferred</td><td>Memory cost: a long spec's payloads sit in RAM until teardown instead of streaming out per call</td></tr>
+            <tr><td class="muted">None</td><td>Behaviour change for anyone currently relying on per-call attachments during triage</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option C: Failure-gated UI capture folded into <code>ConsoleHelper</code></div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Make <code>consoleHelper</code> an auto fixture, add listeners for page errors and failed requests alongside the console listener it already has, and attach the buffered result only when the test failed.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Biến <code>consoleHelper</code> thành auto fixture, thêm listener bắt page error và request thất bại bên cạnh listener console đã có sẵn, và chỉ đính kèm kết quả đã buffer khi test fail.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Fills a genuinely uncovered gap: console errors, page errors and failed requests are absent from <code>error-context.md</code>, screenshots and video, and trace is off on the first attempt</td><td>Touches <code>base-test.ts</code>, an advisor-gated file that all 18 page-object fixtures and every UI test load</td></tr>
+            <tr><td>Reuses machinery that already exists instead of adding a third pattern</td><td>Auto means every UI test pays a small listener cost, and the helper's existing <code>console.warn</code> summary would fire on every noisy staging run unless it is gated too</td></tr>
+            <tr><td><code>consoleHelper</code> is currently used by zero tests (verified by grep). Opt-in fixtures demonstrably do not get adopted in this repo; auto is what would make capture actually happen</td><td><code>failOnErrors</code> must stay <code>false</code> by default, or every console error becomes a test failure across the suite</td></tr>
+            <tr><td>Small, bounded text payload, so <code>index.json</code> growth is negligible and only on failures</td><td>New redaction surface: console lines and request URLs can carry auth tokens, emails and session IDs, so <code>redactSensitiveText()</code> must run before anything attaches</td></tr>
+            <tr><td>Independent of the API path, no interaction with <code>VERBOSE_LOGS</code></td><td>Teardown must buffer only, never read from a live page, since some fixtures navigate to <code>about:blank</code> before their own teardown runs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option D: Zero new code, change the trace policy instead</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Set <code>TRACE_MODE=retain-on-failure</code> for UI runs, or add a <code>trace</code> option to <code>api.config.ts</code>. Trace already carries console, network, DOM and source information.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Đặt <code>TRACE_MODE=retain-on-failure</code> cho các lần chạy UI, hoặc thêm option <code>trace</code> vào <code>api.config.ts</code>. Trace vốn đã ghi lại console, network, DOM và source.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>No new code, no fixture registration, no new pattern to maintain</td><td>Trace files are not redacted. For the API suite this would put raw auth headers, JWTs and customer PII into public artifacts, exactly what <code>redact.ts</code> exists to prevent</td></tr>
+            <tr><td>Strictly more failure context for UI than any hand-rolled attachment</td><td>Trace size: <code>retain-on-failure</code> on a broad UI failure can add tens of megabytes per test</td></tr>
+            <tr><td>Closes the first-attempt-failure gap that <code>on-first-retry</code> leaves open</td><td>Whether path-based attachments survive the <code>monocart merge</code> step into the public report is unverified, so the benefit may not reach the published site at all</td></tr>
+            <tr><td>Reversible with one environment variable</td><td>Does not help the API suite without accepting the redaction regression</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option E: Do nothing</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>The API side is already covered by <code>attachVerboseLog</code> plus <code>attachTestLogs</code>; the section-05 pattern adds nothing there</td><td>Leaves the UI console, page-error and network gap open on first-attempt failures</td></tr>
+            <tr><td>Zero risk, zero footprint</td><td>Leaves the oversized <code>index.json</code> failure mode unaddressed</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 04 Recommendation -->
+    <section class="content-section" id="recommendation" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Recommended approach</h2>
+          <div class="section-desc">Reject for API, adopt narrowly for UI, and separate the size-risk decision out</div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Reject the section-05 <code>smartRequest</code> pattern for the API suite (Option E for API).
+            Adopt Option C for the UI suite, scoped tightly. Raise Option B with the user as a separate,
+            explicitly flagged decision, not bundled into this change.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Từ chối áp dụng pattern <code>smartRequest</code> của mục 05 cho phía API (chọn Option E cho
+            API). Áp dụng Option C cho phía UI, với phạm vi giới hạn chặt chẽ. Đưa Option B ra riêng cho user
+            quyết định, không gộp chung vào lần thay đổi này.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">1. The API side needs nothing</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>attachVerboseLog</code> already attaches full redacted request and response payloads for every <code>*WithWrapper</code> call. A failure-gated fixture that only attaches status and an error message tells you less than the report already shows. Structurally, <code>smartRequest</code> wraps a fixture that no spec in this repo consumes.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p><code>attachVerboseLog</code> đã đính kèm đầy đủ payload request và response đã redact cho mọi cuộc gọi <code>*WithWrapper</code>. Một fixture chỉ đính kèm status và error message khi fail cung cấp ít thông tin hơn những gì report đã hiển thị sẵn. Về mặt cấu trúc, <code>smartRequest</code> bọc quanh một fixture mà không spec nào trong repo dùng đến.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">2. The UI gap is real, and <code>ConsoleHelper</code> already has the shape to fill it</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>error-context.md</code>, screenshots and video already cover the visual and structural side of a UI failure. Console errors, page errors and failed requests are the missing signal, and that is exactly what <code>ConsoleHelper</code> was built to collect.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p><code>error-context.md</code>, screenshot và video đã bao phủ phần hình ảnh và cấu trúc của một lần UI fail. Console error, page error và request thất bại là tín hiệu còn thiếu, và đó chính xác là thứ <code>ConsoleHelper</code> được dựng ra để thu thập.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">3. Zero current usage of <code>consoleHelper</code> is the deciding evidence</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>It shows both halves of the argument at once: the machinery already exists, and opt-in has not been a viable way to ship it in this repo. Making it auto and gating it on failure is what turns the capability into something that actually runs.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Điều này chứng minh cả hai vế cùng lúc: cơ chế đã có sẵn, và kiểu opt-in không phải cách khả thi để đưa nó vào sử dụng trong repo này. Biến nó thành auto và chỉ kích hoạt khi fail mới là cách khiến khả năng này thực sự được chạy.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">4. Option B is genuinely valuable, but it is not an implementation-level call</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>It reverses a decision CLAUDE.md records as deliberate and accepted, and it trades away visibility into passing tests, even though it is the only option that would shrink the <code>index.json</code> risk. That trade belongs to the user, decided on its own, not folded into a UI change.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nó đảo ngược một quyết định mà CLAUDE.md ghi nhận là chủ đích và đã chấp nhận rủi ro, đồng thời đánh đổi khả năng quan sát các test đang pass, dù đây là phương án duy nhất giúp giảm rủi ro <code>index.json</code>. Đánh đổi đó thuộc quyền quyết định của user, cần được xét riêng, không gộp vào thay đổi phía UI.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Do not adopt Option D for the API suite while reports stay public; traces bypass
+            <code>redact.ts</code> entirely. Option D for UI (<code>TRACE_MODE=retain-on-failure</code>) is a
+            reasonable low-cost complement to Option C, but should be decided separately, on artifact-size
+            grounds.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Không áp dụng Option D cho phía API khi report vẫn công khai; trace bỏ qua hoàn toàn
+            <code>redact.ts</code>. Option D cho UI (<code>TRACE_MODE=retain-on-failure</code>) là một lựa chọn
+            bổ sung hợp lý, chi phí thấp cho Option C, nhưng nên được quyết định riêng, dựa trên yếu tố kích
+            thước artifact.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 Risks -->
+    <section class="content-section" id="risks" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Risk assessment</h2>
+          <div class="section-desc">What could break, and how each option is rolled back</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Two risks below already exist in the codebase today, independent of any option here; the rest apply
+          only to the option named in the "applies to" column.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Hai rủi ro đầu tiên dưới đây đã tồn tại sẵn trong codebase hiện tại, không liên quan đến phương án
+          nào ở đây cả; các rủi ro còn lại chỉ áp dụng cho phương án được ghi ở cột "áp dụng cho".</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Severity</th><th>Applies to</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>monocart's <code>index.json</code> exceeds 25 MiB, the CI strip step deletes it, and the published report is empty while the deploy still reports success</td>
+              <td><span class="tag tag-high">High</span></td>
+              <td class="muted">Existing <code>VERBOSE_LOGS</code> path; worsened by Option A</td>
+              <td class="muted">Option B; or make the strip step fail loudly instead of silently deleting; or exclude <code>index.json</code> from the size filter</td>
+            </tr>
+            <tr>
+              <td>Redaction gap on a new UI attachment surface (console lines, request URLs carrying tokens, emails, session IDs) reaching the public Pages site</td>
+              <td><span class="tag tag-high">High</span></td>
+              <td class="muted">Option C</td>
+              <td class="muted">Apply <code>redactSensitiveText()</code> to every buffered line first, and extend the patterns in <code>redact.ts</code> before any attachment code lands</td>
+            </tr>
+            <tr>
+              <td>Making <code>consoleHelper</code> auto changes behaviour for every UI test; a <code>failOnErrors: true</code> mode would turn console noise into test failures</td>
+              <td><span class="tag tag-high">High</span></td>
+              <td class="muted">Option C</td>
+              <td class="muted">Keep <code>failOnErrors: false</code> as the hard default; confirm no caller overrides it (currently none do); gate or drop the existing <code>console.warn</code> summary</td>
+            </tr>
+            <tr>
+              <td>Reading page state at teardown can return <code>about:blank</code> instead of the failing page</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Option C</td>
+              <td class="muted">Buffer via listeners registered during the test; never call <code>page.url()</code>, <code>page.content()</code>, storage reads, or <code>page.screenshot()</code> from the teardown branch</td>
+            </tr>
+            <tr>
+              <td>Retry multiplication: CI's <code>retries: 2</code> means up to three copies of an attachment across three results</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">A, B, C</td>
+              <td class="muted">Accept it (each copy belongs to a distinct attempt and stays useful), or gate to the final attempt via <code>testInfo.retry === testInfo.project.retries</code></td>
+            </tr>
+            <tr>
+              <td>Teardown-time attach exceeding the After Hooks time budget on a timed-out test</td>
+              <td><span class="tag tag-low">Low</span></td>
+              <td class="muted">A, B, C</td>
+              <td class="muted">Budget is generous for a string attach; wrap in try/catch and swallow, mirroring how <code>attachVerboseLog</code> already treats instrumentation as never allowed to affect the test</td>
+            </tr>
+            <tr>
+              <td>Fixture-ordering conflict with <code>attachTestLogs</code></td>
+              <td><span class="tag tag-low">Low</span></td>
+              <td class="muted">A, B, C</td>
+              <td class="muted">Ordering is deterministic; multiple <code>testInfo.attach()</code> callers at teardown do not conflict, they append to a list. Register a new auto fixture after <code>attachTestLogs</code> if flush order matters</td>
+            </tr>
+            <tr>
+              <td>Skipped tests spuriously attaching</td>
+              <td><span class="tag tag-low">Low</span></td>
+              <td class="muted">A, B, C</td>
+              <td class="muted">Use Playwright's own predicate: <code>status !== 'skipped' && status !== expectedStatus</code></td>
+            </tr>
+            <tr>
+              <td>Loss of pass-case API payload visibility</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Option B only</td>
+              <td class="muted">Keep a <code>VERBOSE_LOGS=always</code> escape hatch that restores per-call attaching for targeted debug runs</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Rollback plan.</strong> Option C is one fixture-option change (drop <code>auto: true</code>)
+          plus deleting the teardown branch in <code>ConsoleHelper</code>; no test files change, so rollback is
+          a single-commit revert with no downstream edits. Option B is a larger revert, touching
+          <code>ApiClientExt</code> internals plus a new fixture, but it stays behaviourally isolated behind
+          <code>isVerboseLoggingEnabled()</code>.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Kế hoạch rollback.</strong> Option C chỉ là một thay đổi ở option của fixture (bỏ
+          <code>auto: true</code>) cộng với xóa nhánh teardown trong <code>ConsoleHelper</code>; không file test
+          nào thay đổi, nên rollback chỉ cần revert một commit, không kéo theo chỉnh sửa nào khác. Option B là
+          một revert lớn hơn, động vào nội bộ <code>ApiClientExt</code> và một fixture mới, nhưng vẫn được cô
+          lập về hành vi phía sau <code>isVerboseLoggingEnabled()</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 Implementation steps -->
+    <section class="content-section" id="steps" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Implementation steps</h2>
+          <div class="section-desc">Ordered for Option C, the recommendation, and only if the user approves</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>None of these steps run automatically. They are here for a future implementation pass, after the
+          user signs off on this report.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Không bước nào dưới đây được thực hiện tự động. Chúng chỉ dùng cho lần triển khai sau này, sau khi
+          user đồng ý với report này.</p>
+        </div>
+      </div>
+
+      <ol class="ordered">
+        <li>Extend <code>src/utils/redact.ts</code> first. Confirm <code>redactSensitiveText()</code> covers the value classes that appear in browser console output and request URLs; add any missing pattern before any attachment code lands.</li>
+        <li>In <code>src/pages/helpers/console-helper.ts</code>, add <code>page.on('pageerror', ...)</code> and <code>page.on('requestfailed', ...)</code> listeners inside <code>attach()</code>, buffering into the existing messages array or a sibling array with a distinct type tag. Buffer only, no page reads.</li>
+        <li>Add a method such as <code>buildFailureReport(): string</code> that renders the buffer as plain text and passes it through <code>redactSensitiveText()</code>. Return an empty string when the buffer is empty so nothing attaches for a clean failure.</li>
+        <li>In <code>src/config/base-test.ts</code>, convert the <code>consoleHelper</code> fixture to the auto-fixture tuple form. In the teardown branch: gate on <code>testInfo.status !== 'skipped' && testInfo.status !== testInfo.expectedStatus</code>; attach the redacted buffer as <code>console-failure-context.log</code> with content type <code>text/plain</code>; wrap the branch in a try/catch that swallows, following the <code>attachVerboseLog</code> precedent; never touch <code>page</code> in this branch.</li>
+        <li>Keep <code>summarize()</code> on the existing <code>failOnErrors: false</code> default, and stop its <code>console.warn</code> from firing on every test now that the fixture is auto, either by gating it on failure too or dropping it in favour of the attachment.</li>
+        <li>Register the fixture after <code>attachTestLogs</code> in the extend object if attachment ordering in the report matters; teardown runs in reverse declaration order among test-scope autos.</li>
+        <li>Run <code>npm run lint</code> (<code>tsc --noEmit</code>). The <code>CustomFixtures</code> type for <code>consoleHelper</code> stays the same, so no signature churn is expected.</li>
+        <li>Do not bundle Option B into this change. If the user separately approves Option B, implement it as its own commit against <code>ApiClientExt</code> and <code>ApiTest.ts</code>.</li>
+      </ol>
+    </section>
+
+    <!-- 07 Validation -->
+    <section class="content-section" id="validation" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Validation</h2>
+          <div class="section-desc">What a report should look like before and after, and how to check it</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Before: baseline to capture first</div>
+          <ul>
+            <li>Passing UI test: attachments are <code>test-steps.log</code> only</li>
+            <li>Failing UI test (first attempt, local, <code>retries: 0</code>): <code>test-steps.log</code>, screenshot, video, the <code>error-context</code> ARIA snapshot. No console output, no failed-request list, no trace</li>
+            <li>Passing API test: <code>test-steps.log</code> plus one <code>api-verbose-METHOD-timestamp.json</code> per <code>*WithWrapper</code> call</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">After: expected once Option C lands</div>
+          <ul>
+            <li>Passing UI test: attachments unchanged, <code>test-steps.log</code> only. This is the key regression check: zero new attachments on green runs</li>
+            <li>Failing UI test: the same set as before, plus exactly one <code>console-failure-context.log</code> containing console errors, page errors and failed requests, with emails, JWTs, card numbers and secret query params replaced by redaction markers</li>
+            <li>Failing UI test with an empty console buffer: no new attachment, the empty-buffer short-circuit</li>
+            <li>API reports: byte-identical to before; no API code path touched</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent2)"><span class="dot"></span>How to verify</div>
+      <ol class="ordered">
+        <li>Write a throwaway spec with one passing and one deliberately failing UI test. Run <code>npm run test:simple</code> and inspect <code>monocart-report/index.json</code> for the attachment lists above.</li>
+        <li>Soft-assertion case: a test whose only failure is a <code>softAssert.*</code> call must still produce the attachment, confirming the <code>_failWithError</code> status-mutation finding holds in practice.</li>
+        <li>Skip case: a <code>test.skip()</code>-ed test must produce no attachment.</li>
+        <li>Redaction case: emit a console error containing a fake JWT and an email from a page under test, and confirm both are replaced in the attachment.</li>
+        <li>Firefox case: run the failing test on the <code>firefox</code> project against an ecommerce fixture, and confirm the attachment is still produced and non-empty, proving the buffer-not-live-read rule held across that fixture's <code>about:blank</code> teardown.</li>
+        <li>Size check: compare <code>monocart-report/index.json</code> before and after on a full run; growth should stay bounded to a few kilobytes times the failing-test count.</li>
+        <li>Delete the throwaway spec.</li>
+      </ol>
+    </section>
+
+    <!-- 08 Open questions -->
+    <section class="content-section" id="open-questions" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Open questions</h2>
+          <div class="section-desc">Not blocking this report, but worth an answer before or during implementation</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>These did not get resolved during this pass, either because they need a real CI data point or
+          because they fall outside what this report was asked to decide.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Những câu hỏi này chưa được giải quyết trong lần nghiên cứu này, hoặc vì cần một số liệu CI thực
+          tế, hoặc vì nằm ngoài phạm vi report này được yêu cầu quyết định.</p>
+        </div>
+      </div>
+
+      <ol class="ordered">
+        <li>Do path-based attachments (trace, video, screenshot) survive the <code>npx monocart merge</code> step into <code>cf-deploy</code>? This determines how much of Option D's benefit actually reaches the public UI report versus staying only in the 30-day GitHub artifacts.</li>
+        <li>Is a real CI-generated <code>monocart-api-report/index.json</code> anywhere near the 25 MiB strip threshold? The local sample was 0.20 MB but contained no <code>api-verbose-*</code> attachments, since that run exercised a service that bypasses <code>ApiClientExt</code>. A real CI measurement would say whether Option B is urgent or merely prudent.</li>
+        <li>Should the CI strip step fail the job instead of silently publishing a report whose data file it just deleted? Out of scope here, but it is a latent correctness bug independent of this proposal.</li>
+        <li>Are <code>ecommerceTrackOrderPage</code>, <code>ecommerceHelpSupportPage</code> and <code>ecommerceWishlistPage</code> intentionally missing from CLAUDE.md's fixture table, or is the document simply behind the code? Flagged, not changed; it affects nothing here beyond the blast-radius estimate for <code>base-test.ts</code>.</li>
+      </ol>
+    </section>
+
+    <div class="approval-banner">
+      <span class="icon">&#9432;</span>
+      <p><strong>Research only, nothing implemented.</strong> This report and its markdown source
+      (<code>docs/technical-research/custom-failure-context-fixtures.research.md</code>) are the only files this
+      research pass touched. Per this repo's workflow, the technical-implementation-agent runs only after the
+      user reviews the recommendation above and gives explicit approval, separately for Option C and for Option
+      B if that is raised as well.</p>
+    </div>
+
+    <div class="footer">
+      Technical Research Report &middot; source proposal: <code>docs/study/advanced-api-handle.html</code>, section 05 &middot; verified against installed <code>@playwright/test@1.61.1</code> and <code>monocart-reporter</code> source &middot; 2026-07-25
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

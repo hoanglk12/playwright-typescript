@@ -1,9 +1,10 @@
 /**
  * Deep redaction utility for verbose API request/response logging (Phase 3).
  *
- * Used exclusively by `ApiClientExt`'s verbose-logging attachment path, gated behind
- * `VERBOSE_LOGS`. Never mutates the input — always returns a redacted deep clone so the
- * live request payload / parsed response body used by test assertions is left untouched.
+ * Used by `ApiClientExt`'s (REST) and `GraphQLClient`'s (GraphQL) verbose-logging attachment
+ * paths, gated behind `VERBOSE_LOGS`. Never mutates the input — always returns a redacted deep
+ * clone so the live request payload / parsed response body used by test assertions is left
+ * untouched.
  */
 
 export const REDACTION_MARKER = '[REDACTED]';

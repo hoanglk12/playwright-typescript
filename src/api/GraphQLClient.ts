@@ -1,6 +1,8 @@
-import { APIRequestContext, APIResponse, request } from '@playwright/test';
+import { APIRequestContext, APIResponse, request, test } from '@playwright/test';
 import { ApiClient, ApiClientOptions, AuthType } from './ApiClient';
 import { GraphQLResponseWrapper } from './GraphQLResponse';
+import { redactSensitiveData } from '../utils/redact';
+import { bufferVerboseLog } from '../utils/verbose-log-buffer';
 
 /**
  * GraphQL Query/Mutation structure
@@ -337,7 +339,9 @@ export class GraphQLClient extends ApiClient {
     operationName?: string
   ): Promise<GraphQLResponseWrapper> {
     const response = await this.query<T>(query, variables, operationName);
-    return this.wrapResponse(response);
+    const wrapper = this.wrapResponse(response);
+    await this.attachVerboseLog('query', query, variables, operationName, wrapper);
+    return wrapper;
   }
 
   /**
@@ -353,6 +357,65 @@ export class GraphQLClient extends ApiClient {
     operationName?: string
   ): Promise<GraphQLResponseWrapper> {
     const response = await this.mutate<T>(mutation, variables, operationName);
-    return this.wrapResponse(response);
+    const wrapper = this.wrapResponse(response);
+    await this.attachVerboseLog('mutation', mutation, variables, operationName, wrapper);
+    return wrapper;
+  }
+
+  /**
+   * Whether verbose (redacted) request/response body buffering is enabled.
+   * Mirrors `ApiClientExt.isVerboseLoggingEnabled()` — same `VERBOSE_LOGS` env var, same
+   * default-ON behaviour. Kept local here since `GraphQLClient` extends `ApiClient` directly,
+   * not `ApiClientExt`.
+   */
+  private static isVerboseLoggingEnabled(): boolean {
+    const flag = process.env.VERBOSE_LOGS;
+    return flag !== 'false' && flag !== '0';
+  }
+
+  /**
+   * Buffer a redacted query/variables + response entry for this call, only when
+   * `VERBOSE_LOGS` is enabled and only when running inside an active Playwright test
+   * context. Purely additive instrumentation — never throws, never alters the returned
+   * wrapper. The entry is flushed into an attachment at teardown, only if the test failed
+   * (buffer-then-flush-on-failure — see `bufferVerboseLog` and `ApiTest.ts`).
+   */
+  private async attachVerboseLog(
+    operationType: 'query' | 'mutation',
+    query: string,
+    variables: Record<string, any> | undefined,
+    operationName: string | undefined,
+    wrapper: GraphQLResponseWrapper,
+  ): Promise<void> {
+    if (!GraphQLClient.isVerboseLoggingEnabled()) {
+      return;
+    }
+
+    try {
+      let responseBody: unknown;
+      try {
+        const rawText = await wrapper.getOriginalResponse().text();
+        responseBody = rawText ? JSON.parse(rawText) : rawText;
+      } catch {
+        responseBody = undefined;
+      }
+
+      const payload = redactSensitiveData({
+        operationType,
+        operationName,
+        url: this.endpoint,
+        request: { query, variables },
+        response: {
+          status: wrapper.statusCode(),
+          headers: wrapper.headers(),
+          body: responseBody,
+        },
+        timestamp: new Date().toISOString(),
+      });
+
+      bufferVerboseLog(test.info().testId, payload);
+    } catch {
+      // Never let instrumentation failure affect the actual GraphQL call/assertions.
+    }
   }
 }

@@ -8,16 +8,18 @@
     :root {
       --bg: #0f1117;
       --surface: #1a1d27;
-      --surface2: #222536;
-      --border: #2d3148;
-      --accent: #6c63ff;
-      --accent2: #00d4aa;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --success: #22c55e;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
       --text: #e2e8f0;
-      --muted: #8892a4;
-      --code-bg: #0d1117;
+      --muted: #8892b0;
+      --code-bg: #141720;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -27,454 +29,902 @@
       line-height: 1.7;
       font-size: 15px;
     }
-    a { color: var(--accent2); text-decoration: none; }
-    a:hover { text-decoration: underline; }
 
-    .header {
-      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); margin-top: 6px; }
+    .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .nav-en { font-size: 13px; }
+    .nav-vi { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+    .hero {
+      padding: 64px 56px 48px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
       border-bottom: 1px solid var(--border);
-      padding: 40px 48px 32px;
+      position: relative; overflow: hidden;
     }
-    .header .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(108,99,255,0.15); border: 1px solid rgba(108,99,255,0.4);
-      color: var(--accent); border-radius: 20px; padding: 4px 12px;
-      font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
-      margin-bottom: 16px;
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
     }
-    .header h1 {
-      font-size: 32px; font-weight: 700; letter-spacing: -0.5px;
-      background: linear-gradient(90deg, #fff 0%, #a5b4fc 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
     }
-    .header .subtitle { color: var(--muted); font-size: 14px; }
-    .header .meta { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
-    .header .meta-item { display: flex; flex-direction: column; gap: 2px; }
-    .header .meta-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
-    .header .meta-value { font-size: 14px; font-weight: 600; color: var(--text); }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 38px; font-weight: 900; line-height: 1.18; margin-bottom: 18px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 16px; color: var(--muted); max-width: 700px; margin-bottom: 28px; }
 
-    .container { max-width: 1100px; margin: 0 auto; padding: 40px 48px; }
+    .hero-meta { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 32px; }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .hero-meta-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .hero-meta-value { font-size: 13.5px; font-weight: 700; }
 
-    .alert {
-      display: flex; gap: 16px; align-items: flex-start;
-      border-radius: 10px; padding: 20px 24px; margin-bottom: 24px;
-      border: 1px solid;
+    .topic-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
     }
-    .alert-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
-    .alert-body h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-    .alert-body p { font-size: 14px; color: var(--muted); line-height: 1.6; }
-    .alert-body code { background: rgba(255,255,255,0.08); border-radius: 4px; padding: 1px 6px; font-size: 13px; }
-    .alert.danger { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.3); }
-    .alert.danger .alert-icon, .alert.danger h3 { color: var(--danger); }
-    .alert.warning { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.3); }
-    .alert.warning .alert-icon, .alert.warning h3 { color: var(--warning); }
-    .alert.info { background: rgba(0,212,170,0.07); border-color: rgba(0,212,170,0.3); }
-    .alert.info .alert-icon, .alert.info h3 { color: var(--accent2); }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
 
-    .section { margin-bottom: 48px; }
-    .section-title {
-      font-size: 20px; font-weight: 700; letter-spacing: -0.3px;
-      color: var(--text); margin-bottom: 20px;
-      display: flex; align-items: center; gap: 10px;
-      padding-bottom: 12px; border-bottom: 1px solid var(--border);
-    }
-    .section-title .num {
-      width: 28px; height: 28px; border-radius: 8px;
-      background: rgba(108,99,255,0.2); color: var(--accent);
-      font-size: 13px; font-weight: 700;
+    .content-section { padding: 52px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
     }
-    .section p { color: var(--text); font-size: 14.5px; margin-bottom: 14px; }
-    .section p.muted { color: var(--muted); }
-    .section ul, .section ol { padding-left: 22px; margin-bottom: 14px; }
-    .section li { font-size: 14.5px; margin-bottom: 6px; }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
 
-    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px; }
+    .sub-heading { font-size: 16px; font-weight: 700; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .sub-heading .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+    .content-section > .sub-heading:first-of-type { margin-top: 0; }
+
+    /* ── Bilingual side-by-side columns ── */
+    .lang-pair { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
+    .lang-col { padding-right: 26px; }
+    .lang-col + .lang-col { padding-right: 0; padding-left: 26px; border-left: 1px solid var(--border); }
+    .lang-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface2);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .lang-col p { color: var(--muted); font-size: 14.5px; }
+    .lang-col code { white-space: normal; overflow-wrap: break-word; }
+
+    /* ── Finding / breakdown boxes ── */
+    .breakdown {
+      margin: 6px 0 30px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 10px;
+    }
+    .breakdown-row .lang-pair { margin-bottom: 0; }
+    .breakdown-row .lang-col p { font-size: 13.5px; }
+    .breakdown-row ul { margin: 0; padding-left: 18px; }
+    .breakdown-row li { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .breakdown-row li:last-child { margin-bottom: 0; }
+    .breakdown-row li code { color: var(--text); }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 18px 0 28px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout .lang-pair { flex: 1; margin-bottom: 0; }
+    .callout .lang-tag { background: color-mix(in srgb, var(--cb) 22%, var(--surface2)); }
+    .callout .lang-col p { color: var(--text); font-size: 13.5px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+    .callout.solo .lang-pair { display: block; }
+    .callout.solo .lang-col + .lang-col { padding-left: 0; border-left: none; }
+    .callout h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+
+    /* ── Data tables ── */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin: 6px 0 30px; background: var(--surface); }
     table { width: 100%; border-collapse: collapse; }
     thead tr { background: var(--surface2); }
     thead th {
-      padding: 12px 16px; text-align: left;
-      font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px;
-      color: var(--muted); font-weight: 600; white-space: nowrap;
+      padding: 11px 16px; text-align: left;
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); font-weight: 700; white-space: nowrap;
     }
-    tbody tr { border-top: 1px solid var(--border); transition: background 0.15s; }
-    tbody tr:hover { background: var(--surface2); }
-    tbody td { padding: 12px 16px; font-size: 13.5px; vertical-align: top; }
-    .tag {
-      display: inline-block; border-radius: 4px; padding: 2px 8px;
-      font-size: 12px; font-weight: 600;
-    }
-    .tag-yes { background: rgba(34,197,94,0.15); color: #4ade80; }
-    .tag-no { background: rgba(239,68,68,0.15); color: #f87171; }
-    .tag-limited { background: rgba(245,158,11,0.15); color: #fbbf24; }
-    .tag-rec { background: rgba(108,99,255,0.2); color: var(--accent); }
+    tbody tr { border-top: 1px solid var(--border); }
+    tbody td { padding: 12px 16px; font-size: 12.8px; vertical-align: top; color: var(--text); }
+    tbody td.muted { color: var(--muted); }
+    tbody td code { white-space: normal; }
+    .tag { display: inline-block; border-radius: 4px; padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tag-high, .tag-reject { background: rgba(255,82,82,.15); color: #ff8a80; }
+    .tag-medium, .tag-partial { background: rgba(255,179,0,.15); color: #ffcc66; }
+    .tag-low, .tag-confirmed, .tag-adopt { background: rgba(61,220,132,.15); color: #6ee7a0; }
+    .tag-neutral { background: rgba(136,146,176,.15); color: var(--muted); }
 
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border); border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 14px;
+    }
+    .code-filename { font-size: 12px; color: var(--muted); font-family: 'Fira Code', Consolas, monospace; }
+    .code-lang { font-size: 11px; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
     pre {
-      background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 20px 24px; overflow-x: auto;
-      font-size: 13px; line-height: 1.65; margin: 14px 0;
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 0 0 8px 8px;
+      padding: 18px; overflow-x: auto; font-size: 12.5px; line-height: 1.65;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace; margin-bottom: 26px;
     }
-    code { font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace; }
-    pre code { color: #e2e8f0; }
-    .kw { color: #c792ea; }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
     .str { color: #c3e88d; }
-    .cm { color: #546e7a; font-style: italic; }
-    .fn { color: #82aaff; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type{ color: #ffcb6b; }
     .num { color: #f78c6c; }
-    .type { color: #ffcb6b; }
-
-    .steps { counter-reset: step; }
-    .step { display: flex; gap: 20px; margin-bottom: 24px; position: relative; }
-    .step::before {
-      counter-increment: step; content: counter(step);
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--surface2); border: 2px solid var(--border);
-      color: var(--accent); font-size: 13px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+    .prop{ color: #89ddff; }
+    code:not(pre code) {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
     }
-    .step-body { flex: 1; padding-top: 4px; }
-    .step-body h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-    .step-body p, .step-body ul { font-size: 14px; color: var(--muted); }
-    .step-body ul { padding-left: 20px; margin-top: 6px; }
-    .step-body li { margin-bottom: 4px; }
-    .step-body code { background: rgba(255,255,255,0.08); border-radius: 4px; padding: 1px 6px; font-size: 13px; color: var(--text); }
 
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .card h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
-    .card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
-    .card.rec { border-color: rgba(108,99,255,0.5); background: rgba(108,99,255,0.05); }
-    .card.rec h4 { color: var(--accent); }
-    .card.rej { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.04); }
-    .card.rej h4 { color: var(--danger); }
-    .card .pros-cons { margin-top: 12px; font-size: 13px; }
-    .card .pro { color: #4ade80; }
-    .card .con { color: #f87171; }
+    .ordered { padding-left: 22px; margin: 0 0 26px; }
+    .ordered li { font-size: 13.8px; color: var(--text); margin-bottom: 10px; padding-left: 4px; }
+    .ordered li:last-child { margin-bottom: 0; }
+    .ordered li code { font-size: 12px; }
 
-    .file-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; padding-left: 0; }
-    .file-list li {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 12px 16px;
-      display: flex; align-items: flex-start; gap: 12px; font-size: 14px;
+    .approval-banner {
+      margin: 0 56px 40px; padding: 18px 22px; border-radius: 10px;
+      background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.35);
+      display: flex; gap: 14px; align-items: flex-start;
     }
-    .file-list .file-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-    .file-list .file-path { font-family: monospace; font-size: 13px; color: var(--accent2); }
-    .file-list .file-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .approval-banner .icon { font-size: 18px; color: var(--amber); }
+    .approval-banner p { font-size: 13.5px; color: var(--text); }
+    .approval-banner strong { color: var(--amber); }
 
-    .risk-high { color: var(--danger); font-weight: 600; }
-    .risk-medium { color: var(--warning); font-weight: 600; }
-    .risk-low { color: var(--success); font-weight: 600; }
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
 
-    .checks { list-style: none; display: flex; flex-direction: column; gap: 10px; padding-left: 0; margin-bottom: 16px; }
-    .checks li {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 14px 16px;
-      display: flex; align-items: flex-start; gap: 12px; font-size: 14px;
+    @media (max-width: 1000px) { .hero, .content-section, .footer, .approval-banner { margin-left: 0; margin-right: 0; padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+      .lang-pair { grid-template-columns: 1fr; }
+      .lang-col + .lang-col {
+        padding-left: 0; border-left: none;
+        border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px;
+      }
+      .callout { flex-direction: column; }
     }
-    .checks .check-num {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: rgba(0,212,170,0.15); color: var(--accent2);
-      font-size: 11px; font-weight: 700; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .checks .check-body { flex: 1; }
-    .checks .check-title { font-weight: 600; margin-bottom: 3px; }
-    .checks .check-desc { color: var(--muted); font-size: 13px; }
-
-    footer {
-      border-top: 1px solid var(--border); padding: 24px 48px;
-      display: flex; justify-content: space-between; align-items: center;
-      color: var(--muted); font-size: 13px; flex-wrap: wrap; gap: 8px;
-    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="badge">📋 Technical Research Report</div>
-  <h1>AI Self-Healing Tests</h1>
-  <p class="subtitle">Playwright TypeScript Framework: feasibility, measured against this repo's own git history</p>
-  <div class="meta">
-    <div class="meta-item">
-      <span class="meta-label">Repo</span>
-      <span class="meta-value">playwright-typescript @ main / c4d629d</span>
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>AI Self-Healing Tests</h2>
+      <p>Technical Research Report &middot; 2026-07-25</p>
     </div>
-    <div class="meta-item">
-      <span class="meta-label">Measured churn</span>
-      <span class="meta-value">89 commits / 12mo in src/pages</span>
+    <div class="nav-section">
+      <div class="nav-label">Report</div>
+      <a href="#summary" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Summary</span><span class="nav-vi">Tóm tắt</span></span></a>
+      <a href="#scope" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Scope</span><span class="nav-vi">Phạm vi</span></span></a>
+      <a href="#options" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Options</span><span class="nav-vi">Các phương án</span></span></a>
+      <a href="#recommendation" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Recommendation</span><span class="nav-vi">Đề xuất</span></span></a>
+      <a href="#risks" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Risk assessment</span><span class="nav-vi">Đánh giá rủi ro</span></span></a>
+      <a href="#steps" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Implementation steps</span><span class="nav-vi">Các bước triển khai</span></span></a>
+      <a href="#validation" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Validation</span><span class="nav-vi">Xác minh</span></span></a>
+      <a href="#open-questions" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Open questions</span><span class="nav-vi">Câu hỏi còn mở</span></span></a>
     </div>
-    <div class="meta-item">
-      <span class="meta-label">Date</span>
-      <span class="meta-value">2026-07-25</span>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">Technical research report &middot; research only, no code changed</div>
+      <h1>AI Self-Healing Tests</h1>
+      <p class="hero-sub">
+        Feasibility of AI self-healing locators for this framework, measured against this repo's own git
+        history rather than against vendor marketing. Twelve months of commits to <code>src/pages</code> were
+        read line by line, and the existing dev-time tooling was checked against what a well-designed healing
+        system would actually need.
+      </p>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Repo</span>
+          <span class="hero-meta-value">playwright-typescript @ main / c4d629d</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Measured churn</span>
+          <span class="hero-meta-value">89 commits / 12mo in src/pages</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Verdict</span>
+          <span class="tag tag-reject">No runtime healing</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Status</span>
+          <span class="tag tag-medium">Research only, awaiting approval</span>
+        </div>
+      </div>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Summary</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">02</div><div class="label">Scope</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">03</div><div class="label">Options</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">04</div><div class="label">Recommendation</div></div>
+      </div>
+    </section>
+
+    <!-- Pre-section findings -->
+    <section class="content-section" style="--c: var(--red); padding-bottom: 0; border-bottom: none;">
+      <div class="callout solo" style="--cb: var(--red)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <h3>The premise doesn't hold in this repo</h3>
+            <p><code>src/pages</code> took 89 commits over the last twelve months, counted directly with
+            <code>git log --since="12 months ago" -- src/pages</code>. Reading every subject line, the large
+            majority are new page objects and new coverage across the 8 GRA storefronts, not selector repairs.
+            This repo's churn is feature growth, not selector rot, and the ROI case for building healing
+            infrastructure can't be made from this evidence.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <h3>Tiền đề của đề xuất không đúng với repo này</h3>
+            <p><code>src/pages</code> có 89 commit trong mười hai tháng qua, đếm trực tiếp bằng
+            <code>git log --since="12 months ago" -- src/pages</code>. Đọc từng dòng subject, phần lớn áp đảo
+            là page object mới và coverage mới cho 8 storefront GRA, không phải sửa selector. Churn của repo
+            này đến từ việc mở rộng tính năng, không phải selector bị mục nát, nên không có cơ sở ROI nào để
+            xây dựng hạ tầng healing dựa trên bằng chứng này.</p>
+          </div>
+        </div>
+      </div>
+      <div class="callout solo" style="--cb: var(--accent2)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <h3>The correct architecture already exists here</h3>
+            <p><code>scripts/dom-inspector.mjs</code> scores candidate locators deterministically, and
+            <code>.claude/agents/playwright-test-healer.md</code> is an LLM agent that suggests a patch for a
+            human to review at development time. This is the same shape as Playwright's own first-party Healer
+            agent. The remaining work is closing two gaps in what's already there, not building something new.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <h3>Kiến trúc đúng đắn đã có sẵn ở đây</h3>
+            <p><code>scripts/dom-inspector.mjs</code> chấm điểm locator ứng viên theo cách xác định, còn
+            <code>.claude/agents/playwright-test-healer.md</code> là một agent LLM đề xuất bản vá để con người
+            review ở thời điểm phát triển. Đây đúng là hình dạng mà chính Healer agent chính chủ của Playwright
+            cũng dùng. Việc còn lại là đóng hai khoảng trống trong những gì đã có sẵn, không phải xây mới từ
+            đầu.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 Summary -->
+    <section class="content-section" id="summary" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Summary</h2>
+          <div class="section-desc">What was evaluated, and the recommendation up front</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The question evaluated: whether to add AI self-healing locators, a mechanism that finds a
+          replacement automatically when a locator fails, so the test keeps running instead of going red.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Câu hỏi được đánh giá: có nên thêm AI self-healing locator, một cơ chế tự động tìm locator thay
+          thế khi locator gốc fail, để test tiếp tục chạy thay vì báo đỏ hay không.</p>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The stated motivation is maintenance burden from selector churn. Measured against this repo's
+          actual history, that burden is a small minority of the work reflected in <code>src/pages</code>
+          commits. What dominates is coverage growth: new storefronts, new flows, new page objects.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Động lực được nêu ra là gánh nặng bảo trì do selector thay đổi liên tục. Đối chiếu với lịch sử
+          thật của repo, gánh nặng đó chỉ chiếm một phần nhỏ trong khối lượng công việc thể hiện qua các commit
+          của <code>src/pages</code>. Phần chiếm đa số là mở rộng coverage: storefront mới, flow mới, page
+          object mới.</p>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Two mechanisms that a well-designed healing system would provide already exist in this repo, and
+          they sit at the correct point in the lifecycle: development time, with a human reviewing the change,
+          rather than the dangerous one, CI runtime with an automatic substitution and no one watching.
+          <code>dom-inspector.mjs</code> is a deterministic locator scorer that already encodes this project's
+          own locator priority (role and label selectors score highest, structural selectors are penalized).
+          <code>playwright-test-healer.md</code> is a dev-time LLM agent that inspects a failure and proposes a
+          fix for review, matching Playwright's own first-party Test Agents design.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Hai cơ chế mà một hệ thống healing được thiết kế tốt cần có thì repo này đã có sẵn, và chúng nằm
+          đúng ở điểm hợp lý trong vòng đời phát triển: thời điểm development, có con người review thay đổi,
+          chứ không phải điểm nguy hiểm là runtime trên CI với việc tự động thay thế mà không ai giám sát.
+          <code>dom-inspector.mjs</code> là bộ chấm điểm locator xác định, đã mã hoá sẵn thứ tự ưu tiên locator
+          của chính dự án này (selector theo role và label được chấm cao nhất, selector cấu trúc bị trừ điểm).
+          <code>playwright-test-healer.md</code> là một agent LLM chạy ở thời điểm dev, kiểm tra lỗi và đề xuất
+          bản sửa để review, đúng theo thiết kế Test Agents chính chủ của Playwright.</p>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><strong>Recommendation:</strong> don't add runtime self-healing, deterministic or LLM-based, to
+            <code>ElementHelper</code>, <code>BasePage</code>, or any CI path. Close two small gaps in the
+            existing dev-time tooling now. Pilot Playwright's first-party <code>toMatchAriaSnapshot()</code>
+            for structural resilience on one component. Reject full LLM auto-heal outright.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><strong>Đề xuất:</strong> không thêm cơ chế self-healing chạy runtime, dù là deterministic hay
+            dựa trên LLM, vào <code>ElementHelper</code>, <code>BasePage</code>, hay bất kỳ đường CI nào. Đóng
+            ngay hai khoảng trống nhỏ trong tooling dev-time hiện có. Thử nghiệm
+            <code>toMatchAriaSnapshot()</code> chính chủ của Playwright để tăng độ bền cấu trúc cho một
+            component. Từ chối hoàn toàn LLM auto-heal chạy đầy đủ.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Scope -->
+    <section class="content-section" id="scope" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Scope</h2>
+          <div class="section-desc">Files reviewed to ground this report, and what each option would touch</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Files reviewed to ground this report, and what each recommended option would touch.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Các file đã được xem xét để làm cơ sở cho report này, và những gì mỗi phương án được đề xuất sẽ
+          động đến.</p>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <ul>
+            <li><code>scripts/dom-inspector.mjs</code>: existing deterministic locator scorer. Currently reads only <code>FRONT_SITE_URL</code>, can't target the 8 ecommerce storefronts where the real churn is.</li>
+            <li><code>.claude/agents/playwright-test-healer.md</code>: existing dev-time LLM healer with write tools (Edit, MultiEdit, Write, Bash) and no stated commit prohibition.</li>
+            <li><code>src/pages/helpers/{element,wait,dom-scan,overlay}-helper.ts</code>: the real interaction/wait layer a runtime option would have to hook into. <code>wait-helper.ts</code> carries the "no test context" constraint three times.</li>
+            <li><code>src/pages/base-page.ts</code>: composition root for all 11 helpers, backing all 14 UI fixtures. CLAUDE.md &sect;5 requires an advisor consult before any change here.</li>
+            <li><code>src/utils/redact.ts</code>: key-based denylist over JSON, built because customer PII reached public report artifacts before. Has no HTML-aware sanitizer.</li>
+            <li><code>.github/workflows/playwright.yml</code>, <code>playwright-with-slack.yml</code>: CI matrix (6 UI legs: windows-latest &times; 3 shards, macos-latest &times; 3 shards) and the current secret list. No LLM API key exists in either today.</li>
+            <li><code>docs/study/advance-ui-handle.html #self-healing</code>: a prior teaching sketch, not an implementation. Its AI call is a commented-out stub returning a hardcoded string.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A repo-wide search for <code>self-heal</code>, <code>selfHeal</code>, <code>smartLocator</code>,
+          <code>healEnium</code>, and <code>fallbackSelector</code> returns no matches in <code>src/</code> or
+          <code>tests/</code>.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Tìm kiếm trên toàn bộ repo với các từ khoá <code>self-heal</code>, <code>selfHeal</code>,
+          <code>smartLocator</code>, <code>healEnium</code>, và <code>fallbackSelector</code> không cho ra kết
+          quả nào trong <code>src/</code> hay <code>tests/</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Options -->
+    <section class="content-section" id="options" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Options</h2>
+          <div class="section-desc">What counts as genuinely AI-driven, and five ways to close the gap</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Vendor marketing labels a lot of deterministic fallback as "AI." Being precise about which is
+          which decides whether an option needs an external API key at all.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Marketing của các vendor gắn nhãn "AI" cho rất nhiều cơ chế fallback thực chất chỉ là
+          deterministic. Phân biệt rạch ròi cái nào là cái nào quyết định một phương án có thực sự cần API key
+          bên ngoài hay không.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mechanism</th><th>Genuinely LLM/ML-driven?</th><th>What it actually does</th></tr></thead>
+          <tbody>
+            <tr><td>Playwright auto-waiting, strict mode, <code>getByRole</code></td><td><span class="tag tag-reject">No</span></td><td class="muted">Deterministic actionability checks and accessibility-tree resolution</td></tr>
+            <tr><td>Healenium</td><td><span class="tag tag-medium">Partial, classical ML</span></td><td class="muted">DOM tree similarity scoring, not a language model. No maintained Playwright-TS integration</td></tr>
+            <tr><td>Testim / mabl / Functionize</td><td><span class="tag tag-medium">Mixed</span></td><td class="muted">Multi-attribute weighted scoring at replay, tied to a proprietary recorder</td></tr>
+            <tr><td>Applitools Autonomous</td><td><span class="tag tag-adopt">Yes, visual ML</span></td><td class="muted">Visual regression, a different problem domain (this repo already has Percy)</td></tr>
+            <tr><td>Playwright Test Agents: Healer</td><td><span class="tag tag-adopt">Yes, LLM</span></td><td class="muted">Dev-time loop: replays failure, suggests a patch, human reviews and commits</td></tr>
+            <tr><td>This repo's <code>playwright-test-healer.md</code></td><td><span class="tag tag-adopt">Yes, LLM</span></td><td class="muted">Already the same shape as Playwright's first-party Healer, wired to <code>dom-inspector.mjs</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option A: Close gaps in existing tooling (recommended)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Build nothing new. Give <code>dom-inspector.mjs</code> a storefront flag, and add a no-auto-commit guardrail plus an evidence requirement to the healer agent.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Không xây gì mới. Thêm flag storefront cho <code>dom-inspector.mjs</code>, và bổ sung guardrail không tự commit cùng yêu cầu bằng chứng cho healer agent.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Zero production risk, zero new dependencies, zero config or CI change</td><td>Doesn't add a runtime capability, which is deliberate</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option C: ARIA snapshot pilot (recommended, bounded)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Playwright's first-party <code>toMatchAriaSnapshot()</code>, currently used zero times in this repo, scoped to one stable component (main nav).</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p><code>toMatchAriaSnapshot()</code> chính chủ của Playwright, hiện chưa được dùng lần nào trong repo này, giới hạn phạm vi vào một component ổn định (main nav).</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>No dependency, no LLM, fails loudly with a readable diff</td><td>8 storefronts means 8 snapshot variants; must be measured before wider rollout</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option B: Deterministic multi-locator fallback in <code>ElementHelper</code></div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Store 2 or 3 strategies per element, try each in order. Sounds safe, but serves the legacy string-selector path new code is steered away from, and can't touch <code>checkout-page.ts</code> at all, whose 36 locator fields are regex text patterns, not selectors.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Lưu 2 hoặc 3 chiến lược cho mỗi element, thử lần lượt từng cái. Nghe có vẻ an toàn, nhưng lại phục vụ cho đường string-selector cũ mà code mới đang được định hướng tránh xa, và hoàn toàn không đụng được vào <code>checkout-page.ts</code>, nơi 36 trường locator là các pattern regex văn bản, không phải selector.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>No LLM, no external calls, easy to review</td><td>Reintroduces the ambiguity strict mode exists to prevent; duplicates <code>DomScanHelper</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option D: LLM diagnostic, suggestion-only</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>On failure, ask an LLM for a suggestion, attach it to the report, still fail the test. Safer than auto-heal, but blocked on the helper layer having no test context, and duplicates what the healer agent already does after the fact.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Khi fail, hỏi một LLM để lấy gợi ý, đính kèm vào report, nhưng vẫn để test fail. An toàn hơn auto-heal, nhưng bị chặn bởi việc helper layer không có test context, và trùng lặp với những gì healer agent đã làm sau đó.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Never masks a regression</td><td>New SDK, new secret, new <code>redact.ts</code> work, per-failure latency across 6 CI legs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option E: Full runtime LLM auto-heal (rejected)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Dump DOM to an LLM, substitute the returned selector, keep running, optionally auto-PR. The pattern the old doc sketch illustrated, with its AI call left as a commented-out stub.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Đổ nguyên DOM cho một LLM, thay thế bằng selector nó trả về, tiếp tục chạy, thậm chí có thể tự tạo PR. Đây là pattern mà bản sketch tài liệu cũ minh hoạ, với phần gọi AI chỉ để lại dưới dạng stub bị comment out.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">None that outweigh the risk</td><td>One shared page object serves 8 storefronts; a heal from one brand's DOM would apply to all 8 with nothing checking the other 7</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 04 Recommendation -->
+    <section class="content-section" id="recommendation" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Recommended approach</h2>
+          <div class="section-desc">Adopt A, pilot C, defer D, reject E, and leave B out as a general mechanism</div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Adopt Option A now. Pilot Option C. Defer Option D behind the test-context prerequisite raised
+            in the risk assessment. Reject Option E. Don't adopt Option B as a general mechanism.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Áp dụng Option A ngay. Thử nghiệm Option C. Hoãn Option D cho đến khi điều kiện tiên quyết về
+            test context nêu ở phần đánh giá rủi ro được đáp ứng. Từ chối Option E. Không áp dụng Option B như
+            một cơ chế chung.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">1. The measured churn doesn't justify healing infrastructure</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>89 commits, overwhelmingly feature work. CLAUDE.md's own Behavioral Guidelines (&sect;2 simplicity, &sect;3 surgical changes) push against building for a problem the git history doesn't show.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>89 commit, phần lớn áp đảo là công việc feature. Chính Behavioral Guidelines của CLAUDE.md (&sect;2 đơn giản, &sect;3 thay đổi có chủ đích) cũng phản đối việc xây dựng cho một vấn đề mà lịch sử git không cho thấy.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">2. The capability already exists in the correct shape</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Dev-time, human-reviewed, deterministic-first. A second, runtime version would be strictly worse.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thời điểm dev, có người review, ưu tiên deterministic. Một phiên bản thứ hai chạy runtime chỉ tệ hơn mà thôi.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">3. The application makes LLM healing structurally weak</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Magento PWA Studio with hashed styled-components classes means there's no stable class for an LLM to find. An LLM inspecting the same DOM a human already inspected has no better information.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Magento PWA Studio với class của styled-components bị hash nghĩa là không có class nào ổn định để LLM tìm. Một LLM soi cùng một DOM mà con người đã soi qua không có thêm thông tin gì tốt hơn.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">4. The 8-storefront shared-page-object model is incompatible with per-run healing</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>See Option E above: one shared page object, eight brands, no cross-brand check.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Xem Option E ở trên: một page object dùng chung, tám thương hiệu, không có bước kiểm tra chéo giữa các thương hiệu.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">5. Retries already absorb transient failures</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>playwright.config.ts</code> and <code>api.config.ts</code> both configure retries in CI. What survives retries is signal, exactly what healing would suppress.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cả <code>playwright.config.ts</code> và <code>api.config.ts</code> đều cấu hình retries trên CI. Cái gì còn sống sót qua retry chính là tín hiệu thật, và đó chính xác là thứ healing sẽ che khuất.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Revisit this if a future quarter's <code>git log</code> on <code>src/pages</code> shows
+          selector-repair commits becoming the majority, or if the application adopts stable
+          <code>data-testid</code> attributes.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Xem lại quyết định này nếu <code>git log</code> của <code>src/pages</code> trong một quý tương
+          lai cho thấy commit sửa selector trở thành đa số, hoặc nếu ứng dụng bắt đầu dùng thuộc tính
+          <code>data-testid</code> ổn định.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 Risks -->
+    <section class="content-section" id="risks" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Risk assessment</h2>
+          <div class="section-desc">A concrete blocker at the helper layer, plus a data-exposure path</div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--red)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <h3>Masked regressions, and a concrete blocker</h3>
+            <p>Both <code>wait-helper.ts</code> and <code>element-helper.ts</code> carry the same comment
+            three times: <code>// WHY: helper layer has no test context; console is the only available channel
+            here</code>. The helper layer can't call <code>testInfo.attach()</code>. A heal performed there
+            can emit nothing to any of the five configured reporters (html, json, junit, list,
+            monocart-reporter). A silent heal turns a hard failure into a green pass with zero signal
+            anywhere. No healing mechanism at the helper layer is acceptable until a heal produces a
+            report-visible artifact.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <h3>Regression bị che khuất, và một điểm chặn cụ thể</h3>
+            <p>Cả <code>wait-helper.ts</code> và <code>element-helper.ts</code> đều mang cùng một comment ba
+            lần: <code>// WHY: helper layer has no test context; console is the only available channel
+            here</code>. Lớp helper không thể gọi <code>testInfo.attach()</code>. Một lần heal thực hiện ở đó
+            không thể phát ra tín hiệu gì tới bất kỳ reporter nào trong năm reporter đã cấu hình (html, json,
+            junit, list, monocart-reporter). Một lần heal âm thầm biến một fail thật thành pass xanh mà không
+            để lại tín hiệu nào ở đâu cả. Không cơ chế healing nào ở lớp helper được chấp nhận cho đến khi một
+            lần heal tạo ra artifact hiển thị được trên report.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <h3>Data exposure</h3>
+            <p><code>redact.ts</code> exists because customer PII previously reached artifacts that deploy to
+            public Cloudflare Pages report sites. It's a key-based denylist over JSON with no HTML-aware
+            sanitizer. A raw HTML dump on an authenticated checkout page carries session state, form values,
+            and internal staging hostnames, and bypasses that discipline entirely.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <h3>Rò rỉ dữ liệu</h3>
+            <p><code>redact.ts</code> tồn tại vì PII của khách hàng từng lọt vào artifact được deploy lên các
+            trang report công khai trên Cloudflare Pages. Nó là một denylist dựa trên key, chạy trên JSON,
+            không có bộ lọc nào hiểu HTML. Một bản dump HTML thô trên trang checkout đã đăng nhập mang theo
+            session state, giá trị form, và hostname staging nội bộ, bỏ qua hoàn toàn kỷ luật đó.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr><td>Healed selector masks a real regression</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-high">High, structural</span></td><td class="muted">Fail-and-suggest, never substitute-and-continue</td></tr>
+            <tr><td>Heal emits no reporter signal</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-high">Certain today</span></td><td class="muted">Require report-visible artifact as a hard gate; blocked on threading test context through <code>BasePage</code></td></tr>
+            <tr><td>PII / tokens sent to a third-party LLM</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-medium">High if raw HTML used</span></td><td class="muted">Send an ARIA snapshot only, never raw HTML; extend <code>redact.ts</code> first</td></tr>
+            <tr><td>Selector correct for 1 storefront, wrong for the other 7</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-medium">High, shared page objects</span></td><td class="muted">Never auto-apply; validate across all 8 storefronts before merge</td></tr>
+            <tr><td>Fallback chain reintroduces strict-mode ambiguity</td><td><span class="tag tag-medium">Medium to high</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">Keep multi-selector fallback confined to presence probes, as today</td></tr>
+            <tr><td>New LLM SDK / secret in the test path</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Certain if D/E adopted</span></td><td class="muted">Avoid; no LLM key exists in any workflow today</td></tr>
+            <tr><td>CI time and cost across 6 premium-billed legs &times; retries</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">High if D/E adopted</span></td><td class="muted">Avoid runtime calls entirely</td></tr>
+            <tr><td>Healer agent auto-commits its own fix</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-low">Low to medium, exists today</span></td><td class="muted">Add explicit no-commit / no-push guardrail (Phase 1)</td></tr>
+            <tr><td>ARIA snapshot noise leads to reflexive bulk-accept</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">Scope to stable subtrees; require diffs to be reviewed, never bulk-accepted</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Rollback.</strong> Option A touches one script and one agent file, neither imported by
+          production code: a plain revert. Option C is additive; deleting the assertions and the generated
+          snapshot directory removes it cleanly. Options D and E would add a runtime external dependency to
+          the UI test path, so a vendor outage becomes a test-suite failure mode; rollback means removing the
+          dependency, the fixture, and the secret from two workflows.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Rollback.</strong> Option A chỉ động đến một script và một file agent, cả hai đều không
+          được production code import: chỉ cần revert đơn giản. Option C mang tính cộng thêm; xoá các
+          assertion và thư mục snapshot đã sinh ra là gỡ sạch sẽ. Option D và E sẽ thêm một dependency ngoài
+          chạy runtime vào đường test UI, khiến sự cố từ phía vendor trở thành một kiểu lỗi của cả test suite;
+          rollback nghĩa là gỡ dependency, fixture, và secret khỏi hai workflow.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 Implementation steps -->
+    <section class="content-section" id="steps" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Implementation steps</h2>
+          <div class="section-desc">Sequenced for an implementation agent, only after explicit approval</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Per CLAUDE.md, research doesn't auto-flow into implementation. This needs explicit approval via
+          <code>qa-orchestrator</code> WORKFLOW-10 before any step below runs.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Theo CLAUDE.md, research không tự động chuyển sang implementation. Cần có sự phê duyệt rõ ràng
+          qua <code>qa-orchestrator</code> WORKFLOW-10 trước khi bất kỳ bước nào dưới đây được chạy.</p>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Phase 1: Guardrail the existing healer</div>
+      <ol class="ordered">
+        <li>Add a "never auto-commit" rule to <code>playwright-test-healer.md</code>: the agent may edit files but never runs <code>git commit</code>, <code>git push</code>, or opens a PR.</li>
+        <li>Require an output contract per change: old selector, new selector, DOM evidence for why the old one broke, and a <code>dom-inspector</code> score of 0.90 or higher for the replacement.</li>
+        <li>Add a cross-storefront rule: any change to a shared <code>src/pages/ecommerce/</code> page object must be verified against all 8 storefronts before it's offered for review.</li>
+        <li>Fix the stale helper count in that file (it lists 8; <code>BasePage</code> composes 11).</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Phase 2: Reach the storefronts with dom-inspector.mjs</div>
+      <ol class="ordered">
+        <li>Read <code>src/data/ecommerce/storefronts.ts</code> to confirm the exported shape.</li>
+        <li>Add <code>--storefront &lt;code&gt;</code> and <code>--page &lt;key&gt;</code> resolution, keeping <code>--url</code> and <code>FRONT_SITE_URL</code> working unchanged.</li>
+        <li>Add popup dismissal before probing (Vans AU's Bloomreach popup currently suppresses the visibility filter).</li>
+        <li>Update the script's usage docblock and the invocation examples in the healer agent file.</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Phase 3: ARIA snapshot pilot</div>
+      <ol class="ordered">
+        <li>Pick one stable component subtree, main header navigation, not a whole page.</li>
+        <li>Add one <code>toMatchAriaSnapshot()</code> assertion for one storefront first.</li>
+        <li>Generate the baseline with <code>--update-snapshots</code>; review the generated YAML by hand.</li>
+        <li>Run against the remaining 7 storefronts to measure the per-brand variant cost before deciding whether to expand.</li>
+      </ol>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Explicitly out of scope for implementation:</strong> <code>element-helper.ts</code>,
+          <code>base-page.ts</code>, <code>base-test.ts</code>, <code>playwright.config.ts</code>,
+          <code>api.config.ts</code>, <code>redact.ts</code>, <code>package.json</code>, and any workflow
+          file. No LLM SDK dependency. No new CI secret.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Nằm ngoài phạm vi triển khai, ghi rõ:</strong> <code>element-helper.ts</code>,
+          <code>base-page.ts</code>, <code>base-test.ts</code>, <code>playwright.config.ts</code>,
+          <code>api.config.ts</code>, <code>redact.ts</code>, <code>package.json</code>, và bất kỳ file
+          workflow nào. Không thêm dependency SDK cho LLM. Không thêm secret mới trên CI.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 Validation -->
+    <section class="content-section" id="validation" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Validation</h2>
+          <div class="section-desc">A prerequisite gate, three phase checks, and the paired acceptance criterion</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Gate 0: the prerequisite any future healing proposal must pass</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Seed a genuinely broken selector, run the suite, confirm the run is not green, and confirm the failure is visible in monocart-report and results.json, not only in a console line. No runtime option can pass this today.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Gieo một selector thực sự bị hỏng, chạy suite, xác nhận kết quả không xanh, và xác nhận lỗi hiển thị được trong monocart-report và results.json, chứ không chỉ nằm trong một dòng console. Không phương án runtime nào vượt qua được điều kiện này ở thời điểm hiện tại.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Phase 1 check: healer guardrails</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Ask the agent to fix a known-broken test; confirm it leaves changes uncommitted. Confirm the output contract is followed. <code>npm run lint</code> stays clean; the diff touches only the agent file.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Yêu cầu agent sửa một test đã biết là hỏng; xác nhận nó để thay đổi ở trạng thái chưa commit. Xác nhận output contract được tuân thủ. <code>npm run lint</code> vẫn sạch; diff chỉ động đến file agent.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Phase 2 check: dom-inspector.mjs</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Run against all 8 storefront codes; record which return empty candidates. For 3 elements with known-good committed locators, confirm the tool's top-ranked candidate matches. Track wall-clock time from a SELECTOR_STALE CI failure to a verified fix, before and after.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Chạy trên cả 8 mã storefront; ghi lại những mã nào trả về danh sách ứng viên rỗng. Với 3 element đã có locator tốt được commit sẵn, xác nhận ứng viên xếp hạng cao nhất của tool khớp với locator đó. Theo dõi thời gian thực từ lúc CI báo lỗi SELECTOR_STALE đến khi có bản sửa đã xác minh, trước và sau khi áp dụng.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Phase 3 check: ARIA snapshot pilot</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Alter a nav item's accessible name and confirm the assertion fails with a readable diff. Run the pilot five times against the same storefront to confirm stability. Run on both chromium and firefox. Count snapshot files needed for full 8-storefront coverage before expanding.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đổi accessible name của một nav item và xác nhận assertion fail với diff dễ đọc. Chạy pilot 5 lần trên cùng một storefront để xác nhận độ ổn định. Chạy trên cả chromium và firefox. Đếm số file snapshot cần thiết để phủ đủ 8 storefront trước khi mở rộng.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">The paired acceptance criterion for any future healing proposal</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Median time-to-fix for selector-stale failures must decrease, and in a seeded-defect trial (N genuine application regressions introduced on purpose) the suite must still fail on all N, with zero silent heals. A mechanism that improves the first number while degrading the second is a net negative for a QA framework.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thời gian trung vị để sửa lỗi selector-stale phải giảm, và trong một thử nghiệm gieo lỗi (N regression thật của ứng dụng được cố tình đưa vào), suite vẫn phải fail trên cả N trường hợp đó, không có lần heal âm thầm nào. Một cơ chế cải thiện được con số đầu tiên nhưng làm xấu đi con số thứ hai là một khoản lỗ ròng cho một framework QA.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 Open questions -->
+    <section class="content-section" id="open-questions" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Open questions</h2>
+          <div class="section-desc">Not blocking this report, but worth an answer before revisiting the topic</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Where is the real pain</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Is the actual pain selector repair, which the git history doesn't show, or time-to-diagnose a CI failure, which Phase 2 already serves?</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nỗi đau thật sự nằm ở việc sửa selector, thứ mà lịch sử git không thể hiện, hay nằm ở thời gian chẩn đoán một lỗi CI, thứ mà Phase 2 đã phục vụ sẵn?</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Stable test IDs from the application team</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Would the application team accept stable <code>data-testid</code> attributes on the GRA storefronts, which would change the cost and benefit of Option B substantially?</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đội ngũ phát triển ứng dụng có chấp nhận thêm thuộc tính <code>data-testid</code> ổn định trên các storefront GRA hay không, điều này sẽ thay đổi đáng kể bài toán chi phí và lợi ích của Option B?</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Compliance position on third-party LLM calls</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Is there a compliance position on sending staging DOM to a third-party LLM at all, given <code>redact.ts</code>'s stated threat model?</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Có lập trường compliance nào về việc gửi DOM của môi trường staging cho một LLM bên thứ ba hay không, xét theo threat model mà <code>redact.ts</code> đã nêu?</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="approval-banner">
+      <span class="icon">&#9432;</span>
+      <p><strong>Research only, no files modified.</strong> Implementation requires explicit approval via
+      <code>qa-orchestrator</code> WORKFLOW-10 before any step in the implementation plan above runs.</p>
     </div>
-    <div class="meta-item">
-      <span class="meta-label">Verdict</span>
-      <span class="meta-value" style="color:#f87171">No runtime healing</span>
+
+    <div class="footer">
+      Technical Research Report &middot; Playwright TypeScript Automation Framework &middot; repo history measured directly via <code>git log</code>, no vendor claims taken at face value &middot; 2026-07-25
     </div>
-    <div class="meta-item">
-      <span class="meta-label">Status</span>
-      <span class="meta-value" style="color:#fbbf24">Research only, awaiting approval</span>
-    </div>
-  </div>
+
+  </main>
 </div>
-
-<div class="container">
-
-  <div class="alert danger">
-    <div class="alert-icon">🚨</div>
-    <div class="alert-body">
-      <h3>The premise doesn't hold in this repo</h3>
-      <p><code>src/pages</code> took 89 commits over the last twelve months (counted directly with <code>git log --since="12 months ago" -- src/pages</code>). Reading every subject line, the large majority are new page objects and new coverage across the 8 GRA storefronts, not selector repairs. This repo's churn is feature growth, not selector rot, and the ROI case for building healing infrastructure can't be made from this evidence.</p>
-    </div>
-  </div>
-  <div class="alert info">
-    <div class="alert-icon">✅</div>
-    <div class="alert-body">
-      <h3>The correct architecture already exists here</h3>
-      <p><code>scripts/dom-inspector.mjs</code> scores candidate locators deterministically, and <code>.claude/agents/playwright-test-healer.md</code> is an LLM agent that suggests a patch for a human to review at development time. This is the same shape as Playwright's own first-party Healer agent. The remaining work is closing two gaps in what's already there, not building something new.</p>
-    </div>
-  </div>
-
-  <!-- 1. Summary -->
-  <div class="section">
-    <div class="section-title"><div class="num">1</div> Summary</div>
-    <p>The question evaluated: whether to add AI self-healing locators, a mechanism that finds a replacement automatically when a locator fails, so the test keeps running instead of going red.</p>
-    <p>The stated motivation is maintenance burden from selector churn. Measured against this repo's actual history, that burden is a small minority of the work reflected in <code>src/pages</code> commits. What dominates is coverage growth: new storefronts, new flows, new page objects.</p>
-    <p>Two mechanisms that a well-designed healing system would provide already exist in this repo, and they sit at the correct point in the lifecycle, development time with a human reviewing the change, rather than the dangerous one, CI runtime with an automatic substitution and no one watching. <code>dom-inspector.mjs</code> is a deterministic locator scorer that already encodes this project's own locator priority (role and label selectors score highest, structural selectors are penalized). <code>playwright-test-healer.md</code> is a dev-time LLM agent that inspects a failure and proposes a fix for review, matching Playwright's own first-party Test Agents design.</p>
-    <p class="muted"><strong>Recommendation:</strong> don't add runtime self-healing, deterministic or LLM-based, to <code>ElementHelper</code>, <code>BasePage</code>, or any CI path. Close two small gaps in the existing dev-time tooling now. Pilot Playwright's first-party <code>toMatchAriaSnapshot()</code> for structural resilience on one component. Reject full LLM auto-heal outright.</p>
-  </div>
-
-  <!-- 2. Scope -->
-  <div class="section">
-    <div class="section-title"><div class="num">2</div> Scope</div>
-    <p>Files reviewed to ground this report, and what each recommended option would touch.</p>
-    <ul class="file-list">
-      <li><span class="file-icon">📄</span><div><div class="file-path">scripts/dom-inspector.mjs</div><div class="file-desc">Existing deterministic locator scorer. Currently reads only <code>FRONT_SITE_URL</code>, can't target the 8 ecommerce storefronts where the real churn is.</div></div></li>
-      <li><span class="file-icon">📄</span><div><div class="file-path">.claude/agents/playwright-test-healer.md</div><div class="file-desc">Existing dev-time LLM healer with write tools (Edit, MultiEdit, Write, Bash) and no stated commit prohibition.</div></div></li>
-      <li><span class="file-icon">📄</span><div><div class="file-path">src/pages/helpers/{element,wait,dom-scan,overlay}-helper.ts</div><div class="file-desc">The real interaction/wait layer a runtime option would have to hook into. <code>wait-helper.ts</code> carries the "no test context" constraint three times.</div></div></li>
-      <li><span class="file-icon">📄</span><div><div class="file-path">src/pages/base-page.ts</div><div class="file-desc">Composition root for all 11 helpers, backing all 14 UI fixtures. CLAUDE.md §5 requires an advisor consult before any change here.</div></div></li>
-      <li><span class="file-icon">📄</span><div><div class="file-path">src/utils/redact.ts</div><div class="file-desc">Key-based denylist over JSON, built because customer PII reached public report artifacts before. Has no HTML-aware sanitizer.</div></div></li>
-      <li><span class="file-icon">📄</span><div><div class="file-path">.github/workflows/playwright.yml, playwright-with-slack.yml</div><div class="file-desc">CI matrix (6 UI legs: windows-latest × 3 shards, macos-latest × 3 shards) and the current secret list. No LLM API key exists in either today.</div></div></li>
-      <li><span class="file-icon">📄</span><div><div class="file-path">docs/study/advance-ui-handle.html #self-healing</div><div class="file-desc">A prior teaching sketch, not an implementation. Its AI call is a commented-out stub returning a hardcoded string.</div></div></li>
-    </ul>
-    <p class="muted">A repo-wide search for <code>self-heal</code>, <code>selfHeal</code>, <code>smartLocator</code>, <code>healEnium</code>, and <code>fallbackSelector</code> returns no matches in <code>src/</code> or <code>tests/</code>.</p>
-  </div>
-
-  <!-- 3. Options -->
-  <div class="section">
-    <div class="section-title"><div class="num">3</div> Options</div>
-    <p>Vendor marketing labels a lot of deterministic fallback as "AI." Being precise about which is which decides whether an option needs an external API key at all.</p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Mechanism</th><th>Genuinely LLM/ML-driven?</th><th>What it actually does</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Playwright auto-waiting, strict mode, <code>getByRole</code></td><td><span class="tag tag-no">No</span></td><td>Deterministic actionability checks and accessibility-tree resolution</td></tr>
-          <tr><td>Healenium</td><td><span class="tag tag-limited">Partial, classical ML</span></td><td>DOM tree similarity scoring, not a language model. No maintained Playwright-TS integration</td></tr>
-          <tr><td>Testim / mabl / Functionize</td><td><span class="tag tag-limited">Mixed</span></td><td>Multi-attribute weighted scoring at replay, tied to a proprietary recorder</td></tr>
-          <tr><td>Applitools Autonomous</td><td><span class="tag tag-yes">Yes, visual ML</span></td><td>Visual regression, a different problem domain (this repo already has Percy)</td></tr>
-          <tr><td>Playwright Test Agents: Healer</td><td><span class="tag tag-yes">Yes, LLM</span></td><td>Dev-time loop: replays failure, suggests a patch, human reviews and commits</td></tr>
-          <tr><td>This repo's <code>playwright-test-healer.md</code></td><td><span class="tag tag-yes">Yes, LLM</span></td><td>Already the same shape as Playwright's first-party Healer, wired to <code>dom-inspector.mjs</code></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="cards">
-      <div class="card rec">
-        <h4>Option A: Close gaps in existing tooling ✓ Recommended</h4>
-        <p>Build nothing new. Give <code>dom-inspector.mjs</code> a storefront flag, and add a no-auto-commit guardrail plus an evidence requirement to the healer agent.</p>
-        <div class="pros-cons">
-          <div class="pro">✓ Zero production risk · zero new deps · zero config/CI change</div>
-          <div class="con">✗ Doesn't add a runtime capability, which is deliberate</div>
-        </div>
-      </div>
-      <div class="card rec">
-        <h4>Option C: ARIA snapshot pilot ✓ Recommended, bounded</h4>
-        <p>Playwright's first-party <code>toMatchAriaSnapshot()</code>, currently used zero times in this repo, scoped to one stable component (main nav).</p>
-        <div class="pros-cons">
-          <div class="pro">✓ No dependency, no LLM, fails loudly with a readable diff</div>
-          <div class="con">✗ 8 storefronts means 8 snapshot variants; must be measured before wider rollout</div>
-        </div>
-      </div>
-      <div class="card">
-        <h4>Option B: Deterministic multi-locator fallback in ElementHelper</h4>
-        <p>Store 2 or 3 strategies per element; try each in order. Sounds safe, but serves the legacy string-selector path new code is steered away from, and can't touch <code>checkout-page.ts</code> at all, whose 36 locator fields are regex text patterns, not selectors.</p>
-        <div class="pros-cons">
-          <div class="pro">✓ No LLM, no external calls, easy to review</div>
-          <div class="con">✗ Reintroduces the ambiguity strict mode exists to prevent; duplicates DomScanHelper</div>
-        </div>
-      </div>
-      <div class="card">
-        <h4>Option D: LLM diagnostic, suggestion-only</h4>
-        <p>On failure, ask an LLM for a suggestion, attach it to the report, still fail the test. Safer than auto-heal, but blocked on the helper layer having no test context, and duplicates what the healer agent already does after the fact.</p>
-        <div class="pros-cons">
-          <div class="pro">✓ Never masks a regression</div>
-          <div class="con">✗ New SDK, new secret, new redact.ts work, per-failure latency across 6 CI legs</div>
-        </div>
-      </div>
-      <div class="card rej">
-        <h4>Option E: Full runtime LLM auto-heal ✗ Rejected</h4>
-        <p>Dump DOM to an LLM, substitute the returned selector, keep running, optionally auto-PR. The pattern the old doc sketch illustrated, with its AI call left as a commented-out stub.</p>
-        <div class="pros-cons">
-          <div class="pro">✓ (None that outweigh the risk below)</div>
-          <div class="con">✗ One shared page object serves 8 storefronts; a heal from one brand's DOM would apply to all 8 with nothing checking the other 7</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. Recommended approach -->
-  <div class="section">
-    <div class="section-title"><div class="num">4</div> Recommended approach</div>
-    <p>Adopt Option A now. Pilot Option C. Defer Option D behind the test-context prerequisite in §5. Reject Option E. Don't adopt Option B as a general mechanism.</p>
-    <ul>
-      <li>The measured churn doesn't justify healing infrastructure. 89 commits, overwhelmingly feature work. CLAUDE.md's own Behavioral Guidelines (§2 simplicity, §3 surgical changes) push against building for a problem the git history doesn't show.</li>
-      <li>The capability already exists in the correct shape: dev-time, human-reviewed, deterministic-first. A second, runtime version would be strictly worse.</li>
-      <li>The application makes LLM healing structurally weak. Magento PWA Studio with hashed styled-components classes means there's no stable class for an LLM to find. An LLM inspecting the same DOM a human already inspected has no better information.</li>
-      <li>The 8-storefront shared-page-object model is incompatible with per-run healing (see Option E above).</li>
-      <li>Retries already absorb transient failures (<code>playwright.config.ts</code>, <code>api.config.ts</code> both configure retries in CI). What survives retries is signal, exactly what healing would suppress.</li>
-    </ul>
-    <p class="muted">Revisit this if a future quarter's <code>git log</code> on <code>src/pages</code> shows selector-repair commits becoming the majority, or if the application adopts stable <code>data-testid</code> attributes.</p>
-  </div>
-
-  <!-- 5. Risk assessment -->
-  <div class="section">
-    <div class="section-title"><div class="num">5</div> Risk assessment</div>
-    <div class="alert warning">
-      <div class="alert-icon">⚠️</div>
-      <div class="alert-body">
-        <h3>Masked regressions, and a concrete blocker</h3>
-        <p>Both <code>wait-helper.ts</code> and <code>element-helper.ts</code> carry the same comment three times: <code>// WHY: helper layer has no test context; console is the only available channel here</code>. The helper layer can't call <code>testInfo.attach()</code>. A heal performed there can emit nothing to any of the five configured reporters (html, json, junit, list, monocart-reporter). A silent heal turns a hard failure into a green pass with zero signal anywhere. No healing mechanism at the helper layer is acceptable until a heal produces a report-visible artifact.</p>
-      </div>
-    </div>
-    <div class="alert warning">
-      <div class="alert-icon">🔓</div>
-      <div class="alert-body">
-        <h3>Data exposure</h3>
-        <p><code>redact.ts</code> exists because customer PII previously reached artifacts that deploy to public Cloudflare Pages report sites. It's a key-based denylist over JSON with no HTML-aware sanitizer. A raw HTML dump on an authenticated checkout page carries session state, form values, and internal staging hostnames, and bypasses that discipline entirely.</p>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
-        <tbody>
-          <tr><td>Healed selector masks a real regression</td><td class="risk-high">High</td><td class="risk-high">High, structural</td><td>Fail-and-suggest, never substitute-and-continue</td></tr>
-          <tr><td>Heal emits no reporter signal</td><td class="risk-high">High</td><td class="risk-high">Certain today</td><td>Require report-visible artifact as a hard gate; blocked on threading test context through BasePage</td></tr>
-          <tr><td>PII / tokens sent to a third-party LLM</td><td class="risk-high">High</td><td class="risk-medium">High if raw HTML used</td><td>Send an ARIA snapshot only, never raw HTML; extend redact.ts first</td></tr>
-          <tr><td>Selector correct for 1 storefront, wrong for the other 7</td><td class="risk-high">High</td><td class="risk-medium">High, shared page objects</td><td>Never auto-apply; validate across all 8 storefronts before merge</td></tr>
-          <tr><td>Fallback chain reintroduces strict-mode ambiguity</td><td class="risk-medium">Medium to High</td><td class="risk-medium">Medium</td><td>Keep multi-selector fallback confined to presence probes, as today</td></tr>
-          <tr><td>New LLM SDK / secret in the test path</td><td class="risk-medium">Medium</td><td class="risk-medium">Certain if D/E adopted</td><td>Avoid; no LLM key exists in any workflow today</td></tr>
-          <tr><td>CI time/cost across 6 premium-billed legs × retries</td><td class="risk-medium">Medium</td><td class="risk-medium">High if D/E adopted</td><td>Avoid runtime calls entirely</td></tr>
-          <tr><td>Healer agent auto-commits its own fix</td><td class="risk-medium">Medium</td><td class="risk-low">Low to Medium, exists today</td><td>Add explicit no-commit/no-push guardrail (Phase 1)</td></tr>
-          <tr><td>ARIA snapshot noise → reflexive bulk-accept</td><td class="risk-medium">Medium</td><td class="risk-medium">Medium</td><td>Scope to stable subtrees; require diffs to be reviewed, never bulk-accepted</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="muted"><strong>Rollback:</strong> Option A touches one script and one agent file, neither imported by production code: a plain revert. Option C is additive; deleting the assertions and the generated snapshot directory removes it cleanly. Options D/E would add a runtime external dependency to the UI test path, so a vendor outage becomes a test-suite failure mode; rollback means removing the dependency, the fixture, and the secret from two workflows.</p>
-  </div>
-
-  <!-- 6. Implementation steps -->
-  <div class="section">
-    <div class="section-title"><div class="num">6</div> Implementation steps</div>
-    <p class="muted">Sequenced for an implementation agent. Per CLAUDE.md, research doesn't auto-flow into implementation: this needs explicit approval via <code>qa-orchestrator</code> WORKFLOW-10 before any step below runs.</p>
-    <div class="steps">
-      <div class="step">
-        <div class="step-body">
-          <h4>Phase 1: Guardrail the existing healer</h4>
-          <ul>
-            <li>Add a "never auto-commit" rule to <code>playwright-test-healer.md</code>: the agent may edit files but never runs <code>git commit</code>, <code>git push</code>, or opens a PR.</li>
-            <li>Require an output contract per change: old selector, new selector, DOM evidence for why the old one broke, and a <code>dom-inspector</code> score ≥ 0.90 for the replacement.</li>
-            <li>Add a cross-storefront rule: any change to a shared <code>src/pages/ecommerce/</code> page object must be verified against all 8 storefronts before it's offered for review.</li>
-            <li>Fix the stale helper count in that file (it lists 8; <code>BasePage</code> composes 11).</li>
-          </ul>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-body">
-          <h4>Phase 2: Reach the storefronts with dom-inspector.mjs</h4>
-          <ul>
-            <li>Read <code>src/data/ecommerce/storefronts.ts</code> to confirm the exported shape.</li>
-            <li>Add <code>--storefront &lt;code&gt;</code> and <code>--page &lt;key&gt;</code> resolution, keeping <code>--url</code> and <code>FRONT_SITE_URL</code> working unchanged.</li>
-            <li>Add popup dismissal before probing (Vans AU's Bloomreach popup currently suppresses the visibility filter).</li>
-            <li>Update the script's usage docblock and the invocation examples in the healer agent file.</li>
-          </ul>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-body">
-          <h4>Phase 3: ARIA snapshot pilot</h4>
-          <ul>
-            <li>Pick one stable component subtree, main header navigation, not a whole page.</li>
-            <li>Add one <code>toMatchAriaSnapshot()</code> assertion for one storefront first.</li>
-            <li>Generate the baseline with <code>--update-snapshots</code>; review the generated YAML by hand.</li>
-            <li>Run against the remaining 7 storefronts to measure the per-brand variant cost before deciding whether to expand.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <p class="muted"><strong>Explicitly out of scope for implementation:</strong> <code>element-helper.ts</code>, <code>base-page.ts</code>, <code>base-test.ts</code>, <code>playwright.config.ts</code>, <code>api.config.ts</code>, <code>redact.ts</code>, <code>package.json</code>, and any workflow file. No LLM SDK dependency. No new CI secret.</p>
-  </div>
-
-  <!-- 7. Validation -->
-  <div class="section">
-    <div class="section-title"><div class="num">7</div> Validation</div>
-    <ul class="checks">
-      <li>
-        <div class="check-num">0</div>
-        <div class="check-body">
-          <div class="check-title">Gate 0: the prerequisite any future healing proposal must pass</div>
-          <div class="check-desc">Seed a genuinely broken selector, run the suite, confirm the run is not green, and confirm the failure is visible in monocart-report and results.json, not only in a console line. No runtime option can pass this today.</div>
-        </div>
-      </li>
-      <li>
-        <div class="check-num">1</div>
-        <div class="check-body">
-          <div class="check-title">Phase 1: healer guardrails</div>
-          <div class="check-desc">Ask the agent to fix a known-broken test; confirm it leaves changes uncommitted. Confirm the output contract is followed. <code>npm run lint</code> stays clean; the diff touches only the agent file.</div>
-        </div>
-      </li>
-      <li>
-        <div class="check-num">2</div>
-        <div class="check-body">
-          <div class="check-title">Phase 2: dom-inspector.mjs</div>
-          <div class="check-desc">Run against all 8 storefront codes; record which return empty candidates. For 3 elements with known-good committed locators, confirm the tool's top-ranked candidate matches. Track wall-clock time from a SELECTOR_STALE CI failure to a verified fix, before and after.</div>
-        </div>
-      </li>
-      <li>
-        <div class="check-num">3</div>
-        <div class="check-body">
-          <div class="check-title">Phase 3: ARIA snapshot pilot</div>
-          <div class="check-desc">Alter a nav item's accessible name and confirm the assertion fails with a readable diff. Run the pilot 5× against the same storefront to confirm stability. Run on both chromium and firefox. Count snapshot files needed for full 8-storefront coverage before expanding.</div>
-        </div>
-      </li>
-      <li>
-        <div class="check-num">✓</div>
-        <div class="check-body">
-          <div class="check-title">The paired acceptance criterion for any future healing proposal</div>
-          <div class="check-desc">Median time-to-fix for selector-stale failures must decrease, and in a seeded-defect trial (N genuine application regressions introduced on purpose) the suite must still fail on all N, with zero silent heals. A mechanism that improves the first number while degrading the second is a net negative for a QA framework.</div>
-        </div>
-      </li>
-    </ul>
-  </div>
-
-  <div class="alert info" style="margin-top:8px">
-    <div class="alert-icon">❓</div>
-    <div class="alert-body">
-      <h3>Open questions</h3>
-      <p>Is the actual pain selector repair, which the git history doesn't show, or time-to-diagnose a CI failure, which Phase 2 already serves? Would the application team accept stable <code>data-testid</code> attributes on the GRA storefronts, which would change the cost/benefit of Option B substantially? Is there a compliance position on sending staging DOM to a third-party LLM at all, given <code>redact.ts</code>'s stated threat model?</p>
-    </div>
-  </div>
-
-</div>
-
-<footer>
-  <span>Playwright TypeScript Automation Framework · Technical Research Report</span>
-  <span>Research only, no files modified · implementation requires explicit approval via qa-orchestrator WORKFLOW-10</span>
-</footer>
 
 </body>
 </html>

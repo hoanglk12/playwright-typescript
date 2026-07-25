@@ -1,7 +1,8 @@
 import { test } from '@playwright/test';
 import { ApiClient } from './ApiClient';
 import { ApiResponseWrapper } from './ApiResponse';
-import { redactSensitiveData, redactSensitiveText } from '../utils/redact';
+import { redactSensitiveData } from '../utils/redact';
+import { bufferVerboseLog } from '../utils/verbose-log-buffer';
 
 /**
  * Extended API client with response wrapper utilities
@@ -76,15 +77,17 @@ export class ApiClientExt extends ApiClient {
   }
 
   /**
-   * Whether verbose (redacted) request/response body logging is enabled.
+   * Whether verbose (redacted) request/response body buffering is enabled.
    *
    * Checked directly against `process.env` (not `getApiEnvironment()`) to avoid a
    * `dotenv.config()` / filesystem round-trip on every request — mirrors the same
    * direct-env-read pattern used by `PercyHelper` for `PERCY_TOKEN`.
    *
    * Default ON (explicit product decision, accepted risk) — set `VERBOSE_LOGS=false`
-   * (or `=0`) to opt out for a run. Every `apiClientExt`/`createClientExt` call now
-   * attaches a redacted request+response JSON per call by default; the redaction in
+   * (or `=0`) to opt out for a run. Every `apiClientExt`/`createClientExt` call buffers a
+   * redacted request+response entry (see `src/utils/verbose-log-buffer.ts`); the buffer is
+   * flushed into a single attachment only for failing tests (`attachVerboseLogFailureContext`
+   * in `ApiTest.ts`) — buffer-then-flush-on-failure, not per-call attach. The redaction in
    * `src/utils/redact.ts` is the only safeguard against leaking tokens/PII into CI
    * artifacts and the public Cloudflare Pages report sites — there is no dedicated
    * regression test for it (removed; see git history for `tests/api/verbose-logging.spec.ts`).
@@ -97,9 +100,10 @@ export class ApiClientExt extends ApiClient {
   }
 
   /**
-   * Attach a redacted request+response JSON blob for this call, only when `VERBOSE_LOGS`
-   * is enabled and only when running inside an active Playwright test context. Purely
-   * additive instrumentation — never throws, never alters the returned wrapper.
+   * Buffer a redacted request+response entry for this call, only when `VERBOSE_LOGS` is
+   * enabled and only when running inside an active Playwright test context. Purely additive
+   * instrumentation — never throws, never alters the returned wrapper. The entry is flushed
+   * into an attachment at teardown, only if the test failed (see `ApiTest.ts`).
    */
   private async attachVerboseLog(
     method: string,
@@ -132,16 +136,10 @@ export class ApiClientExt extends ApiClient {
           headers: wrapper.headers(),
           body: responseBody,
         },
+        timestamp: new Date().toISOString(),
       });
 
-      // Second, value-level pass over the serialized text — catches secrets/PII that
-      // key-based redaction can't see (e.g. a token in the `url` string itself).
-      const body = redactSensitiveText(JSON.stringify(payload, null, 2));
-
-      await test.info().attach(`api-verbose-${method}-${Date.now()}.json`, {
-        body,
-        contentType: 'application/json',
-      });
+      bufferVerboseLog(test.info().testId, payload);
     } catch {
       // Never let instrumentation failure affect the actual API call/assertions.
     }
