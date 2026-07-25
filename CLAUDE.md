@@ -121,7 +121,7 @@ export class MyPage extends BasePage {
 | `ecommerceCheckoutPage` | `EcommerceCheckoutPage` | ecommerce |
 | `percyHelper` | `PercyHelper` | visual regression |
 | `softAssert` | `SoftAssertHelper` | soft assertions with logger integration |
-| `consoleHelper` | `ConsoleHelper` | console log capture and summary |
+| `consoleHelper` | `ConsoleHelper` | console/page-error/failed-request capture, attached on UI test failure |
 | `makeAxeBuilder` | `() => AxeBuilder` | axe-core accessibility scanning |
 
 ## Test Structure
@@ -504,7 +504,9 @@ NODE_ENV=production npm test    # loads .env.production
 
 Key env vars: `FRONT_SITE_URL`, `ADMIN_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `TRACE_MODE`, `SCREENSHOT_MODE`, `VIDEO_MODE`, `PERCY_TOKEN`, `VERBOSE_LOGS`.
 
-`VERBOSE_LOGS` — default **ON**. Every `apiClientExt`/`createClientExt` call (`*WithWrapper` methods) and every `graphqlClient`/`createGraphQLClient` call (`queryWrapped`/`mutateWrapped`) buffers a redacted request+response entry (`src/utils/verbose-log-buffer.ts`), keyed by `testInfo.testId`. Buffer-then-flush-on-failure: an auto-fixture (`attachVerboseLogFailureContext` in `src/api/ApiTest.ts`) flushes the buffered entries into a single `api-verbose-failure-context.json` attachment only when the test failed — passing tests get no attachment, so report size tracks failing-test count rather than total call count. Redaction (`src/utils/redact.ts`) is a denylist of known-sensitive keys/patterns, not a provably complete one — extend `SENSITIVE_KEYS`/`redactSensitiveText` there before any new spec sends a field/header that could carry a token or PII through `apiClientExt` or `GraphQLClient`. Set `VERBOSE_LOGS=false` (or `=0`) to opt out for a run entirely — there is no `VERBOSE_LOGS=always` escape hatch to restore per-call attaching (including on passing tests) if that's needed for targeted debugging. There is no dedicated regression test for the redaction (removed after Phase 3 — see git history for `tests/api/verbose-logging.spec.ts`).
+`VERBOSE_LOGS` — default **ON**. Every `apiClientExt`/`createClientExt` call (`*WithWrapper` methods) and every `graphqlClient`/`createGraphQLClient` call (`queryWrapped`/`mutateWrapped`) buffers a redacted request+response entry (`src/utils/verbose-log-buffer.ts`), keyed by `testInfo.testId`. Buffer-then-flush-on-failure: an auto-fixture (`attachVerboseLogFailureContext` in `src/api/ApiTest.ts`) flushes the buffered entries into a single `api-verbose-failure-context.json` attachment only when the test failed — passing tests get no attachment, so report size tracks failing-test count rather than total call count. Redaction (`src/utils/redact.ts`) is a denylist of known-sensitive keys/patterns, not a provably complete one — extend `SENSITIVE_KEYS`/`redactSensitiveText` there before any new spec sends a field/header that could carry a token or PII through `apiClientExt` or `GraphQLClient`. Set `VERBOSE_LOGS=false` (or `=0`) to opt out for a run entirely. Failure-gating is a permanent design decision, not a missing feature — verbose log attachments are only ever shown for failed tests, and there is deliberately no `VERBOSE_LOGS=always` (or similar) opt-in to restore per-call attaching on passing tests. There is no dedicated regression test for the redaction (removed after Phase 3 — see git history for `tests/api/verbose-logging.spec.ts`).
+
+`consoleHelper` is an auto-fixture: on any UI test failure it attaches `console-failure-context.log` containing redacted console errors/warnings, page errors, and failed requests (`buildFailureReport()` in `src/pages/helpers/console-helper.ts`); passing tests get no attachment and no console noise.
 
 Both `playwright.config.ts` and `api.config.ts` auto-detect CI environments (`CI`, `GITLAB_CI`, `TF_BUILD`, `GITHUB_ACTIONS`) to adjust retries and timeouts automatically.
 

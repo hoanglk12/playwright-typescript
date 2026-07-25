@@ -118,11 +118,21 @@ export const test = base.extend<CustomFixtures>({
     await use(new SoftAssertHelper(logger));
   },
 
-  consoleHelper: async ({ page }, use, testInfo) => {
+  consoleHelper: [async ({ page }, use, testInfo) => {
     const helper = new ConsoleHelper(page);
     await use(helper);
-    await helper.summarize(testInfo.title);
-  },
+    const isFailure = testInfo.status !== 'skipped' && testInfo.status !== testInfo.expectedStatus;
+    if (!isFailure) return;
+    try {
+      const report = helper.buildFailureReport();
+      if (report) {
+        await testInfo.attach('console-failure-context.log', { body: report, contentType: 'text/plain' });
+      }
+    } catch {
+      // Instrumentation must never affect the actual test outcome — mirrors the
+      // attachVerboseLog/attachVerboseLogFailureContext precedent elsewhere in this repo.
+    }
+  }, { auto: true }],
 
   // Auto fixture, no deps on `page` — flushes independently of the Firefox
   // about:blank teardown sequencing in the ecommerce page-object fixtures below.

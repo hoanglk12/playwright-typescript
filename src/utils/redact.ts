@@ -109,3 +109,32 @@ export function redactSensitiveText(text: string): string {
     .replace(CARD_NUMBER_PATTERN, '[REDACTED-CARD]')
     .replace(URL_SECRET_QUERY_PATTERN, `$1${REDACTION_MARKER}`);
 }
+
+// Browser console/page-error/failed-request text can carry multi-KB GraphQL-over-GET URLs
+// (GRA storefronts) — cap length so one noisy entry can't dominate the attachment.
+const MAX_REDACTED_TEXT_LENGTH = 2000;
+
+/**
+ * Regex-based redaction for browser-side failure capture (console errors, page errors, failed
+ * network requests) — a distinct surface from `redactSensitiveText`, which existing API-side
+ * callers depend on for its exact current behavior.
+ *
+ * Deliberately omits `CARD_NUMBER_PATTERN`: this codebase's tested checkout flows never pass
+ * raw card numbers through the browser (tokenized gateway widgets only — Braintree, checkmo,
+ * afterpay), so the pattern has no protective value here, while it does false-positive on
+ * ordinary browser telemetry (GA client IDs, epoch-millisecond timestamps) that commonly
+ * appears in console output and failed-request URLs, corrupting the diagnostic text.
+ * @param text - Raw text to scrub (a console message, page error, or failed-request line)
+ * @returns The same text with JWTs, emails, and secret-bearing query params redacted, truncated
+ * to `MAX_REDACTED_TEXT_LENGTH` characters
+ */
+export function redactConsoleText(text: string): string {
+  const redacted = text
+    .replace(JWT_PATTERN, '[REDACTED-JWT]')
+    .replace(EMAIL_PATTERN, '[REDACTED-EMAIL]')
+    .replace(URL_SECRET_QUERY_PATTERN, `$1${REDACTION_MARKER}`);
+
+  return redacted.length > MAX_REDACTED_TEXT_LENGTH
+    ? `${redacted.slice(0, MAX_REDACTED_TEXT_LENGTH)}...[truncated]`
+    : redacted;
+}
