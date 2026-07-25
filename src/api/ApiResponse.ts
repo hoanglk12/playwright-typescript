@@ -1,5 +1,6 @@
 import { APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
+import * as z from 'zod';
 
 /**
  * API Response wrapper to simplify working with Playwright APIResponse objects
@@ -184,6 +185,19 @@ export class ApiResponseWrapper {
   public async assertHasHeader(name: string): Promise<this> {
     const headerValue = this.header(name);
     expect(headerValue).toBeDefined();
+    return this;
+  }
+
+  /**
+   * Assert that the response body JSON matches a Zod schema
+   * @param schema - Zod schema to validate the response body against
+   */
+  public async assertSchema<T>(schema: z.ZodType<T>): Promise<this> {
+    const body = await this.json();
+    const result = schema.safeParse(body);
+    if (!result.success) {
+      expect(result.success, z.prettifyError(result.error)).toBe(true);
+    }
     return this;
   }
 }

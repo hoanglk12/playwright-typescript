@@ -8,6 +8,7 @@ import {
 import { CartsListResponse, Cart, DeletedResource } from '../../src/api/services/dummyjson';
 import { ApiResponseWrapper } from '../../src/api/ApiResponse';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { CartSchema, CartsListSchema, CartDeletedSchema } from '../../src/data/api/schemas/dummyjson-schemas';
 
 test.describe('DummyJSON Carts API @api @regression', () => {
   test('TC_01 - Should list carts with pagination metadata', async ({ dummyjsonService, softAssert }) => {
@@ -25,6 +26,7 @@ test.describe('DummyJSON Carts API @api @regression', () => {
       softAssert.toBeGreaterThan(body.total, 0, 'total is greater than 0');
       softAssert.toBe(body.skip, 0, 'skip defaults to 0');
       softAssert.toBeTruthy(body.carts.length <= body.limit, 'carts length does not exceed limit');
+      await response.assertSchema(CartsListSchema);
     });
   });
 
@@ -39,6 +41,7 @@ test.describe('DummyJSON Carts API @api @regression', () => {
     await logger.step('Step 2 - Assert cart returned matches requested ID', async () => {
       await response.assertStatus(200);
       await response.assertJsonPath('id', DUMMYJSON_KNOWN_CART_ID);
+      await response.assertSchema(CartSchema);
     });
   });
 
@@ -75,6 +78,7 @@ test.describe('DummyJSON Carts API @api @regression', () => {
       const body = await response.json<CartsListResponse>();
       expect(Array.isArray(body.carts)).toBe(true);
       expect(body.carts.every((cart) => cart.userId === userId)).toBe(true);
+      await response.assertSchema(CartsListSchema);
     });
   });
 
@@ -92,6 +96,9 @@ test.describe('DummyJSON Carts API @api @regression', () => {
       const created = await response.json<Cart>();
       softAssert.toBeDefined(created.id, 'simulated cart has an id');
       softAssert.toBe(created.userId, newCart.userId, 'userId echoes submitted value');
+      // No assertSchema here: dummyjson's simulated /carts/add echo omits
+      // discountedTotal on line items, which CartProductSchema requires by design
+      // (loosening it would weaken the TC_01/TC_04 list assertions it also backs).
     });
   });
 
@@ -107,6 +114,9 @@ test.describe('DummyJSON Carts API @api @regression', () => {
     await logger.step('Step 2 - Assert simulated update returns the cart ID', async () => {
       await response.assertStatus(200);
       await response.assertJsonPath('id', DUMMYJSON_KNOWN_CART_ID);
+      // No assertSchema here: dummyjson's simulated /carts/{id} PUT echo omits
+      // discountedTotal on line items, which CartProductSchema requires by design
+      // (loosening it would weaken the TC_01/TC_04 list assertions it also backs).
     });
   });
 
@@ -123,6 +133,7 @@ test.describe('DummyJSON Carts API @api @regression', () => {
       const deleted = await response.json<Cart & DeletedResource>();
       softAssert.toBeTruthy(deleted.isDeleted, 'isDeleted is true');
       softAssert.toBeDefined(deleted.deletedOn, 'deletedOn is present');
+      await response.assertSchema(CartDeletedSchema);
     });
   });
 });

@@ -7,6 +7,7 @@ import {
 import { UsersListResponse, User, DeletedResource } from '../../src/api/services/dummyjson';
 import { ApiResponseWrapper } from '../../src/api/ApiResponse';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { UserSchema, UsersListSchema, UserDeletedSchema } from '../../src/data/api/schemas/dummyjson-schemas';
 
 test.describe('DummyJSON Users API @api @regression', () => {
   test('TC_01 - Should list users with pagination metadata', async ({ dummyjsonService, softAssert }) => {
@@ -24,6 +25,7 @@ test.describe('DummyJSON Users API @api @regression', () => {
       softAssert.toBeGreaterThan(body.total, 0, 'total is greater than 0');
       softAssert.toBe(body.skip, 0, 'skip defaults to 0');
       softAssert.toBeTruthy(body.users.length <= body.limit, 'users length does not exceed limit');
+      await response.assertSchema(UsersListSchema);
     });
   });
 
@@ -38,6 +40,7 @@ test.describe('DummyJSON Users API @api @regression', () => {
     await logger.step('Step 2 - Assert user returned matches requested ID', async () => {
       await response.assertStatus(200);
       await response.assertJsonPath('id', DUMMYJSON_KNOWN_USER_ID);
+      await response.assertSchema(UserSchema);
     });
   });
 
@@ -66,6 +69,7 @@ test.describe('DummyJSON Users API @api @regression', () => {
       await response.assertStatus(200);
       const body = await response.json<UsersListResponse>();
       expect(Array.isArray(body.users)).toBe(true);
+      await response.assertSchema(UsersListSchema);
     });
   });
 
@@ -84,6 +88,7 @@ test.describe('DummyJSON Users API @api @regression', () => {
       softAssert.toBeDefined(created.id, 'simulated user has an id');
       softAssert.toBe(created.firstName, newUser.firstName, 'firstName echoes submitted value');
       softAssert.toBe(created.lastName, newUser.lastName, 'lastName echoes submitted value');
+      await response.assertSchema(UserSchema);
     });
   });
 
@@ -99,6 +104,7 @@ test.describe('DummyJSON Users API @api @regression', () => {
     await logger.step('Step 2 - Assert simulated update echoes submitted firstName', async () => {
       await response.assertStatus(200);
       await response.assertJsonPath('firstName', update.firstName);
+      await response.assertSchema(UserSchema);
     });
   });
 
@@ -115,6 +121,7 @@ test.describe('DummyJSON Users API @api @regression', () => {
       const deleted = await response.json<User & DeletedResource>();
       softAssert.toBeTruthy(deleted.isDeleted, 'isDeleted is true');
       softAssert.toBeDefined(deleted.deletedOn, 'deletedOn is present');
+      await response.assertSchema(UserDeletedSchema);
     });
   });
 });

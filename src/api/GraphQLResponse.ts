@@ -1,5 +1,6 @@
 import { APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
+import * as z from 'zod';
 import { ApiResponseWrapper } from './ApiResponse';
 import { GraphQLResponse } from './GraphQLClient';
 
@@ -230,6 +231,21 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
   public async assertListSize(path: string, expectedSize: number): Promise<this> {
     const actualSize = await this.getListSize(path);
     expect(actualSize).toBe(expectedSize);
+    return this;
+  }
+
+  /**
+   * Assert that the GraphQL response data matches a Zod schema
+   * Kept independent from assertNoErrors() — validating the data shape and
+   * checking for GraphQL errors are two different checks
+   * @param schema - Zod schema to validate the data field against
+   */
+  public async assertDataSchema<T>(schema: z.ZodType<T>): Promise<this> {
+    const data = await this.getData();
+    const result = schema.safeParse(data);
+    if (!result.success) {
+      expect(result.success, z.prettifyError(result.error)).toBe(true);
+    }
     return this;
   }
 }

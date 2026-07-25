@@ -1,0 +1,2396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playwright API Testing: Advanced Guide</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); margin-top: 6px; }
+    .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .nav-en { font-size: 13px; }
+    .nav-vi { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+    .hero {
+      padding: 64px 56px 48px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 42px; font-weight: 900; line-height: 1.15; margin-bottom: 18px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 16.5px; color: var(--muted); max-width: 620px; margin-bottom: 32px; }
+
+    .topic-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
+    }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .content-section { padding: 52px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .part-divider {
+      padding: 48px 56px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .part-label {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+    }
+    .part-label::before { content: ''; display: block; width: 28px; height: 2px; background: var(--muted); border-radius: 2px; }
+    .part-divider h2 { font-size: 25px; font-weight: 800; margin-bottom: 20px; }
+    .part-divider .topic-row { margin-top: 24px; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
+    }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* ── Bilingual side-by-side columns ── */
+    .lang-pair { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 4px; }
+    .lang-col { padding-right: 26px; }
+    .lang-col + .lang-col { padding-right: 0; padding-left: 26px; border-left: 1px solid var(--border); }
+    .lang-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface2);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .lang-col p { color: var(--muted); font-size: 14.5px; }
+    .lang-col code { white-space: normal; overflow-wrap: break-word; }
+
+    /* ── Context / difficulty / solution / practical breakdown ── */
+    .breakdown {
+      margin: 6px 0 30px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 10px;
+    }
+    .breakdown-row .lang-pair { margin-bottom: 0; }
+    .breakdown-row .lang-col p { font-size: 13.5px; }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 18px 0 22px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout .lang-pair { flex: 1; margin-bottom: 0; }
+    .callout .lang-tag { background: color-mix(in srgb, var(--cb) 22%, var(--surface2)); }
+    .callout .lang-col p { color: var(--text); font-size: 13.5px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border); border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 14px;
+    }
+    .code-filename { font-size: 12px; color: var(--muted); font-family: 'Fira Code', Consolas, monospace; }
+    .code-lang { font-size: 11px; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 0 0 8px 8px;
+      padding: 18px; overflow-x: auto; font-size: 12.5px; line-height: 1.65;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type{ color: #ffcb6b; }
+    .num { color: #f78c6c; }
+    .prop{ color: #89ddff; }
+    code:not(pre code) {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 1000px) { .hero, .content-section, .footer { padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+      .lang-pair { grid-template-columns: 1fr; }
+      .lang-col + .lang-col {
+        padding-left: 0; border-left: none;
+        border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px;
+      }
+      .callout { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Advanced API Testing</h2>
+      <p>Playwright TypeScript &middot; Deep Dive</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 1: Foundations</div>
+      <a href="#setup" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Setup &amp; auth reuse</span><span class="nav-vi">Thiết lập &amp; tái dùng đăng nhập</span></span></a>
+      <a href="#context" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Isolated contexts</span><span class="nav-vi">Context cô lập</span></span></a>
+      <a href="#polling" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Async polling</span><span class="nav-vi">Polling bất đồng bộ</span></span></a>
+      <a href="#mocking" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Route mocking</span><span class="nav-vi">Giả lập route</span></span></a>
+      <a href="#fixtures" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Custom fixtures</span><span class="nav-vi">Fixture tùy chỉnh</span></span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 2: Enterprise scale</div>
+      <a href="#chaining" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">API chaining</span><span class="nav-vi">Kết chuỗi API</span></span></a>
+      <a href="#schema-codegen" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Zod from OpenAPI</span><span class="nav-vi">Sinh schema Zod từ OpenAPI</span></span></a>
+      <a href="#concurrency" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Worker isolation</span><span class="nav-vi">Cô lập theo worker</span></span></a>
+      <a href="#teardown" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Idempotent teardown</span><span class="nav-vi">Dọn dẹp idempotent</span></span></a>
+      <a href="#sla" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">SLA benchmarking</span><span class="nav-vi">Đo lường SLA</span></span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 3: System level</div>
+      <a href="#mfa" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">MFA / OTP login</span><span class="nav-vi">Đăng nhập MFA / OTP</span></span></a>
+      <a href="#signing" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Payload signing</span><span class="nav-vi">Ký payload</span></span></a>
+      <a href="#queue" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Event queue checks</span><span class="nav-vi">Kiểm tra event queue</span></span></a>
+      <a href="#chaos" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Chaos / resiliency</span><span class="nav-vi">Chaos / khả năng chịu lỗi</span></span></a>
+      <a href="#observability" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Trace observability</span><span class="nav-vi">Observability qua trace</span></span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 4: Architecture &amp; ops</div>
+      <a href="#contract-testing" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Contract testing</span><span class="nav-vi">Kiểm thử hợp đồng</span></span></a>
+      <a href="#ephemeral-env" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Preview environments</span><span class="nav-vi">Môi trường preview</span></span></a>
+      <a href="#har-codegen" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">HAR-based codegen</span><span class="nav-vi">Sinh code từ HAR</span></span></a>
+      <a href="#authz-matrix" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Authorization matrix</span><span class="nav-vi">Ma trận phân quyền</span></span></a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">API testing patterns beyond the basics</div>
+      <h1>Advanced Playwright API Testing</h1>
+      <p class="hero-sub">
+        Nineteen patterns across four parts, starting with what a suite needs once it outgrows a
+        handful of GET/POST checks: reusing an authenticated session, testing two roles side by side,
+        waiting on background jobs, faking network failures, and keeping failure evidence out of
+        passing-test reports. Parts 2 through 4 go further, into enterprise-scale, system-level, and
+        architecture-level concerns. Each section is written in English and Vietnamese, side by side.
+      </p>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Setup &amp; Auth</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">02</div><div class="label">Isolated Context</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">03</div><div class="label">Async Polling</div></div>
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">04</div><div class="label">Route Mocking</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">05</div><div class="label">Custom Fixtures</div></div>
+      </div>
+    </section>
+
+    <!-- 01 -->
+    <section class="content-section" id="setup" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Global setup and reusable auth state</h2>
+          <div class="section-desc">Log in once, hand the session to every test</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Enterprise API suites can carry hundreds or thousands of test cases, and nearly all of them need a valid token or cookie before they can do anything.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Hệ thống test API của doanh nghiệp có thể có hàng trăm, hàng nghìn test case, và gần như tất cả đều cần token hoặc cookie hợp lệ trước khi làm được bất cứ điều gì.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Calling <code>/login</code> separately in every file or every scenario slows the whole suite down by five to ten times, burns test-environment resources, and puts unnecessary load on the login gateway.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Gọi lại <code>/login</code> riêng ở từng file hoặc từng kịch bản làm cả suite chạy chậm đi năm đến mười lần, tốn tài nguyên môi trường test, và dồn tải không cần thiết lên gateway đăng nhập.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Split the authentication flow out using Playwright's project dependency feature: run one setup project before anything else, save the resulting token or cookie to a temporary JSON file, and load it automatically into every request afterward.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tách luồng xác thực ra bằng tính năng project dependency của Playwright: chạy một project setup duy nhất trước mọi thứ khác, lưu token hoặc cookie thu được vào file JSON tạm, rồi tự động nạp lại cho mọi request sau đó.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>In <code>playwright.config.ts</code>, declare a project named <code>setup</code> that runs the login file. In the main <code>api-tests</code> project, set <code>dependencies: ['setup']</code> and load the token automatically with <code>storageState: 'path/to/auth.json'</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Trong <code>playwright.config.ts</code>, khai báo một project tên <code>setup</code> chạy file đăng nhập. Ở project chính <code>api-tests</code>, đặt <code>dependencies: ['setup']</code> và nạp token tự động bằng <code>storageState: 'path/to/auth.json'</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Logging in before every test works, but it gets slower as the suite grows, and CI feels
+          it first. Playwright can authenticate once inside a dedicated setup project, save the
+          resulting cookies and tokens to a JSON file, and hand that file to every other project
+          through <code>storageState</code>. Tests start already signed in.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Đăng nhập lại ở từng test vẫn chạy được, nhưng suite càng lớn thì càng chậm, và CI là
+          nơi cảm nhận rõ nhất. Playwright cho phép đăng nhập một lần trong một project setup
+          riêng, lưu cookie và token vào file JSON, rồi truyền file đó cho các project còn lại qua
+          <code>storageState</code>. Test bắt đầu chạy là đã ở trạng thái đăng nhập sẵn.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The saved token file is credentials on disk, gitignore it. This repo already excludes
+            <code>.auth/</code> for exactly that reason.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>File token đã lưu chính là credential nằm trên đĩa, nên phải gitignore nó. Repo này
+            đã loại trừ <code>.auth/</code> vì đúng lý do đó.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">playwright.config.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { defineConfig } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  projects: [
+    <span class="cmt">// Runs once, authenticates, and writes the token/cookie file</span>
+    {
+      <span class="prop">name</span>: <span class="str">'setup'</span>,
+      <span class="prop">testMatch</span>: /global\.setup\.ts/,
+    },
+    <span class="cmt">// Inherits the saved state, starts every test already logged in</span>
+    {
+      <span class="prop">name</span>: <span class="str">'api-tests'</span>,
+      <span class="prop">use</span>: {
+        <span class="prop">storageState</span>: <span class="str">'playwright/.auth/user.json'</span>,
+      },
+      <span class="prop">dependencies</span>: [<span class="str">'setup'</span>],
+    },
+  ],
+});</pre>
+    </section>
+
+    <!-- 02 -->
+    <section class="content-section" id="context" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Isolated API contexts for multi-role tests</h2>
+          <div class="section-desc">Admin and regular user, side by side, in one test</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Integration scenarios need to verify permissions across several roles acting at once: an admin creating a post, a manager approving it, and a member who shouldn't be able to edit it at all.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kịch bản kiểm thử tích hợp cần xác thực phân quyền giữa nhiều vai trò hoạt động cùng lúc: admin tạo bài viết, manager phê duyệt, và member thì không được phép chỉnh sửa.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Playwright's default <code>{ request }</code> fixture shares one configuration and one login token per run, so there's no way to act as several roles inside a single test.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Fixture <code>{ request }</code> mặc định của Playwright dùng chung một cấu hình và một token đăng nhập cho mỗi lần chạy, nên không thể đóng vai nhiều role trong cùng một test.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Spin up fully isolated HTTP contexts straight from Playwright's core library, right inside the body of one test.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khởi tạo các HTTP context hoàn toàn biệt lập ngay từ thư viện lõi của Playwright, ngay trong thân của một test.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Instead of the default <code>{ request }</code>, pull <code>{ playwright }</code> into the test function. Create separate contexts, e.g. <code>const adminContext = await playwright.request.newContext({ extraHTTPHeaders: { Authorization: 'Bearer ADMIN_TOKEN' } })</code>, and do the same for each other role to fire requests in parallel.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thay vì <code>{ request }</code> mặc định, gọi <code>{ playwright }</code> vào hàm test. Tạo context riêng, ví dụ <code>const adminContext = await playwright.request.newContext({ extraHTTPHeaders: { Authorization: 'Bearer ADMIN_TOKEN' } })</code>, và làm tương tự cho các vai trò khác để gửi request song song.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Permission tests need two identities at once: an admin who should succeed, and a
+          regular user who should get blocked. <code>playwright.request.newContext()</code> creates
+          a fresh HTTP context with its own headers and cookies, completely separate from any other
+          context. Open one per role, assert on both, and neither one leaks into the other.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Test phân quyền cần hai vai trò trong cùng một test: admin (phải thành công) và user
+          thường (phải bị chặn). <code>playwright.request.newContext()</code> tạo ra một HTTP
+          context mới với header và cookie riêng, hoàn toàn tách biệt với context khác. Mở riêng
+          một context cho từng vai trò, assert trên cả hai, và không context nào ảnh hưởng đến
+          context kia.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--purple)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>A context created this way shares nothing with <code>page</code> either, useful when
+            a test also drives the browser and needs the API calls kept separate from the UI
+            session.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Context tạo theo cách này cũng không chia sẻ gì với <code>page</code>, hữu ích khi
+            test vừa thao tác trên browser vừa cần tách riêng API call khỏi session của UI.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">multi-role.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'admin can post, a regular user cannot delete'</span>, <span class="kw">async</span> ({ playwright }) => {
+  <span class="kw">const</span> adminContext = <span class="kw">await</span> playwright.request.<span class="fn">newContext</span>({
+    <span class="prop">extraHTTPHeaders</span>: { Authorization: <span class="str">'Bearer ADMIN_SECRET_TOKEN'</span> },
+  });
+
+  <span class="kw">const</span> userContext = <span class="kw">await</span> playwright.request.<span class="fn">newContext</span>({
+    <span class="prop">extraHTTPHeaders</span>: { Authorization: <span class="str">'Bearer USER_REGULAR_TOKEN'</span> },
+  });
+
+  <span class="kw">const</span> resAdmin = <span class="kw">await</span> adminContext.<span class="fn">post</span>(<span class="str">'/api/posts'</span>, {
+    <span class="prop">data</span>: { title: <span class="str">'Advanced Playwright'</span> },
+  });
+  <span class="fn">expect</span>(resAdmin.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">201</span>);
+
+  <span class="kw">const</span> resUser = <span class="kw">await</span> userContext.<span class="fn">delete</span>(<span class="str">'/api/posts/1'</span>);
+  <span class="fn">expect</span>(resUser.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">403</span>);
+});</pre>
+    </section>
+
+    <!-- 03 -->
+    <section class="content-section" id="polling" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Polling asynchronous jobs</h2>
+          <div class="section-desc">When the API answers before the work is done</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Some systems queue work in the background. Calling an API that exports a large financial report or processes video doesn't return a result right away, it just answers <code>202 Accepted</code> with a <code>jobId</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nhiều hệ thống xử lý job ngầm. Gọi API xuất báo cáo tài chính lớn hay xử lý video sẽ không trả kết quả ngay, mà chỉ trả <code>202 Accepted</code> kèm một <code>jobId</code>.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A test can't check the result immediately, the background job needs anywhere from a few seconds to a few minutes. A fixed sleep wastes time on average and still fails outright if the server lags more than expected.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Test không thể kiểm tra kết quả ngay lập tức, vì job ngầm cần từ vài giây đến vài phút để xong. Sleep cố định vừa lãng phí thời gian trung bình, vừa fail hẳn nếu server lag hơn dự kiến.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Playwright's built-in smart polling loop keeps checking on its own and stops the moment the condition is met.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Vòng lặp polling thông minh có sẵn của Playwright tự kiểm tra lại theo chu kỳ và dừng ngay khi điều kiện đạt.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use <code>await expect.poll(async () => { ... }, { intervals: [...], timeout: 30000 })</code>. Inside the callback, call the job-status endpoint; the loop stops and passes once the result matches <code>.toBe('COMPLETED')</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng <code>await expect.poll(async () => { ... }, { intervals: [...], timeout: 30000 })</code>. Trong callback, gọi endpoint kiểm tra trạng thái job; vòng lặp dừng và pass khi kết quả khớp <code>.toBe('COMPLETED')</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Some endpoints hand a job to a background worker and respond immediately with
+          <code>202 Accepted</code>. <code>expect.poll</code> calls a status endpoint on a schedule
+          until the condition passes or the timeout runs out, so the test never needs a manual
+          sleep loop.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một số endpoint giao job cho worker chạy nền và trả response ngay với
+          <code>202 Accepted</code>. <code>expect.poll</code> sẽ gọi lại endpoint kiểm tra trạng
+          thái theo lịch cho đến khi điều kiện đúng hoặc hết timeout, nên test không cần tự viết
+          vòng lặp sleep.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--cyan)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Keep <code>timeout</code> longer than the sum of the <code>intervals</code> array,
+            otherwise <code>expect.poll</code> gives up before the job has a real chance to
+            finish.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Giữ <code>timeout</code> dài hơn tổng của mảng <code>intervals</code>, nếu không
+            <code>expect.poll</code> sẽ bỏ cuộc trước khi job có cơ hội chạy xong thật sự.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">async-job.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'waits for a background report job to finish'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> jobId = <span class="str">'job_report_2026'</span>;
+
+  <span class="kw">await</span> <span class="fn">expect</span>.<span class="fn">poll</span>(<span class="kw">async</span> () => {
+    <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">get</span>(<span class="cmt">`/api/jobs/${jobId}`</span>);
+    <span class="kw">const</span> body = <span class="kw">await</span> response.<span class="fn">json</span>();
+    <span class="kw">return</span> body.status;
+  }, {
+    <span class="prop">message</span>: <span class="str">'Timed out waiting for the job to reach COMPLETED'</span>,
+    <span class="prop">intervals</span>: [<span class="num">2_000</span>, <span class="num">5_000</span>, <span class="num">10_000</span>],
+    <span class="prop">timeout</span>: <span class="num">45_000</span>,
+  }).<span class="fn">toBe</span>(<span class="str">'COMPLETED'</span>);
+});</pre>
+    </section>
+
+    <!-- 04 -->
+    <section class="content-section" id="mocking" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Intercepting and mocking at the network layer</h2>
+          <div class="section-desc">Answer the request yourself, skip the real server</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Enterprise apps (SaaS, ERP, e-commerce) almost always gate the interface behind a successful login. A UI automation suite can carry hundreds or thousands of test cases that all need to get past that login screen before they can touch the feature underneath.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Các hệ thống ứng dụng doanh nghiệp (SaaS, ERP, e-commerce) hầu hết đều yêu cầu đăng nhập thành công mới hiển thị giao diện thao tác. Bộ test UI automation có thể có hàng trăm, hàng nghìn test case đều cần vượt qua bước đăng nhập này trước khi chạm được vào tính năng nghiệp vụ bên trong.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>If every spec file or every test drives the browser through the login page, types a username and password, and waits for the dashboard to load, the whole suite's CI runtime balloons, sometimes to several hours. Firing thousands of logins at once during parallel runs also chokes the test environment's auth gateway, producing random timeout failures.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nếu mỗi file kịch bản hay mỗi test case đều bắt trình duyệt mở trang login, gõ username/password rồi đợi Dashboard tải xong, thời gian chạy của cả suite trên CI/CD sẽ phình to, có khi lên tới nhiều tiếng đồng hồ. Việc dồn hàng nghìn lượt đăng nhập cùng lúc khi chạy song song cũng làm nghẽn gateway auth của môi trường test, gây ra lỗi timeout ngẫu nhiên.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Set up the same global setup and auth storage bypass used for API tests, but through Playwright's project dependency feature for UI. One dedicated login spec runs once at the start of the run, captures the full session state (JWT token, cookies, and local storage) into a temporary JSON file, and that file gets injected into every other UI test's browser so it lands on the target page in about a second, no login screen involved.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Áp dụng cùng cơ chế Global Setup và Auth Storage Bypass như ở test API, nhưng qua tính năng project dependency của Playwright cho UI. Một file setup đăng nhập riêng chạy đúng một lần ở đầu phiên, chụp lại toàn bộ trạng thái phiên (JWT token, cookie, local storage) vào một file JSON tạm, rồi file đó được "tiêm" vào trình duyệt của mọi test UI khác để vào thẳng trang đích trong khoảng một giây, không cần qua màn hình login.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Create a dedicated setup file (e.g. <code>auth.setup.ts</code>) that opens the login page, fills in the test account, and saves the session with <code>await page.context().storageState({ path: '.auth/user.json' })</code>. In <code>playwright.config.ts</code>, declare a project named <code>auth-setup</code> that runs this file, then have the UI test projects depend on it and load the saved state through <code>storageState</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tạo một file setup riêng (ví dụ <code>auth.setup.ts</code>) mở trang login, điền tài khoản test, rồi lưu trạng thái bằng <code>await page.context().storageState({ path: '.auth/user.json' })</code>. Trong <code>playwright.config.ts</code>, khai báo một project tên <code>auth-setup</code> chạy file này, sau đó cho các project test UI phụ thuộc vào nó và nạp lại trạng thái đã lưu qua <code>storageState</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><code>page.route</code> lets a test answer a browser request itself. That helps in two
+          situations: building the frontend against an API that isn't ready yet, and forcing a rare
+          error code, like a 500 or a 408, that's hard to reproduce against a live backend.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><code>page.route</code> cho phép test tự trả lời một request của browser thay vì gửi
+          đến server thật. Cách này hữu ích ở hai trường hợp: dựng frontend trước khi API thật sẵn
+          sàng, và ép trả về một mã lỗi hiếm gặp như 500 hoặc 408, thứ khó tái hiện được trên
+          backend thật.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>page.route</code> only intercepts requests that go through the browser
+            context. It has no effect on calls made through the standalone <code>request</code>
+            fixture.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>page.route</code> chỉ chặn được request đi qua browser context. Nó không có
+            tác dụng với các call thực hiện qua fixture <code>request</code> độc lập.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">route-mock.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'shows a friendly error banner when the products API is down'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/api/v1/products'</span>, <span class="kw">async</span> (route) => {
+    <span class="kw">await</span> route.<span class="fn">fulfill</span>({
+      <span class="prop">status</span>: <span class="num">500</span>,
+      <span class="prop">contentType</span>: <span class="str">'application/json'</span>,
+      <span class="prop">body</span>: JSON.<span class="fn">stringify</span>({ message: <span class="str">'Internal Server Error'</span> }),
+    });
+  });
+
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/dashboard'</span>);
+
+  <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'.error-banner-message'</span>))
+    .<span class="fn">toContainText</span>(<span class="str">'Something went wrong. Please try again.'</span>);
+});</pre>
+    </section>
+
+    <!-- 05 -->
+    <section class="content-section" id="fixtures" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Custom fixtures that attach failure context automatically</h2>
+          <div class="section-desc">Keep passing-test reports clean, capture detail only when it matters</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When a suite runs unattended on CI, a plain failure report rarely shows what was actually wrong with the request that failed, so QA ends up re-running the same scenario locally just to see the payload.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi suite chạy tự động trên CI, báo cáo lỗi thông thường hiếm khi cho thấy request bị fail thực sự có vấn đề gì, khiến QA phải chạy lại kịch bản đó trên máy cá nhân chỉ để xem payload.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Playwright doesn't attach request or response bodies and headers to the HTML report on its own, unless someone sprinkles <code>console.log</code> calls everywhere, which clutters the code and gets harder to maintain over time.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Playwright không tự đính kèm body hay header của request/response vào report HTML, trừ khi ai đó rải <code>console.log</code> khắp nơi, việc này làm bẩn mã nguồn và ngày càng khó bảo trì.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Extend the base test with a custom fixture that acts as a silent listener, capturing the request details and attaching them to the report only when the test actually fails.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Mở rộng test gốc bằng một custom fixture đóng vai trò bộ lắng nghe ngầm, tự bắt thông tin chi tiết của request và chỉ đính kèm vào report khi test thật sự fail.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use <code>base.extend</code> to declare a custom fixture, for example <code>apiDebug</code>. Inside it, call <code>await use(request)</code> to let the test run, then check <code>if (testInfo.status !== testInfo.expectedStatus)</code> and call <code>testInfo.attach()</code> to attach the failing payload to the report.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng <code>base.extend</code> để khai báo một fixture tùy biến, ví dụ <code>apiDebug</code>. Bên trong, gọi <code>await use(request)</code> để test chạy qua, rồi kiểm tra <code>if (testInfo.status !== testInfo.expectedStatus)</code> và gọi <code>testInfo.attach()</code> để đính kèm payload lỗi vào report.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Attaching the full request and response payload to every test report gets noisy fast,
+          most tests pass and don't need it. A custom fixture can wrap the request context, let
+          the test run, then check <code>testInfo.status</code> afterward and attach the payload
+          only when the test actually failed.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Đính kèm toàn bộ request và response vào report của mọi test sẽ nhanh chóng gây rối,
+          vì phần lớn test pass và không cần đến nó. Một custom fixture có thể bọc request context,
+          để test chạy xong rồi mới kiểm tra <code>testInfo.status</code>, và chỉ đính kèm payload
+          khi test thật sự fail.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>This framework's own <code>attachTestLogs</code> fixture in <code>base-test.ts</code>
+            and <code>ApiTest.ts</code> follows the same wrap-then-teardown shape, though it flushes
+            on every test rather than gating on failure, since step logs are useful on passing
+            tests too.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Fixture <code>attachTestLogs</code> của chính framework này trong
+            <code>base-test.ts</code> và <code>ApiTest.ts</code> dùng cùng cấu trúc bọc rồi xử lý ở
+            teardown, nhưng nó flush ở mọi test chứ không chỉ khi fail, vì log các bước vẫn hữu ích
+            cả khi test pass.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">smart-request-fixture.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test <span class="kw">as</span> base, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import type</span> { APIRequestContext } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">type</span> <span class="type">Fixtures</span> = {
+  smartRequest: <span class="type">APIRequestContext</span>;
+};
+
+<span class="kw">export const</span> test = base.<span class="fn">extend</span>&lt;<span class="type">Fixtures</span>&gt;({
+  smartRequest: <span class="kw">async</span> ({ request }, use, testInfo) => {
+    <span class="kw">await</span> <span class="fn">use</span>(request);
+
+    <span class="cmt">// Runs after the test body, testInfo.status is final by now</span>
+    <span class="kw">if</span> (testInfo.status !== testInfo.expectedStatus) {
+      <span class="kw">await</span> testInfo.<span class="fn">attach</span>(<span class="str">'failed-request-context'</span>, {
+        <span class="prop">body</span>: JSON.<span class="fn">stringify</span>(
+          { status: testInfo.status, error: testInfo.error?.message },
+          <span class="kw">null</span>,
+          <span class="num">2</span>
+        ),
+        <span class="prop">contentType</span>: <span class="str">'application/json'</span>,
+      });
+    }
+  },
+});
+
+<span class="kw">export</span> { expect };</pre>
+    </section>
+
+    <!-- Part 2 divider -->
+    <section class="part-divider" id="part2">
+      <div class="part-label">Continuing the guide</div>
+      <h2>Part 2: enterprise-scale patterns</h2>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The first five patterns get a suite through its early growth. Past a certain size,
+          new problems show up: business logic that spans several endpoints, response contracts
+          nobody wrote by hand, and workers stepping on each other's test data in CI. The next
+          five patterns are for that stage.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Năm kỹ thuật đầu giúp suite vượt qua giai đoạn tăng trưởng ban đầu. Đến một quy mô
+          nhất định thì các vấn đề khác xuất hiện: logic nghiệp vụ trải dài qua nhiều endpoint,
+          hợp đồng response không ai viết tay, và các worker giẫm lên dữ liệu test của nhau trên
+          CI. Năm kỹ thuật tiếp theo dành cho giai đoạn đó.</p>
+        </div>
+      </div>
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent2)"><div class="num">06</div><div class="label">API Chaining</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">07</div><div class="label">Schema Codegen</div></div>
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">08</div><div class="label">Worker Isolation</div></div>
+        <div class="topic-chip" style="--c: var(--red)"><div class="num">09</div><div class="label">Idempotent Teardown</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">10</div><div class="label">SLA Benchmarking</div></div>
+      </div>
+    </section>
+
+    <!-- 06 -->
+    <section class="content-section" id="chaining" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>API chaining behind a controller</h2>
+          <div class="section-desc">One method for a workflow that needs several requests</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Real API scenarios almost always run as a chain: create a category, grab its ID to create a product, grab that product's ID to run checkout.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kịch bản API thật hầu như luôn chạy theo chuỗi: tạo danh mục, lấy ID vừa tạo để tạo sản phẩm, lấy ID sản phẩm đó để gọi thanh toán.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Writing every one of those HTTP calls nested directly inside the test file turns the code messy fast, hard to read, impossible to reuse for other flows, and it breaks basic clean-code practice.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Viết toàn bộ các lệnh gọi HTTP đó lồng trực tiếp trong file test khiến mã nguồn nhanh chóng rối, khó đọc, không tái sử dụng được cho luồng khác, và vi phạm nguyên tắc clean code cơ bản.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Wrap the chain behind a controller class: a dedicated class for one API's business logic that packages the chained steps into clear, named methods.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Gói chuỗi lệnh gọi đó vào một controller class: một class riêng cho logic nghiệp vụ của một API, đóng gói các bước kết chuỗi thành các method rõ ràng, có tên gọi.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Create a <code>ProductController</code> class that takes an <code>APIRequestContext</code>. Write an <code>async createAndPublishProduct(payload)</code> method inside it that runs the create-then-publish chain automatically. The test file only has to instantiate the class and call that one method.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tạo class <code>ProductController</code> nhận vào một <code>APIRequestContext</code>. Viết method <code>async createAndPublishProduct(payload)</code> bên trong để tự chạy chuỗi tạo rồi publish. File test chỉ cần khởi tạo class và gọi đúng một method đó.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Real workflows rarely fit in one request. Creating a product, then publishing it, then
+          confirming it shows up in search is three calls with a dependency between them: the second
+          needs an ID the first one returned. Writing that chain inline inside a test file works once,
+          then gets copy-pasted into the next test and drifts. A controller class wraps the chain in
+          one method, so the test calls one thing and asserts on the outcome.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Luồng nghiệp vụ thật hiếm khi gói gọn trong một request. Tạo sản phẩm, publish nó, rồi
+          xác nhận nó xuất hiện trong kết quả tìm kiếm là ba lệnh gọi có phụ thuộc lẫn nhau: lệnh thứ
+          hai cần ID mà lệnh đầu trả về. Viết chuỗi này trực tiếp trong file test thì chạy được một
+          lần, rồi bị copy sang test tiếp theo và dần lệch nhau. Một controller class gói cả chuỗi
+          vào một method, để test chỉ gọi một hàm và assert trên kết quả.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent2)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Same idea as this framework's page objects, just for API calls instead of UI elements:
+            put reused, multi-step logic in one place, keep the test file about assertions.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Cùng ý tưởng với page object của framework này, chỉ khác là áp dụng cho API call thay
+            vì element UI: đặt logic nhiều bước, dùng lại nhiều lần vào một chỗ, để file test chỉ tập
+            trung vào assertion.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">controllers/product-controller.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { APIRequestContext } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">export class</span> <span class="type">ProductController</span> {
+  <span class="kw">constructor</span>(<span class="kw">private readonly</span> request: <span class="type">APIRequestContext</span>) {}
+
+  <span class="cmt">// Chains create -&gt; publish so the test only has to call one method</span>
+  <span class="kw">async</span> <span class="fn">createAndPublishProduct</span>(payload: { name: <span class="type">string</span>; price: <span class="type">number</span> }) {
+    <span class="kw">const</span> createResponse = <span class="kw">await</span> <span class="kw">this</span>.request.<span class="fn">post</span>(<span class="str">'/v1/products'</span>, { data: payload });
+    <span class="kw">if</span> (!createResponse.<span class="fn">ok</span>()) <span class="kw">throw new</span> <span class="type">Error</span>(<span class="str">'Failed to create draft product'</span>);
+
+    <span class="kw">const</span> { id: productId } = <span class="kw">await</span> createResponse.<span class="fn">json</span>();
+    <span class="kw">const</span> publishResponse = <span class="kw">await</span> <span class="kw">this</span>.request.<span class="fn">put</span>(<span class="cmt">`/v1/products/${productId}/publish`</span>);
+
+    <span class="kw">return</span> {
+      productId,
+      publishStatus: publishResponse.<span class="fn">status</span>(),
+      success: publishResponse.<span class="fn">ok</span>(),
+    };
+  }
+}</pre>
+
+      <div class="code-header">
+        <span class="code-filename">product-chaining.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> { ProductController } <span class="kw">from</span> <span class="str">'./controllers/product-controller'</span>;
+
+<span class="fn">test</span>(<span class="str">'creates a draft product and publishes it in one chained call'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> productApi = <span class="kw">new</span> <span class="type">ProductController</span>(request);
+
+  <span class="kw">const</span> result = <span class="kw">await</span> productApi.<span class="fn">createAndPublishProduct</span>({ name: <span class="str">'MacBook Pro M4'</span>, price: <span class="num">2500</span> });
+
+  <span class="fn">expect</span>(result.success).<span class="fn">toBe</span>(<span class="kw">true</span>);
+  <span class="fn">expect</span>(result.publishStatus).<span class="fn">toBe</span>(<span class="num">200</span>);
+});</pre>
+    </section>
+
+    <!-- 07 -->
+    <section class="content-section" id="schema-codegen" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Generating Zod schemas from an OpenAPI spec</h2>
+          <div class="section-desc">Turn the backend's own contract into the validation code</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A project can have hundreds of different endpoints, and the backend team changes the response structure on a near-weekly basis.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dự án có thể có hàng trăm endpoint khác nhau, và đội Backend gần như thay đổi cấu trúc dữ liệu trả về hàng tuần.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Having QA type out a Zod schema file by hand for hundreds of endpoints is unrealistic, slow, and error-prone, and it drifts from what the backend actually ships.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Bắt QA gõ tay từng dòng để dựng file schema Zod cho hàng trăm endpoint là điều không khả thi, tốn thời gian, dễ sai sót, và lệch dần khỏi những gì Backend thật sự trả về.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Set up automated contract testing: use an open-source tool to scan the backend's own API document (<code>swagger.json</code> or <code>openapi.json</code>) and reverse it into Zod schema source code.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thiết lập kiểm thử giao ước tự động: dùng công cụ mã nguồn mở quét file tài liệu API của Backend (<code>swagger.json</code> hoặc <code>openapi.json</code>) rồi dịch ngược thành mã nguồn schema Zod.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Install the <code>openapi-to-zod</code> dev dependency. Add a script in <code>package.json</code> like <code>openapi-to-zod https://dev.com ./schemas/generated.ts</code>. Every CI run refreshes the whole schema set automatically.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cài dev dependency <code>openapi-to-zod</code>. Thêm script trong <code>package.json</code> dạng <code>openapi-to-zod https://dev.com ./schemas/generated.ts</code>. Mỗi lần chạy CI, script này tự cập nhật lại toàn bộ schema.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Hand-writing a Zod schema for every endpoint doesn't scale past a couple dozen models,
+          and it drifts from the real contract the moment the backend changes a field. Where the
+          backend publishes an OpenAPI document, a codegen step can turn that document into Zod
+          schemas directly, so the schema file is a build artifact instead of something a person
+          maintains by hand.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Viết tay schema Zod cho từng endpoint không mở rộng nổi khi vượt qua vài chục model, và
+          nó sẽ lệch khỏi hợp đồng thật ngay khi backend đổi một field. Nếu backend công bố tài liệu
+          OpenAPI, một bước codegen có thể chuyển tài liệu đó thành schema Zod trực tiếp, biến file
+          schema thành một artifact được build ra thay vì thứ con người phải bảo trì bằng tay.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--cyan)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>This repo's own Zod pilot writes schemas by hand on purpose. For a small, stable set
+            of dummyjson endpoints, a hand-written schema is easier to review than a generated file
+            none of the reviewers wrote. Codegen earns its keep once the endpoint count makes
+            hand-written schemas the bottleneck.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Bản pilot Zod của repo này chủ động viết schema bằng tay. Với một tập nhỏ và ổn định
+            các endpoint dummyjson, schema viết tay dễ review hơn một file generate ra mà không
+            reviewer nào viết. Codegen chỉ thực sự đáng dùng khi số lượng endpoint khiến schema viết
+            tay trở thành điểm nghẽn.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">package.json</span>
+        <span class="code-lang">Bash</span>
+      </div>
+      <pre><span class="cmt"># One-time install</span>
+npm install openapi-zod-client --save-dev
+
+<span class="cmt"># package.json: run after every backend contract change</span>
+{
+  <span class="str">"scripts"</span>: {
+    <span class="str">"sync-schemas"</span>: <span class="str">"openapi-zod-client ./openapi.json -o ./src/data/api/schemas/generated-schemas.ts"</span>
+  }
+}</pre>
+
+      <div class="code-header">
+        <span class="code-filename">user-profile.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="cmt">// Generated by the sync-schemas script above, not hand-written</span>
+<span class="kw">import</span> { UserResponseSchema } <span class="kw">from</span> <span class="str">'../schemas/generated-schemas'</span>;
+
+<span class="fn">test</span>(<span class="str">'response matches the schema generated from the OpenAPI spec'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">get</span>(<span class="str">'/v1/user/profile'</span>);
+  <span class="kw">const</span> body = <span class="kw">await</span> response.<span class="fn">json</span>();
+
+  <span class="kw">const</span> result = UserResponseSchema.<span class="fn">safeParse</span>(body);
+
+  <span class="fn">expect</span>(result.success).<span class="fn">toBe</span>(<span class="kw">true</span>);
+});</pre>
+    </section>
+
+    <!-- 08 -->
+    <section class="content-section" id="concurrency" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Isolating test data across parallel workers</h2>
+          <div class="section-desc">Give every worker its own account instead of sharing one</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>To save time, CI splits API tests across several parallel workers or shards.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Để tối ưu thời gian, CI bật chạy song song nhiều worker hoặc chia shard cho test API.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When several threads run at once, scenarios start fighting over the same dirty data: worker 1 is mid-update on User A right when worker 2 deletes User A, and worker 1 fails for a reason that has nothing to do with its own logic.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi nhiều luồng chạy cùng lúc, các kịch bản dễ tranh chấp dữ liệu bẩn: worker 1 đang cập nhật User A thì đúng lúc worker 2 xóa User A, khiến worker 1 fail oan vì lý do chẳng liên quan gì đến logic của chính nó.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Isolate test resources by combining Playwright's worker index with a library that generates unique random data.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cô lập tài nguyên test bằng cách kết hợp chỉ số worker của Playwright với một thư viện sinh dữ liệu ngẫu nhiên duy nhất.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use <code>process.env.TEST_WORKER_INDEX</code> to build a distinct login username per worker, e.g. <code>user_worker_1</code>, <code>user_worker_2</code>. Pair it with <code>@faker-js/faker</code> to generate a random email and phone number per request, so no record ever collides.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng <code>process.env.TEST_WORKER_INDEX</code> để tạo username đăng nhập riêng cho từng worker, ví dụ <code>user_worker_1</code>, <code>user_worker_2</code>. Kết hợp <code>@faker-js/faker</code> để sinh email, số điện thoại ngẫu nhiên cho mỗi request, đảm bảo không bản ghi nào trùng nhau.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Running with several workers means several test files hit the same environment at once.
+          If two of them touch the same account, one logging in while another deletes it, the failure
+          has nothing to do with either test's own logic. Playwright numbers each worker through
+          <code>TEST_WORKER_INDEX</code>; using that number to pick a distinct account, or generating
+          fully random data per test, keeps workers out of each other's way.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Chạy với nhiều worker nghĩa là nhiều file test cùng tác động vào môi trường trong cùng
+          thời điểm. Nếu hai worker đụng vào cùng một tài khoản, một bên đang đăng nhập trong khi bên
+          kia xóa tài khoản đó, lỗi xảy ra không liên quan gì đến logic của test nào cả. Playwright
+          đánh số mỗi worker qua <code>TEST_WORKER_INDEX</code>; dùng số đó để chọn một tài khoản
+          riêng, hoặc sinh dữ liệu hoàn toàn ngẫu nhiên cho mỗi test, giúp các worker không giẫm chân
+          nhau.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>TEST_WORKER_INDEX</code> resets between shards in a matrix CI run, so it's
+            unique within one shard, not globally across every shard. Combine it with the shard
+            index, or with faker-generated data, when the suite runs sharded.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>TEST_WORKER_INDEX</code> reset lại giữa các shard trong một CI chạy theo matrix,
+            nên nó chỉ duy nhất trong một shard, không duy nhất trên toàn bộ các shard. Kết hợp nó với
+            chỉ số shard, hoặc với dữ liệu sinh bằng faker, khi suite chạy theo shard.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">worker-scoped-login.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'logs in with an account scoped to this worker'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> workerId = process.env.TEST_WORKER_INDEX ?? <span class="str">'0'</span>;
+
+  <span class="kw">const</span> credentials = {
+    username: <span class="cmt">`automation_user_${workerId}`</span>,
+    password: process.env.TEST_USER_PASSWORD!,
+  };
+
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/auth/login'</span>, { data: credentials });
+  <span class="fn">expect</span>(response.<span class="fn">ok</span>()).<span class="fn">toBeTruthy</span>();
+});</pre>
+
+      <div class="code-header">
+        <span class="code-filename">unique-customer.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> { faker } <span class="kw">from</span> <span class="str">'@faker-js/faker'</span>;
+
+<span class="fn">test</span>(<span class="str">'creates a customer with data that never collides across runs'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> payload = {
+    email: faker.internet.<span class="fn">email</span>(),
+    fullName: faker.person.<span class="fn">fullName</span>(),
+    phoneNumber: faker.phone.<span class="fn">number</span>(),
+  };
+
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/v1/customers'</span>, { data: payload });
+  <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">201</span>);
+});</pre>
+    </section>
+
+    <!-- 09 -->
+    <section class="content-section" id="teardown" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>Idempotent cleanup for generated test data</h2>
+          <div class="section-desc">Delete what the test created, whether it passed or failed</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>An API automation suite running daily against staging or UAT builds up tens of thousands of leftover records inside the company's database over time.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Bộ test API automation chạy hàng ngày trên Staging/UAT tích lũy hàng vạn bản ghi rác trong database của công ty theo thời gian.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Dirty data left unhandled degrades database performance, throws off reporting dashboards, and can break later test runs that depend on a clean state.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dữ liệu bẩn không được dọn dẹp làm giảm hiệu năng database, gây sai lệch cho dashboard báo cáo, và có thể làm gãy các lượt test chạy sau vốn cần một trạng thái sạch.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Set up an automatic garbage-collection mechanism: capture every ID as soon as a record is created, and use a cleanup hook to wipe it all after the scenario finishes.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thiết lập cơ chế thu gom dữ liệu tự động: thu lại ID ngay khi bản ghi được tạo thành công, và dùng hook dọn dẹp để xóa sạch sau khi kịch bản kết thúc.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Declare an empty array, <code>let createdIds: number[] = []</code>, at the top of the file. Push the ID into it after every successful create request. Use <code>test.afterAll(async ({ request }) => { ... })</code> to loop through the array and delete every record, whether the test passed or failed.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khai báo mảng rỗng <code>let createdIds: number[] = []</code> ở đầu file. Đẩy ID vào mảng sau mỗi lệnh tạo thành công. Dùng <code>test.afterAll(async ({ request }) => { ... })</code> để duyệt mảng và xóa toàn bộ, bất kể test pass hay fail.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A suite that runs on every commit creates real rows in a shared staging database, and
+          none of them belong there once the test ends. Collecting the IDs a test creates and
+          deleting them in <code>afterAll</code>, regardless of whether the test passed or failed,
+          keeps a long-running staging environment from filling up with abandoned records.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một suite chạy trên mọi commit sẽ tạo ra các dòng dữ liệu thật trong database staging
+          dùng chung, và không dòng nào trong số đó nên còn tồn tại sau khi test kết thúc. Thu thập
+          lại ID mà test tạo ra và xóa chúng trong <code>afterAll</code>, bất kể test pass hay fail,
+          giúp một môi trường staging chạy lâu dài không bị đầy lên bởi các bản ghi bị bỏ quên.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>afterAll</code> still runs when a test in the same describe block throws, but
+            not if the whole worker process crashes. For data that absolutely must not survive, a
+            scheduled cleanup job outside the test run is still the safety net.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>afterAll</code> vẫn chạy ngay cả khi một test trong cùng describe block ném
+            lỗi, nhưng không chạy nếu cả tiến trình worker crash. Với dữ liệu bắt buộc không được
+            tồn tại lại, một job dọn dẹp chạy theo lịch bên ngoài lần chạy test vẫn là lưới an toàn
+            cuối cùng.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">category-lifecycle.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+test.<span class="fn">describe</span>(<span class="str">'Category lifecycle'</span>, () => {
+  <span class="kw">const</span> createdIds: <span class="type">number</span>[] = [];
+
+  <span class="fn">test</span>(<span class="str">'creates a new category'</span>, <span class="kw">async</span> ({ request }) => {
+    <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/v1/categories'</span>, { data: { name: <span class="str">'Electronics'</span> } });
+    <span class="kw">const</span> body = <span class="kw">await</span> response.<span class="fn">json</span>();
+
+    createdIds.<span class="fn">push</span>(body.id);
+    <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">201</span>);
+  });
+
+  test.<span class="fn">afterAll</span>(<span class="kw">async</span> ({ request }) => {
+    <span class="kw">for</span> (<span class="kw">const</span> id <span class="kw">of</span> createdIds) {
+      <span class="kw">await</span> request.<span class="fn">delete</span>(<span class="cmt">`/v1/categories/${id}`</span>);
+    }
+  });
+});</pre>
+    </section>
+
+    <!-- 10 -->
+    <section class="content-section" id="sla" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div>
+          <h2>Benchmarking response times against an SLA</h2>
+          <div class="section-desc">Fail the build on the day a fast endpoint turns slow</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When the backend ships new code, an unoptimized database query can slip through and visibly slow an API's response time, hurting the user experience.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi Backend đưa mã nguồn mới lên, một câu truy vấn database chưa tối ưu có thể lọt qua và làm chậm rõ rệt thời gian phản hồi của API, ảnh hưởng đến trải nghiệm người dùng.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Ordinary functional tests only check whether the data is right, not how long it took, so a serious performance regression can pass on CI without anyone noticing.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Test chức năng thông thường chỉ kiểm tra dữ liệu đúng hay sai, không quan tâm thời gian phản hồi, nên một regression hiệu năng nghiêm trọng vẫn có thể pass trên CI mà không ai nhận ra.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Fold an SLA (service level agreement) commitment directly into the test as a measurable check, using Node's performance timer.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đưa cam kết SLA (service level agreement) trực tiếp vào test như một điều kiện đo lường được, tận dụng bộ đếm thời gian performance của Node.js.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Call <code>performance.now()</code> right before firing the request. After the response comes back from Playwright, take the end timestamp and compute <code>const duration = endTime - startTime</code>. Use <code>expect(duration).toBeLessThan(500)</code> to fail the test if the API takes longer than 500ms.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Gọi <code>performance.now()</code> ngay trước khi gửi request. Sau khi nhận response từ Playwright, lấy mốc kết thúc và tính <code>const duration = endTime - startTime</code>. Dùng <code>expect(duration).toBeLessThan(500)</code> để đánh fail nếu API chạy quá 500ms.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A test that only checks the status code misses a real class of regression: a slow
+          endpoint that still answers correctly. Node's <code>performance.now()</code> measures
+          wall-clock time around the request with sub-millisecond precision, and asserting on that
+          duration turns an SLA commitment into a check that fails on CI the day it's broken, instead
+          of showing up in a monitoring dashboard three days later.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một test chỉ kiểm tra status code sẽ bỏ sót cả một loại regression thật: endpoint trả
+          lời chậm nhưng vẫn đúng dữ liệu. <code>performance.now()</code> của Node đo thời gian thực
+          quanh request với độ chính xác dưới mili-giây, và assert trên khoảng thời gian đó biến một
+          cam kết SLA thành một check fail ngay trên CI vào đúng ngày nó bị vi phạm, thay vì ba ngày
+          sau mới xuất hiện trên dashboard giám sát.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>CI runners are shared hardware and slower than a laptop, so a threshold tuned locally
+            will flake in CI. Read the SLA threshold from an env var so it can be relaxed for CI
+            without touching the test.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>CI runner là phần cứng dùng chung và chậm hơn máy laptop, nên một ngưỡng canh trên máy
+            cá nhân sẽ dễ flake trên CI. Đọc ngưỡng SLA từ một biến môi trường để có thể nới lỏng
+            riêng cho CI mà không cần sửa test.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">report-sla.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'financial summary report responds within the agreed SLA'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> maxAllowedMs = <span class="type">Number</span>(process.env.REPORT_SLA_MS ?? <span class="num">800</span>);
+
+  <span class="kw">const</span> start = performance.<span class="fn">now</span>();
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">get</span>(<span class="str">'/v1/reports/financial-summary'</span>);
+  <span class="kw">const</span> durationMs = performance.<span class="fn">now</span>() - start;
+
+  <span class="fn">expect</span>(response.<span class="fn">ok</span>()).<span class="fn">toBeTruthy</span>();
+  <span class="fn">expect</span>(durationMs).<span class="fn">toBeLessThan</span>(maxAllowedMs);
+});</pre>
+    </section>
+
+    <!-- Part 3 divider -->
+    <section class="part-divider" id="part3">
+      <div class="part-label">Continuing the guide</div>
+      <h2>Part 3: system-level patterns</h2>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The last five patterns move past a single service. They cover logging in behind
+          multi-factor auth, proving a payload wasn't tampered with, confirming a message actually
+          reached a queue, checking that the system degrades instead of crashing under bad network
+          conditions, and giving whoever picks up a CI failure a direct link into the logs.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Năm kỹ thuật cuối cùng vượt ra ngoài phạm vi một service đơn lẻ. Chúng bao gồm đăng nhập
+          vượt qua xác thực đa yếu tố, chứng minh payload không bị can thiệp, xác nhận message thực
+          sự đến được queue, kiểm tra hệ thống suy giảm có kiểm soát thay vì crash khi mạng gặp sự
+          cố, và cung cấp cho người xử lý lỗi CI một đường link thẳng vào log.</p>
+        </div>
+      </div>
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">11</div><div class="label">MFA / OTP</div></div>
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">12</div><div class="label">Payload Signing</div></div>
+        <div class="topic-chip" style="--c: var(--accent2)"><div class="num">13</div><div class="label">Event Queue</div></div>
+        <div class="topic-chip" style="--c: var(--red)"><div class="num">14</div><div class="label">Chaos Testing</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">15</div><div class="label">Observability</div></div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="content-section" id="mfa" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div>
+          <h2>Automating multi-factor login</h2>
+          <div class="section-desc">Generate the TOTP code instead of skipping MFA in test environments</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Large enterprise systems, banking and fintech especially, require multi-factor authentication. Logging in means entering a 6-digit OTP that rotates every 30 seconds.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Các hệ thống doanh nghiệp lớn, đặc biệt là fintech và ngân hàng, bắt buộc bật xác thực đa nhân tố. Đăng nhập nghĩa là phải nhập một mã OTP 6 số đổi mới mỗi 30 giây.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>An automation script can't hardcode that 6-digit code into test data, it expires within 30 seconds, and the run gets stuck dead at the verification screen.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Script automation không thể gán cứng mã 6 số này vào dữ liệu test, vì mã hết hạn chỉ sau 30 giây, khiến luồng chạy bị kẹt cứng ngay ở màn hình xác thực.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Get a dedicated MFA secret key for the test account from the backend team, then use the <code>otplib</code> library's algorithm to generate the matching 6-digit code in real time, right when the test runs.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Xin đội Backend cấp một MFA secret key riêng cho tài khoản test, rồi dùng thuật toán của thư viện <code>otplib</code> để sinh đúng mã 6 số theo thời gian thực, ngay tại thời điểm test chạy.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Install <code>otplib</code> with <code>npm install otplib</code>. In the global setup login step, read the secret key from a secure CI environment variable and call <code>const token = authenticator.generate(mfaSecret)</code>, then pass that string straight into the login API's verification field.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cài <code>otplib</code> bằng <code>npm install otplib</code>. Trong bước đăng nhập của global setup, đọc secret key từ biến môi trường bảo mật của CI và gọi <code>const token = authenticator.generate(mfaSecret)</code>, rồi truyền thẳng chuỗi đó vào trường xác thực của API đăng nhập.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Password-only login for a test account works right up until the backend requires a TOTP
+          code on top of it, the same 6-digit rotating code an authenticator app would generate.
+          <code>otplib</code> generates that code from the same secret the backend was given when the
+          test account was set up, so a setup project can log in through MFA without a human present.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Đăng nhập chỉ bằng mật khẩu cho tài khoản test hoạt động tốt cho đến khi backend yêu cầu
+          thêm mã TOTP, cùng loại mã 6 chữ số xoay vòng mà một ứng dụng authenticator sẽ sinh ra.
+          <code>otplib</code> sinh ra mã đó từ cùng secret mà backend đã được cấp khi tài khoản test
+          được thiết lập, nhờ vậy một setup project có thể đăng nhập qua MFA mà không cần con người
+          thao tác.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--purple)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The secret belongs in an environment variable, not in the repository. It grants the
+            same access a real authenticator app would, so treat it with the same care as a
+            password.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Secret này phải nằm trong biến môi trường, không phải trong repository. Nó cấp quyền
+            truy cập giống hệt một ứng dụng authenticator thật, nên cần được bảo vệ như một mật
+            khẩu.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">mfa-login.setup.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="cmt">// npm install otplib --save-dev</span>
+<span class="kw">import</span> { test <span class="kw">as</span> setup, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> { authenticator } <span class="kw">from</span> <span class="str">'otplib'</span>;
+
+<span class="fn">setup</span>(<span class="str">'logs in through TOTP-based MFA'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> mfaSecret = process.env.MFA_SECRET_KEY!;
+  <span class="kw">const</span> otpCode = authenticator.<span class="fn">generate</span>(mfaSecret);
+
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/v1/auth/login-mfa'</span>, {
+    data: {
+      username: <span class="str">'test_admin'</span>,
+      password: process.env.TEST_ADMIN_PASSWORD!,
+      otpCode,
+    },
+  });
+
+  <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">200</span>);
+});</pre>
+    </section>
+
+    <!-- 12 -->
+    <section class="content-section" id="signing" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div>
+          <h2>Signed and encrypted payloads</h2>
+          <div class="section-desc">Compute the same HMAC signature the backend expects</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>To stop an attacker from intercepting or tampering with a financial transaction in transit, many systems require the payload to be fully encrypted or to carry a digital signature in a header, like <code>X-Signature</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Để ngăn kẻ tấn công nghe lén hoặc chỉnh sửa nội dung giao dịch tài chính trên đường truyền, nhiều hệ thống yêu cầu payload phải được mã hóa hoàn toàn hoặc kèm một chữ ký điện tử trên header, ví dụ <code>X-Signature</code>.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Sending a plain JSON payload without that signature gets caught by the backend gateway's security layer and rejected outright with a <code>401 Unauthorized</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Gửi một payload JSON thông thường không có chữ ký sẽ bị lớp bảo mật ở gateway của Backend phát hiện và từ chối ngay với lỗi <code>401 Unauthorized</code>.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Write a small helper that hashes the payload with Node's built-in <code>crypto</code> library and a private key before the request goes out.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Viết một helper nhỏ băm payload bằng thư viện <code>crypto</code> có sẵn của Node.js cùng một private key trước khi gửi request.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>crypto.createHmac('sha256', privateKey).update(JSON.stringify(payload)).digest('hex')</code> produces the signature. Pass that string into the request header as <code>headers: { 'X-Signature': signature }</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p><code>crypto.createHmac('sha256', privateKey).update(JSON.stringify(payload)).digest('hex')</code> cho ra chữ ký. Truyền chuỗi đó vào header request dạng <code>headers: { 'X-Signature': signature }</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Financial and healthcare APIs often reject a request outright unless it carries a
+          signature proving the body wasn't altered in transit, usually an HMAC computed over the
+          JSON payload with a shared secret. Node's built-in <code>crypto</code> module computes the
+          same signature the backend expects, so a test can send a normal request and still pass the
+          tampering check.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>API trong lĩnh vực tài chính và y tế thường từ chối thẳng một request nếu nó không mang
+          chữ ký chứng minh phần body chưa bị thay đổi trên đường truyền, thường là một HMAC tính
+          trên payload JSON bằng một secret dùng chung. Module <code>crypto</code> có sẵn của Node
+          tính ra đúng chữ ký mà backend đang mong đợi, nhờ vậy test có thể gửi một request bình
+          thường mà vẫn vượt qua kiểm tra chống giả mạo.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Signing depends on byte-for-byte matching between what got signed and what got sent.
+            Compute the signature from the exact object that goes in the <code>data</code> field, not
+            a re-serialized copy, or a difference in key order can produce a mismatched signature.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Việc ký phụ thuộc vào việc khớp chính xác từng byte giữa phần được ký và phần được gửi
+            đi. Tính chữ ký từ đúng object sẽ đưa vào trường <code>data</code>, không phải một bản
+            serialize lại, vì chỉ cần khác thứ tự key cũng có thể tạo ra chữ ký không khớp.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">signed-transaction.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> * <span class="kw">as</span> crypto <span class="kw">from</span> <span class="str">'node:crypto'</span>;
+
+<span class="kw">function</span> <span class="fn">signPayload</span>(payload: <span class="type">object</span>, secretKey: <span class="type">string</span>): <span class="type">string</span> {
+  <span class="kw">const</span> serialized = JSON.<span class="fn">stringify</span>(payload);
+  <span class="kw">return</span> crypto.<span class="fn">createHmac</span>(<span class="str">'sha256'</span>, secretKey).<span class="fn">update</span>(serialized).<span class="fn">digest</span>(<span class="str">'hex'</span>);
+}
+
+<span class="fn">test</span>(<span class="str">'rejects a transfer request without a valid signature, accepts one with it'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> secret = process.env.API_SIGNING_SECRET!;
+  <span class="kw">const</span> payload = { transferAmount: <span class="num">5000</span>, currency: <span class="str">'VND'</span>, recipient: <span class="str">'123456789'</span> };
+
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/api/v1/transactions'</span>, {
+    data: payload,
+    headers: { <span class="str">'X-Signature'</span>: <span class="fn">signPayload</span>(payload, secret) },
+  });
+
+  <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">200</span>);
+});</pre>
+    </section>
+
+    <!-- 13 -->
+    <section class="content-section" id="queue" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div>
+          <h2>Verifying event-driven side effects</h2>
+          <div class="section-desc">A 202 Accepted only proves the request arrived, not that the work happened</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Many microservices tasks run asynchronously to keep load off the system. Calling the account-creation API means Service A accepts the request, answers <code>202 Accepted</code> right away, and pushes a message onto a Kafka queue for downstream services to pick up.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nhiều tác vụ microservices chạy bất đồng bộ để giảm tải cho hệ thống. Gọi API tạo tài khoản nghĩa là Service A nhận lệnh, trả <code>202 Accepted</code> ngay, rồi đẩy một message vào hàng đợi Kafka để các service phía sau xử lý tiếp.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Checking for a 202 status isn't enough, there's no way to know from the API response alone whether the message actually made it into the queue or whether its fields came through correctly.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kiểm tra status 202 thôi là chưa đủ, không có cách nào biết chỉ từ response của API rằng message có thật sự vào hàng đợi hay các trường dữ liệu của nó có đúng hay không.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Run true end-to-end integration testing: attach a consumer directly to the Kafka cluster and listen for the event at the same time Playwright fires the main API call.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kiểm thử tích hợp end-to-end thật sự: gắn một consumer trực tiếp vào cụm Kafka để lắng nghe sự kiện song song với lúc Playwright gọi API chính.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use the <code>kafkajs</code> library to connect to the Kafka broker and start <code>consumer.run</code> to listen for events. After firing the API call through Playwright, use <code>expect.poll</code> to wait for and confirm the message shows up in the Kafka queue with the correct content.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng thư viện <code>kafkajs</code> để kết nối vào Kafka broker và chạy <code>consumer.run</code> để lắng nghe sự kiện. Sau khi gọi API qua Playwright, dùng <code>expect.poll</code> để chờ và xác nhận message xuất hiện trong hàng đợi Kafka với đúng nội dung.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>In a microservice architecture, a <code>202 Accepted</code> from the API only means the
+          request was received. The API hands the real work to a message on a Kafka topic, and a
+          separate service consumes it. Testing the API alone can't catch a broken message shape; the
+          test needs to subscribe to the same topic and check what actually landed on it.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Trong kiến trúc microservice, một <code>202 Accepted</code> từ API chỉ có nghĩa là
+          request đã được nhận. API giao công việc thật cho một message trên topic Kafka, và một
+          service riêng khác tiêu thụ message đó. Chỉ test API thôi sẽ không phát hiện được message
+          sai cấu trúc; test cần subscribe vào cùng topic đó và kiểm tra thứ thực sự đã xuất hiện
+          trên đó.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent2)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>expect.poll</code> works here because message delivery isn't instant. Give it a
+            timeout generous enough for the broker's own latency, or the assertion fails on
+            infrastructure lag rather than a real bug.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>expect.poll</code> phù hợp ở đây vì việc gửi message không xảy ra tức thì. Đặt
+            timeout đủ rộng để bù cho độ trễ của chính broker, nếu không assertion sẽ fail vì độ trễ
+            hạ tầng chứ không phải vì lỗi thật.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">registration-event.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> { Kafka } <span class="kw">from</span> <span class="str">'kafkajs'</span>;
+
+<span class="fn">test</span>(<span class="str">'a new user registration publishes the expected Kafka message'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> kafka = <span class="kw">new</span> <span class="type">Kafka</span>({ brokers: [<span class="str">'localhost:9092'</span>] });
+  <span class="kw">const</span> consumer = kafka.<span class="fn">consumer</span>({ groupId: <span class="str">'test-group'</span> });
+  <span class="kw">await</span> consumer.<span class="fn">connect</span>();
+  <span class="kw">await</span> consumer.<span class="fn">subscribe</span>({ topic: <span class="str">'user-registrations'</span>, fromBeginning: <span class="kw">false</span> });
+
+  <span class="kw">let</span> receivedMessage: { email?: <span class="type">string</span> } | <span class="kw">null</span> = <span class="kw">null</span>;
+  <span class="kw">await</span> consumer.<span class="fn">run</span>({
+    eachMessage: <span class="kw">async</span> ({ message }) => {
+      receivedMessage = JSON.<span class="fn">parse</span>(message.value?.<span class="fn">toString</span>() ?? <span class="str">'{}'</span>);
+    },
+  });
+
+  <span class="kw">const</span> email = <span class="str">'kafka_test@example.com'</span>;
+  <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/api/users'</span>, { data: { email } });
+
+  <span class="kw">await</span> <span class="fn">expect</span>.<span class="fn">poll</span>(() => receivedMessage, { timeout: <span class="num">10_000</span> }).<span class="fn">toBeTruthy</span>();
+  <span class="fn">expect</span>(receivedMessage?.email).<span class="fn">toBe</span>(email);
+
+  <span class="kw">await</span> consumer.<span class="fn">disconnect</span>();
+});</pre>
+    </section>
+
+    <!-- 14 -->
+    <section class="content-section" id="chaos" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">14</div>
+        <div>
+          <h2>Testing resilience under network chaos</h2>
+          <div class="section-desc">Make the API slow on purpose, then check the UI doesn't hang</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>In production, the network between cloud microservices regularly runs into random trouble, flaky connections or an overloaded server responding slowly.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Trong môi trường vận hành thật, mạng lưới kết nối giữa các cụm microservices trên cloud thường xuyên gặp sự cố ngẫu nhiên, chập chờn kết nối hoặc server quá tải phản hồi chậm.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Ordinary functional tests only run against a perfect environment. In the real world the app can freeze or break because the frontend has no retry logic configured, or the backend has no timeout handling at all.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Test chức năng thông thường chỉ chạy trong môi trường hoàn hảo. Ra thực tế, ứng dụng dễ bị đơ hoặc gãy vì frontend không cấu hình cơ chế retry, hoặc backend không xử lý timeout.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Run deliberate, controlled chaos engineering: use Playwright's network layer to intercept API requests and simulate a dropped connection or a delayed response on purpose.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Chủ động thực hiện chaos engineering có kiểm soát: dùng lớp điều phối mạng của Playwright để chặn request API và cố tình giả lập lỗi rớt mạng hoặc trì hoãn phản hồi.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use <code>page.route('**/api/**')</code>. Inside the handler, pause with <code>await new Promise(r => setTimeout(r, 15000))</code> to stretch the API's response time to 15 seconds before calling <code>route.continue()</code>. Then check whether the app's timeout handling kicks in and whether it retries on its own.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng <code>page.route('**/api/**')</code>. Trong handler, tạm dừng bằng <code>await new Promise(r => setTimeout(r, 15000))</code> để kéo thời gian phản hồi lên 15 giây trước khi gọi <code>route.continue()</code>. Sau đó kiểm tra ứng dụng có kích hoạt xử lý timeout và tự retry hay không.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A downstream API going slow shouldn't take the whole page down with it. Confirming that
+          requires making the API slow on purpose: <code>page.route</code> can delay a response by an
+          arbitrary amount before letting it through, simulating exactly the kind of degraded network
+          a user hits during an incident. The assertion isn't on the API response, it's on whether the
+          UI shows a sane timeout message instead of hanging.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một API downstream bị chậm không nên kéo sập cả trang theo nó. Để xác nhận điều đó cần
+          chủ động làm API chậm đi: <code>page.route</code> có thể trì hoãn response một khoảng thời
+          gian tùy ý trước khi cho nó đi tiếp, mô phỏng đúng loại mạng suy giảm mà người dùng gặp phải
+          trong một sự cố thật. Assertion ở đây không nhắm vào response của API, mà vào việc UI có
+          hiển thị một thông báo timeout hợp lý thay vì bị treo hay không.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>route.continue()</code> after the delay still sends the real request. To
+            simulate a hard failure instead of a slow one, use <code>route.abort()</code> and skip the
+            delay entirely.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>route.continue()</code> sau khoảng delay vẫn gửi request thật sự. Để mô phỏng một
+            lỗi cứng thay vì chỉ chậm, dùng <code>route.abort()</code> và bỏ hẳn phần delay.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">degraded-network.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'shows a timeout message instead of hanging when the analytics API is slow'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/api/v1/analytics'</span>, <span class="kw">async</span> (route) => {
+    <span class="kw">await new</span> <span class="type">Promise</span>((resolve) => <span class="fn">setTimeout</span>(resolve, <span class="num">15_000</span>));
+    <span class="kw">await</span> route.<span class="fn">continue</span>();
+  });
+
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/analytics-dashboard'</span>);
+
+  <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'.timeout-alert'</span>)).<span class="fn">toBeVisible</span>();
+});</pre>
+    </section>
+
+    <!-- 15 -->
+    <section class="content-section" id="observability" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">15</div>
+        <div>
+          <h2>Attaching trace IDs for observability</h2>
+          <div class="section-desc">Turn a failed-test report into a starting point for debugging</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When a suite with thousands of test cases runs on CI and one API unexpectedly returns a 500 Internal Server Error, Playwright's HTML report typically shows nothing more than that generic error code.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi bộ test suite hàng nghìn test case chạy trên CI và một API bất ngờ trả về 500 Internal Server Error, report HTML của Playwright thường chỉ hiển thị đúng mã lỗi 500 chung chung.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Developers can't tell where a 500 actually came from, a crashed database, a logic bug, or a broken permission check, just from QA's report, and end up burning time digging through cloud logs.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đội lập trình viên không biết lỗi 500 xuất phát từ đâu, sập database, lỗi logic, hay gãy phân quyền, chỉ từ report của QA, và mất nhiều thời gian lục log trên cloud.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Set up a shared identifier between QA and DevOps: generate a unique correlation ID (or trace ID) for every request Playwright fires and attach it as a header, so a failure links straight to the centralized log system (Datadog, Grafana, Kibana).</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thiết lập một định danh dùng chung giữa QA và DevOps: sinh một correlation ID (hay trace ID) duy nhất cho mỗi request Playwright gửi đi và gắn nó vào header, để khi lỗi xảy ra sẽ dẫn thẳng tới hệ thống log tập trung (Datadog, Grafana, Kibana).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use <code>crypto.randomUUID()</code> to generate the ID and send it as an <code>X-Correlation-Id</code> header. In the failure check, <code>if (!response.ok())</code>, call <code>testInfo.attach()</code> to drop a direct link to the log system into Playwright's HTML report, so a developer can click through to the error immediately.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng <code>crypto.randomUUID()</code> để sinh mã và gửi kèm header <code>X-Correlation-Id</code>. Trong khối kiểm tra lỗi, <code>if (!response.ok())</code>, gọi <code>testInfo.attach()</code> để dán đường link tới hệ thống log thẳng vào report HTML của Playwright, để dev bấm vào là xem được log lỗi ngay.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>An HTML report showing a 500 error tells the on-call engineer that something broke, not
+          why. If the test sends a correlation ID with the request and the backend logs it, that ID is
+          the thread connecting the failed test to the exact log lines in Datadog or Grafana.
+          Attaching a direct link to those logs, only when the test actually fails, turns a report
+          into a starting point for debugging instead of a dead end.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một báo cáo HTML cho thấy lỗi 500 chỉ nói cho kỹ sư trực biết có gì đó bị hỏng, không nói
+          tại sao. Nếu test gửi kèm một correlation ID theo request và backend ghi lại ID đó vào log,
+          ID này chính là sợi dây nối test bị fail với đúng những dòng log trên Datadog hoặc Grafana.
+          Đính kèm một link trực tiếp đến các log đó, chỉ khi test thật sự fail, biến một báo cáo từ
+          điểm kết thúc thành điểm bắt đầu để debug.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--cyan)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Attach the log link only on failure, the same gating logic as the custom fixture in
+            section 05. A passing test doesn't need an investigation link, and adding one to every
+            report just adds noise.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Chỉ đính kèm link log khi fail, dùng đúng logic gating như custom fixture ở mục 05.
+            Test pass thì không cần link điều tra, và đính kèm nó vào mọi báo cáo chỉ tạo thêm
+            nhiễu.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">payment-status-trace.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> * <span class="kw">as</span> crypto <span class="kw">from</span> <span class="str">'node:crypto'</span>;
+
+<span class="fn">test</span>(<span class="str">'attaches a log-investigation link when the payment status check fails'</span>, <span class="kw">async</span> ({ request }, testInfo) => {
+  <span class="kw">const</span> correlationId = <span class="cmt">`test-automation-${crypto.randomUUID()}`</span>;
+
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">get</span>(<span class="str">'/api/v1/payment/status'</span>, {
+    headers: { <span class="str">'X-Correlation-Id'</span>: correlationId },
+  });
+
+  <span class="kw">if</span> (!response.<span class="fn">ok</span>()) {
+    <span class="kw">const</span> logSystemUrl = <span class="cmt">`https://logs.internal.example.com/trace/${correlationId}`</span>;
+    <span class="kw">await</span> testInfo.<span class="fn">attach</span>(<span class="str">'log-investigation-link'</span>, {
+      body: <span class="cmt">`Trace ID ${correlationId}: ${logSystemUrl}`</span>,
+      contentType: <span class="str">'text/plain'</span>,
+    });
+  }
+
+  <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">200</span>);
+});</pre>
+    </section>
+
+    <!-- Part 4 divider -->
+    <section class="part-divider" id="part4">
+      <div class="part-label">Continuing the guide</div>
+      <h2>Part 4: architecture and operations at enterprise scale</h2>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>These four patterns sit one level above the individual test: proving both sides of an
+          API agree on a contract before either one changes, running against an environment that only
+          exists for the lifetime of a pull request, turning captured traffic into test code for a
+          system with no API documentation, and running one authorization matrix instead of
+          duplicating a test per role.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Bốn kỹ thuật này nằm ở một tầng cao hơn từng test riêng lẻ: chứng minh cả hai phía của
+          một API đồng ý với nhau về hợp đồng trước khi một bên thay đổi, chạy trên một môi trường chỉ
+          tồn tại trong vòng đời của một pull request, biến lưu lượng mạng ghi lại được thành mã test
+          cho một hệ thống không có tài liệu API, và chạy một ma trận phân quyền duy nhất thay vì nhân
+          bản test theo từng vai trò.</p>
+        </div>
+      </div>
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">16</div><div class="label">Contract Testing</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">17</div><div class="label">Preview Envs</div></div>
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">18</div><div class="label">HAR Codegen</div></div>
+        <div class="topic-chip" style="--c: var(--red)"><div class="num">19</div><div class="label">Authz Matrix</div></div>
+      </div>
+    </section>
+
+    <!-- 16 -->
+    <section class="content-section" id="contract-testing" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">16</div>
+        <div>
+          <h2>Two-way contract testing with Pact</h2>
+          <div class="section-desc">Catch a broken contract on the backend's side, before it ships</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>On large projects, frontend and backend teams build independently, and the backend can quietly change a field's structure without telling the frontend team in time.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ở các dự án lớn, đội Frontend và Backend phát triển độc lập, và Backend có thể âm thầm đổi cấu trúc một trường dữ liệu mà không kịp báo cho Frontend.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>One-way validation with Zod on the client side only catches the mismatch after the backend's code has already deployed to a shared environment, which means a late fix and a costly rollback.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Xác thực một chiều bằng Zod ở phía Client chỉ phát hiện ra lỗi sau khi code của Backend đã deploy lên môi trường dùng chung, nghĩa là sửa muộn và phải rollback tốn kém.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Pair the Pact library with Playwright to run bi-directional contract testing. Playwright generates a <code>.pact</code> file that describes exactly what data shape the frontend needs, and the backend's CI is required to run against that file and pass before it can merge.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kết hợp thư viện Pact với Playwright để chạy kiểm thử hợp đồng hai chiều. Playwright sinh ra một file <code>.pact</code> mô tả chính xác cấu trúc dữ liệu Frontend cần, và CI của Backend bắt buộc phải chạy qua file này và pass trước khi được merge.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Declare <code>new PactV3({ consumer: 'Frontend', provider: 'Backend' })</code>. Use matcher functions like <code>MatchersV3.email</code> and <code>MatchersV3.like</code> to build the expected contract shape. Run the test to produce the <code>.pact</code> file, then configure CI to push it to the project's shared Pact Broker.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khai báo <code>new PactV3({ consumer: 'Frontend', provider: 'Backend' })</code>. Dùng các hàm matcher như <code>MatchersV3.email</code>, <code>MatchersV3.like</code> để dựng khung hợp đồng kỳ vọng. Chạy test để xuất file <code>.pact</code>, rồi cấu hình CI đẩy file đó lên Pact Broker chung của dự án.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Zod schemas catch a broken contract, but only after the fact: the backend already
+          shipped the breaking change, and the test only finds out the next time it runs. Pact
+          inverts that order. The consumer test generates a contract file describing exactly what it
+          expects from the backend, publishes it to a shared Pact Broker, and the backend's own CI
+          pipeline is required to verify against that file before it can merge. A breaking change gets
+          caught on the backend's side, before it reaches a shared environment.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Schema Zod phát hiện được hợp đồng bị vỡ, nhưng chỉ sau khi việc đã rồi: backend đã
+          deploy thay đổi phá vỡ cấu trúc, và test chỉ biết được ở lần chạy tiếp theo. Pact đảo ngược
+          thứ tự đó. Test phía consumer sinh ra một file hợp đồng mô tả chính xác những gì nó kỳ vọng
+          từ backend, publish file đó lên một Pact Broker dùng chung, và pipeline CI của chính backend
+          bắt buộc phải verify theo file đó trước khi được merge. Một thay đổi phá vỡ cấu trúc sẽ bị
+          chặn ngay ở phía backend, trước khi nó chạm tới môi trường dùng chung.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--purple)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The two roles matter: this test owns the consumer side and only publishes what it
+            expects, it never runs the provider verification. That half belongs to the backend's own
+            pipeline, against the same broker.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Hai vai trò ở đây khác nhau: test này giữ vai trò consumer, chỉ publish những gì nó kỳ
+            vọng, chứ không chạy provider verification. Nửa còn lại thuộc về pipeline của chính
+            backend, chạy trên cùng một broker.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">user-contract.pact.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="cmt">// npm install @pact-foundation/pact --save-dev</span>
+<span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> { PactV3, MatchersV3 } <span class="kw">from</span> <span class="str">'@pact-foundation/pact'</span>;
+<span class="kw">import</span> path <span class="kw">from</span> <span class="str">'node:path'</span>;
+
+<span class="kw">const</span> provider = <span class="kw">new</span> <span class="type">PactV3</span>({
+  consumer: <span class="str">'Frontend-Playwright-App'</span>,
+  provider: <span class="str">'Backend-User-Service'</span>,
+  dir: path.<span class="fn">resolve</span>(process.cwd(), <span class="str">'pacts'</span>),
+});
+
+<span class="fn">test</span>(<span class="str">'generates the contract for fetching a user by ID'</span>, <span class="kw">async</span> ({ request }) => {
+  provider
+    .<span class="fn">given</span>(<span class="str">'a user exists with ID 10'</span>)
+    .<span class="fn">uponReceiving</span>(<span class="str">"a request for that user's details"</span>)
+    .<span class="fn">withRequest</span>({
+      method: <span class="str">'GET'</span>,
+      path: <span class="str">'/v1/users/10'</span>,
+    })
+    .<span class="fn">willRespondWith</span>({
+      status: <span class="num">200</span>,
+      headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      body: {
+        id: MatchersV3.<span class="fn">like</span>(<span class="num">10</span>),
+        email: MatchersV3.<span class="fn">email</span>(<span class="str">'test@company.com'</span>),
+        role: MatchersV3.<span class="fn">regex</span>(<span class="str">'^(admin|user)$'</span>, <span class="str">'user'</span>),
+      },
+    });
+
+  <span class="cmt">// Pact's mock server, not this repo's baseURL, so the request needs its full URL</span>
+  <span class="kw">await</span> provider.<span class="fn">executeTest</span>(<span class="kw">async</span> (mockServer) => {
+    <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">get</span>(<span class="cmt">`${mockServer.url}/v1/users/10`</span>);
+    <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">200</span>);
+
+    <span class="kw">const</span> body = <span class="kw">await</span> response.<span class="fn">json</span>();
+    <span class="fn">expect</span>(body.id).<span class="fn">toBe</span>(<span class="num">10</span>);
+  });
+});</pre>
+    </section>
+
+    <!-- 17 -->
+    <section class="content-section" id="ephemeral-env" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">17</div>
+        <div>
+          <h2>Testing against ephemeral preview environments</h2>
+          <div class="section-desc">The same suite, unmodified, whether the target lived for months or minutes</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Modern CI/CD uses ephemeral environments: every pull request spins up a brand-new, temporary server cluster with a random URL, then tears it down once the code merges.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>CI/CD hiện đại dùng môi trường ephemeral: mỗi pull request tự dựng lên một cụm server tạm thời hoàn toàn mới với một URL ngẫu nhiên, rồi xóa đi sau khi merge code.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A URL can't be hardcoded into <code>playwright.config.ts</code> because every CI run generates a different one, and the freshly built environment starts out empty with no sample data to test against.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Không thể gán cứng URL vào <code>playwright.config.ts</code> vì mỗi lượt CI sinh ra một URL khác nhau, và môi trường mới dựng lại trống trơn, không có sẵn dữ liệu mẫu để chạy test.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Read the URL dynamically from a CI environment variable, and write a seeding script that calls an internal API to load sample data into the new environment before the main suite starts.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đọc URL động qua biến môi trường của CI, và viết một script seed gọi API nội bộ để bơm dữ liệu mẫu vào môi trường mới trước khi bộ test chính chạy.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>In the config file, set <code>baseURL: process.env.DYNAMIC_PREVIEW_URL || 'https://staging.local'</code>. Write a <code>seed.setup.ts</code> file using the Playwright API to call an internal endpoint, <code>/api/internal/seed-test-data</code>, that plants sample accounts before the tests run.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Trong file config, đặt <code>baseURL: process.env.DYNAMIC_PREVIEW_URL || 'https://staging.local'</code>. Viết file <code>seed.setup.ts</code> dùng API của Playwright gọi endpoint nội bộ <code>/api/internal/seed-test-data</code> để gieo sẵn tài khoản mẫu trước khi test chạy.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A pull request in a modern CI setup often gets its own throwaway environment, spun up at
+          a random URL and torn down again once the PR merges. A suite that hardcodes a staging URL
+          can't run against that environment at all. Reading the URL from an env var the CI pipeline
+          injects, then seeding the fresh database through an internal API before the tests start,
+          lets the same suite run unmodified against a long-lived environment or a brand-new one that
+          existed for twenty minutes.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một pull request trong CI hiện đại thường có riêng một môi trường dùng một lần, được dựng
+          lên ở một URL ngẫu nhiên rồi hủy đi ngay khi PR được merge. Một suite hardcode URL staging
+          thì không thể chạy trên môi trường đó được. Đọc URL từ một biến môi trường mà pipeline CI tự
+          bơm vào, rồi gieo dữ liệu cho database mới tinh qua một API nội bộ trước khi test bắt đầu,
+          giúp cùng một suite chạy được không cần sửa gì, dù là trên môi trường tồn tại lâu dài hay
+          một môi trường vừa tồn tại được hai mươi phút.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The seeding call needs its own internal-only auth header, distinct from any real user
+            credential. Exposing it to a public environment would let anyone reset test data on
+            demand.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Lệnh gọi seed cần một header xác thực nội bộ riêng, khác với bất kỳ credential người
+            dùng thật nào. Để lộ nó ra một môi trường công khai sẽ cho phép bất kỳ ai reset dữ liệu
+            test theo ý muốn.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">playwright.config.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { defineConfig } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="cmt">// The CI pipeline injects this per pull request; falls back to a long-lived staging URL locally</span>
+<span class="kw">const</span> TARGET_API_URL = process.env.DYNAMIC_PREVIEW_URL ?? <span class="str">'https://staging.local'</span>;
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  use: {
+    baseURL: TARGET_API_URL,
+  },
+});</pre>
+
+      <div class="code-header">
+        <span class="code-filename">seed-preview-env.setup.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test <span class="kw">as</span> setup, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">setup</span>(<span class="str">'seeds the preview environment before the suite runs'</span>, <span class="kw">async</span> ({ request, baseURL }) => {
+  console.<span class="fn">log</span>(<span class="cmt">`Seeding preview environment at ${baseURL}`</span>);
+
+  <span class="kw">const</span> seedResponse = <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/api/internal/seed-test-data'</span>, {
+    data: {
+      scenario: <span class="str">'smoke-testing-suite'</span>,
+      tenantId: <span class="str">'tenant_automation_01'</span>,
+    },
+    headers: {
+      <span class="str">'X-Internal-Secret'</span>: process.env.INTERNAL_SEED_SECRET!,
+    },
+  });
+
+  <span class="fn">expect</span>(seedResponse.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">201</span>);
+});</pre>
+    </section>
+
+    <!-- 18 -->
+    <section class="content-section" id="har-codegen" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">18</div>
+        <div>
+          <h2>Generating API tests from captured HAR traffic</h2>
+          <div class="section-desc">For a legacy system with no API documentation to start from</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>You're handed the job of writing API automation for an old legacy system, no API documentation, no Swagger, and the team that built it is long gone.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Bạn được giao viết automation test API cho một hệ thống cũ (legacy), không có tài liệu API, không có Swagger, và đội làm ra nó đã nghỉ việc từ lâu.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Sitting down with Fiddler or Charles Proxy to manually trace every request, payload, and header behind each button click, then hand-typing it into Playwright API code, takes weeks for any workflow of real length.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ngồi bật Fiddler hay Charles Proxy để dò tay từng request, từng payload, từng header đằng sau mỗi cú bấm, rồi gõ lại thành code Playwright API thủ công, sẽ mất hàng tuần với bất kỳ luồng nghiệp vụ nào đủ dài.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use Playwright UI's built-in HAR recording (HTTP Archive) to silently capture network traffic and export it as JSON, then convert that file into API test source code with a script.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng tính năng ghi HAR (HTTP Archive) có sẵn trong Playwright UI Test để âm thầm "nghe" lưu lượng mạng và xuất ra file JSON, rồi dùng script chuyển file đó thành mã nguồn test API.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When creating the browser context, set <code>recordHAR: { path: './flows/checkout.har', mode: 'full' }</code>. Run through the flow like a real user. Playwright exports a <code>.har</code> file with every request and response captured, and a short conversion tool or Node.js script turns that JSON straight into Playwright API test code.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi khởi tạo browser context, bật <code>recordHAR: { path: './flows/checkout.har', mode: 'full' }</code>. Thao tác qua luồng như người dùng thật. Playwright xuất ra file <code>.har</code> chứa đầy đủ request/response, và một công cụ chuyển đổi hay script Node.js ngắn sẽ dịch file JSON đó thẳng thành mã nguồn test API Playwright.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A legacy system with no API documentation and no Swagger file leaves manual request
+          discovery as the only option, and that's slow. Playwright can record every request a
+          browser context makes while a person, or a UI test, clicks through a real flow, and write it
+          all to a <code>.har</code> file with full request and response bodies. Parsing that file for
+          endpoint, method, and payload turns discovery into a script instead of a person clicking
+          through dev tools.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một hệ thống legacy không có tài liệu API, không có file Swagger, khiến việc dò request
+          bằng tay trở thành lựa chọn duy nhất, và cách đó rất chậm. Playwright có thể ghi lại từng
+          request mà một browser context tạo ra trong khi một người, hoặc một UI test, thao tác qua
+          một luồng thật, rồi ghi tất cả vào một file <code>.har</code> kèm đầy đủ request và response
+          body. Parse file đó để lấy endpoint, method và payload biến việc dò tìm thành một script
+          thay vì một người ngồi click qua dev tools.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Full HAR capture includes response bodies, which can carry real customer data if the
+            recording runs against a live environment. Record against a seeded test environment,
+            never production.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Ghi HAR ở chế độ full bao gồm cả response body, thứ có thể chứa dữ liệu khách hàng
+            thật nếu việc ghi chạy trên môi trường live. Ghi trên một môi trường test đã được seed
+            sẵn, không bao giờ ghi trên production.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">record-checkout-traffic.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'records the network traffic behind a checkout flow'</span>, <span class="kw">async</span> ({ browser }) => {
+  <span class="kw">const</span> context = <span class="kw">await</span> browser.<span class="fn">newContext</span>({
+    recordHAR: {
+      path: <span class="str">'./artifacts/checkout-flow.har'</span>,
+      mode: <span class="str">'full'</span>,
+    },
+  });
+
+  <span class="kw">const</span> page = <span class="kw">await</span> context.<span class="fn">newPage</span>();
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'https://company.com'</span>);
+
+  <span class="kw">await</span> page.<span class="fn">locator</span>(<span class="str">'.product-card'</span>).<span class="fn">first</span>().<span class="fn">click</span>();
+  <span class="kw">await</span> page.<span class="fn">locator</span>(<span class="str">'#add-to-cart'</span>).<span class="fn">click</span>();
+
+  <span class="kw">await</span> context.<span class="fn">close</span>();
+});</pre>
+
+      <div class="code-header">
+        <span class="code-filename">cart-items.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="cmt">// Generated by parsing the endpoint, method, and payload out of checkout-flow.har</span>
+<span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="fn">test</span>(<span class="str">'adds an item to the cart, matching the traffic captured in the HAR file'</span>, <span class="kw">async</span> ({ request }) => {
+  <span class="kw">const</span> response = <span class="kw">await</span> request.<span class="fn">post</span>(<span class="str">'/api/v2/cart/items'</span>, {
+    data: { productId: <span class="str">'prod_991'</span>, quantity: <span class="num">1</span> },
+  });
+  <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(<span class="num">200</span>);
+
+  <span class="kw">const</span> body = <span class="kw">await</span> response.<span class="fn">json</span>();
+  <span class="fn">expect</span>(body.status).<span class="fn">toBe</span>(<span class="str">'success'</span>);
+});</pre>
+    </section>
+
+    <!-- 19 -->
+    <section class="content-section" id="authz-matrix" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">19</div>
+        <div>
+          <h2>A data-driven authorization matrix</h2>
+          <div class="section-desc">One loop instead of one test per role and endpoint combination</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A large enterprise's internal management app can have very complex permissions: admin can do everything, manager can only approve, member can only view, guest can't get in at all.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ứng dụng quản lý nội bộ của doanh nghiệp lớn có thể có phân quyền cực kỳ phức tạp: admin làm được mọi thứ, manager chỉ được duyệt, member chỉ được xem, guest không được vào.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Writing a separate test file for every role against every endpoint balloons the test code to thousands of duplicated lines, and adding one new role means touching every one of those files.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Viết riêng một file test cho từng vai trò với từng endpoint khiến mã test phình to hàng nghìn dòng trùng lặp, và thêm một vai trò mới nghĩa là phải sửa lại toàn bộ các file đó.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Design data-driven testing built on a permission matrix expressed as a JSON table: define every combination of role, method, endpoint, and expected status code, then generate the test cases from a single loop.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thiết kế kiểm thử hướng dữ liệu dựa trên ma trận phân quyền dạng bảng JSON: định nghĩa mọi tổ hợp vai trò, method, endpoint và status code kỳ vọng, rồi sinh test case từ một vòng lặp duy nhất.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Define the data array, e.g. <code>const matrix = [ { role: 'admin', endpoint: '/users', expected: 201 }, { role: 'member', endpoint: '/users', expected: 403 } ]</code>. Use <code>for (const scenario of matrix) { test(...) }</code> to generate every test case. Inside the test body, create a <code>newContext</code> with an <code>Authorization</code> header that matches whichever role's token is currently being checked.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Định nghĩa mảng dữ liệu, ví dụ <code>const matrix = [ { role: 'admin', endpoint: '/users', expected: 201 }, { role: 'member', endpoint: '/users', expected: 403 } ]</code>. Dùng <code>for (const scenario of matrix) { test(...) }</code> để sinh mọi test case. Trong thân test, tạo <code>newContext</code> với header <code>Authorization</code> tương ứng với token của vai trò đang được kiểm tra.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A permission system with several roles and several endpoints turns into a wall of
+          near-identical tests if each combination gets its own <code>test()</code> block written by
+          hand: same request, same assertion, only the role and the expected status differ. Looping
+          over an array of role, method, endpoint, and expected status, and calling <code>test()</code>
+          once per entry, generates the same coverage from one block. Adding a role or an endpoint to
+          the matrix becomes a data change, not a new test to write.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một hệ thống phân quyền với nhiều vai trò và nhiều endpoint sẽ biến thành một bức tường
+          test gần như giống hệt nhau nếu mỗi tổ hợp được viết tay thành một block <code>test()</code>
+          riêng: cùng request, cùng assertion, chỉ khác vai trò và status kỳ vọng. Lặp qua một mảng
+          gồm vai trò, method, endpoint và status kỳ vọng, rồi gọi <code>test()</code> một lần cho mỗi
+          phần tử, sẽ sinh ra cùng độ phủ đó từ một block. Thêm một vai trò hay endpoint mới vào ma
+          trận trở thành thay đổi dữ liệu, không phải viết thêm test.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The matrix lives as inline data here because the example is small. Past a handful of
+            rows it belongs in <code>src/data/api/</code> as a named, typed export, same as any other
+            test data in this framework.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Ma trận ở đây để inline vì ví dụ này nhỏ. Khi vượt quá vài dòng, nó nên chuyển vào
+            <code>src/data/api/</code> dưới dạng export có tên và có kiểu, giống mọi dữ liệu test khác
+            trong framework này.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">authorization-matrix.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">interface</span> <span class="type">AuthzScenario</span> {
+  role: <span class="type">string</span>;
+  method: <span class="str">'GET'</span> | <span class="str">'POST'</span>;
+  endpoint: <span class="type">string</span>;
+  expectedStatus: <span class="type">number</span>;
+}
+
+<span class="kw">const</span> authorizationMatrix: <span class="type">AuthzScenario</span>[] = [
+  { role: <span class="str">'admin'</span>,   method: <span class="str">'POST'</span>, endpoint: <span class="str">'/api/v1/users'</span>, expectedStatus: <span class="num">201</span> },
+  { role: <span class="str">'manager'</span>, method: <span class="str">'POST'</span>, endpoint: <span class="str">'/api/v1/users'</span>, expectedStatus: <span class="num">201</span> },
+  { role: <span class="str">'member'</span>,  method: <span class="str">'POST'</span>, endpoint: <span class="str">'/api/v1/users'</span>, expectedStatus: <span class="num">403</span> },
+  { role: <span class="str">'member'</span>,  method: <span class="str">'GET'</span>,  endpoint: <span class="str">'/api/v1/users'</span>, expectedStatus: <span class="num">200</span> },
+  { role: <span class="str">'guest'</span>,   method: <span class="str">'GET'</span>,  endpoint: <span class="str">'/api/v1/users'</span>, expectedStatus: <span class="num">401</span> },
+];
+
+<span class="kw">for</span> (<span class="kw">const</span> scenario <span class="kw">of</span> authorizationMatrix) {
+  <span class="fn">test</span>(<span class="cmt">`role ${scenario.role} gets ${scenario.expectedStatus} on ${scenario.method} ${scenario.endpoint}`</span>, <span class="kw">async</span> ({ playwright }) => {
+    <span class="kw">const</span> context = <span class="kw">await</span> playwright.request.<span class="fn">newContext</span>({
+      extraHTTPHeaders: {
+        Authorization: <span class="cmt">`Bearer TOKEN_FOR_${scenario.role.toUpperCase()}`</span>,
+      },
+    });
+
+    <span class="kw">const</span> response = <span class="kw">await</span> context.<span class="fn">fetch</span>(scenario.endpoint, {
+      method: scenario.method,
+      data: scenario.method !== <span class="str">'GET'</span> ? { name: <span class="str">'Automation Test'</span> } : <span class="kw">undefined</span>,
+    });
+
+    <span class="fn">expect</span>(response.<span class="fn">status</span>()).<span class="fn">toBe</span>(scenario.expectedStatus);
+  });
+}</pre>
+    </section>
+
+    <footer class="footer">
+      Playwright TypeScript Automation Framework &middot; Advanced API Testing Guide
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>

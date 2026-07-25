@@ -7,6 +7,7 @@ import {
 import { ProductsListResponse, Product, DeletedResource } from '../../src/api/services/dummyjson';
 import { ApiResponseWrapper } from '../../src/api/ApiResponse';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { ProductSchema, ProductsListSchema, ProductDeletedSchema } from '../../src/data/api/schemas/dummyjson-schemas';
 
 test.describe('DummyJSON Products API @api @regression', () => {
   test('TC_01 - Should list products with pagination metadata', async ({ dummyjsonService, softAssert }) => {
@@ -24,6 +25,7 @@ test.describe('DummyJSON Products API @api @regression', () => {
       softAssert.toBeGreaterThan(body.total, 0, 'total is greater than 0');
       softAssert.toBe(body.skip, 0, 'skip defaults to 0');
       softAssert.toBeTruthy(body.products.length <= body.limit, 'products length does not exceed limit');
+      await response.assertSchema(ProductsListSchema);
     });
   });
 
@@ -38,6 +40,7 @@ test.describe('DummyJSON Products API @api @regression', () => {
     await logger.step('Step 2 - Assert product returned matches requested ID', async () => {
       await response.assertStatus(200);
       await response.assertJsonPath('id', DUMMYJSON_KNOWN_PRODUCT_ID);
+      await response.assertSchema(ProductSchema);
     });
   });
 
@@ -66,6 +69,7 @@ test.describe('DummyJSON Products API @api @regression', () => {
       await response.assertStatus(200);
       const body = await response.json<ProductsListResponse>();
       expect(Array.isArray(body.products)).toBe(true);
+      await response.assertSchema(ProductsListSchema);
     });
   });
 
@@ -83,6 +87,7 @@ test.describe('DummyJSON Products API @api @regression', () => {
       const created = await response.json<Product>();
       softAssert.toBeDefined(created.id, 'simulated product has an id');
       softAssert.toBe(created.title, newProduct.title, 'title echoes submitted value');
+      await response.assertSchema(ProductSchema);
     });
   });
 
@@ -98,6 +103,7 @@ test.describe('DummyJSON Products API @api @regression', () => {
     await logger.step('Step 2 - Assert simulated update echoes submitted title', async () => {
       await response.assertStatus(200);
       await response.assertJsonPath('title', update.title);
+      await response.assertSchema(ProductSchema);
     });
   });
 
@@ -114,6 +120,7 @@ test.describe('DummyJSON Products API @api @regression', () => {
       const deleted = await response.json<Product & DeletedResource>();
       softAssert.toBeTruthy(deleted.isDeleted, 'isDeleted is true');
       softAssert.toBeDefined(deleted.deletedOn, 'deletedOn is present');
+      await response.assertSchema(ProductDeletedSchema);
     });
   });
 });

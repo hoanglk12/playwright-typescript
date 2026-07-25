@@ -3,6 +3,7 @@ import { dummyJsonAuthData, DUMMYJSON_INVALID_TOKEN } from '../../src/data/api/d
 import { AuthResponse } from '../../src/api/services/dummyjson';
 import { ApiResponseWrapper } from '../../src/api/ApiResponse';
 import { createTestLogger } from '../../src/utils/test-logger';
+import { AuthResponseSchema, AuthUserSchema, RefreshTokenResponseSchema } from '../../src/data/api/schemas/dummyjson-schemas';
 
 test.describe('DummyJSON Auth API @api @regression', () => {
   test('TC_01 - Should login with valid credentials and return tokens', async ({ dummyjsonService, softAssert }) => {
@@ -22,6 +23,7 @@ test.describe('DummyJSON Auth API @api @regression', () => {
       softAssert.toBeTruthy(!!auth.accessToken, 'accessToken is present');
       softAssert.toBeTruthy(!!auth.refreshToken, 'refreshToken is present');
       softAssert.toBe(auth.username, dummyJsonAuthData.VALID_USER.username, 'username matches request');
+      await response.assertSchema(AuthResponseSchema);
     });
   });
 
@@ -57,6 +59,7 @@ test.describe('DummyJSON Auth API @api @regression', () => {
       await response.assertStatus(200);
       logger.verify('Authenticated username matches login', dummyJsonAuthData.VALID_USER.username, await response.extract('username'));
       expect(await response.extract('username')).toBe(dummyJsonAuthData.VALID_USER.username);
+      await response.assertSchema(AuthUserSchema);
     });
   });
 
@@ -95,6 +98,7 @@ test.describe('DummyJSON Auth API @api @regression', () => {
       const refreshed = await refreshResponse.json<{ accessToken: string; refreshToken: string }>();
       softAssert.toBeTruthy(!!refreshed.accessToken, 'new accessToken is present');
       softAssert.toBeTruthy(!!refreshed.refreshToken, 'new refreshToken is present');
+      await refreshResponse.assertSchema(RefreshTokenResponseSchema);
     });
   });
 });

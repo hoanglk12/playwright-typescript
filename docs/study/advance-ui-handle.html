@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playwright UI Testing: Advanced Guide</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); margin-top: 6px; }
+    .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .nav-en { font-size: 13px; }
+    .nav-vi { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+    .hero {
+      padding: 64px 56px 48px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 42px; font-weight: 900; line-height: 1.15; margin-bottom: 18px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 16.5px; color: var(--muted); max-width: 620px; margin-bottom: 32px; }
+
+    .topic-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
+    }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .content-section { padding: 52px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .part-divider {
+      padding: 48px 56px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .part-label {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+    }
+    .part-label::before { content: ''; display: block; width: 28px; height: 2px; background: var(--muted); border-radius: 2px; }
+    .part-divider h2 { font-size: 25px; font-weight: 800; margin-bottom: 20px; }
+    .part-divider .topic-row { margin-top: 24px; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
+    }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* ── Bilingual side-by-side columns ── */
+    .lang-pair { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 4px; }
+    .lang-col { padding-right: 26px; }
+    .lang-col + .lang-col { padding-right: 0; padding-left: 26px; border-left: 1px solid var(--border); }
+    .lang-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface2);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .lang-col p { color: var(--muted); font-size: 14.5px; }
+    .lang-col code { white-space: normal; overflow-wrap: break-word; }
+
+    /* ── Context / difficulty / solution / practical breakdown ── */
+    .breakdown {
+      margin: 6px 0 30px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 10px;
+    }
+    .breakdown-row .lang-pair { margin-bottom: 0; }
+    .breakdown-row .lang-col p { font-size: 13.5px; }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 18px 0 22px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout .lang-pair { flex: 1; margin-bottom: 0; }
+    .callout .lang-tag { background: color-mix(in srgb, var(--cb) 22%, var(--surface2)); }
+    .callout .lang-col p { color: var(--text); font-size: 13.5px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border); border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 14px;
+    }
+    .code-filename { font-size: 12px; color: var(--muted); font-family: 'Fira Code', Consolas, monospace; }
+    .code-lang { font-size: 11px; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 0 0 8px 8px;
+      padding: 18px; overflow-x: auto; font-size: 12.5px; line-height: 1.65;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type{ color: #ffcb6b; }
+    .num { color: #f78c6c; }
+    .prop{ color: #89ddff; }
+    code:not(pre code) {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 1000px) { .hero, .content-section, .footer { padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+      .lang-pair { grid-template-columns: 1fr; }
+      .lang-col + .lang-col {
+        padding-left: 0; border-left: none;
+        border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px;
+      }
+      .callout { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Advanced UI Testing</h2>
+      <p>Playwright TypeScript &middot; Deep Dive</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 1: Clean architecture</div>
+      <a href="#com" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Component Object Model</span><span class="nav-vi">Mô hình Component</span></span></a>
+      <a href="#di-fixtures" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Custom fixtures (DI)</span><span class="nav-vi">Fixture tùy chỉnh (DI)</span></span></a>
+      <a href="#locators" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Robust locator strategy</span><span class="nav-vi">Chiến lược locator bền vững</span></span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 2: Complex UI interaction</div>
+      <a href="#frames-tabs" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Multi-tab &amp; iframes</span><span class="nav-vi">Đa tab &amp; iframe</span></span></a>
+      <a href="#human-interaction" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Human-like interactions</span><span class="nav-vi">Tương tác như người thật</span></span></a>
+      <a href="#canvas-dnd" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Canvas &amp; drag and drop</span><span class="nav-vi">Canvas &amp; kéo thả</span></span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 3: Visual, a11y &amp; network</div>
+      <a href="#visual-regression" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Visual regression testing</span><span class="nav-vi">Kiểm thử hồi quy hình ảnh</span></span></a>
+      <a href="#a11y" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Accessibility scanning</span><span class="nav-vi">Quét khả năng tiếp cận</span></span></a>
+      <a href="#network-mocking" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Network mocking</span><span class="nav-vi">Giả lập tầng mạng</span></span></a>
+      <a href="#device-emulation" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Geo, device &amp; throttling</span><span class="nav-vi">Vị trí, thiết bị &amp; băng thông</span></span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 4: State &amp; CI/CD at scale</div>
+      <a href="#storage-state" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Centralized storage state</span><span class="nav-vi">Storage state tập trung</span></span></a>
+      <a href="#no-hard-wait" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Avoid hard waits</span><span class="nav-vi">Tránh hard wait</span></span></a>
+      <a href="#upload-download" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Upload &amp; download files</span><span class="nav-vi">Tải lên &amp; tải xuống file</span></span></a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Part 5: Performance &amp; ultimate architecture</div>
+      <a href="#performance-api" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Core Web Vitals</span><span class="nav-vi">Core Web Vitals</span></span></a>
+      <a href="#flaky-detection" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Flaky test detection</span><span class="nav-vi">Phát hiện flaky test</span></span></a>
+      <a href="#serverless" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Serverless Playwright</span><span class="nav-vi">Playwright Serverless</span></span></a>
+      <a href="#shadow-dom" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Shadow DOM &amp; micro-frontends</span><span class="nav-vi">Shadow DOM &amp; micro-frontend</span></span></a>
+      <a href="#trace-viewer" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Trace Viewer debugging</span><span class="nav-vi">Debug bằng Trace Viewer</span></span></a>
+      <a href="#self-healing" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">AI self-healing tests</span><span class="nav-vi">Test tự phục hồi bằng AI</span></span></a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">UI testing patterns beyond the basics</div>
+      <h1>Advanced Playwright UI Testing</h1>
+      <p class="hero-sub">
+        Nineteen patterns across five parts, starting with the architecture decisions that keep a UI
+        suite maintainable as it grows: composing pages out of reusable components, injecting page
+        objects through fixtures instead of constructing them by hand, and picking locators that
+        survive a redesign. From there the guide moves through hard interaction cases (new tabs,
+        iframes, canvas, bot detection), visual and accessibility checks, network-layer control,
+        state management at CI scale, and finally performance budgets, serverless execution, Shadow
+        DOM, trace-based debugging, and AI-assisted self-healing locators. Each section is written in
+        English and Vietnamese, side by side.
+      </p>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Component Model</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">02</div><div class="label">Custom Fixtures</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">03</div><div class="label">Locator Strategy</div></div>
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">04</div><div class="label">Multi-tab &amp; iFrame</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">05</div><div class="label">Human-like Input</div></div>
+      </div>
+    </section>
+
+    <!-- 01 -->
+    <section class="content-section" id="com" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Component Object Model (COM)</h2>
+          <div class="section-desc">Reusable widgets instead of one giant page object</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Modern web apps (dashboards, SaaS, ERP) run at a large scale, spanning hundreds of different screens that all reuse the same core building blocks: a navbar, a sidebar menu, or data tables.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ứng dụng web hiện đại (dashboard, SaaS, ERP) có quy mô rất lớn, chứa hàng trăm màn hình giao diện khác nhau nhưng lại dùng chung các thành phần cốt lõi như thanh điều hướng (navbar), thanh menu bên (sidebar), hay bảng dữ liệu (table).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>With a traditional Page Object Model, the locator and interaction code for something like a data table ends up repeated across every page file that uses it. When the interface's structure changes, that means hunting down and fixing the same logic in each file, which costs effort and lets bugs slip through.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nếu áp dụng Page Object Model truyền thống, mã định vị và tương tác của một bảng dữ liệu sẽ bị viết lặp đi lặp lại ở tất cả các file Page khác nhau có dùng đến nó. Khi giao diện đổi cấu trúc, phải lục tìm và sửa ở từng file, tốn công sức và dễ sót lỗi.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Apply the Component Object Model. Break the page's interface down into independent, reusable Component classes, so the larger Page files stop locating small elements themselves and just call these Component classes in as properties.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Áp dụng mô hình Component Object Model. Chia nhỏ giao diện trang web thành các thành phần tái sử dụng độc lập (Component Class). Các file Page lớn lúc này không tự định vị các phần tử nhỏ nữa, mà chỉ cần gọi lại các lớp Component này làm thuộc tính.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Define a <code>TableComponent</code> class that takes the page and the table's own selector string. Write its action methods there, getting a row's text, clicking an action button, then in <code>DashboardPage</code> declare it as a property: <code>readonly mainTable = new TableComponent(page, '#dashboard-table')</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Định nghĩa một lớp <code>TableComponent</code> nhận vào cấu trúc page và chuỗi selector đại diện của bảng. Viết các hàm chức năng xử lý như lấy text của dòng, click nút hành động ngay trong class này. Trong file <code>DashboardPage</code>, khai báo thuộc tính: <code>readonly mainTable = new TableComponent(page, '#dashboard-table')</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Each Component owns its own locators scoped to its own container element, and exposes
+          methods that describe what a user can do with it, not how it's built underneath. A page
+          object then composes several components instead of redeclaring their internals, so a
+          change to how the table renders only needs a fix in one place.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Mỗi Component sở hữu locator riêng, giới hạn trong container của chính nó, và cung cấp
+          method mô tả người dùng có thể làm gì với nó, chứ không phải nó được dựng bên trong ra
+          sao. Một page object sau đó chỉ ghép các component lại thay vì khai báo lại chi tiết bên
+          trong, nên khi bảng đổi cách hiển thị chỉ cần sửa một nơi.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>This repo's own <code>BasePage</code> already composes 11 helper classes instead of
+            putting every method in one file. COM applies the same composition idea to on-screen
+            widgets rather than to interaction helpers.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Chính <code>BasePage</code> của repo này đã ghép 11 helper class thay vì dồn mọi
+            method vào một file. COM áp dụng cùng ý tưởng ghép nối đó cho thành phần trên màn hình
+            thay vì cho helper thao tác.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">components/TableComponent.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { Locator, Page } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">export class</span> <span class="type">TableComponent</span> {
+  <span class="kw">readonly</span> container: <span class="type">Locator</span>;
+  <span class="kw">readonly</span> rows: <span class="type">Locator</span>;
+
+  <span class="fn">constructor</span>(page: <span class="type">Page</span>, tableSelector: <span class="type">string</span>) {
+    <span class="kw">this</span>.container = page.<span class="fn">locator</span>(tableSelector);
+    <span class="kw">this</span>.rows = <span class="kw">this</span>.container.<span class="fn">locator</span>(<span class="str">'tbody tr'</span>);
+  }
+
+  <span class="kw">async</span> <span class="fn">getRowTextByIndex</span>(index: <span class="type">number</span>): <span class="type">Promise</span>&lt;<span class="type">string</span>&gt; {
+    <span class="kw">return</span> <span class="kw">this</span>.rows.<span class="fn">nth</span>(index).<span class="fn">innerText</span>();
+  }
+
+  <span class="kw">async</span> <span class="fn">clickActionByName</span>(rowName: <span class="type">string</span>, actionButtonText: <span class="type">string</span>) {
+    <span class="kw">const</span> targetRow = <span class="kw">this</span>.container.<span class="fn">locator</span>(<span class="str">'tr'</span>, { hasText: rowName });
+    <span class="kw">await</span> targetRow.<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: actionButtonText }).<span class="fn">click</span>();
+  }
+}</pre>
+    </section>
+
+    <!-- 02 -->
+    <section class="content-section" id="di-fixtures" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Custom fixtures for dependency injection</h2>
+          <div class="section-desc">Stop building page objects by hand in beforeEach</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Before running any UI test scenario, a repeated chain of setup actions has to happen: constructing page objects, navigating the browser to the right target page, or setting environment configuration cookies.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Trước khi thực thi bất kỳ kịch bản kiểm thử UI nào, đều cần thực hiện một chuỗi các hành động khởi tạo lặp đi lặp lại như khởi tạo các trang đối tượng (POM), điều hướng trình duyệt đến đúng trang đích, hoặc cài đặt cookie cấu hình môi trường.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Cramming that setup code into a traditional <code>beforeEach</code> block bloats the test file, the same code repeats across many files, maintenance gets harder, and performance suffers once runs are configured for parallel execution.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Việc nhồi nhét mã nguồn khởi tạo này vào các khối lệnh <code>beforeEach</code> truyền thống khiến file test bị phình to, mã nguồn bị lặp lại ở nhiều file khác nhau, gây khó khăn cho việc bảo trì và làm giảm hiệu suất khi cấu hình chạy song song đa luồng.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use Dependency Injection through Playwright's built-in Custom Fixtures feature. Define how each page object gets created and torn down once, in a shared base file; a test case just asks for that page by name as a parameter, and Playwright loads it and cleans it up automatically.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tận dụng cơ chế Dependency Injection thông qua tính năng Custom Fixtures tích hợp sẵn của Playwright. Định nghĩa trước cách thức khởi tạo và giải phóng cho từng trang đối tượng trong một file cấu hình nền tảng. Khi viết test case, chỉ cần gọi tên trang đó ra làm tham số, Playwright sẽ tự động nạp vào và dọn dẹp sau khi chạy xong.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use Playwright's <code>test.extend</code> to define a custom fixture (e.g. <code>dashboardPage</code>). Inside the fixture body, construct <code>new DashboardPage(page)</code> and call <code>await use(dashboard)</code>. In the test file, this shortens to <code>test('Kiểm tra', async ({ dashboardPage }) => { await dashboardPage.doSomething() })</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sử dụng phương thức mở rộng <code>test.extend</code> của Playwright để định nghĩa một fixture tùy biến (ví dụ <code>dashboardPage</code>). Bên trong thân fixture, viết logic ngầm khởi tạo <code>new DashboardPage(page)</code> và gọi lệnh <code>await use(dashboard)</code>. Trong file test, viết ngắn gọn: <code>test('Kiểm tra', async ({ dashboardPage }) => { await dashboardPage.doSomething() })</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Fixtures are Playwright's own dependency injection mechanism. A fixture function
+          receives whatever it needs, builds what it's responsible for, and hands it to the test
+          through <code>use()</code>. Only the fixtures a test actually lists as parameters get
+          initialized, so tests stay lightweight even when the fixture file defines many of them.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Fixture là cơ chế dependency injection riêng của Playwright. Một hàm fixture nhận vào
+          những gì nó cần, dựng phần nó chịu trách nhiệm, rồi truyền lại cho test qua
+          <code>use()</code>. Chỉ những fixture mà test thật sự liệt kê làm tham số mới được khởi
+          tạo, nên test vẫn nhẹ dù file fixture khai báo rất nhiều fixture khác.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--purple)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>This framework already registers 14 UI page-object fixtures in <code>base-test.ts</code>,
+            following exactly this pattern, one fixture function per page, composed through
+            <code>base.extend</code>.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Framework này đã đăng ký sẵn 14 fixture page object UI trong <code>base-test.ts</code>,
+            theo đúng mô hình này: mỗi trang một hàm fixture, ghép lại qua <code>base.extend</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">fixtures/baseTest.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test <span class="kw">as</span> base } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> { DashboardPage } <span class="kw">from</span> <span class="str">'../pages/DashboardPage'</span>;
+<span class="kw">import</span> { SettingsPage } <span class="kw">from</span> <span class="str">'../pages/SettingsPage'</span>;
+
+<span class="kw">type</span> <span class="type">MyPages</span> = {
+  dashboardPage: <span class="type">DashboardPage</span>;
+  settingsPage: <span class="type">SettingsPage</span>;
+};
+
+<span class="kw">export const</span> test = base.<span class="fn">extend</span>&lt;<span class="type">MyPages</span>&gt;({
+  dashboardPage: <span class="kw">async</span> ({ page }, use) => {
+    <span class="kw">const</span> dashboard = <span class="kw">new</span> <span class="fn">DashboardPage</span>(page);
+    <span class="kw">await</span> dashboard.<span class="fn">goto</span>();
+    <span class="kw">await</span> <span class="fn">use</span>(dashboard);
+  },
+  settingsPage: <span class="kw">async</span> ({ page }, use) => {
+    <span class="kw">await</span> <span class="fn">use</span>(<span class="kw">new</span> <span class="fn">SettingsPage</span>(page));
+  },
+});
+<span class="kw">export</span> { expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;</pre>
+    </section>
+
+    <!-- 03 -->
+    <section class="content-section" id="locators" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Robust locator strategy</h2>
+          <div class="section-desc">Filter by what the user sees, not where the element sits</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Front-end developers constantly update the interface to improve the experience, regularly changing CSS classes, ids, or the wrapping HTML tags around elements.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đội ngũ lập trình viên Front-end liên tục cập nhật giao diện để tối ưu trải nghiệm. Họ thường xuyên thay đổi các thuộc tính mã nguồn như lớp giao diện (CSS class), mã định danh (id), hoặc thay đổi cấu trúc sắp xếp các thẻ HTML bọc bên ngoài.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Selectors based on absolute XPath or plain CSS break repeatedly whenever the DOM structure changes, the classic brittle-test problem, and QA ends up spending a lot of time just maintaining test code.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nếu sử dụng các bộ định vị (selector) dựa trên XPath tuyệt đối hoặc CSS Selector thuần, bài test sẽ bị gãy liên tục (gây ra hiện tượng brittle test) mỗi khi mã nguồn giao diện thay đổi cấu trúc DOM, khiến QA mất rất nhiều thời gian bảo trì code test.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Apply the user-centric locator strategy Playwright recommends. Locate elements by their visible role, their accessible label, or the actual text shown on screen, combined with a dynamic filter.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Áp dụng chiến lược định vị hướng người dùng (user-centric locators) được Playwright khuyến nghị tối đa. Định vị phần tử giao diện dựa trên vai trò hiển thị (role), nhãn văn bản hỗ trợ (aria-label) hoặc nội dung chữ (text) thật hiển thị trên màn hình, kết hợp bộ lọc động (filter).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Prefer <code>page.getByRole('button', { name: 'Xác nhận thanh toán' })</code> over an id or class. To find one specific element inside a dynamic list, filter it down: <code>page.locator('tr').filter({ hasText: 'iPhone 15 Pro' }).getByRole('button', { name: 'Xóa' })</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ưu tiên dùng câu lệnh <code>page.getByRole('button', { name: 'Xác nhận thanh toán' })</code> thay vì dùng id hay class. Khi cần tìm một phần tử cụ thể nằm trong một danh sách động, sử dụng bộ lọc: <code>page.locator('tr').filter({ hasText: 'iPhone 15 Pro' }).getByRole('button', { name: 'Xóa' })</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>This project's own conventions already ban hierarchical structural selectors and
+          require <code>getByRole</code>, <code>getByLabel</code>, or <code>getByText</code> as the
+          default. Chaining <code>.filter()</code> is exactly how a selection narrows further
+          without giving up that semantic meaning, each filter stacks on top of the last.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Quy ước riêng của project này đã cấm selector cấu trúc phân cấp và yêu cầu dùng
+          <code>getByRole</code>, <code>getByLabel</code>, hoặc <code>getByText</code> làm mặc định.
+          Nối thêm <code>.filter()</code> chính là cách thu hẹp lựa chọn mà vẫn giữ được ý nghĩa
+          ngữ nghĩa đó, mỗi filter chồng lên filter trước.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--cyan)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>.filter()</code> chains can stack as many times as needed, useful for
+            compound conditions like "the row named X that is also currently in stock".</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Chuỗi <code>.filter()</code> có thể nối bao nhiêu lần cũng được, hữu ích cho điều
+            kiện kết hợp kiểu "dòng tên X mà đồng thời đang còn hàng".</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">dynamic-locator.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'./fixtures/baseTest'</span>;
+
+<span class="fn">test</span>(<span class="str">'locates one specific row inside a dynamic list'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">const</span> targetRow = page.<span class="fn">locator</span>(<span class="str">'tr'</span>)
+    .<span class="fn">filter</span>({ hasText: <span class="str">'iPhone 15'</span> })
+    .<span class="fn">filter</span>({ has: page.<span class="fn">getByRole</span>(<span class="str">'badge'</span>, { name: <span class="str">'In Stock'</span> }) });
+
+  <span class="kw">await</span> targetRow.<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: <span class="str">'Edit'</span> }).<span class="fn">click</span>();
+});</pre>
+    </section>
+
+    <!-- Part 2 divider -->
+    <section class="part-divider" id="part2">
+      <div class="part-label">Continuing the guide</div>
+      <h2>Part 2: complex UI interaction</h2>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>With the architecture settled, the next problems are interaction cases a plain
+          click-and-fill script can't handle on its own: a flow that opens a new tab, a payment
+          form embedded in a third-party iframe, a page watching for bot-like typing, and widgets
+          built on canvas instead of ordinary DOM elements.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Sau khi kiến trúc đã ổn định, vấn đề tiếp theo là các tình huống tương tác mà một
+          kịch bản click và điền form thông thường không tự xử lý được: luồng mở tab mới, form
+          thanh toán nhúng trong iframe bên thứ ba, trang có cơ chế theo dõi kiểu gõ phím giống
+          bot, và các thành phần dựng trên canvas thay vì phần tử DOM thông thường.</p>
+        </div>
+      </div>
+      <div class="topic-row" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">04</div><div class="label">Multi-tab &amp; iFrame</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">05</div><div class="label">Human-like Input</div></div>
+        <div class="topic-chip" style="--c: var(--accent2)"><div class="num">06</div><div class="label">Canvas &amp; Drag-Drop</div></div>
+      </div>
+    </section>
+
+    <!-- 04 -->
+    <section class="content-section" id="frames-tabs" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Multi-tab, multi-window and iframe handling</h2>
+          <div class="section-desc">Reach across a new tab, or into a third-party payment frame</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Real end-to-end user journeys get complicated fast. A user clicks a terms-and-conditions link and the system silently opens a new browser tab, or the flow needs to interact with a payment gateway embedded through a third-party <code>&lt;iframe&gt;</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kịch bản kiểm thử hành trình người dùng thực tế (E2E) rất phức tạp. Ví dụ, người dùng nhấn vào link điều khoản và hệ thống tự động bật ra một tab trình duyệt mới, hoặc tương tác với một khung nhúng cổng thanh toán độc lập (<code>&lt;iframe&gt;</code>) từ đối tác ngân hàng bên thứ ba.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Older-generation testing tools often can't automatically catch the event of a new tab opening, or get blocked from reaching inside the iframe at all, because of the browser's strict same-origin security policy.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Các công cụ kiểm thử thế hệ cũ thường không thể tự động bắt được sự kiện của tab mới vừa bật lên, hoặc bị chặn đứng không thể can thiệp vào bên trong khung iframe do rào cản chính sách bảo mật nghiêm ngặt của trình duyệt web (same-origin policy).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use Playwright's high-level asynchronous event listener to catch a new tab the instant it appears, and use its dedicated frame locator to reach past that security boundary.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tận dụng cơ chế lắng nghe sự kiện bất đồng bộ (event listener) cấp cao của Playwright để bắt trọn tab mới ngay khi xuất hiện và sử dụng bộ định vị khung nhìn chuyên dụng (<code>frameLocator</code>) để đi xuyên rào cản bảo mật.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Before the click, declare <code>const pagePromise = context.waitForEvent('page')</code>. After the click fires, take control of the new tab with <code>const newTab = await pagePromise</code>. For an embedded frame, use <code>page.frameLocator('iframe[name="stripe"]').getByPlaceholder('Số thẻ').fill('4242')</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Trước khi click, khai báo một Promise chờ sự kiện: <code>const pagePromise = context.waitForEvent('page')</code>. Sau khi thực hiện hành động click, lấy quyền điều khiển tab mới bằng lệnh: <code>const newTab = await pagePromise</code>. Đối với khung nhúng, sử dụng: <code>page.frameLocator('iframe[name="stripe"]').getByPlaceholder('Số thẻ').fill('4242')</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><code>context.waitForEvent('page')</code> resolves the moment Playwright detects a new
+          page inside that same browser context. <code>frameLocator</code> returns a locator scoped
+          entirely to what's inside one specific iframe, and normal locator chaining, including
+          <code>.filter()</code> from the previous section, still works from there.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><code>context.waitForEvent('page')</code> hoàn tất ngay khi Playwright phát hiện một
+          trang mới trong cùng browser context đó. <code>frameLocator</code> trả về một locator
+          giới hạn hoàn toàn trong một iframe cụ thể, và việc nối locator thông thường, kể cả
+          <code>.filter()</code> ở mục trước, vẫn dùng được từ đó.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The <code>pagePromise</code> has to be created before the click that opens the tab,
+            not after. Otherwise the event can fire before the listener exists, and the promise
+            never resolves.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>pagePromise</code> phải được tạo trước lệnh click mở tab, không phải sau. Nếu
+            không, sự kiện có thể xảy ra trước khi listener tồn tại, và promise sẽ không bao giờ
+            hoàn tất.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">multi-tab-iframe.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'handles a new tab and a third-party payment iframe'</span>, <span class="kw">async</span> ({ page, context }) => {
+  <span class="kw">const</span> pagePromise = context.<span class="fn">waitForEvent</span>(<span class="str">'page'</span>);
+  <span class="kw">await</span> page.<span class="fn">getByRole</span>(<span class="str">'link'</span>, { name: <span class="str">'Mở điều khoản cấu hình'</span> }).<span class="fn">click</span>();
+  <span class="kw">const</span> newTabPage = <span class="kw">await</span> pagePromise;
+
+  <span class="kw">await</span> newTabPage.<span class="fn">waitForLoadState</span>();
+  <span class="kw">await</span> <span class="fn">expect</span>(newTabPage).<span class="fn">toHaveTitle</span>(<span class="cmt">/Điều khoản dịch vụ/</span>);
+
+  <span class="kw">const</span> paymentFrame = page.<span class="fn">frameLocator</span>(<span class="str">'iframe[name="stripe-checkout"]'</span>);
+  <span class="kw">await</span> paymentFrame.<span class="fn">getByPlaceholder</span>(<span class="str">'Card Number'</span>).<span class="fn">fill</span>(<span class="str">'4242 4242 4242'</span>);
+});</pre>
+    </section>
+
+    <!-- 05 -->
+    <section class="content-section" id="human-interaction" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Simulating human-like interactions</h2>
+          <div class="section-desc">Typing key by key, with a delay, instead of setting a value</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>To defend against automated attacks, businesses often add advanced firewall layers, like Cloudflare or Akamai, right at the front-end specifically to block bot software.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Để bảo vệ hệ thống khỏi các cuộc tấn công mạng, doanh nghiệp thường trang bị các lớp tường lửa bảo mật nâng cao (như Cloudflare, Akamai) ở tầng giao diện Front-end để chặn đứng các phần mềm tự động (bot).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Ordinary automation code moves the mouse in a straight line instantly and types out an entire string in a fraction of a second. That unrealistic speed is exactly what tips the firewall off that it's a bot, and access gets blocked right away.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Các mã nguồn automation thông thường sẽ di chuyển chuột lập tức theo đường thẳng tuyệt đối và gõ toàn bộ chuỗi ký tự dài trong một phần triệu giây. Tốc độ phi thực tế này khiến tường lửa nhận diện ra ngay đây là bot và ngay lập tức khóa (block) quyền truy cập.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use Playwright's low-level input device APIs to closely mimic real mouse movement with curved acceleration and unpredictable typing speed, producing the same kind of varying delay a real person has.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sử dụng các API điều khiển thiết bị ngoại vi cấp thấp (low-level input) của Playwright nhằm mô phỏng chính xác hành vi di chuyển chuột có gia tốc cong và tốc độ gõ phím bất định, tạo độ trễ biến thiên y như người thật.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>page.locator('#search').pressSequentially('Bàn phím cơ', { delay: 120 })</code> adds a randomized 120ms delay between keystrokes. For mouse movement, <code>page.mouse.move(x, y, { steps: 10 })</code> moves the cursor smoothly through 10 intermediate points instead of jumping straight there.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sử dụng hàm <code>page.locator('#search').pressSequentially('Bàn phím cơ', { delay: 120 })</code> để tạo độ trễ 120ms ngẫu nhiên giữa mỗi phím gõ. Đối với tương tác chuột, sử dụng lệnh điều khiển tọa độ: <code>page.mouse.move(x, y, { steps: 10 })</code> để con trỏ chuột di chuyển mượt mà qua 10 điểm trung gian thay vì nhảy cóc.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>This is one of the few places a test deliberately slows itself down.
+          <code>pressSequentially</code> sends a real keydown and keyup pair per character, and the
+          delay should stay proportional to what the flow actually needs, a search box tolerates
+          150 milliseconds fine, while a longer form might need the delay varied per field.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Đây là một trong số ít trường hợp test chủ động tự làm chậm lại. <code>pressSequentially</code>
+          gửi đúng một cặp keydown và keyup cho mỗi ký tự, và độ trễ nên tương ứng với luồng thực
+          tế cần gì, một ô tìm kiếm chấp nhận 150 mili giây là ổn, còn một form dài hơn có thể cần
+          độ trễ khác nhau ở từng field.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>pressSequentially</code> only smooths input timing. It does nothing about
+            mouse movement paths or other fingerprinting signals a detector might check, so treat
+            it as one layer, not a complete bypass.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>pressSequentially</code> chỉ làm mượt thời gian nhập liệu. Nó không xử lý
+            đường đi chuột hay các tín hiệu nhận diện khác mà hệ thống phát hiện có thể kiểm tra,
+            nên xem đây là một lớp phòng vệ, không phải cách vượt qua hoàn toàn.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">human-like-typing.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'types and moves the mouse like a real user'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/search'</span>);
+  <span class="kw">await</span> page.<span class="fn">locator</span>(<span class="str">'#search-box'</span>).<span class="fn">hover</span>();
+
+  <span class="kw">await</span> page.<span class="fn">getByPlaceholder</span>(<span class="str">'Tìm kiếm sản phẩm...'</span>).<span class="fn">pressSequentially</span>(<span class="str">'Bàn phím cơ'</span>, { delay: <span class="num">150</span> });
+  <span class="kw">await</span> page.keyboard.<span class="fn">press</span>(<span class="str">'Enter'</span>);
+});</pre>
+    </section>
+
+    <!-- 06 -->
+    <section class="content-section" id="canvas-dnd" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Canvas, SVG and coordinate-based drag and drop</h2>
+          <div class="section-desc">There's no element to grab, only pixels and coordinates</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Modern web apps pack in a lot of highly interactive graphics: digital maps, charts drawn on a <code>&lt;canvas&gt;</code>, or Kanban-style task boards (like Trello or Jira) that need cards dragged and dropped by hand.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ứng dụng web hiện đại tích hợp rất nhiều thành phần đồ họa tương tác cao như bản đồ số, đồ thị trực quan vẽ trên thẻ <code>&lt;canvas&gt;</code>, hoặc các bảng quản lý công việc dạng Kanban (như Trello, Jira) yêu cầu hành động cầm chuột kéo thả các thẻ nhiệm vụ.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A <code>&lt;canvas&gt;</code> is just a flat image to the browser, there's no way to find an id or text inside it the normal way. And a drag-and-drop driven by an ordinary click-and-move sequence can easily drop the event mid-gesture because of render lag.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thẻ <code>&lt;canvas&gt;</code> chỉ là một tấm ảnh phẳng đối với trình duyệt, không thể dùng các hàm tìm id hay text thông thường để tương tác với các thành phần bên trong. Các hành động kéo thả nếu thực thi bằng lệnh click-and-move thông thường của code test cũng rất dễ bị mất sự kiện (drop event) giữa chừng do độ trễ render.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use Playwright's <code>boundingBox</code> measurement to pull the actual pixel coordinates of an element on screen, then drive the mouse action sequence (<code>mouse.down</code>, <code>mouse.move</code>, <code>mouse.up</code>) with a controlled number of intermediate steps.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sử dụng cơ chế đo lường hộp biên (<code>boundingBox</code>) của Playwright để trích xuất tọa độ pixel thực tế của phần tử trên màn hình, sau đó điều khiển chuỗi hành động chuột (<code>mouse.down</code>, <code>mouse.move</code>, <code>mouse.up</code>) có kiểm soát số lượng bước di chuyển (steps).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Get the source and target coordinates with <code>const sourceBox = await source.boundingBox()</code>. Move to the source's center with <code>page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2)</code>. Press down with <code>page.mouse.down()</code>, move smoothly to the target using <code>{ steps: 10 }</code>, and release with <code>page.mouse.up()</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Lấy tọa độ của thẻ nguồn và đích bằng lệnh <code>const sourceBox = await source.boundingBox()</code>. Di chuyển chuột đến tâm thẻ nguồn: <code>await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2)</code>. Kích hoạt lệnh nhấn giữ (<code>page.mouse.down()</code>), di chuyển mượt mà tới đích bằng thuộc tính <code>{ steps: 10 }</code>, và nhả chuột (<code>page.mouse.up()</code>).</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The <code>steps</code> option on <code>mouse.move</code> matters here. Moving in one
+          jump can fail to trigger a widget's own <code>dragover</code> handlers, spreading the
+          move across several intermediate points makes it register as a real drag gesture instead
+          of a single teleport.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Tùy chọn <code>steps</code> trên <code>mouse.move</code> quan trọng ở đây. Di chuyển
+          trong một bước nhảy có thể không kích hoạt được handler <code>dragover</code> riêng của
+          widget, việc chia nhỏ di chuyển thành nhiều điểm trung gian khiến nó được ghi nhận như
+          một thao tác kéo thật thay vì một cú nhảy đơn.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent2)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>boundingBox()</code> can return <code>null</code> if the element isn't
+            currently visible or has zero size. The <code>if (sourceBox &amp;&amp; targetBox)</code>
+            guard is there for that reason, not just as a type-narrowing habit.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>boundingBox()</code> có thể trả về <code>null</code> nếu phần tử đang không
+            hiển thị hoặc có kích thước bằng không. Điều kiện <code>if (sourceBox &amp;&amp; targetBox)</code>
+            tồn tại vì lý do đó, không chỉ là thói quen thu hẹp kiểu dữ liệu.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">canvas-drag-drop.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'drags an element by coordinates'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">const</span> source = page.<span class="fn">locator</span>(<span class="str">'.drag-source-item'</span>);
+  <span class="kw">const</span> target = page.<span class="fn">locator</span>(<span class="str">'.drop-zone-area'</span>);
+
+  <span class="kw">const</span> sourceBox = <span class="kw">await</span> source.<span class="fn">boundingBox</span>();
+  <span class="kw">const</span> targetBox = <span class="kw">await</span> target.<span class="fn">boundingBox</span>();
+
+  <span class="kw">if</span> (sourceBox &amp;&amp; targetBox) {
+    <span class="kw">await</span> page.mouse.<span class="fn">move</span>(sourceBox.x + sourceBox.width / <span class="num">2</span>, sourceBox.y + sourceBox.height / <span class="num">2</span>);
+    <span class="kw">await</span> page.mouse.<span class="fn">down</span>();
+    <span class="kw">await</span> page.mouse.<span class="fn">move</span>(targetBox.x + targetBox.width / <span class="num">2</span>, targetBox.y + targetBox.height / <span class="num">2</span>, { steps: <span class="num">10</span> });
+    <span class="kw">await</span> page.mouse.<span class="fn">up</span>();
+  }
+});</pre>
+    </section>
+
+    <!-- Part 3 divider -->
+    <section class="part-divider" id="part3">
+      <div class="part-label">Continuing the guide</div>
+      <h2>Part 3: visual, accessibility &amp; network control</h2>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Once interaction cases are covered, the next question is what "correct" looks like
+          beyond a passing assertion: does the layout still look right, can everyone actually use
+          it, and does the interface hold up when the network or the device changes underneath it.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Khi các tình huống tương tác đã được xử lý, câu hỏi tiếp theo là "đúng" thật ra là gì
+          ngoài một assertion pass: giao diện có còn đúng như thiết kế không, mọi người có thật sự
+          dùng được không, và giao diện có còn ổn khi mạng hoặc thiết bị bên dưới thay đổi.</p>
+        </div>
+      </div>
+      <div class="topic-row" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="topic-chip" style="--c: var(--red)"><div class="num">07</div><div class="label">Visual Regression</div></div>
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">08</div><div class="label">Accessibility (A11y)</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">09</div><div class="label">Network Mocking</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">10</div><div class="label">Device &amp; Throttling</div></div>
+      </div>
+    </section>
+
+    <!-- 07 -->
+    <section class="content-section" id="visual-regression" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Visual regression testing</h2>
+          <div class="section-desc">Compare pixels against a baseline, mask what's expected to change</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>After a major front-end update, the business needs assurance that the whole interface hasn't broken visually: no display bugs, no CSS drift, no wrong font size or color straying from the approved Figma design.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sau mỗi đợt cập nhật mã nguồn Front-end lớn, doanh nghiệp cần đảm bảo toàn bộ giao diện của hệ thống không bị lỗi hiển thị, lệch CSS, sai cỡ chữ, hoặc bị thay đổi màu sắc sai lệch so với bản thiết kế chuẩn (design Figma).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Writing ordinary <code>expect</code> assertions to check the color and width of hundreds of buttons individually would balloon the test code to tens of thousands of lines, and it becomes nearly impossible to maintain once the interface shifts even slightly.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nếu viết các câu lệnh <code>expect</code> thông thường để kiểm tra từng thuộc tính style màu sắc, độ rộng của hàng trăm nút bấm trên màn hình, file code test sẽ phình to hàng vạn dòng và cực kỳ khó duy trì khi giao diện thay đổi nhẹ.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Apply visual regression testing. Playwright captures a screenshot of the live interface during the test run and compares it pixel by pixel against a previously stored baseline image.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Áp dụng giải pháp kiểm thử so sánh hình ảnh giao diện (visual regression testing). Playwright sẽ chụp ảnh màn hình giao diện lúc chạy test thật, đối chiếu sai lệch cấu trúc từng pixel với một tấm ảnh mẫu chuẩn (baseline image) được lưu từ trước.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Write the assertion: <code>await expect(page).toHaveScreenshot('homepage-master.png', { maxDiffPixels: 100 })</code>. To avoid a false failure from a region that's always changing, pass a mask over it: <code>mask: [page.locator('.live-clock-timestamp')]</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Viết câu lệnh assert: <code>await expect(page).toHaveScreenshot('homepage-master.png', { maxDiffPixels: 100 })</code>. Để tránh việc bài test bị fail oan do các vùng chứa dữ liệu luôn thay đổi theo thời gian, truyền thêm thuộc tính che vùng động: <code>mask: [page.locator('.live-clock-timestamp')]</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The first run of a new <code>toHaveScreenshot</code> assertion writes the baseline
+          image rather than comparing against one, so a newly added visual assertion needs a
+          deliberate review pass before it can be trusted as a real regression gate.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Lần chạy đầu tiên của một assertion <code>toHaveScreenshot</code> mới sẽ ghi ảnh chuẩn
+          thay vì so sánh với ảnh có sẵn, nên một assertion hình ảnh vừa thêm vào cần được rà soát
+          có chủ đích trước khi có thể tin tưởng là cổng chặn hồi quy thật sự.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>maxDiffPixels</code> sets a small tolerance for anti-aliasing noise between
+            machines. It isn't meant to hide a real layout regression, keep it tight and use
+            <code>mask</code> for anything genuinely dynamic instead of loosening this number.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>maxDiffPixels</code> chỉ nên chừa một dung sai nhỏ cho nhiễu anti-aliasing
+            giữa các máy. Nó không dùng để che giấu một hồi quy bố cục thật sự, hãy giữ số này chặt
+            và dùng <code>mask</code> cho thứ thật sự động thay vì nới lỏng con số này.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">visual-regression.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'Dashboard layout matches the visual baseline'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/dashboard'</span>);
+
+  <span class="kw">await</span> <span class="fn">expect</span>(page).<span class="fn">toHaveScreenshot</span>(<span class="str">'dashboard-master.png'</span>, {
+    maxDiffPixels: <span class="num">100</span>,
+    mask: [
+      page.<span class="fn">locator</span>(<span class="str">'.current-time-clock'</span>),
+      page.<span class="fn">locator</span>(<span class="str">'.user-profile-name'</span>)
+    ]
+  });
+});</pre>
+    </section>
+
+    <!-- 08 -->
+    <section class="content-section" id="a11y" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Accessibility testing (WCAG scanning)</h2>
+          <div class="section-desc">Automated axe-core scans as a hard gate, not a manual pass</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When a web app ships to a global market, especially Europe and the US, it has to comply strictly with accessibility law (the WCAG standard), making sure people with visual impairments can operate it through screen readers.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi ứng dụng web phát hành ra thị trường toàn cầu (đặc biệt là thị trường Âu Mỹ), hệ thống bắt buộc phải tuân thủ nghiêm ngặt luật bảo vệ người khuyết tật (tiêu chuẩn WCAG), đảm bảo những người khiếm thị có thể sử dụng phần mềm đọc màn hình (screen readers) để thao tác bình thường.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A QA engineer can't visually inspect whether every HTML tag was written with the right hidden aria-* attributes, or whether the text-to-background color contrast meets the medical standard, just by looking at the screen.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kỹ sư QA không thể tự kiểm tra bằng mắt thường để phát hiện xem các thẻ HTML đã được lập trình viên khai báo đủ thuộc tính ẩn (aria-*) hay chưa, hoặc độ tương phản màu sắc giữa chữ và nền có đạt chuẩn y khoa hay không.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Integrate the Axe Core automated scanning library directly into Playwright's browser run to automatically analyze the whole DOM tree and produce a violations report.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tích hợp bộ thư viện quét lỗi tự động chuyên dụng Axe Core trực tiếp vào luồng chạy trình duyệt của Playwright để tự động phân tích toàn bộ cây cấu trúc DOM và xuất báo cáo vi phạm.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Install <code>@axe-core/playwright</code>. After navigating to the target page, run the scanner: <code>const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()</code>. Then assert <code>expect(results.violations).toEqual([])</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cài đặt gói mở rộng <code>@axe-core/playwright</code>. Trong file kịch bản, sau khi điều hướng tới trang cần kiểm tra, khởi chạy trình quét: <code>const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()</code>. Viết câu lệnh kiểm tra: <code>expect(results.violations).toEqual([])</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>This project already exposes a <code>makeAxeBuilder</code> fixture for exactly this
+          purpose, so a new accessibility test doesn't need to construct <code>AxeBuilder</code> by
+          hand, it can call the fixture and scan straight from there.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Project này đã có sẵn fixture <code>makeAxeBuilder</code> đúng cho mục đích này, nên
+          một test accessibility mới không cần tự dựng <code>AxeBuilder</code> bằng tay, chỉ cần
+          gọi fixture rồi quét từ đó.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>An automated scanner like axe only catches what's mechanically detectable, missing
+            labels, contrast, ARIA misuse. Whether tab order actually makes sense to a real user
+            still needs a human pass.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Một scanner tự động như axe chỉ bắt được những gì có thể kiểm tra máy móc, thiếu
+            nhãn, tương phản, dùng sai ARIA. Việc thứ tự tab có thật sự hợp lý với người dùng thật
+            hay không vẫn cần con người rà soát.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">accessibility-scan.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> AxeBuilder <span class="kw">from</span> <span class="str">'@axe-core/playwright'</span>;
+
+<span class="fn">test</span>(<span class="str">'homepage has no serious or critical accessibility violations'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'https://yourcompany.com'</span>);
+
+  <span class="kw">const</span> accessibilityScanResults = <span class="kw">await</span> <span class="kw">new</span> <span class="fn">AxeBuilder</span>({ page })
+    .<span class="fn">withTags</span>([<span class="str">'wcag2a'</span>, <span class="str">'wcag2aa'</span>])
+    .<span class="fn">analyze</span>();
+
+  <span class="fn">expect</span>(accessibilityScanResults.violations).<span class="fn">toEqual</span>([]);
+});</pre>
+    </section>
+
+    <!-- 09 -->
+    <section class="content-section" id="network-mocking" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>Network mocking and data manipulation</h2>
+          <div class="section-desc">Answer the request yourself, force the empty state to show</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Some scenarios need testing the front-end's edge cases or error handling, for example verifying what the UI shows for an empty product list, or whether a friendly warning banner appears when the server goes down (a 500 error).</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cần thực hiện kiểm thử các kịch bản biên hoặc xử lý lỗi của giao diện Front-end, ví dụ xác thực xem UI hiển thị hình minh họa thế nào khi danh sách sản phẩm trống (empty state), hoặc UI có hiện banner cảnh báo thân thiện không khi server sập (lỗi 500).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>There's no practical way to keep wiping the real test database clean for one scenario, and no way to deliberately take down the company's real backend server just to check how one screen's UI reacts.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Không thể liên tục can thiệp vào database thật của môi trường test để xóa sạch dữ liệu, cũng như không thể chủ động đánh sập server backend thật của công ty chỉ để phục vụ cho việc kiểm tra giao diện của một kịch bản duy nhất.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use network mocking at the browser layer. Playwright acts as an internal proxy, intercepting the API request the UI sends out and fulfilling it with a fake JSON response matching whatever scenario is needed.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sử dụng giải pháp network mocking ở tầng trình duyệt. Playwright đóng vai trò như một proxy nội bộ, nó chặn đứng request API phát đi từ giao diện UI và tự động nạp trả về (fulfill) một nội dung phản hồi JSON giả lập theo đúng kịch bản mong muốn.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Set up the intercept before the page loads: <code>await page.route('**/api/products', async route => { await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Server sập' }) }) })</code>. Then call <code>page.goto()</code> and check whether the error banner actually shows.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khai báo cấu hình chặn mạng trước khi load trang: <code>await page.route('**/api/products', async route => { await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Server sập' }) }) })</code>. Sau đó gọi <code>page.goto()</code> và viết lệnh kiểm tra xem banner lỗi có hiển thị lên màn hình UI hay không.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><code>route.fulfill</code> fully replaces the response, so this technique also covers
+          other hard-to-reproduce shapes: a single item, a malformed payload, or a specific error
+          code, not only an empty list.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><code>route.fulfill</code> thay thế hoàn toàn response, nên kỹ thuật này cũng phủ
+          được các trường hợp khó tái hiện khác: một phần tử duy nhất, payload sai định dạng, hay
+          một mã lỗi cụ thể, không chỉ mỗi danh sách rỗng.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--purple)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>page.route</code> only intercepts requests that go through the browser
+            context. It has no effect on calls made through a standalone <code>request</code>
+            fixture or client.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>page.route</code> chỉ chặn được request đi qua browser context. Nó không có
+            tác dụng với các lệnh gọi qua fixture hay client <code>request</code> độc lập.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">empty-state-mock.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'shows the empty-state illustration when the product list API returns nothing'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/api/v1/products'</span>, <span class="kw">async</span> route => {
+    <span class="kw">await</span> route.<span class="fn">fulfill</span>({
+      status: <span class="num">200</span>,
+      contentType: <span class="str">'application/json'</span>,
+      body: JSON.<span class="fn">stringify</span>([])
+    });
+  });
+
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/inventory'</span>);
+  <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'.empty-state-illustration'</span>)).<span class="fn">toBeVisible</span>();
+});</pre>
+    </section>
+
+    <!-- 10 -->
+    <section class="content-section" id="device-emulation" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div>
+          <h2>Geolocation, device and network throttling emulation</h2>
+          <div class="section-desc">See the app the way a phone on a weak connection sees it</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>An app serving users across multiple countries needs a UI that responds correctly on every mobile screen size, switches language automatically based on the visitor's country, and still works when someone is in an area with weak, spotty 3G coverage.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ứng dụng web phục vụ người dùng đa quốc gia yêu cầu giao diện phải tự động responsive chuẩn trên mọi kích thước thiết bị di động, tự động chuyển đổi ngôn ngữ dựa theo vị trí quốc gia truy cập, và hoạt động tốt ngay cả khi người dùng đi vào vùng sóng yếu (mạng 3G chập chờn).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>QA can't physically travel to different countries to test location, can't stock every real phone model on the market, and can't unplug the office network to simulate lag while automation is running.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>QA không thể di chuyển sang các nước khác nhau để test vị trí, không thể trang bị đầy đủ tất cả các loại điện thoại thật trên thị trường, và không thể tự rút phích cắm mạng của công ty để làm mạng lag khi đang chạy automation.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use the hardware emulation feature and the Chrome DevTools Protocol session Playwright's core already provides to fully control the browser environment.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tận dụng tính năng giả lập cấu hình phần cứng (emulation) và kết nối phiên nâng cao (Chrome DevTools Protocol, CDP) có sẵn trong nhân của Playwright để kiểm soát hoàn toàn môi trường trình duyệt.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>test.use({ ...devices['iPhone 14 Pro'], geolocation: { latitude: 35.67, longitude: 139.65 }, permissions: ['geolocation'] })</code>. To throttle bandwidth, open a CDP session with <code>const session = await context.newCDPSession(page)</code> and send <code>Network.emulateNetworkConditions</code> with the desired latency parameters.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khai báo cấu hình giả lập trong file test: <code>test.use({ ...devices['iPhone 14 Pro'], geolocation: { latitude: 35.67, longitude: 139.65 }, permissions: ['geolocation'] })</code>. Để bóp băng thông mạng, khởi tạo một CDP session ngầm bằng lệnh <code>const session = await context.newCDPSession(page)</code> và gửi sự kiện cấu hình tốc độ mạng <code>Network.emulateNetworkConditions</code> kèm các thông số độ trễ (latency) mong muốn.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The CDP session approach only works in Chromium, since Firefox and WebKit don't expose
+          the same protocol, so a suite that needs network throttling across browsers has to treat
+          this check as Chromium-only.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Cách dùng CDP session chỉ hoạt động trên Chromium, vì Firefox và WebKit không cung cấp
+          cùng protocol đó, nên một suite cần bóp mạng trên nhiều trình duyệt phải xem đây là kiểm
+          tra riêng cho Chromium.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--cyan)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>permissions: ['geolocation']</code> has to be granted explicitly, otherwise
+            the browser blocks the geolocation API outright, and code depending on the emulated
+            coordinates just sees a permission error instead.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>permissions: ['geolocation']</code> phải được cấp rõ ràng, nếu không trình
+            duyệt sẽ chặn hẳn geolocation API, và đoạn mã phụ thuộc vào tọa độ giả lập chỉ nhận
+            được lỗi permission thay vì dữ liệu.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">device-network-emulation.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, devices } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+test.<span class="fn">use</span>({
+  ...devices[<span class="str">'iPhone 14 Pro Max'</span>],
+  geolocation: { latitude: <span class="num">35.6762</span>, longitude: <span class="num">139.6503</span> },
+  permissions: [<span class="str">'geolocation'</span>],
+});
+
+<span class="fn">test</span>(<span class="str">'renders correctly on a throttled mobile connection'</span>, <span class="kw">async</span> ({ page, context }) => {
+  <span class="kw">const</span> session = <span class="kw">await</span> context.<span class="fn">newCDPSession</span>(page);
+  <span class="kw">await</span> session.<span class="fn">send</span>(<span class="str">'Network.emulateNetworkConditions'</span>, {
+    offline: <span class="kw">false</span>,
+    latency: <span class="num">400</span>,
+    downloadThroughput: <span class="num">500</span> * <span class="num">1024</span> / <span class="num">8</span>, <span class="cmt">// 500 kbps (Slow 3G)</span>
+    uploadThroughput: <span class="num">500</span> * <span class="num">1024</span> / <span class="num">8</span>,
+  });
+
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/stores-near-me'</span>);
+  <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'.store-location-card'</span>).<span class="fn">first</span>()).<span class="fn">toContainText</span>(<span class="str">'Tokyo Branch'</span>);
+});</pre>
+    </section>
+
+    <!-- Part 4 divider -->
+    <section class="part-divider" id="part4">
+      <div class="part-label">Continuing the guide</div>
+      <h2>Part 4: state management &amp; CI/CD at scale</h2>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The UI side of a suite runs into the same growth problems the API side does: an
+          authenticated session that shouldn't need re-creating for every spec, timing that
+          shouldn't rely on a guess, and file operations that shouldn't depend on a native OS
+          dialog Playwright can't click into.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Phía UI của một suite gặp đúng những vấn đề tăng trưởng mà phía API gặp phải: một
+          phiên đăng nhập không nên phải dựng lại cho từng file spec, thời gian chờ không nên dựa
+          vào phỏng đoán, và thao tác file không nên phụ thuộc vào hộp thoại hệ điều hành mà
+          Playwright không click vào được.</p>
+        </div>
+      </div>
+      <div class="topic-row" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">11</div><div class="label">Storage State</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">12</div><div class="label">No Hard Wait</div></div>
+        <div class="topic-chip" style="--c: var(--accent2)"><div class="num">13</div><div class="label">Upload / Download</div></div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="content-section" id="storage-state" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div>
+          <h2>Centralized login session management (storage state)</h2>
+          <div class="section-desc">Log in once in setup, reuse the session everywhere else</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Almost every deep business feature in a UI requires a user to have already logged in successfully before they're allowed to reach the working screen.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Hầu hết các tính năng nghiệp vụ sâu của ứng dụng UI đều yêu cầu người dùng phải thực hiện đăng nhập tài khoản thành công thì mới có quyền truy cập vào màn hình thao tác.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>If every UI spec file makes the browser repeat opening the login page, typing username and password, and waiting for the dashboard to load, the whole suite's runtime balloons dramatically (sometimes to several hours), and it becomes prone to random flaky failures from interface network delay.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nếu cứ mỗi file kịch bản test UI đều bắt trình duyệt lặp lại các bước mở trang login, gõ username/password, rồi bấm nút đợi trang dashboard tải xong, thời gian thực thi của bộ test suite sẽ bị phình to khủng khiếp (lên đến nhiều tiếng đồng hồ) và rất dễ bị lỗi ngẫu nhiên (flaky) do trễ mạng giao diện.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Roll out a storage-state bypass. Have Playwright run exactly one login setup file at the start of the run, capture the full cookies and local storage into a compressed JSON file, then automatically inject that file into every subsequent test's browser so it lands directly on the target page without going through the login screen.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Triển khai cơ chế Storage State Bypass. Cấu hình cho Playwright khởi chạy duy nhất một file setup đăng nhập ở đầu phiên chạy, chụp lại toàn bộ cookie và local storage lưu vào một file JSON nén, sau đó tự động "tiêm" (inject) file này vào trình duyệt của tất cả các kịch bản test sau để vào thẳng trang đích mà không cần qua màn hình login.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>In <code>playwright.config.ts</code>, declare a project that runs the dedicated login setup file. In the main project running the E2E scenarios, load that state automatically with <code>use: { storageState: '.auth/user-session.json' }</code> and set <code>dependencies: ['auth-setup']</code> to bind the run order.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Trong file cấu hình <code>playwright.config.ts</code>, khai báo một dự án chạy file setup đăng nhập riêng. Ở dự án chính chạy kịch bản E2E, nạp cấu hình tự động bằng cách khai báo thuộc tính: <code>use: { storageState: '.auth/user-session.json' }</code> và gán thuộc tính <code>dependencies: ['auth-setup']</code> để ràng buộc luồng chạy.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>This is the identical project-dependency mechanism this guide's own API companion
+          uses for auth reuse, applied here to a browser session instead of a bearer token, one
+          setup project runs first, and every dependent project inherits its saved state.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Đây chính là cơ chế project dependency mà phần API của tài liệu này dùng để tái sử
+          dụng phiên đăng nhập, áp dụng ở đây cho phiên trình duyệt thay vì bearer token, một
+          project setup chạy trước, và mọi project phụ thuộc kế thừa trạng thái đã lưu của nó.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The saved session file is a credential on disk, exactly like a token file. It needs
+            the same treatment: gitignored, never committed, and refreshed whenever the test
+            account's session expires.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>File session đã lưu là một credential nằm trên đĩa, giống hệt file token. Nó cần
+            được xử lý tương tự: gitignore, không bao giờ commit, và làm mới khi phiên của tài
+            khoản test hết hạn.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">playwright.config.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { defineConfig } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  projects: [
+    { name: <span class="str">'auth-setup'</span>, testMatch: <span class="cmt">/auth\.setup\.ts/</span> },
+    {
+      name: <span class="str">'e2e-tests'</span>,
+      use: { storageState: <span class="str">'.auth/user-session.json'</span> },
+      dependencies: [<span class="str">'auth-setup'</span>],
+    },
+  ],
+});</pre>
+    </section>
+
+    <!-- 12 -->
+    <section class="content-section" id="no-hard-wait" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div>
+          <h2>Handling flaky tests without hard waits</h2>
+          <div class="section-desc">Web-first assertions instead of a fixed sleep</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When running UI automation, test scenarios fail randomly fairly often, simply because the interface loads a few milliseconds slower due to CI network congestion or an unstable server response.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi chạy automation trên giao diện UI, kịch bản test rất thường xuyên bị lỗi ngẫu nhiên (flaky test) do giao diện tải chậm hơn một vài mili giây vì nghẽn mạng CI hoặc server phản hồi không ổn định.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The usual workaround is sprinkling fixed sleep calls like <code>page.waitForTimeout(5000)</code> everywhere. That wastes suite runtime for no reason, and it still doesn't fix anything if the network lags for more than five seconds the next time.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Lập trình viên thường giải quyết bằng cách chèn các câu lệnh ngủ cố định (hard wait) dạng <code>page.waitForTimeout(5000)</code> vào khắp mọi nơi. Việc này làm lãng phí thời gian chạy test suite một cách vô ích và không giải quyết dứt điểm được lỗi nếu lần sau mạng lag quá 5 giây.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Rely fully on Playwright's smart auto-waiting combined with web-first assertions. The system polls an element's state in the background until the condition is met or the timeout is hit. Hard waits are off the table entirely.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Áp dụng triệt để cơ chế Auto-waiting thông minh kết hợp bộ kiểm tra hướng giao diện (web-first assertions) của Playwright. Hệ thống sẽ tự động thực hiện lặp vòng kiểm tra (polling) trạng thái phần tử ngầm cho đến khi thỏa mãn điều kiện hoặc đạt giới hạn tối đa (timeout). Tuyệt đối cấm dùng hard wait.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Configure automatic retries for randomly failing scenarios with <code>retries: 2</code> in the config file. When writing checks, always use assertions that wait on their own, like <code>await expect(page.locator('.success-toast')).toBeVisible({ timeout: 7000 })</code>; Playwright stops waiting and passes the moment the element shows up, whether that's the first second or the second.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cấu hình tự động chạy lại kịch bản lỗi ngẫu nhiên trong file config bằng lệnh <code>retries: 2</code>. Khi viết code kiểm tra, luôn dùng các hàm async tự động chờ đợi dạng: <code>await expect(page.locator('.success-toast')).toBeVisible({ timeout: 7000 })</code>. Playwright sẽ tự động dừng chờ và pass ngay tại giây thứ nhất hoặc thứ hai nếu phần tử hiển thị sớm.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>This project's own CLAUDE.md states the same rule for timeouts in general: named
+          constants from <code>src/constants/timeouts.ts</code> replace magic numbers, and every
+          one of those constants is CI-aware rather than a single guessed value.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>CLAUDE.md của chính project này nêu đúng quy tắc đó cho timeout nói chung: hằng số có
+          tên từ <code>src/constants/timeouts.ts</code> thay cho số ma thuật, và mỗi hằng số đó
+          đều nhận biết môi trường CI thay vì chỉ là một con số đoán chừng duy nhất.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Web-first assertions only retry the specific check they wrap. A plain variable read
+            followed by a manual <code>if</code> isn't covered by that retry logic, the assertion
+            itself has to be the thing doing the waiting.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Web-first assertion chỉ tự thử lại đúng phép kiểm tra mà nó bọc. Việc đọc một biến
+            thường rồi tự viết <code>if</code> không nằm trong cơ chế thử lại đó, bản thân
+            assertion phải là thứ đảm nhận việc chờ.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">web-first-assertion.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'uses web-first assertions instead of a fixed sleep'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/heavy-data-app'</span>);
+  <span class="kw">await</span> page.<span class="fn">getByRole</span>(<span class="str">'button'</span>, { name: <span class="str">'Tải báo cáo'</span> }).<span class="fn">click</span>();
+
+  <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'.download-complete-toast'</span>)).<span class="fn">toBeVisible</span>();
+});</pre>
+    </section>
+
+    <!-- 13 -->
+    <section class="content-section" id="upload-download" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div>
+          <h2>Advanced file upload and download handling</h2>
+          <div class="section-desc">Skip the native OS file dialog entirely</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Some scenarios need real file-management actions: picking a PDF from the computer to upload, or clicking export and downloading an Excel file.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kịch bản kiểm thử yêu cầu thực hiện các hành động quản lý tệp tin thực tế của người dùng như chọn một file PDF từ máy tính để tải lên hệ thống (upload), hoặc click xuất báo cáo và tải file Excel về máy (download).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Clicking a file-picker or download button normally triggers the operating system's own native file dialog, and ordinary JavaScript running in the browser has no way to reach or control that OS-level window.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi click vào nút chọn file hoặc tải file, trình duyệt sẽ tự động kích hoạt các cửa sổ hộp thoại quản lý tệp tin mặc định của hệ điều hành (native OS file dialog). Mã nguồn JavaScript thông thường chạy trong trình duyệt không thể chạm tới hoặc điều khiển các cửa sổ của hệ điều hành này.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use Playwright's ability to intervene directly at the browser engine level. Instead of opening Explorer or Finder, it provides an API to load a file straight into the hidden input element for uploads, and to catch the asynchronous download event for downloads.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tận dụng tính năng can thiệp trực tiếp vào nhân trình duyệt của Playwright. Thay vì mở cửa sổ Explorer/Finder, Playwright cung cấp API để tự động nạp tệp tin thẳng vào thẻ input ngầm (đối với upload) và kích hoạt cơ chế bắt sự kiện tải xuống bất đồng bộ (đối với download).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Upload flow: locate the input and hand it the file directly with <code>await page.locator('input[type="file"]').setInputFiles('path/to/contract.pdf')</code>. Download flow: set up <code>const downloadPromise = page.waitForEvent('download')</code> before the click, then after clicking the export button, get the file with <code>const download = await downloadPromise</code> and save it with <code>await download.saveAs('path/to/save.xlsx')</code>.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Luồng upload, định vị thẻ input và truyền file trực tiếp bằng lệnh: <code>await page.locator('input[type="file"]').setInputFiles('path/to/contract.pdf')</code>. Luồng download, khai báo Promise chờ sự kiện: <code>const downloadPromise = page.waitForEvent('download')</code>, sau khi click nút xuất file, lấy tệp về bằng lệnh <code>const download = await downloadPromise</code> và lưu kho bằng hàm <code>await download.saveAs('path/to/save.xlsx')</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><code>setInputFiles</code> works even when the actual <code>&lt;input type="file"&gt;</code>
+          element is visually hidden, which is normal, most interfaces style a custom button over
+          it and trigger the native input programmatically.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><code>setInputFiles</code> hoạt động ngay cả khi phần tử <code>&lt;input type="file"&gt;</code>
+          thật sự đang bị ẩn về mặt hiển thị, điều này bình thường, đa số giao diện tạo một nút
+          tùy biến đè lên nó và kích hoạt input gốc bằng mã lệnh.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent2)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>downloadPromise</code> has to be created before the action that starts the
+            download, the same ordering rule as the new-tab pattern earlier in this guide,
+            otherwise the event can fire before anything is listening.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>downloadPromise</code> phải được tạo trước hành động bắt đầu tải xuống, cùng
+            quy tắc thứ tự như mẫu mở tab mới ở phần trước, nếu không sự kiện có thể xảy ra trước
+            khi có gì đang lắng nghe.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">file-upload-download.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+<span class="kw">import</span> path <span class="kw">from</span> <span class="str">'path'</span>;
+
+<span class="fn">test</span>(<span class="str">'handles an advanced upload and download scenario'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/file-manager-dashboard'</span>);
+
+  <span class="cmt">// 1. Upload flow</span>
+  <span class="kw">const</span> fileToUploadPath = path.<span class="fn">resolve</span>(__dirname, <span class="str">'../data-fixtures/sample_invoice.pdf'</span>);
+  <span class="kw">await</span> page.<span class="fn">setInputFiles</span>(<span class="str">'input[type="file"]'</span>, fileToUploadPath);
+  <span class="kw">await</span> <span class="fn">expect</span>(page.<span class="fn">locator</span>(<span class="str">'.upload-success-status'</span>)).<span class="fn">toContainText</span>(<span class="str">'sample_invoice.pdf đã sẵn sàng'</span>);
+
+  <span class="cmt">// 2. Download flow</span>
+  <span class="kw">const</span> downloadPromise = page.<span class="fn">waitForEvent</span>(<span class="str">'download'</span>);
+});</pre>
+    </section>
+
+    <!-- Part 5 divider -->
+    <section class="part-divider" id="part5">
+      <div class="part-label">Continuing the guide</div>
+      <h2>Part 5: performance, observability &amp; ultimate architecture</h2>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The last six patterns move past individual test techniques into how a UI suite runs
+          as a system: catching performance regressions before users do, isolating the tests that
+          fail only sometimes, scaling browser execution onto serverless infrastructure, reaching
+          into modern component architectures, debugging failures after the fact, and letting a
+          model repair a broken locator on its own.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Sáu kỹ thuật cuối vượt ra khỏi từng thao tác test riêng lẻ để nhìn vào cách một suite
+          UI vận hành như một hệ thống: bắt lỗi hiệu năng trước khi người dùng gặp phải, cách ly
+          những test chỉ thỉnh thoảng fail, mở rộng việc chạy trình duyệt lên hạ tầng serverless,
+          chạm vào kiến trúc component hiện đại, debug lỗi sau khi đã xảy ra, và để một mô hình tự
+          sửa locator bị gãy.</p>
+        </div>
+      </div>
+      <div class="topic-row" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="topic-chip" style="--c: var(--red)"><div class="num">14</div><div class="label">Core Web Vitals</div></div>
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">15</div><div class="label">Flaky Detection</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">16</div><div class="label">Serverless</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">17</div><div class="label">Shadow DOM</div></div>
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">18</div><div class="label">Trace Viewer</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">19</div><div class="label">Self-Healing AI</div></div>
+      </div>
+    </section>
+
+    <!-- 14 -->
+    <section class="content-section" id="performance-api" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">14</div>
+        <div>
+          <h2>Extracting page-load metrics (Core Web Vitals &amp; Performance API)</h2>
+          <div class="section-desc">Turn window.performance timing into a hard CI gate</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A business needs to closely monitor page-load performance to make sure new front-end code doesn't slow the interface down and violate Google's Core Web Vitals standards for SEO and user experience.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Doanh nghiệp cần giám sát chặt chẽ hiệu năng tải trang web để đảm bảo code mới của lập trình viên Front-end không làm giảm tốc độ hiển thị giao diện, vi phạm các tiêu chuẩn tối ưu SEO và trải nghiệm người dùng của Google (Core Web Vitals).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Ordinary functional tests only check whether elements render with the right data, not how long that took, so a page can degrade badly (a real UI performance regression) while the test suite still shows green on CI/CD.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Các bài test chức năng thông thường chỉ kiểm tra xem các phần tử có hiển thị đúng cấu trúc dữ liệu hay không chứ không đo lường thời gian tải, dẫn đến việc trang web bị chậm nghiêm trọng (UI performance regression) nhưng bài test vẫn báo xanh (pass) trên hệ thống CI/CD.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Reach directly into the browser's <code>window.performance</code> object during the automation run to pull real timing numbers and set quality-gate thresholds (an SLA).</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Truy cập trực tiếp vào đối tượng quản lý hiệu năng hệ thống <code>window.performance</code> của trình duyệt web ngay trong quá trình chạy automation để trích xuất các chỉ số thời gian thực tế và thiết lập các chốt chặn chất lượng (SLA).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>After the page finishes loading, run code in the browser context: <code>const timingJson = await page.evaluate(() => JSON.stringify(window.performance.timing))</code>. Extract and compute: <code>const loadTime = timing.loadEventEnd - timing.navigationStart</code>. Assert <code>expect(loadTime).toBeLessThan(2500)</code> to fail the CI build if the page takes longer than 2.5 seconds to load.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sau khi load xong trang, gọi lệnh thực thi mã nguồn trong trình duyệt: <code>const timingJson = await page.evaluate(() => JSON.stringify(window.performance.timing))</code>. Trích xuất và tính toán dữ liệu: <code>const loadTime = timing.loadEventEnd - timing.navigationStart</code>. Sử dụng câu lệnh assert: <code>expect(loadTime).toBeLessThan(2500)</code> để đánh trượt bài test trên CI nếu trang web tải lâu quá 2.5 giây.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><code>page.waitForLoadState('networkidle')</code> needs to run before reading the
+          timing object, otherwise <code>loadEventEnd</code> may not be populated yet and the
+          calculated total comes out wrong.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><code>page.waitForLoadState('networkidle')</code> cần chạy trước khi đọc object
+          timing, nếu không <code>loadEventEnd</code> có thể chưa được điền và tổng tính ra sẽ sai.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>window.performance.timing</code> is the older Navigation Timing API. It
+            still works for straightforward SLA-style thresholds like this, but newer Core Web
+            Vitals metrics (LCP, CLS, INP) live under a different, more detailed API if a suite
+            needs those specifically.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><code>window.performance.timing</code> là Navigation Timing API đời cũ hơn. Nó vẫn
+            đủ dùng cho các ngưỡng kiểu SLA đơn giản như thế này, nhưng các chỉ số Core Web Vitals
+            mới hơn (LCP, CLS, INP) nằm trong một API khác chi tiết hơn nếu suite cần riêng chúng.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">performance-timing.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'monitors page-load performance metrics'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/landing-page'</span>);
+  <span class="kw">await</span> page.<span class="fn">waitForLoadState</span>(<span class="str">'networkidle'</span>);
+
+  <span class="kw">const</span> performanceTimingJson = <span class="kw">await</span> page.<span class="fn">evaluate</span>(() =&gt; JSON.<span class="fn">stringify</span>(window.performance.timing));
+  <span class="kw">const</span> timing = JSON.<span class="fn">parse</span>(performanceTimingJson);
+
+  <span class="kw">const</span> timeToFirstByte = timing.responseStart - timing.navigationStart;
+  <span class="kw">const</span> domContentLoadedTime = timing.domContentLoadedEventEnd - timing.navigationStart;
+  <span class="kw">const</span> totalPageLoadTime = timing.loadEventEnd - timing.navigationStart;
+
+  console.<span class="fn">log</span>(<span class="cmt">`⏱️ TTFB: ${timeToFirstByte}ms`</span>);
+  console.<span class="fn">log</span>(<span class="cmt">`⏱️ DOM Content Loaded: ${domContentLoadedTime}ms`</span>);
+  console.<span class="fn">log</span>(<span class="cmt">`⏱️ Total Page Load Time: ${totalPageLoadTime}ms`</span>);
+
+  <span class="fn">expect</span>(timeToFirstByte).<span class="fn">toBeLessThan</span>(<span class="num">400</span>);
+  <span class="fn">expect</span>(totalPageLoadTime).<span class="fn">toBeLessThan</span>(<span class="num">2500</span>); <span class="cmt">// UI must load in under 2.5 seconds</span>
+});</pre>
+    </section>
+
+    <!-- 15 -->
+    <section class="content-section" id="flaky-detection" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">15</div>
+        <div>
+          <h2>Automatic flaky test detection and isolation</h2>
+          <div class="section-desc">Catch the failed-then-passed-on-retry pattern automatically</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>In large projects running thousands of UI test cases a day on CI/CD, random flaky failures caused by temporary network congestion or hardware resource lag come up fairly often, and that noise erodes trust in the automation system.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Trong các dự án lớn chạy hàng nghìn test case UI mỗi ngày trên CI/CD, hiện tượng test bị fail ngẫu nhiên (flaky test) do nghẽn mạng tạm thời hoặc lag tài nguyên phần cứng xảy ra rất phổ biến, làm nhiễu kết quả và gây mất lòng tin vào hệ thống automation.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A QA engineer can't manually comb through hundreds of run logs a day to work out which failures are real product bugs and which are false failures from a laggy environment.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kỹ sư QA không thể ngồi dò thủ công hàng trăm bản ghi log chạy mỗi ngày để phân tích xem test case nào bị fail thật do bug của sản phẩm, test case nào bị fail giả do môi trường lag để tìm cách sửa code.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Build a custom reporter that connects to a centralized data management system. It automatically analyzes test run history, calculates each scenario's failure frequency, and automatically quarantines unstable scenarios out of the main deployment pipeline.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Xây dựng một Custom Reporter tùy biến kết nối với hệ thống quản lý dữ liệu tập trung. Trình báo cáo này sẽ tự động phân tích lịch sử chạy test (test run history), tính toán tần suất lỗi của từng kịch bản, và tự động gắn nhãn cách ly (quarantine) các kịch bản không ổn định ra khỏi bộ test chính của luồng deploy.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Create a class that implements Playwright's <code>Reporter</code> interface. Write the logic inside the test-end event handler, <code>async onTestEnd(test, result)</code>. Check if <code>result.status === 'failed'</code> but the retry then passed, if so, automatically fire an HTTP POST with that test's identifying details to a health-tracking dashboard (e.g. Currents or an ELK Stack).</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tạo một file class kế thừa cấu trúc <code>Reporter</code> của Playwright. Viết logic bên trong hàm sự kiện kết thúc test <code>async onTestEnd(test, result)</code>. Kiểm tra nếu <code>result.status === 'failed'</code> nhưng ở lượt retry lại thành công, hệ thống sẽ tự động thực hiện một request HTTP POST đẩy thông tin định danh của test case đó về dashboard theo dõi chỉ số sức khỏe (ví dụ Currents/ELK Stack).</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>This pattern reads from data Playwright already tracks internally, <code>test.results</code>
+          holds one entry per attempt, so it doesn't need any extra instrumentation added to the
+          tests themselves, only a reporter that inspects what's already there.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Kỹ thuật này đọc từ dữ liệu Playwright đã tự theo dõi sẵn, <code>test.results</code>
+          chứa một mục cho mỗi lần thử, nên không cần thêm bất kỳ instrumentation nào vào bản thân
+          test, chỉ cần một reporter kiểm tra những gì đã có sẵn.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--accent)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>This check only fires on the failed-then-retried-and-passed case. A test that fails
+            on every retry is a real failure, not a flaky one, and doesn't belong in this bucket.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Điều kiện này chỉ kích hoạt ở trường hợp fail rồi retry lại pass. Một test fail ở
+            mọi lần thử là lỗi thật, không phải flaky, và không thuộc nhóm này.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">custom-reporter.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { Reporter, TestCase, TestResult } <span class="kw">from</span> <span class="str">'@playwright/test/reporter'</span>;
+
+<span class="kw">class</span> <span class="type">FlakyAnalyticsReporter</span> <span class="kw">implements</span> <span class="type">Reporter</span> {
+  <span class="kw">async</span> <span class="fn">onTestEnd</span>(test: <span class="type">TestCase</span>, result: <span class="type">TestResult</span>) {
+    <span class="cmt">// A first-attempt failure followed by a passing retry means flaky, not broken</span>
+    <span class="kw">if</span> (result.status === <span class="str">'failed'</span> &amp;&amp; test.results.length &gt; <span class="num">1</span>) {
+      console.<span class="fn">log</span>(<span class="cmt">`⚠️ Flaky behavior detected in test case: ${test.title}`</span>);
+
+      <span class="kw">const</span> flakyPayload = {
+        testId: test.id,
+        title: test.title,
+        file: test.location.file,
+        error: result.error?.message
+      };
+
+      <span class="cmt">// POST the payload to a tracking dashboard, e.g. Currents/Grafana</span>
+      <span class="cmt">// await fetch('https://internal.metrics', { method: 'POST', body: JSON.stringify(flakyPayload) });</span>
+    }
+  }
+}
+<span class="kw">export default</span> FlakyAnalyticsReporter;</pre>
+    </section>
+
+    <!-- 16 -->
+    <section class="content-section" id="serverless" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">16</div>
+        <div>
+          <h2>Running UI automation on serverless infrastructure</h2>
+          <div class="section-desc">Hundreds of headless browsers, paid for by the second</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Sometimes a suite of over 2000 UI test cases needs to run in the shortest possible time every time a developer opens a pull request, to check the code right away.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cần chạy một bộ test suite khổng lồ gồm hơn 2000 test case UI trong thời gian ngắn nhất mỗi khi lập trình viên tạo Pull Request để kiểm tra code lập tức.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Sharding across traditional fixed CI virtual machines (Jenkins agents, GitHub runners) means paying a large ongoing cost to keep dozens of powerful machines running 24/7, and the maximum speed is still capped by however many of those fixed machines were rented.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nếu chạy phân mảnh (sharding) trên các máy ảo CI truyền thống cố định (như Jenkins Agent, GitHub Runner), doanh nghiệp sẽ phải chi trả một khoản chi phí cực kỳ lớn để thuê hàng chục máy cấu hình mạnh bật 24/7, nhưng tốc độ tối đa cũng bị giới hạn bởi số lượng máy ảo thuê cố định đó.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Move the automation system onto serverless architecture. Package Playwright and a compressed Chromium core to run on cloud functions like AWS Lambda or Google Cloud Functions. On trigger, CI fires up 500 Lambda functions in parallel, each one running exactly one test case in a few seconds before shutting itself down.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Chuyển dịch toàn bộ hệ thống automation lên kiến trúc không máy chủ (serverless architecture). Đóng gói mã nguồn Playwright và lõi trình duyệt Chromium siêu nén chạy trên các hàm đám mây như AWS Lambda hoặc Google Cloud Functions. Khi có lệnh kích hoạt, hệ thống CI sẽ kích hoạt đồng thời 500 hàm Lambda chạy song song, mỗi hàm thực thi duy nhất 1 test case trong vòng vài giây rồi tự hủy.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Use a Lambda-optimized browser build library like <code>@sparticuz/chromium</code> alongside <code>playwright-core</code>. Write a handler file that receives the CI event carrying the target URL (<code>event.targetUrl</code>), launches a headless browser, runs the test case, closes the browser, and returns the result to the CI server to aggregate the report, all in under a minute.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sử dụng bộ thư viện build trình duyệt tối ưu cho Serverless dạng <code>@sparticuz/chromium</code> kết hợp với <code>playwright-core</code>. Viết một file handler nhận sự kiện truyền vào từ CI chứa đường link URL cần test (<code>event.targetUrl</code>), khởi chạy trình duyệt headless, thực thi test case, đóng browser và trả kết quả về cho máy chủ CI tổng hợp báo cáo chỉ trong vòng chưa đầy 1 phút.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><code>@sparticuz/chromium</code> exists specifically because Lambda's deployment
+          package size and read-only filesystem rule out a normal full Chromium install, it ships
+          a build compressed and configured for that constrained environment.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><code>@sparticuz/chromium</code> tồn tại chính vì giới hạn kích thước gói triển khai
+          và hệ thống file chỉ đọc của Lambda loại bỏ khả năng cài Chromium đầy đủ thông thường,
+          nó cung cấp một bản build đã nén và cấu hình riêng cho môi trường bị giới hạn đó.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--purple)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The drop from hours to seconds comes from running instances in parallel across many
+            Lambda invocations, not from any single browser session running faster than usual.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Việc giảm từ vài tiếng xuống vài giây đến từ chạy song song nhiều lần gọi Lambda,
+            không phải vì một phiên trình duyệt đơn lẻ nào chạy nhanh hơn bình thường.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">lambda/handler.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> playwright <span class="kw">from</span> <span class="str">'playwright-core'</span>;
+<span class="kw">import</span> chromium <span class="kw">from</span> <span class="str">'@sparticuz/chromium'</span>; <span class="cmt">// Compressed Chromium build for Lambda</span>
+
+<span class="kw">export const</span> handler = <span class="kw">async</span> (event: <span class="type">any</span>) => {
+  <span class="kw">const</span> browser = <span class="kw">await</span> playwright.chromium.<span class="fn">launch</span>({
+    args: chromium.args,
+    executablePath: <span class="kw">await</span> chromium.<span class="fn">executablePath</span>(),
+    headless: <span class="kw">true</span>,
+  });
+
+  <span class="kw">const</span> context = <span class="kw">await</span> browser.<span class="fn">newContext</span>();
+  <span class="kw">const</span> page = <span class="kw">await</span> context.<span class="fn">newPage</span>();
+
+  <span class="kw">await</span> page.<span class="fn">goto</span>(event.targetUrl);
+  <span class="kw">const</span> title = <span class="kw">await</span> page.<span class="fn">title</span>();
+
+  <span class="kw">await</span> browser.<span class="fn">close</span>();
+  <span class="kw">return</span> {
+    statusCode: <span class="num">200</span>,
+    body: <span class="cmt">`Serverless test run completed for page: ${title}`</span>
+  };
+};</pre>
+    </section>
+
+    <!-- 17 -->
+    <section class="content-section" id="shadow-dom" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">17</div>
+        <div>
+          <h2>Piercing through Shadow DOM and micro-frontends</h2>
+          <div class="section-desc">One locator chain, automatically crossing shadow boundaries</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Large enterprise web systems apply a micro-frontend architecture, splitting the interface across multiple independent teams, and package UI code with Shadow DOM to fully isolate CSS and components between pieces.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Các hệ thống ứng dụng web doanh nghiệp quy mô lớn áp dụng mô hình kiến trúc Micro-Frontends (chia nhỏ giao diện cho nhiều đội phát triển độc lập) và đóng gói mã nguồn UI bằng công nghệ Shadow DOM nhằm cô lập hoàn toàn mã định dạng CSS và Component giữa các phần mềm.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Shadow DOM creates an isolated security wall (a shadow root). Older-generation testing tools like Selenium go completely blind against this structure and keep reporting that they can't find an element that's clearly visible on screen.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cơ chế Shadow DOM tạo ra một bức tường bảo mật cô lập (shadow-root). Các công cụ kiểm thử thế hệ cũ (như Selenium) sẽ hoàn toàn "mù" khi gặp cấu trúc này và liên tục báo lỗi không thể tìm thấy phần tử giao diện hiển thị trên màn hình.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Rely on Playwright's newer selector engine design. Its selector filter is built to automatically pierce through every layer of Shadow DOM isolation by default, with no extra JavaScript workaround needed.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tận dụng cơ chế thiết kế công cụ định vị (selector engine) thế hệ mới tân tiến của Playwright. Nhân bộ lọc của Playwright được lập trình để có khả năng tự động đi xuyên qua tất cả các lớp ranh giới cô lập của Shadow DOM theo mặc định mà không cần viết thêm mã nguồn JavaScript bổ trợ phức tạp.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Write the locator exactly as if it were a normal DOM: <code>page.locator('fancy-button >> custom-input >> input.text-field')</code>. The <code>&gt;&gt;</code> separator lets Playwright automatically peel back each nested shadow-root layer to interact directly with the target element buried inside.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Bạn viết câu lệnh định vị phần tử một cách hoàn toàn bình thường giống như DOM truyền thống: <code>page.locator('fancy-button >> custom-input >> input.text-field')</code>. Cú pháp phân tách <code>&gt;&gt;</code> giúp Playwright tự động bóc tách từng lớp shadow-root lồng nhau để tương tác trực tiếp với phần tử đích nằm sâu bên trong.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The <code>&gt;&gt;</code> combinator does double duty here, crossing from one custom
+          element into its child custom element, and from each of those into its own shadow root,
+          all through the same locator syntax without the test needing to know where the shadow
+          boundaries actually are.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Toán tử <code>&gt;&gt;</code> ở đây làm hai việc cùng lúc, băng từ một custom element
+          sang custom element con của nó, và từ mỗi cái đó vào shadow root riêng, tất cả qua cùng
+          một cú pháp locator mà test không cần biết ranh giới shadow thật sự nằm ở đâu.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--cyan)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Because this piercing behavior is automatic, a test author doesn't need to know in
+            advance which nested element has a shadow root and which doesn't, the same chained
+            locator works either way.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Vì hành vi xuyên thấu này là tự động, người viết test không cần biết trước phần tử
+            lồng nào có shadow root và phần tử nào không, cùng một chuỗi locator vẫn hoạt động
+            trong cả hai trường hợp.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">shadow-dom-locator.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="fn">test</span>(<span class="str">'locates an element nested inside several layers of shadow DOM'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/micro-frontend-dashboard'</span>);
+
+  <span class="cmt">// The ">>" syntax lets Playwright pierce through nested custom elements and shadow roots</span>
+  <span class="kw">const</span> shadowInput = page.<span class="fn">locator</span>(<span class="str">'user-widget >> profile-card >> input.nickname-field'</span>);
+
+  <span class="kw">await</span> shadowInput.<span class="fn">fill</span>(<span class="str">'Master Automation'</span>);
+  <span class="kw">await</span> <span class="fn">expect</span>(shadowInput).<span class="fn">toHaveValue</span>(<span class="str">'Master Automation'</span>);
+});</pre>
+    </section>
+
+    <!-- 18 -->
+    <section class="content-section" id="trace-viewer" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">18</div>
+        <div>
+          <h2>Time-travel debugging with Trace Viewer</h2>
+          <div class="section-desc">Reconstruct a CI-only failure without reproducing it live</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>When UI automation runs on CI/CD and a test scenario fails, a screenshot or a video recording alone often isn't enough to find the real root cause, since the failure could come from state going out of sync, a background API packet failing, or a logic bug in the flow.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi chạy Automation UI tự động trên hệ thống CI/CD, một kịch bản test bị thất bại. Việc chỉ nhìn vào tấm ảnh chụp màn hình lúc lỗi hoặc video quay lại thường không đủ để lập trình viên tìm ra nguyên nhân cốt lõi (vì lỗi có thể do bất đồng bộ trạng thái, lỗi gói tin API chạy ngầm, hoặc lỗi logic luồng code).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>QA usually ends up burning a lot of time trying to rerun the failing scenario locally to reproduce it, then digging through the Console and Network tabs line by line, wasting the whole team's time in the process.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>QA thường phải tốn rất nhiều thời gian để cố gắng chạy lại kịch bản lỗi đó trên máy cá nhân nhằm tái hiện lỗi, và bật tab Console/Network để dò tìm từng dòng log, gây lãng phí thời gian của cả đội ngũ phát triển.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Turn on Playwright's full trace-recording feature at a deep level. When a test fails, Playwright automatically exports a .zip file packaging the entire trace: the HTML tree's state at every microsecond, mouse click positions, the full Network tab history, and the browser's console log.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kích hoạt tính năng ghi lại dấu vết toàn diện hệ thống (Playwright Trace Viewer) ở mức độ chuyên sâu. Khi test bị fail, Playwright sẽ tự động xuất ra một file nén dạng .zip đóng gói trọn vẹn toàn bộ "hành trình dấu vết" bao gồm trạng thái cây cấu trúc HTML tại từng micro-giây, vị trí click chuột, toàn bộ lịch sử tab Network, và bảng điều khiển console log của trình duyệt.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Set the smart config in <code>playwright.config.ts</code> to save CI disk space: <code>use: { trace: 'on-first-retry', video: 'retain-on-failure', screenshot: 'only-on-failure' }</code>. When a test case fails once and gets retried, the system writes the trace file. Download the .zip from CI and drag it into <code>trace.playwright.dev</code> to time-travel through the failure exactly as if running it locally.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cấu hình thuộc tính thông minh trong file <code>playwright.config.ts</code> để tiết kiệm dung lượng ổ đĩa CI: <code>use: { trace: 'on-first-retry', video: 'retain-on-failure', screenshot: 'only-on-failure' }</code>. Khi test case bị fail lần đầu, hệ thống chạy lại (retry) sẽ tự ghi file trace. Lập trình viên chỉ cần lấy file .zip từ CI về kéo thả vào trang web <code>trace.playwright.dev</code> là có thể "quay ngược thời gian" debug y như đang chạy trực tiếp trên máy của họ.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><code>trace: 'on-first-retry'</code> specifically avoids recording a trace for every
+          single test, which would be expensive in both time and storage, it only captures the
+          detailed trace once a test has already failed once and is being retried.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><code>trace: 'on-first-retry'</code> cố tình tránh ghi trace cho mọi test, việc đó sẽ
+          tốn cả thời gian lẫn dung lượng lưu trữ, nó chỉ ghi trace chi tiết khi một test đã fail
+          một lần và đang được thử lại.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><code>video</code> and <code>screenshot</code> settings here are independent of
+            the trace setting, <code>retain-on-failure</code> keeps only failing runs' videos, so
+            storage cost stays proportional to actual failures, not total tests run.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Cấu hình <code>video</code> và <code>screenshot</code> ở đây độc lập với cấu hình
+            trace, <code>retain-on-failure</code> chỉ giữ lại video của lần chạy fail, nên chi phí
+            lưu trữ tỷ lệ với số lần fail thật sự, không phải tổng số test đã chạy.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">playwright.config.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { defineConfig } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  use: {
+    <span class="cmt">// Only records a trace once a test has already failed and is being retried</span>
+    trace: <span class="str">'on-first-retry'</span>,
+    video: <span class="str">'retain-on-failure'</span>,
+    screenshot: <span class="str">'only-on-failure'</span>,
+  },
+});</pre>
+    </section>
+
+    <!-- 19 -->
+    <section class="content-section" id="self-healing" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">19</div>
+        <div>
+          <h2>AI self-healing tests</h2>
+          <div class="section-desc">When a selector breaks, ask a language model for the new one</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Context</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A front-end team constantly ships interface updates. Every time they rename a class or change a button's id (say, from <code>id="btn-login"</code> to <code>id="submit-auth-form"</code>), the whole existing test codebase immediately breaks with broken locators.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đội ngũ phát triển Front-end liên tục thực hiện cập nhật cải tiến giao diện. Mỗi khi họ thay đổi tên class, đổi thuộc tính định danh nút bấm (ví dụ đổi <code>id="btn-login"</code> thành <code>id="submit-auth-form"</code>), toàn bộ bộ mã nguồn test cũ sẽ lập tức bị lỗi gãy bộ định vị (broken locators).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why it's hard</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The automation system fails a batch of tests on CI all at once, forcing the automation QA engineer to stop what they're doing, manually dig through the new HTML structure, and fix each selector line in the test code, a heavy maintenance burden.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Hệ thống automation sẽ bị đánh sượt hàng loạt bài test trên CI, buộc kỹ sư automation QA phải dừng công việc lại để đi dò tìm thủ công cấu trúc HTML mới và sửa lại từng dòng selector trong code test, tạo ra một gánh nặng bảo trì (maintenance overhead) rất lớn.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Solution</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Design a self-healing test model. Build a smart wrapper function around Playwright's locator. When Playwright can't find an element after the timeout, instead of failing the test immediately, the system captures the page's full current HTML and sends it to an AI API (an LLM like OpenAI or Claude) to analyze and find an equivalent new element that lets the test keep running.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thiết kế mô hình tự phục hồi mã nguồn kiểm thử (self-healing tests). Xây dựng một hàm bọc (wrapper) thông minh cho bộ định vị của Playwright. Khi Playwright không tìm thấy phần tử giao diện sau thời gian chờ (timeout), thay vì đánh trượt bài test ngay lập tức, hệ thống sẽ tự động chụp lại toàn bộ mã nguồn HTML hiện tại của trang web và gửi lên một API trí tuệ nhân tạo (LLM như OpenAI/Claude) để tự động phân tích và tìm kiếm phần tử mới tương đương nhằm cứu bài test chạy tiếp.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">In practice</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Build a helper function <code>async smartLocator(page, fallbackSelector)</code>. In the catch block for when the element isn't found, capture the page's source: <code>const htmlDump = await page.content()</code>. Send that to an internal AI service to get back a suggested new selector (e.g. <code>button.new-modern-design-btn</code>); Playwright uses that new selector to complete the click, and the source's own example also has it automatically open a Pull Request on Git to update the test code file.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Xây dựng hàm helper <code>async smartLocator(page, fallbackSelector)</code>. Trong khối catch xử lý lỗi khi không tìm thấy phần tử, gọi lệnh lấy mã nguồn trang: <code>const htmlDump = await page.content()</code>. Gửi thông tin này lên service AI nội bộ để nhận về bộ định vị mới được AI gợi ý (ví dụ <code>button.new-modern-design-btn</code>), Playwright tự động dùng bộ chọn mới này để thực hiện tiếp hành động click chuột, đồng thời tự động tạo một Pull Request trên Git để cập nhật lại file code test giúp bạn.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The source example keeps the actual AI call commented out and returns a hardcoded
+          string in its place, that's a stand-in for wiring up a real model call, not a working
+          integration on its own, and any real implementation still needs its own accuracy and
+          cost tradeoffs worked out before it replaces a human updating the selector.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Ví dụ gốc giữ lệnh gọi AI thật ở dạng comment và trả về một chuỗi gán sẵn thay vào đó,
+          đó là chỗ giữ vị trí cho việc nối vào một lệnh gọi mô hình thật, không phải một tích hợp
+          hoạt động sẵn, và bất kỳ triển khai thật nào cũng cần tự cân nhắc độ chính xác và chi phí
+          trước khi thay thế con người cập nhật selector.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&rarr;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>A short two-second timeout on the first attempt keeps a healthy selector cheap to
+            check, but it also means the fallback path triggers on any temporarily slow render,
+            not only on a genuinely broken selector.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Timeout hai giây ngắn ở lần thử đầu giữ cho việc kiểm tra một selector còn tốt rẻ về
+            chi phí, nhưng cũng khiến đường dự phòng kích hoạt cả khi trang chỉ tạm thời render
+            chậm, không chỉ khi selector thật sự đã gãy.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-header">
+        <span class="code-filename">self-healing-locator.spec.ts</span>
+        <span class="code-lang">TypeScript</span>
+      </div>
+      <pre><span class="kw">import</span> { test, expect, Page } <span class="kw">from</span> <span class="str">'@playwright/test'</span>;
+
+<span class="kw">async function</span> <span class="fn">smartLocator</span>(page: <span class="type">Page</span>, fallbackSelector: <span class="type">string</span>) {
+  <span class="kw">try</span> {
+    <span class="cmt">// A short 2-second timeout keeps checking a healthy selector cheap</span>
+    <span class="kw">return</span> <span class="kw">await</span> page.<span class="fn">waitForSelector</span>(fallbackSelector, { timeout: <span class="num">2000</span> });
+  } <span class="kw">catch</span> (error) {
+    console.<span class="fn">log</span>(<span class="cmt">`🔮 Selector [${fallbackSelector}] broke against the current DOM. Triggering AI self-healing...`</span>);
+
+    <span class="cmt">// Capture the page's current HTML structure</span>
+    <span class="kw">const</span> pageHtmlDump = <span class="kw">await</span> page.<span class="fn">content</span>();
+
+    <span class="cmt">// Send the HTML dump and the broken selector to an internal AI service (or an OpenAI API) for an equivalent match</span>
+    <span class="cmt">// const newSuggestedSelector = await callAiEngine(pageHtmlDump, fallbackSelector);</span>
+
+    <span class="kw">const</span> newSuggestedSelector = <span class="str">"button[type='submit'].new-modern-design-btn"</span>; <span class="cmt">// Stand-in for the AI's result</span>
+    console.<span class="fn">log</span>(<span class="cmt">`🎯 AI found a matching selector: [${newSuggestedSelector}].`</span>);
+
+    <span class="kw">return</span> <span class="kw">await</span> page.<span class="fn">waitForSelector</span>(newSuggestedSelector);
+  }
+}
+
+<span class="fn">test</span>(<span class="str">'self-healing keeps the test running when the UI selector changes'</span>, <span class="kw">async</span> ({ page }) => {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/login-page'</span>);
+
+  <span class="cmt">// Falls back to the AI-suggested selector if the class or id changed unexpectedly</span>
+  <span class="kw">const</span> submitButton = <span class="kw">await</span> <span class="fn">smartLocator</span>(page, <span class="str">'#old-btn-submit'</span>);
+  <span class="kw">await</span> submitButton.<span class="fn">click</span>();
+});</pre>
+    </section>
+
+    <footer class="footer">
+      Playwright TypeScript Automation Framework &middot; Advanced UI Testing Guide
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>

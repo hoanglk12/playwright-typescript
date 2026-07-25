@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Zod Schema Validation — Pilot Plan</title>
+<style>
+  :root {
+    --bg: #F6F7FB;
+    --surface: #FFFFFF;
+    --surface-alt: #ECEEF7;
+    --border: #DBDFEE;
+    --ink: #1B1E2B;
+    --ink-soft: #565B72;
+    --ink-faint: #8286A0;
+    --accent: #3B4FE0;
+    --accent-soft: #E4E7FC;
+    --good: #1F8A5F;
+    --good-soft: #DDF0E7;
+    --warn: #B4700A;
+    --warn-soft: #F6E7D2;
+    --critical: #B3372A;
+    --critical-soft: #F5DFDC;
+    --code-bg: #1B1E2B;
+    --code-ink: #E7E9F5;
+    --shadow: 0 1px 2px rgba(27,30,43,0.06), 0 6px 16px rgba(27,30,43,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141F;
+      --surface: #191C29;
+      --surface-alt: #212536;
+      --border: #2E3348;
+      --ink: #E7E9F5;
+      --ink-soft: #A3A8C2;
+      --ink-faint: #6D7290;
+      --accent: #8B9AFF;
+      --accent-soft: #23264A;
+      --good: #5BC898;
+      --good-soft: #163227;
+      --warn: #E0A438;
+      --warn-soft: #2E2515;
+      --critical: #E2695A;
+      --critical-soft: #2E1B17;
+      --code-bg: #0C0E17;
+      --code-ink: #DDE1F5;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141F; --surface: #191C29; --surface-alt: #212536; --border: #2E3348;
+    --ink: #E7E9F5; --ink-soft: #A3A8C2; --ink-faint: #6D7290;
+    --accent: #8B9AFF; --accent-soft: #23264A;
+    --good: #5BC898; --good-soft: #163227;
+    --warn: #E0A438; --warn-soft: #2E2515;
+    --critical: #E2695A; --critical-soft: #2E1B17;
+    --code-bg: #0C0E17; --code-ink: #DDE1F5;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F7FB; --surface: #FFFFFF; --surface-alt: #ECEEF7; --border: #DBDFEE;
+    --ink: #1B1E2B; --ink-soft: #565B72; --ink-faint: #8286A0;
+    --accent: #3B4FE0; --accent-soft: #E4E7FC;
+    --good: #1F8A5F; --good-soft: #DDF0E7;
+    --warn: #B4700A; --warn-soft: #F6E7D2;
+    --critical: #B3372A; --critical-soft: #F5DFDC;
+    --code-bg: #1B1E2B; --code-ink: #E7E9F5;
+    --shadow: 0 1px 2px rgba(27,30,43,0.06), 0 6px 16px rgba(27,30,43,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .page { max-width: 800px; margin: 0 auto; padding: 56px 24px 96px; }
+  .eyebrow {
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+    font-size: 12px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 14px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 38px); font-weight: 680; letter-spacing: -0.01em;
+    margin: 0 0 10px; text-wrap: balance; color: var(--ink);
+  }
+  .subtitle { font-size: 16px; color: var(--ink-soft); max-width: 62ch; margin: 0 0 24px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 40px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+    padding: 5px 11px; border-radius: 100px; border: 1px solid var(--border);
+    color: var(--ink-soft); background: var(--surface);
+  }
+  .chip.go { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+  .chip.hold { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin-bottom: 44px; box-shadow: var(--shadow);
+  }
+  .stat { background: var(--surface); padding: 18px 18px 16px; }
+  .stat-label {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 8px;
+  }
+  .stat-value { font-size: 19px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  .stat-value .arrow { color: var(--ink-faint); font-weight: 500; margin: 0 4px; }
+  .stat-sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 4px; }
+
+  section { margin-bottom: 44px; }
+  h2 {
+    font-size: 13px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700;
+    color: var(--ink-soft); margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 15.5px; font-weight: 650; margin: 22px 0 8px; color: var(--ink); }
+  p { margin: 0 0 14px; color: var(--ink); }
+  p.lede { color: var(--ink-soft); }
+  ul.plain, ol.plain { margin: 0 0 14px; padding-left: 20px; }
+  ul.plain li, ol.plain li { margin-bottom: 6px; }
+  code { font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace; font-size: 0.92em; }
+  p code, li code, td code { background: var(--surface-alt); padding: 1px 5px; border-radius: 4px; }
+
+  .panel {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .panel.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .panel.critical { border-left-color: var(--critical); background: var(--critical-soft); }
+  .panel-title {
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    margin: 0 0 8px; color: var(--ink);
+  }
+  .panel-title .tag {
+    font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; background: var(--accent); color: var(--surface); font-weight: 700;
+  }
+  .panel.warn .panel-title .tag { background: var(--warn); }
+  .panel.critical .panel-title .tag { background: var(--critical); }
+  .panel p { margin: 0 0 8px; font-size: 14.5px; color: var(--ink); }
+  .panel p:last-child { margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 8px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+  .table-wrap table { margin-bottom: 0; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th {
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint);
+    background: var(--surface-alt); font-weight: 700;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.good-cell { color: var(--good); }
+  td.bad-cell { color: var(--critical); }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .step {
+    counter-increment: step; position: relative; padding: 0 0 24px 44px;
+    border-left: 1px solid var(--border); margin-left: 15px;
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .step::before {
+    content: counter(step); position: absolute; left: -15px; top: 0; width: 30px; height: 30px;
+    border-radius: 50%; background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent);
+    font-family: ui-monospace, monospace; font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step.gate::before { border-color: var(--warn); color: var(--warn); }
+  .step-title { font-weight: 650; font-size: 15.5px; margin: 2px 0 6px; }
+  .step-why { font-size: 13.5px; color: var(--ink-faint); margin: 0 0 6px; }
+
+  .codeblock {
+    background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 12px 14px;
+    font-size: 13px; overflow-x: auto; white-space: pre; margin-bottom: 14px;
+  }
+
+  .checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .checklist li {
+    display: flex; gap: 12px; align-items: flex-start; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+  }
+  .checklist .box { flex-shrink: 0; width: 18px; height: 18px; border: 1.5px solid var(--ink-faint); border-radius: 4px; margin-top: 2px; }
+  .checklist .lbl { font-size: 14px; }
+  .checklist .lbl .cmd { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-faint); }
+
+  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .rule-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 13px 15px; }
+  .rule-card .n { font-family: ui-monospace, monospace; font-size: 11px; color: var(--accent); font-weight: 700; letter-spacing: 0.04em; }
+  .rule-card p { margin: 4px 0 0; font-size: 13.5px; }
+
+  .rollback-box {
+    border: 1px solid var(--critical); background: var(--critical-soft); border-radius: 10px; padding: 18px 20px;
+  }
+
+  footer {
+    border-top: 1px solid var(--border); padding-top: 20px; font-size: 12.5px; color: var(--ink-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  a { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .rules-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="eyebrow">API Test Infrastructure &middot; Technical Research Report</p>
+  <h1>Schema Validation with Zod</h1>
+  <p class="subtitle">The API suite currently checks a few fields per response and casts the rest. Zod validates the whole shape at runtime. This plan adds it as an opt-in assertion, piloted on the dummyjson suite only.</p>
+  <div class="meta-row">
+    <span class="chip go"><span class="dot"></span>Approved &middot; dummyjson pilot</span>
+    <span class="chip hold">GRA rollout deferred</span>
+    <span class="chip">zod@4.4.3</span>
+    <span class="chip">Zero runtime dependencies</span>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <p class="stat-label">Today's gap</p>
+      <p class="stat-value mono" style="font-size:15px;">json&lt;T&gt;()</p>
+      <p class="stat-sub">A type cast, not a check — wrong types pass silently</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Pilot blast radius</p>
+      <p class="stat-value">26 tests</p>
+      <p class="stat-sub">dummyjson only, 1 project</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">GRA blast radius</p>
+      <p class="stat-value">119 &times; 8</p>
+      <p class="stat-sub">Same spec runs across 8 brand projects</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Config touched</p>
+      <p class="stat-value">0 files</p>
+      <p class="stat-sub">No changes to base-test.ts or the configs</p>
+    </div>
+  </div>
+
+  <section>
+    <h2>Why</h2>
+    <p>Three assertion styles carry the API suite today: <code>assertJsonPath('id', 1)</code> checks one value, <code>assertJson({...})</code> checks that a partial object is present, and <code>response.json&lt;ProductsListResponse&gt;()</code> checks nothing at all &mdash; it's a compile-time label stuck on whatever came back over the wire.</p>
+    <p><code>tests/api/dummyjson-products.spec.ts</code> casts a response to <code>ProductsListResponse</code> and then only asserts that <code>total &gt; 0</code> and <code>skip === 0</code>. If dummyjson renamed <code>products</code> to <code>items</code>, or started returning <code>total</code> as a string, the test would keep passing. TypeScript is satisfied by the cast; nothing downstream ever checks it against the real payload.</p>
+    <p class="lede">Zod closes that gap. One call &mdash; <code>await response.assertSchema(ProductsListSchema)</code> &mdash; walks the full response: every field, every type, every array element, every nested object, and fails with the exact path that broke. It doesn't replace the value assertions above; it sits alongside them and catches the drift they were never designed to catch.</p>
+  </section>
+
+  <section>
+    <h2>Options weighed</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Approach</th><th>Verdict</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Wrapper method</strong><br><span style="color:var(--ink-faint);font-size:12.5px;">assertSchema() on ApiResponseWrapper / GraphQLResponseWrapper</span></td>
+            <td class="good-cell">Recommended</td>
+            <td>Same shape as every existing <code>assert*</code> method. No shared fixture or config file changes. Opt-in per test, trivially reversible.</td>
+          </tr>
+          <tr>
+            <td><strong>Replace interfaces with z.infer</strong></td>
+            <td class="bad-cell">Rejected</td>
+            <td>CLAUDE.md is explicit: never rely on inferred types for exported data. <code>z.infer</code> types are exactly that.</td>
+          </tr>
+          <tr>
+            <td><strong>expect.extend matcher</strong><br><span style="color:var(--ink-faint);font-size:12.5px;">toMatchSchema(), the common community pattern</span></td>
+            <td class="bad-cell">Rejected</td>
+            <td>Needs edits to <code>base-test.ts</code>, <code>ApiTest.ts</code>, and <code>gra-test.ts</code> plus a new ambient type file &mdash; three shared files touched for one capability.</td>
+          </tr>
+          <tr>
+            <td><strong>ajv / Yup / io-ts / TypeBox</strong></td>
+            <td class="bad-cell">Not this project</td>
+            <td>Weaker TypeScript inference (ajv/Yup), an fp-ts idiom this codebase doesn't use (io-ts), or more verbose for no real gain here (TypeBox). Zod's inference and error output are the reason to pick it.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where GRA is different</h2>
+    <div class="panel warn">
+      <p class="panel-title"><span class="tag">Why the pilot stops at dummyjson</span></p>
+      <p><code>tests/api/CLAUDE.md</code> already documents staging behaviour that a strict schema would treat as a failure: PLA catalog queries with broken <code>price_range</code> data, a <code>productSearch</code> field missing from the staging schema entirely, <code>__typename</code> discriminators that return <code>ConfigurableProduct</code> or <code>ConfigurableWishlistItem</code> even for simple products, and per-brand stock levels low enough that some fields go missing outright.</p>
+      <p>None of that is a bug in the test framework &mdash; it's accepted, worked-around staging reality. A schema strict enough to be useful would turn each of those into a hard failure, multiplied across all 8 brand projects at once. dummyjson has a stable, documented public contract and no such quirks, which is why it's the pilot and GRA is a separate decision made after the pilot proves out.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ground rules for every schema</h2>
+    <div class="rules-grid">
+      <div class="rule-card"><p class="n">01</p><p><code>z.looseObject</code>, never <code>z.object</code> or <code>z.strictObject</code>. Unknown fields are API evolution, not a test failure.</p></div>
+      <div class="rule-card"><p class="n">02</p><p><code>safeParse</code>, never <code>parse</code>. The parsed result is discarded &mdash; existing assertions keep reading the raw body untouched.</p></div>
+      <div class="rule-card"><p class="n">03</p><p>No <code>z.coerce.*</code>. Coercion hides the exact type drift a schema exists to catch.</p></div>
+      <div class="rule-card"><p class="n">04</p><p>No <code>z.discriminatedUnion</code> on GRA's <code>__typename</code> &mdash; the discriminator itself isn't reliable there.</p></div>
+    </div>
+    <p class="lede">Rules 1 and 2 matter beyond style: <code>z.object().parse()</code> strips unknown keys and returns a deep clone by default, which would silently change what a test reads back if anything downstream ever touched the parsed value instead of the original body.</p>
+  </section>
+
+  <section>
+    <h2>Pilot steps &mdash; dummyjson only</h2>
+    <ol class="steps">
+      <li class="step gate">
+        <p class="step-title">Install and confirm module resolution</p>
+        <p class="step-why">Why: the project uses NodeNext resolution against a CJS-style consumer; Zod's dual-published exports need to be proven to resolve here before any spec work starts.</p>
+        <p><code>npm i -D zod@^4.4.3</code>, then a throwaway file importing <code>* as z from 'zod'</code> and one <code>z.looseObject</code>. <code>npm run lint</code> must pass. If it doesn't, try the <code>zod/v4</code> subpath before touching anything else.</p>
+      </li>
+      <li class="step">
+        <p class="step-title">Add assertSchema() to ApiResponseWrapper</p>
+        <p class="step-why">Additive only &mdash; no existing method changes.</p>
+        <p>Reads the already-fetched body, runs <code>schema.safeParse()</code>, and on failure asserts with <code>z.prettifyError(result.error)</code> as the message so the test report shows the exact path that broke.</p>
+      </li>
+      <li class="step">
+        <p class="step-title">Add assertDataSchema() to GraphQLResponseWrapper</p>
+        <p class="step-why">Kept separate from assertNoErrors() &mdash; validating the data shape and checking for GraphQL errors stay two different checks.</p>
+        <p>Same pattern, applied to <code>getData()</code> instead of the raw body.</p>
+      </li>
+      <li class="step">
+        <p class="step-title">Write schemas for the four dummyjson domains</p>
+        <p class="step-why">These already have hand-written interfaces in src/api/services/dummyjson/models.ts &mdash; the schemas mirror them, they don't replace them.</p>
+        <p>New file: <code>src/data/api/schemas/dummyjson-schemas.ts</code>. One schema per interface (products, carts, users, auth), all <code>z.looseObject</code>.</p>
+      </li>
+      <li class="step">
+        <p class="step-title">Add assertSchema calls alongside existing assertions</p>
+        <p class="step-why">Nothing existing is removed &mdash; this is purely additive to each test.</p>
+        <p>Run each affected spec individually against the <code>misc-api</code> project and confirm green.</p>
+      </li>
+      <li class="step">
+        <p class="step-title">Prove the assertion has teeth</p>
+        <p class="step-why">A schema that never fails is providing no signal &mdash; this has to be checked once, deliberately, per domain.</p>
+        <p>Break one field's type on purpose, re-run, confirm the failure names the exact path. Revert immediately after confirming.</p>
+      </li>
+      <li class="step">
+        <p class="step-title">Run the full misc-api project and stop</p>
+        <p class="step-why">GRA is a separate decision, made after this pilot is reviewed &mdash; not an automatic next phase.</p>
+        <p><code>npm run test:api:misc</code> covers dummyjson, restful-booker, and objects-crud. Document the outcome and reassess before any GRA schema is written.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Risk, watched</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>False failures if GRA's documented staging quirks get schematised too early</td><td>Pilot stops at dummyjson; GRA needs its own approval</td></tr>
+          <tr><td>Unknown-key stripping or deep-clone side effects from <code>.parse()</code></td><td>Rule 1 &amp; 2 above &mdash; <code>looseObject</code> + <code>safeParse</code>, result discarded</td></tr>
+          <tr><td>A schema written too loosely passes without checking anything real</td><td>Step 6 &mdash; deliberately break each schema once before trusting it</td></tr>
+          <tr><td>New dependency in the security surface</td><td>Zero transitive dependencies, MIT, devDependency only, <code>npm run audit:ci</code> unaffected</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Validate</h2>
+    <ul class="checklist">
+      <li><span class="box"></span><span class="lbl">Type-check passes after adding the dependency<span class="cmd mono">npm run lint</span></span></li>
+      <li><span class="box"></span><span class="lbl">Each dummyjson spec passes individually<span class="cmd mono">npx playwright test tests/api/dummyjson-*.spec.ts --config=api.config.ts --project=misc-api</span></span></li>
+      <li><span class="box"></span><span class="lbl">A deliberately broken schema fails with a path-precise message, then is reverted<span class="cmd mono">z.prettifyError(result.error)</span></span></li>
+      <li><span class="box"></span><span class="lbl">Full misc-api project stays green<span class="cmd mono">npm run test:api:misc</span></span></li>
+      <li><span class="box"></span><span class="lbl">No change to CI workflow files, base-test.ts, or the configs</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Rollback</h2>
+    <div class="rollback-box">
+      <p style="margin:0;">Every change is additive: two new wrapper methods, one new schema file, added assertion lines in four specs. <code>git revert</code> the commit and <code>npm uninstall zod</code> restores the exact prior behaviour &mdash; no existing test's semantics change at any point in the pilot.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>Exported from the Zod technical research report &middot; 2026-07-25</span>
+    <span>Scope: dummyjson pilot (Phases 0&ndash;2) &middot; GRA rollout not in scope</span>
+  </footer>
+
+</div>
+</body>
+</html>
