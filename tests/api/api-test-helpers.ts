@@ -1,8 +1,10 @@
-import { expect } from '@playwright/test';
+import { expect, request, APIRequestContext } from '@playwright/test';
 import { GraphQLClient } from '../../src/api/GraphQLClient';
 import { SiteContext } from '../../src/data/api/sites';
 import { TestState } from './shared-state';
 import { TestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
+import { BraintreeTestCard } from '../../src/data/api/gra-braintree-payment-data';
 import {
   SIGN_IN_MUTATION,
   CREATE_ACCOUNT_MUTATION,
@@ -14,7 +16,8 @@ import {
   SET_SHIPPING_METHODS_MUTATION,
   SET_BILLING_ADDRESS_MUTATION,
   GET_AVAILABLE_PAYMENT_METHODS_QUERY,
-  SET_PAYMENT_METHOD_MUTATION,
+  CREATE_BRAINTREE_CLIENT_TOKEN_MUTATION,
+  SET_BRAINTREE_PAYMENT_METHOD_MUTATION,
   ProductItem,
   ShippingMethod,
   PaymentMethod,
@@ -312,45 +315,166 @@ export async function setBillingAddress(
   return { ok: true };
 }
 
-export interface PaymentResult {
-  ok: boolean;
-  availablePaymentCodes: string[];
-  selectedCode?: string;
-  error?: string;
+export async function getAvailablePaymentCodes(client: GraphQLClient, cartId: string): Promise<string[]> {
+  const data = await (await client.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId })).getData();
+  const methods: PaymentMethod[] = data?.cart?.available_payment_methods ?? [];
+  return methods.map((m) => m.code);
+}
+
+// ── Braintree credit-card flow ─────────────────────────────────────────────────
+// createBraintreeClientToken -> tokenizeCreditCard (Braintree's own GraphQL API, not the
+// storefront one) -> setPaymentMethodOnCart. Verified working against sandbox during
+// technical research; introspection is disabled on staging so this was derived by live
+// probing, not documentation.
+
+export interface BraintreeGraphQLConfig {
+  url: string;
+  date: string;
+  features?: string[];
+}
+
+export interface BraintreeClientConfig {
+  authorizationFingerprint: string;
+  environment: string;
+  merchantId?: string;
+  merchantAccountId?: string;
+  graphQL: BraintreeGraphQLConfig;
+}
+
+export async function getBraintreeClientConfig(
+  client: GraphQLClient,
+  logger?: TestLogger,
+): Promise<BraintreeClientConfig> {
+  const gql = await (await client.mutateWrapped(CREATE_BRAINTREE_CLIENT_TOKEN_MUTATION)).getGraphQLResponse();
+  if (gql.errors?.length) {
+    throw new Error(`getBraintreeClientConfig: createBraintreeClientToken failed: ${gql.errors[0]?.message ?? 'unknown'}`);
+  }
+
+  const rawToken: string = gql.data?.createBraintreeClientToken ?? '';
+  if (!rawToken) throw new Error('getBraintreeClientConfig: createBraintreeClientToken returned an empty token');
+
+  const config = JSON.parse(Buffer.from(rawToken, 'base64').toString('utf-8')) as BraintreeClientConfig;
+
+  // Mandatory safety guard: the only thing preventing a real charge if environment config
+  // ever changes. Always throws (never a skip-signal) — a non-sandbox token must fail loudly.
+  if (config.environment !== 'sandbox') {
+    throw new Error(
+      `getBraintreeClientConfig: refusing to proceed — client token environment is "${config.environment}", expected "sandbox"`,
+    );
+  }
+
+  // Structural check, not defensive padding: without it a token missing the graphQL block
+  // throws inside tokenizeCard's try and is misclassified as transport_error → silent skip.
+  if (!config.graphQL?.url || !config.graphQL?.date) {
+    throw new Error('getBraintreeClientConfig: decoded client token has no graphQL.url/date block');
+  }
+
+  logger?.action('Braintree client token decoded', `environment=${config.environment}`);
+  return config;
+}
+
+const BRAINTREE_TOKENIZE_CREDIT_CARD_MUTATION = `
+  mutation TokenizeCreditCard($input: TokenizeCreditCardInput!) {
+    tokenizeCreditCard(input: $input) {
+      token
+      creditCard {
+        bin
+        last4
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
+export type BraintreeTokenizeResult =
+  | { outcome: 'success'; nonce: string }
+  | { outcome: 'rejected'; error: string }
+  | { outcome: 'transport_error'; error: string };
+
+interface BraintreeTokenizeResponse {
+  data?: { tokenizeCreditCard?: { token?: string } };
+  errors?: { message?: string }[];
 }
 
 /**
- * Per tests/api/CLAUDE.md: braintree variants need an SDK nonce and are untestable; checkmo
- * and afterpay are the usable codes on staging — default preferredCodes accordingly.
+ * Distinguishes a gateway rejection (bad card, malformed input — the calling test should fail)
+ * from a transport/network failure (gateway unreachable — the calling test should skip). Both
+ * are distinct from `getBraintreeClientConfig`'s environment check, which always throws.
  */
-export async function setPaymentMethod(
+export async function tokenizeCard(
+  config: BraintreeClientConfig,
+  card: BraintreeTestCard,
+  logger?: TestLogger,
+): Promise<BraintreeTokenizeResult> {
+  let context: APIRequestContext | undefined;
+  try {
+    context = await request.newContext({ timeout: TIMEOUTS.API_RESPONSE });
+
+    const response = await context.post(config.graphQL.url, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.authorizationFingerprint}`,
+        'Braintree-Version': config.graphQL.date,
+      },
+      data: {
+        query: BRAINTREE_TOKENIZE_CREDIT_CARD_MUTATION,
+        variables: {
+          input: {
+            creditCard: {
+              number: card.number,
+              expirationMonth: card.expirationMonth,
+              expirationYear: card.expirationYear,
+              cvv: card.cvv,
+            },
+          },
+        },
+      },
+    });
+
+    const body = (await response.json()) as BraintreeTokenizeResponse;
+    const nonce = body.data?.tokenizeCreditCard?.token;
+
+    if (nonce) {
+      logger?.action('Braintree card tokenized', 'nonce acquired');
+      return { outcome: 'success', nonce };
+    }
+
+    const error =
+      body.errors?.[0]?.message ?? `Braintree tokenizeCreditCard returned no token (status ${response.status()})`;
+    logger?.action('Braintree tokenization rejected', error);
+    return { outcome: 'rejected', error };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    logger?.action('Braintree tokenization transport error', error);
+    return { outcome: 'transport_error', error };
+  } finally {
+    if (context) await context.dispose();
+  }
+}
+
+export interface BraintreePaymentResult {
+  ok: boolean;
+  error?: string;
+}
+
+export async function setBraintreePaymentMethod(
   client: GraphQLClient,
   cartId: string,
-  opts?: { preferredCodes?: string[] },
+  nonce: string,
   logger?: TestLogger,
-): Promise<PaymentResult> {
-  const preferredCodes = opts?.preferredCodes ?? ['checkmo', 'afterpay'];
-
-  const paymentData = await (await client.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId })).getData();
-  const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
-  const availablePaymentCodes = methods.map((m) => m.code);
-
-  const selectedCode = preferredCodes.find((c) => availablePaymentCodes.includes(c));
-  if (!selectedCode) {
-    return { ok: false, availablePaymentCodes, error: 'No preferred payment method available' };
-  }
-
-  const gql = await (await client.mutateWrapped(SET_PAYMENT_METHOD_MUTATION, {
+): Promise<BraintreePaymentResult> {
+  const gql = await (await client.mutateWrapped(SET_BRAINTREE_PAYMENT_METHOD_MUTATION, {
     cartId,
-    paymentMethodCode: selectedCode,
+    nonce,
   })).getGraphQLResponse();
 
   if (gql.errors?.length) {
     const error = gql.errors[0]?.message ?? 'unknown';
-    logger?.action('Payment method setup failed', error);
-    return { ok: false, availablePaymentCodes, error };
+    logger?.action('Braintree payment method setup failed', error);
+    return { ok: false, error };
   }
 
-  logger?.action('Payment method set', selectedCode);
-  return { ok: true, availablePaymentCodes, selectedCode };
+  logger?.action('Braintree payment method set', 'braintree');
+  return { ok: true };
 }

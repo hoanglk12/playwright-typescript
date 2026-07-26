@@ -1,13 +1,11 @@
 export interface PlaceOrderDataShape {
   productSearchTerms: string[];
   orderNumberPattern: RegExp;
-  simplePaymentCodes: string[];
 }
 
 export const PlaceOrderData: Readonly<PlaceOrderDataShape> = {
   productSearchTerms: ['', 'shoe', 'sneaker', 'a', 'boot'],
   orderNumberPattern: /^\S+$/,
-  simplePaymentCodes: ['checkmo', 'afterpay', 'free', 'cashondelivery'],
 };
 
 export class PlaceOrderTestDataGenerator {

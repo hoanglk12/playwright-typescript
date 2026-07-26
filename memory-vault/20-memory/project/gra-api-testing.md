@@ -4,7 +4,7 @@ description: "GRA multi-brand GraphQL API test patterns, file structure, shared-
 type: project
 tags: [memory, project]
 source_session: bcd19b4a-e845-42ae-8ca0-fc0da0a8189e
-last_verified: 2026-06-12
+last_verified: 2026-07-26
 ---
 
 ## GRA Multi-Brand Expansion (Phase 1 — implemented 2026-06-10)
@@ -55,8 +55,8 @@ All 15 `gra-*.spec.ts` files run as a shared suite across 4 AU brand endpoints v
 | `tests/api/gra-wishlist.spec.ts` | Wishlist mutations (addProductsToWishlist, removeProductsFromWishlist) |
 | `tests/api/gra-checkout-shipping.spec.ts` | setShippingAddressesOnCart TC_01–04, setShippingMethodsOnCart TC_05–07 |
 | `tests/api/gra-checkout-billing-payment.spec.ts` | setBillingAddressOnCart TC_01–02, setPaymentMethodOnCart TC_03–05 (added 2026-05-26) |
-| `tests/api/gra-place-order.spec.ts` | placeOrder TC_01–03: happy path, missing shipping, missing payment (added 2026-05-27; OOS scenario not implemented — staging blocks at addProductsToCart level) |
-| `tests/api/gra-order-history.spec.ts` | customer.orders TC_01–04, guestOrder TC_05 (added 2026-06-03; TC_01/TC_03 staging-aware; TC_06 removed — not implementable without guest token) |
+| `tests/api/gra-place-order.spec.ts` | placeOrder TC_01–03: happy path (now Braintree credit card, 2026-07-26), missing shipping, missing payment (added 2026-05-27; OOS scenario not implemented — staging blocks at addProductsToCart level) |
+| `tests/api/gra-order-history.spec.ts` | customer.orders TC_01–04, guestOrder TC_05 (added 2026-06-03; TC_01 now seeds via Braintree credit card, 2026-07-26; TC_01/TC_03 staging-aware; TC_06 removed — not implementable without guest token) |
 | `tests/api/gra-loyalty-rewards.spec.ts` | applyRewardPointsToCart (TC_01–02), applyQantasPointsToCart (TC_03–05), removeRewardPointsFromCart (TC_06), removeQantasPointsFromCart (TC_07) |
 | `tests/api/shared-state.ts` | Token, customerId, cartId, addressId — shared across GRA spec files in one worker |
 | `src/data/api/gra-test-data.ts` | **Factory `createBrandTestData(prefix)`** returns a fresh self-consistent instance (email, name, address all share same random seed). `createPlaTestData()` delegates to `createBrandTestData('pla')` |
@@ -113,8 +113,8 @@ When running a GRA spec in isolation, `beforeAll` self-bootstraps a fresh accoun
 
 - **Operation order for payment to succeed**: addProductsToCart → setShippingAddressesOnCart → setShippingMethodsOnCart → setBillingAddressOnCart → setPaymentMethodOnCart → placeOrder. `setPaymentMethodOnCart` silently returns no errors but `available_payment_methods` is empty until shipping method is set.
 - **`setBillingAddressOnCart` with `same_as_shipping: true` DOES populate `billing_address`** in the response (non-null) on staging — billing_address contains the shipping address data.
-- **Braintree payment variants** (`braintree`, `braintree_applepay`, `braintree_paypal`) require an SDK-provided `payment_method_nonce` field. Attempting `setPaymentMethodOnCart` with just `{ code: "braintree" }` returns `"Required parameter 'braintree' for 'payment_method' is missing."` — cannot test these without real Braintree SDK integration.
-- **Available payment methods on staging AU cart** (confirmed 2026-05-26): `checkmo`, `braintree_applepay`, `afterpay`, `braintree`, `braintree_paypal`. Use `checkmo` (TC_03) and `afterpay` (TC_04) for payment method tests.
+- **Braintree payment variants** (`braintree`, `braintree_applepay`, `braintree_paypal`) require a `payment_method_nonce` field. Attempting `setPaymentMethodOnCart` with just `{ code: "braintree" }` returns `"Required parameter 'braintree' for 'payment_method' is missing."` — this does NOT mean an SDK/browser is required. A nonce for the plain `braintree` (credit card) variant can be minted purely via API calls; see [[gra-braintree-payment]] for the full chain and why `gra-place-order.spec.ts` / `gra-order-history.spec.ts` now use it. `braintree_applepay` / `braintree_paypal` still need their respective wallet flows and remain untested.
+- **Available payment methods on staging AU cart** (confirmed 2026-05-26): `checkmo`, `braintree_applepay`, `afterpay`, `braintree`, `braintree_paypal`. `afterpay` (TC_04 in `gra-checkout-billing-payment.spec.ts`) still uses the simple flow; `gra-place-order.spec.ts` / `gra-order-history.spec.ts` now use `braintree` credit card instead of `checkmo` (see [[gra-braintree-payment]]).
 - **`shippingMethodSet` flag pattern**: declare a module-level `let shippingMethodSet: boolean = false` in beforeAll; set to `true` only after shipping method mutation succeeds. Use this flag to skip payment tests gracefully rather than failing all tests when shipping setup fails.
 - **TC_04 `setShippingAddressesOnCart` with empty `firstname` clears cart address on drm-au staging**: TC_04's invalid-firstname mutation leaves the cart's shipping address in an unusable state. TC_05/TC_06 must re-set the full inline shipping address at the start (before querying `available_shipping_methods`) — otherwise they get "No shipping address on cart" and skip. This is a drm-au staging quirk, not standard Magento 2. (Fixed 2026-06-11.)
 - **`validSku` scope**: when a SKU is only used inside `beforeAll` (to add product to cart), declare it as a local `let` inside `beforeAll` — not a module-level variable.

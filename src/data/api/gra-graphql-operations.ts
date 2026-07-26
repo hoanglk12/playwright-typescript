@@ -666,6 +666,39 @@ export const SET_PAYMENT_METHOD_MUTATION = `
   }
 `;
 
+// First step of the Braintree credit-card flow — mints a client token for tokenizeCreditCard
+// (called against Braintree's own GraphQL API, not this storefront one).
+export const CREATE_BRAINTREE_CLIENT_TOKEN_MUTATION = `
+  mutation CreateBraintreeClientToken {
+    createBraintreeClientToken
+  }
+`;
+
+// Shares the setPaymentMethodOnCart resolver with SET_PAYMENT_METHOD_MUTATION above but takes
+// a nonce-bearing input shape instead of a bare code, so it is kept as a distinct export
+// rather than merged into that mutation.
+export const SET_BRAINTREE_PAYMENT_METHOD_MUTATION = `
+  mutation SetBraintreePaymentMethodOnCart($cartId: String!, $nonce: String!) {
+    setPaymentMethodOnCart(input: {
+      cart_id: $cartId,
+      payment_method: {
+        code: "braintree",
+        braintree: { payment_method_nonce: $nonce, is_active_payment_token_enabler: false }
+      }
+    }) {
+      cart {
+        selected_payment_method {
+          code
+          title
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+  }
+`;
+
 export const PLACE_ORDER_MUTATION = `
   mutation PlaceOrder($cartId: String!) {
     placeOrder(input: { cart_id: $cartId }) {

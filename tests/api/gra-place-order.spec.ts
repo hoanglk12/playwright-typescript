@@ -7,6 +7,7 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { PlaceOrderData, PlaceOrderTestDataGenerator } from '../../src/data/api/gra-place-order-data';
+import { BraintreePaymentData } from '../../src/data/api/gra-braintree-payment-data';
 import {
   signInAndStoreToken,
   wasRejected,
@@ -16,7 +17,10 @@ import {
   setShippingAddressOnCart,
   selectShippingMethod,
   setBillingAddress,
-  setPaymentMethod,
+  getAvailablePaymentCodes,
+  getBraintreeClientConfig,
+  tokenizeCard,
+  setBraintreePaymentMethod,
 } from './api-test-helpers';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -34,7 +38,10 @@ let checkoutCartId: string = '';
 let validSku: string = '';
 let shippingMethodSet: boolean = false;
 let checkoutBillingData = createCheckoutBillingPaymentData('AU');
-let checkoutReady: boolean = false;
+// Cart is configured through billing address in beforeAll; TC_01 mints its own Braintree
+// nonce and sets payment method itself — nonces are single-use and must not be minted in
+// beforeAll (would be stale on a CI retry).
+let cartReadyForPayment: boolean = false;
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
 
@@ -120,19 +127,9 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
       });
     }
 
-    // ── 8. Set payment method ──────────────────────────────────────────────
     if (setupOk) {
-      await logger.step('Step 8 - Set payment method', async () => {
-        const paymentResult = await setPaymentMethod(authClient, checkoutCartId, { preferredCodes: PlaceOrderData.simplePaymentCodes }, logger);
-        if (!paymentResult.ok) {
-          logger.action('No simple payment method available', paymentResult.error ?? 'TC_01 will be skipped');
-          setupOk = false;
-          return;
-        }
-
-        checkoutReady = true;
-        logger.action('beforeAll complete', 'checkout cart fully configured for TC_01');
-      });
+      cartReadyForPayment = true;
+      logger.action('beforeAll complete', 'checkout cart configured through billing address; TC_01 sets payment itself');
     }
   });
 
@@ -142,21 +139,54 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
 
   test('TC_01 - placeOrder on fully configured cart → returns order number', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_01 placeOrder happy path');
+    // 5 sequential calls (payment-method check, Braintree client token, tokenize, set
+    // payment method, placeOrder) including one to an external host — 30s default is too tight.
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
 
-    if (!checkoutReady) {
-      test.skip(true, 'Checkout cart not fully configured — skipping TC_01');
+    if (!cartReadyForPayment) {
+      test.skip(true, 'Checkout cart not configured through billing address — skipping TC_01');
       return;
     }
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
+    let availableCodes: string[] = [];
+    await logger.step('Step 1 - Check braintree is an available payment method', async () => {
+      availableCodes = await getAvailablePaymentCodes(authClient, checkoutCartId);
+    });
+    if (!availableCodes.includes('braintree')) {
+      test.skip(true, `braintree not in available_payment_methods for this brand (got: ${availableCodes.join(', ')})`);
+      return;
+    }
+
+    // tokenizeResult must be readable at test scope (not inside the step callback) because the
+    // test.skip() guard that follows must run at test-function scope to abort the whole test —
+    // see TC_03's identical constraint below.
+    let tokenizeResult: Awaited<ReturnType<typeof tokenizeCard>> | undefined;
+    await logger.step('Step 2 - Create Braintree client token and tokenize sandbox card', async () => {
+      const config = await getBraintreeClientConfig(authClient, logger);
+      tokenizeResult = await tokenizeCard(config, BraintreePaymentData.sandboxVisa, logger);
+    });
+
+    if (tokenizeResult?.outcome === 'transport_error') {
+      test.skip(true, `Braintree gateway unreachable: ${tokenizeResult.error}`);
+      return;
+    }
+    expect(tokenizeResult?.outcome, `Braintree tokenizeCreditCard rejected: ${tokenizeResult?.outcome === 'rejected' ? tokenizeResult.error : ''}`).toBe('success');
+    const nonce = tokenizeResult?.outcome === 'success' ? tokenizeResult.nonce : '';
+
+    await logger.step('Step 3 - Set Braintree payment method on cart', async () => {
+      const paymentResult = await setBraintreePaymentMethod(authClient, checkoutCartId, nonce, logger);
+      expect(paymentResult.ok, `setBraintreePaymentMethod failed: ${paymentResult.error ?? 'unknown'}`).toBe(true);
+    });
+
     let response!: GraphQLResponseWrapper;
-    await logger.step('Step 1 - Execute placeOrder mutation', async () => {
+    await logger.step('Step 4 - Execute placeOrder mutation', async () => {
       logger.action('POST', `placeOrder (cartId=${checkoutCartId})`);
       response = await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: checkoutCartId });
     });
 
-    await logger.step('Step 2 - Assert no errors and order number returned', async () => {
+    await logger.step('Step 5 - Assert no errors and order number returned', async () => {
       await response.assertNoErrors();
       await response.assertHasData();
 
@@ -186,11 +216,12 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
       return;
     }
 
-    // GUEST cart, not customer cart: for an authenticated customer, createEmptyCart
-    // returns the customer's existing ACTIVE cart — which beforeAll has fully configured
-    // (incl. payment). If quote deactivation lags after TC_01's order, this test would
-    // receive that complete cart back and placeOrder would SUCCEED, failing the negative
-    // assertion. Guest carts are guaranteed unique and genuinely incomplete.
+    // GUEST cart, not customer cart: for an authenticated customer, createEmptyCart returns
+    // the customer's existing ACTIVE cart — which beforeAll configures through billing address
+    // and TC_01 then completes with payment + placeOrder. If quote deactivation lags after
+    // TC_01's order, this test would receive that complete cart back and placeOrder would
+    // SUCCEED, failing the negative assertion. Guest carts are guaranteed unique and genuinely
+    // incomplete.
     const guestClient = await createGraphQLClient();
 
     let errorCartId!: string;
@@ -245,7 +276,8 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
     }
 
     // GUEST cart, not customer cart — see TC_02 comment: customer createEmptyCart can
-    // return the beforeAll-configured active cart (with payment), making placeOrder succeed
+    // return the cart TC_01 completed (billing from beforeAll + payment from TC_01), making
+    // placeOrder succeed
     const guestClient = await createGraphQLClient();
 
     // Fresh guest cart: product + email + shipping address + shipping method + billing — but NO payment method

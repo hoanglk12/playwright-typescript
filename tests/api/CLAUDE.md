@@ -109,7 +109,7 @@ These are Platypus staging-specific behaviours — do not assume standard Magent
 | Product search `__typename` | `products(search: ...)` returns only `ConfigurableProduct` items inconsistently — always fall back to `allItems[0]`; never throw on "no SimpleProduct found" |
 | `CartAddressInput.region` | Plain `String` (e.g. `'NSW'`), NOT a `CustomerAddressRegionInput` object — only `CustomerAddressInput` uses `{ region_code: String }` |
 | Available shipping methods on staging | `instore_pickup` and `flatrate_flatrate` are the two available methods for AU addresses |
-| Braintree payment variants | `braintree`, `braintree_applepay`, `braintree_paypal` require an SDK-provided `payment_method_nonce`. Setting just `{ code: "braintree" }` returns `"Required parameter 'braintree' for 'payment_method' is missing."` — untestable without Braintree SDK |
+| Braintree payment variants | `braintree_applepay`/`braintree_paypal` still require their own wallet SDK flow and remain untestable via API only. Plain `braintree` (credit card) **is** API-testable: `createBraintreeClientToken` → decode base64 → `tokenizeCreditCard` against the decoded `graphQL.url` (Braintree's own GraphQL API, Bearer `authorizationFingerprint` + `Braintree-Version` header) → `setPaymentMethodOnCart` with `payment_method_nonce`. See `getBraintreeClientConfig`/`tokenizeCard`/`setBraintreePaymentMethod` in `api-test-helpers.ts`, used by `gra-place-order.spec.ts`/`gra-order-history.spec.ts`. Setting just `{ code: "braintree" }` with no nonce still returns `"Required parameter 'braintree' for 'payment_method' is missing."` |
 | Available payment methods on staging | `checkmo`, `braintree_applepay`, `afterpay`, `braintree`, `braintree_paypal` (AU cart, confirmed 2026-05-26). Use `checkmo` and `afterpay` for payment method API tests |
 | `setBillingAddressOnCart` same_as_shipping | `billing_address` IS populated (non-null) in the response when `same_as_shipping: true` — it contains the shipping address data |
 | `instore_pickup` + `placeOrder` | Selecting `instore_pickup` as shipping method then calling `placeOrder` fails with `"Unable to place order: Quote does not have Pickup Location assigned."` — always prefer `flatrate_flatrate` for tests that call `placeOrder` |
@@ -203,7 +203,7 @@ if (!shippingMethodSet || availablePaymentMethods.length === 0) {
 }
 ```
 
-Braintree payment variants (`braintree`, `braintree_applepay`, `braintree_paypal`) require an SDK-provided nonce and cannot be tested without Braintree integration. Use `checkmo` (primary) and `afterpay` (alternate) for payment method API tests on staging.
+`checkmo` (primary) and `afterpay` (alternate) are the simple, non-tokenized payment codes for general payment method API tests on staging. `braintree` (credit card) is separately testable via the tokenized flow above; `braintree_applepay`/`braintree_paypal` still require their own wallet SDK and remain untestable via API only.
 
 ## Place Order — SKU Discovery
 

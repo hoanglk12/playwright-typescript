@@ -18,6 +18,7 @@ import {
 } from '../../src/data/api/gra-order-history-data';
 import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { PlaceOrderData } from '../../src/data/api/gra-place-order-data';
+import { BraintreePaymentData } from '../../src/data/api/gra-braintree-payment-data';
 import {
   signInAndStoreToken,
   createFreshCart,
@@ -26,7 +27,10 @@ import {
   setShippingAddressOnCart,
   selectShippingMethod,
   setBillingAddress,
-  setPaymentMethod,
+  getAvailablePaymentCodes,
+  getBraintreeClientConfig,
+  tokenizeCard,
+  setBraintreePaymentMethod,
 } from './api-test-helpers';
 import { GraphQLResponse } from '../../src/api/GraphQLClient';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
@@ -44,7 +48,10 @@ let checkoutCartId: string = '';
 let validSku: string = '';
 let shippingMethodSet: boolean = false;
 let checkoutBillingData = createCheckoutBillingPaymentData('AU');
-let checkoutReady: boolean = false;
+// Cart is configured through billing address in beforeAll; TC_01 mints its own Braintree
+// nonce, sets payment method, and places the order itself — nonces are single-use and must
+// not be minted in beforeAll (would be stale on a CI retry).
+let cartReadyForPayment: boolean = false;
 
 // ── GraphQL strings ───────────────────────────────────────────────────────────
 
@@ -148,35 +155,8 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     });
     if (!setupOk) return;
 
-    // ── 8. Set payment method ──────────────────────────────────────────────
-    await logger.step('Step 8 - Set payment method', async () => {
-      const paymentResult = await setPaymentMethod(authClient, checkoutCartId, { preferredCodes: OrderHistoryData.simplePaymentCodes }, logger);
-      if (!paymentResult.ok) {
-        logger.action('No simple payment method available', paymentResult.error ?? 'TC_01 and TC_03 will be skipped');
-        setupOk = false;
-      }
-    });
-    if (!setupOk) return;
-
-    // ── 9. Place order → capture order number ─────────────────────────────
-    await logger.step('Step 9 - Place order', async () => {
-      const placeGql = await (await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: checkoutCartId })).getGraphQLResponse();
-
-      if (placeGql.errors?.length) {
-        logger.action('placeOrder failed', placeGql.errors[0]?.message ?? 'unknown');
-        return;
-      }
-
-      placedOrderNumber = placeGql.data?.placeOrder?.order?.order_number ?? '';
-      if (!placedOrderNumber) {
-        logger.action('placeOrder succeeded but order_number is missing', 'TC_01 will be skipped');
-        return;
-      }
-
-      checkoutReady = true;
-      logger.action('Order placed', placedOrderNumber);
-      logger.action('beforeAll complete', 'order history tests ready');
-    });
+    cartReadyForPayment = true;
+    logger.action('beforeAll complete', 'cart configured through billing address; TC_01 sets payment and places the order itself');
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -185,17 +165,60 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
 
   test('TC_01 - customer.orders after placing → valid structure; placed order present when staging returns it', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_01 customer.orders structure after placing an order');
+    // 6 sequential calls (payment-method check, Braintree client token, tokenize, set payment
+    // method, placeOrder, customer.orders query) including one to an external host.
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
 
-    if (!checkoutReady) {
+    if (!cartReadyForPayment) {
       test.skip(true, 'Checkout not completed in beforeAll — skipping TC_01');
       return;
     }
 
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
 
+    let availableCodes: string[] = [];
+    await logger.step('Step 1 - Check braintree is an available payment method', async () => {
+      availableCodes = await getAvailablePaymentCodes(authClient, checkoutCartId);
+    });
+    if (!availableCodes.includes('braintree')) {
+      test.skip(true, `braintree not in available_payment_methods for this brand (got: ${availableCodes.join(', ')})`);
+      return;
+    }
+
+    // tokenizeResult must be readable at test scope (not inside the step callback) because the
+    // test.skip() guard that follows must run at test-function scope to abort the whole test.
+    let tokenizeResult: Awaited<ReturnType<typeof tokenizeCard>> | undefined;
+    await logger.step('Step 2 - Create Braintree client token and tokenize sandbox card', async () => {
+      const config = await getBraintreeClientConfig(authClient, logger);
+      tokenizeResult = await tokenizeCard(config, BraintreePaymentData.sandboxVisa, logger);
+    });
+
+    if (tokenizeResult?.outcome === 'transport_error') {
+      test.skip(true, `Braintree gateway unreachable: ${tokenizeResult.error}`);
+      return;
+    }
+    expect(tokenizeResult?.outcome, `Braintree tokenizeCreditCard rejected: ${tokenizeResult?.outcome === 'rejected' ? tokenizeResult.error : ''}`).toBe('success');
+    const nonce = tokenizeResult?.outcome === 'success' ? tokenizeResult.nonce : '';
+
+    await logger.step('Step 3 - Set Braintree payment method on cart', async () => {
+      const paymentResult = await setBraintreePaymentMethod(authClient, checkoutCartId, nonce, logger);
+      expect(paymentResult.ok, `setBraintreePaymentMethod failed: ${paymentResult.error ?? 'unknown'}`).toBe(true);
+    });
+
+    await logger.step('Step 4 - Place order and capture order number', async () => {
+      const placeGql = await (await authClient.mutateWrapped(PLACE_ORDER_MUTATION, { cartId: checkoutCartId })).getGraphQLResponse();
+
+      expect(placeGql.errors?.length ?? 0, `placeOrder failed: ${placeGql.errors?.[0]?.message ?? 'unknown'}`).toBe(0);
+
+      placedOrderNumber = placeGql.data?.placeOrder?.order?.order_number ?? '';
+      expect(placedOrderNumber, 'placeOrder succeeded but order_number is missing').toBeTruthy();
+
+      logger.action('Order placed', placedOrderNumber);
+    });
+
     let orders: CustomerOrdersShape | undefined;
     let items: CustomerOrderShape[] = [];
-    await logger.step('Step 1 - Query customer order history after placing order ' + placedOrderNumber, async () => {
+    await logger.step('Step 5 - Query customer order history after placing order ' + placedOrderNumber, async () => {
       logger.action('GET', `customer.orders (pageSize=10, currentPage=1)`);
       const response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 10, currentPage: 1 });
 
@@ -207,7 +230,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
       items = orders?.items ?? [];
     });
 
-    await logger.step('Step 2 - Assert no errors and valid structure', async () => {
+    await logger.step('Step 6 - Assert no errors and valid structure', async () => {
       logger.verify('customer.orders returns CustomerOrders type', 'CustomerOrders', orders?.__typename);
       expect(orders, 'customer.orders must be defined').toBeDefined();
       expect(orders?.__typename, '__typename must be CustomerOrders').toBe('CustomerOrders');
@@ -216,7 +239,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     });
 
     let ordersEmpty = false;
-    await logger.step('Step 3 - Verify order presence (staging-aware)', async () => {
+    await logger.step('Step 7 - Verify order presence (staging-aware)', async () => {
       if ((orders?.total_count ?? 0) === 0) {
         // STAGING BUG: customer.orders consistently returns total_count: 0 on PLA staging
         // even immediately after a successful placeOrder (order number is issued).
@@ -229,7 +252,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     });
     if (ordersEmpty) return;
 
-    await logger.step('Step 4 - Assert placed order number appears in list', async () => {
+    await logger.step('Step 8 - Assert placed order number appears in list', async () => {
       const placedOrder = items.find(item => item.number === placedOrderNumber);
       logger.verify('Placed order found in list', placedOrderNumber, placedOrder?.number);
       expect(placedOrder, `Placed order ${placedOrderNumber} must appear in customer.orders`).toBeDefined();
@@ -316,8 +339,13 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
   test('TC_03 - customer.orders pagination → page 2 empty or different from page 1', async ({ createGraphQLClient }) => {
     const logger = createTestLogger('TC_03 customer.orders pagination behavior');
 
-    if (!checkoutReady) {
-      test.skip(true, 'No orders placed in beforeAll — skipping TC_03');
+    // Guard on beforeAll-set state, not a flag set inside TC_01's body: beforeAll runs once
+    // per worker before all tests, whereas TC_01's payment/placeOrder logic may be skipped
+    // (e.g. braintree unavailable for this brand), leaving a TC_01-scoped flag false.
+    // TC_03 doesn't need a specific placed order — it queries total_count itself and Step 2
+    // handles the no-orders case.
+    if (!cartReadyForPayment) {
+      test.skip(true, 'Checkout cart not configured in beforeAll — skipping TC_03');
       return;
     }
 

@@ -25,6 +25,9 @@ const SENSITIVE_KEYS: readonly string[] = [
   'cardnumber',
   'cvv',
   'securitycode',
+  // Braintree payment_method_nonce — passed as GraphQL variable `nonce` to
+  // setBraintreePaymentMethod (single-use token, still worth redacting from reports)
+  'nonce',
   // Cookie headers embed the same session/JWT values as accessToken/refreshToken body
   // fields — redacting only the body keys leaves the tokens readable via Set-Cookie/Cookie.
   'set-cookie',
