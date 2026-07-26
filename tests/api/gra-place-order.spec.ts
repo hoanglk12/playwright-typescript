@@ -7,7 +7,7 @@
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import { PlaceOrderData, PlaceOrderTestDataGenerator } from '../../src/data/api/gra-place-order-data';
-import { BraintreePaymentData } from '../../src/data/api/gra-braintree-payment-data';
+import { BraintreeTestCardGenerator } from '../../src/data/api/gra-braintree-payment-data';
 import {
   signInAndStoreToken,
   wasRejected,
@@ -165,7 +165,7 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
     let tokenizeResult: Awaited<ReturnType<typeof tokenizeCard>> | undefined;
     await logger.step('Step 2 - Create Braintree client token and tokenize sandbox card', async () => {
       const config = await getBraintreeClientConfig(authClient, logger);
-      tokenizeResult = await tokenizeCard(config, BraintreePaymentData.sandboxVisa, logger);
+      tokenizeResult = await tokenizeCard(config, BraintreeTestCardGenerator.generateSandboxVisa(), logger);
     });
 
     if (tokenizeResult?.outcome === 'transport_error') {
