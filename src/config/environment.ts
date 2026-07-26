@@ -1,7 +1,3 @@
-/**
- * Environment configuration interface
- * Similar to the Environment interface in the Maven framework
- */
 export interface Environment {
   // Application URLs
   frontSiteUrl: string;
@@ -47,7 +43,6 @@ import * as dotenv from "dotenv";
 import * as path from "path";
 
 /**
- * Load environment variables from the appropriate .env file
  * @param envName - Environment name (testing, development, staging, production)
  */
 function loadEnvironmentFile(envName: string): void {
@@ -59,13 +54,10 @@ function loadEnvironmentFile(envName: string): void {
     console.log(`✅ Loaded environment configuration from: ${envFile}`);
   } catch (error) {
     console.warn(`⚠️  Could not load ${envFile}, falling back to default .env`);
-    dotenv.config({ quiet: true }); // Load default .env file
+    dotenv.config({ quiet: true });
   }
 }
 
-/**
- * Get environment configuration from loaded environment variables
- */
 function getEnvironmentFromEnvVars(): Environment {
   return {
     // Application URLs
@@ -81,20 +73,16 @@ function getEnvironmentFromEnvVars(): Environment {
     retries: parseInt(process.env.RETRIES || "2"),
     headless: process.env.HEADLESS === "true",
     parallelWorkers: (() => {
-      // Check if WORKERS environment variable is set
       if (process.env.WORKERS) {
-        // If set to 50%, use half of available CPU cores (minimum 1)
         if (process.env.WORKERS === "50%") {
           return Math.max(Math.floor(require("os").cpus().length / 2), 1);
         }
-        // If set to a number, parse it
         const workersNum = parseInt(process.env.WORKERS);
         if (!isNaN(workersNum) && workersNum > 0) {
           return workersNum;
         }
       }
 
-      // Fallback to PARALLEL_WORKERS or default to 4
       return parseInt(process.env.PARALLEL_WORKERS || "4");
     })(),
 
@@ -127,21 +115,15 @@ function getEnvironmentFromEnvVars(): Environment {
 }
 
 /**
- * Environment configurations for different testing environments
  * These are now loaded from .env files
  */
 export const environments: Record<string, Environment> = {};
 
-/**
- * Get environment configuration based on NODE_ENV or ENV environment variable
- */
 export function getEnvironment(): Environment {
   const envName = process.env.NODE_ENV || process.env.ENV || "testing";
 
-  // Load the appropriate .env file
   loadEnvironmentFile(envName);
 
-  // Get configuration from environment variables
   const env = getEnvironmentFromEnvVars();
 
   console.log(`🌍 Using environment: ${envName}`);

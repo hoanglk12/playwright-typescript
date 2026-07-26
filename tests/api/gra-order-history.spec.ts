@@ -1,14 +1,4 @@
 /**
- * PLA (Platypus Shoes) GraphQL API Tests
- * Order History — customer.orders query + guestOrder / orderByToken
- *
- * TC_01: customer.orders after placing an order → placed order present in list
- * TC_02: New account with no orders → empty items array, total_count: 0
- * TC_03: Paginate customer.orders → page 2 empty (1 order) or different from page 1 (many)
- * TC_04: customer.orders unauthenticated → graphql-authorization error
- * TC_05: guestOrder / orderByToken invalid token → error (or schema gap handled gracefully)
- * TC_06: not implemented — guestOrder schema absent on staging; token not retrievable via API
- *
  * Staging notes:
  *  - grand_total on CustomerOrder is a plain Float scalar (not a Money object)
  *  - Neither guestOrder nor orderByToken is in the current PLA staging schema (P2 gap)
@@ -239,7 +229,6 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     });
     if (ordersEmpty) return;
 
-    // orders ARE returned — verify the placed order is present
     await logger.step('Step 4 - Assert placed order number appears in list', async () => {
       const placedOrder = items.find(item => item.number === placedOrderNumber);
       logger.verify('Placed order found in list', placedOrderNumber, placedOrder?.number);
@@ -384,11 +373,9 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
       softExpect(page2Orders?.total_count, 'total_count is consistent across pages').toBe(totalCount);
 
       if (totalCount <= pageSize) {
-        // Only 1 order total — page 2 should be empty
         logger.verify('Page 2 is empty (total_count fits page 1)', 0, page2Items.length);
         expect(page2Items, 'Page 2 must be empty when total_count <= pageSize').toHaveLength(0);
       } else {
-        // Multiple orders — page 1 and page 2 should not share the same order number
         const page1Numbers = page1Items.map(i => i.number);
         const page2Numbers = page2Items.map(i => i.number);
         const hasOverlap = page1Numbers.some(n => page2Numbers.includes(n));

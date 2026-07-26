@@ -69,7 +69,7 @@ test.describe('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => 
     });
   }
 
-  // E2E-NAV-003 — MENS link navigates to mens PLP
+  // E2E-NAV-003
   for (const [index, site] of mensSites.entries()) {
     const tcId = `E2E-NAV-M${String(index + 1).padStart(3, '0')}`;
 
@@ -98,7 +98,7 @@ test.describe('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => 
     });
   }
 
-  // E2E-NAV-004 — KIDS link navigates to kids PLP
+  // E2E-NAV-004
   for (const [index, site] of kidsSites.entries()) {
     const tcId = `E2E-NAV-K${String(index + 1).padStart(3, '0')}`;
 
@@ -127,7 +127,7 @@ test.describe('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => 
     });
   }
 
-  // E2E-NAV-005 — SALE link (label varies per site: SALE, OUTLET, BLACK FRIDAY) navigates to sale PLP
+  // E2E-NAV-005 — SALE label varies per site: SALE, OUTLET, BLACK FRIDAY
   for (const [index, site] of saleSites.entries()) {
     const tcId = `E2E-NAV-S${String(index + 1).padStart(3, '0')}`;
 
@@ -156,7 +156,6 @@ test.describe('Ecommerce Navigation Smoke @ecommerce @smoke @navigation', () => 
     });
   }
 
-  // E2E-NAV-009 — Logo click returns to homepage from any page (all 8 storefronts)
   for (const site of storefronts) {
     const interiorLabel = getPreferredNavLabel(site);
     if (!interiorLabel) continue;

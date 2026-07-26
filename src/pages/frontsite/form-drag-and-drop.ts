@@ -4,11 +4,7 @@ import { DragAndDropData } from '../../data/drag-and-drop-data';
 import { TIMEOUTS } from '../../constants/timeouts';
 
 
-/**
- * Form Drag And Drop Page Object
- */
 export class FormDragAndDropPage extends BasePage {
-  // Header locators
 
   private readonly uploadFileElement = 'input[type="file"]';
   private readonly fileName = 'span.progress-file-name';
@@ -20,17 +16,10 @@ export class FormDragAndDropPage extends BasePage {
 
   }
 
-  /**
-   * Navigate to Form home page
-   */
   async navigateToFormPage(): Promise<void> {
-    //const env = getEnvironment();
     await this.goto(DragAndDropData.formPageUrl);
     await this.waitForPageLoadState('domcontentloaded');
   }
-  /**
-   * Click upload file element
-   */
   async dragAndDropFile(filePath: string): Promise<void> {
     await this.waitForElementClickable(this.uploadFileElement);
     const fileInput = this.elements.locator(this.uploadFileElement);

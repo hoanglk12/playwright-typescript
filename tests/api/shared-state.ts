@@ -36,7 +36,6 @@ export class TestState {
   }
 }
 
-// Map-based registry — one TestState per site
 const stateMap = new Map<string, TestState>();
 
 export function getStateForSite(siteCode: string): TestState {

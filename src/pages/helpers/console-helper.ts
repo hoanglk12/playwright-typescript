@@ -62,9 +62,7 @@ export class ConsoleHelper {
     this.page.on('requestfailed', (request) => {
       const failure = request.failure();
       const reason = failure ? failure.errorText : 'unknown reason';
-      // Route-block aborts (applyNoiseRouteBlocks) and the Firefox about:blank teardown
-      // navigation both surface here as test-inflicted aborts, not real failures — Chromium
-      // reports ERR_ABORTED, Firefox reports NS_BINDING_ABORTED for the same condition.
+      // Test-inflicted aborts (route-block, Firefox teardown navigation), not real failures.
       if (ABORT_ERROR_SIGNATURES.some((signature) => reason.includes(signature))) return;
       this.pageFailures.push({
         type: 'requestfailed',
@@ -84,9 +82,7 @@ export class ConsoleHelper {
   clear(): void { this.messages.length = 0; }
 
   /**
-   * Renders captured console errors/warnings and page-error/failed-request events as
-   * redacted plain text, for attachment on test failure. Returns empty string when nothing
-   * was captured, so callers can skip attaching entirely.
+   * Returns empty string when nothing was captured, so callers can skip attaching entirely.
    */
   buildFailureReport(): string {
     const consoleLines = this.messages

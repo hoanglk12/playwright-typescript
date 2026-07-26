@@ -13,7 +13,6 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
   let createdObjectIds: string[] = [];
 
   test.afterEach(async ({ restfulApiClient }) => {
-    // Cleanup: Delete all created objects
     for (const id of createdObjectIds) {
       try {
         await restfulApiClient.deleteObject(id);
@@ -33,7 +32,6 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
       expect(Array.isArray(objects)).toBe(true);
       expect(objects.length).toBeGreaterThan(0);
 
-      // Verify object structure
       const firstObject = objects[0];
       expect(firstObject).toHaveProperty("id");
       expect(firstObject).toHaveProperty("name");
@@ -73,7 +71,6 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
 
       try {
         await restfulApiClient.getObjectById(nonExistentId);
-        // If no error is thrown, check if empty object is returned
       } catch (error) {
         // Expected behavior for non-existent object
         expect(error).toBeDefined();
@@ -91,7 +88,6 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
       expect(createdObject.data).toMatchObject(deviceData.data);
       expect(createdObject).toHaveProperty('createdAt');
 
-      // Store ID for cleanup
       createdObjectIds.push(createdObject.id!);
     });
 
@@ -112,12 +108,10 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
 
   test.describe('PUT Operations', () => {
     test('TC_07 - Should update an existing object completely', async ({ restfulApiClient }) => {
-      // First create an object
       const initialData = RestfulApiDataGenerator.generateMobileDevice();
       const createdObject = await restfulApiClient.createObject(initialData);
       createdObjectIds.push(createdObject.id!);
 
-      // Then update it
       const updateData = RestfulApiDataGenerator.generateLaptopDevice();
       const updatedObject = await restfulApiClient.updateObject(createdObject.id!, updateData);
 
@@ -142,14 +136,11 @@ test.describe("RESTful API - Objects CRUD Operations", () => {
 
   test.describe('DELETE Operations', () => {
     test('TC_09 - Should delete an existing object', async ({ restfulApiClient }) => {
-      // First create an object
       const deviceData = RestfulApiDataGenerator.generateMobileDevice();
       const createdObject = await restfulApiClient.createObject(deviceData);
 
-      // Then delete it
       await restfulApiClient.deleteObject(createdObject.id!);
 
-      // Verify it's deleted by trying to get it
       try {
         await restfulApiClient.getObjectById(createdObject.id!);
         // If no error, the object might still exist (depends on API behavior)

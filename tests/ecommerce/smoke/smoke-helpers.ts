@@ -60,10 +60,8 @@ export interface AccountCreationResult {
 }
 
 /**
- * Returns the preferred nav label for a site.
  * When `preferMens` is true (Skechers, Vans NZ) the MENS nav is tried first
  * because the WOMENS PLP does not lead to footwear with size selectors.
- * Defaults to WOMENS → MENS → SALE fallback chain.
  */
 export function getPreferredNavLabel(site: Storefront, preferMens = false): string | undefined {
   if (preferMens) {
@@ -73,8 +71,7 @@ export function getPreferredNavLabel(site: Storefront, preferMens = false): stri
 }
 
 /**
- * Navigates from the storefront homepage to a PLP via `navLabel`.
- * Executes the standard 5-step navigation: navigate → waitForNavHydration →
+ * The "Steps 1-5" referenced by spec logger.step labels: navigate → waitForNavHydration →
  * clickNavLink → waitForPlpUrl → waitForProductGrid.
  */
 export async function navigateToPlp(
@@ -100,8 +97,6 @@ export function shouldPreferMens(site: Storefront): boolean {
 }
 
 /**
- * Creates a fresh GRA customer account via the storefront GraphQL API.
- * Returns the generated credentials and whether creation succeeded.
  * The caller must call test.skip() and return when `created` is false.
  */
 export async function createFreshAccountViaGraphQL(
@@ -138,9 +133,6 @@ export async function createFreshAccountViaGraphQL(
   return { creds, created: true };
 }
 
-/**
- * Opens the mini cart overlay if it did not auto-open after an ATC action.
- */
 export async function ensureCartOverlayOpen(cartOverlayPage: EcommerceCartOverlayPage): Promise<void> {
   const autoOpened = await cartOverlayPage.isOverlayVisible();
   if (!autoOpened) {
@@ -150,9 +142,8 @@ export async function ensureCartOverlayOpen(cartOverlayPage: EcommerceCartOverla
 }
 
 /**
- * Scans the current PLP for a product with available (non-sold-out) sizes.
  * Fast in-loop check per product; post-loop waitForSizeButtonsToRender() covers async rendering lag.
- * Returns the sizes array — empty means no purchasable product found; caller must test.skip().
+ * An empty result means no purchasable product found; caller must test.skip().
  */
 export async function findProductWithAvailableSizes(
   plpPage: EcommercePLPPage,
@@ -201,8 +192,6 @@ export function sizesOverlap(a: string, b: string): boolean {
 }
 
 /**
- * Selects the first size from `sizes` that enables the Add to Cart button.
- * Returns the selected size string, or null if none of the tried sizes enabled ATC.
  * Caller must call test.skip() and return when null is returned.
  * Do NOT use for tests that call addToCart() immediately inside the isAddToCartEnabled check
  * (Vans AU hot-path pattern — keep those loops inline to minimise the timing window).

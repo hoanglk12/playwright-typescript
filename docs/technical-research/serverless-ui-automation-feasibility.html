@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serverless UI Automation: Technical Research Report</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); margin-top: 6px; }
+    .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .nav-en { font-size: 13px; }
+    .nav-vi { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+    .hero {
+      padding: 64px 56px 48px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 38px; font-weight: 900; line-height: 1.18; margin-bottom: 18px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 16px; color: var(--muted); max-width: 700px; margin-bottom: 28px; }
+
+    .hero-meta { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 32px; }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .hero-meta-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .hero-meta-value { font-size: 13.5px; font-weight: 700; }
+
+    .topic-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
+    }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .content-section { padding: 52px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
+    }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .sub-heading { font-size: 16px; font-weight: 700; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .sub-heading .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+    .content-section > .sub-heading:first-of-type { margin-top: 0; }
+
+    /* ── Bilingual side-by-side columns ── */
+    .lang-pair { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
+    .lang-col { padding-right: 26px; }
+    .lang-col + .lang-col { padding-right: 0; padding-left: 26px; border-left: 1px solid var(--border); }
+    .lang-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface2);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .lang-col p { color: var(--muted); font-size: 14.5px; }
+    .lang-col code { white-space: normal; overflow-wrap: break-word; }
+
+    /* ── Finding / breakdown boxes ── */
+    .breakdown {
+      margin: 6px 0 30px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 10px;
+    }
+    .breakdown-row .lang-pair { margin-bottom: 0; }
+    .breakdown-row .lang-col p { font-size: 13.5px; }
+    .breakdown-row ul { margin: 0; padding-left: 18px; }
+    .breakdown-row li { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .breakdown-row li:last-child { margin-bottom: 0; }
+    .breakdown-row li code { color: var(--text); }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 18px 0 28px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout .lang-pair { flex: 1; margin-bottom: 0; }
+    .callout .lang-tag { background: color-mix(in srgb, var(--cb) 22%, var(--surface2)); }
+    .callout .lang-col p { color: var(--text); font-size: 13.5px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+    .callout.solo .lang-pair { display: block; }
+    .callout.solo .lang-col + .lang-col { padding-left: 0; border-left: none; }
+    .callout h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+
+    /* ── Data tables ── */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin: 6px 0 30px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    thead th {
+      padding: 11px 16px; text-align: left;
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); font-weight: 700; white-space: nowrap;
+    }
+    tbody tr { border-top: 1px solid var(--border); }
+    tbody td { padding: 12px 16px; font-size: 12.8px; vertical-align: top; color: var(--text); }
+    tbody td.muted { color: var(--muted); }
+    tbody td code { white-space: normal; }
+    .tag { display: inline-block; border-radius: 4px; padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tag-high, .tag-reject { background: rgba(255,82,82,.15); color: #ff8a80; }
+    .tag-medium, .tag-partial { background: rgba(255,179,0,.15); color: #ffcc66; }
+    .tag-low, .tag-confirmed, .tag-adopt { background: rgba(61,220,132,.15); color: #6ee7a0; }
+    .tag-neutral { background: rgba(136,146,176,.15); color: var(--muted); }
+
+    .ordered { padding-left: 22px; margin: 0 0 26px; }
+    .ordered li { font-size: 13.8px; color: var(--text); margin-bottom: 10px; padding-left: 4px; }
+    .ordered li:last-child { margin-bottom: 0; }
+    .ordered li code { font-size: 12px; }
+
+    .approval-banner {
+      margin: 0 56px 40px; padding: 18px 22px; border-radius: 10px;
+      background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.35);
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .approval-banner .icon { font-size: 18px; color: var(--amber); }
+    .approval-banner p { font-size: 13.5px; color: var(--text); }
+    .approval-banner strong { color: var(--amber); }
+
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 1000px) { .hero, .content-section, .footer, .approval-banner { margin-left: 0; margin-right: 0; padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+      .lang-pair { grid-template-columns: 1fr; }
+      .lang-col + .lang-col {
+        padding-left: 0; border-left: none;
+        border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px;
+      }
+      .callout { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Serverless UI Automation</h2>
+      <p>Technical Research Report &middot; 2026-07-26</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Report</div>
+      <a href="#summary" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Summary</span><span class="nav-vi">Tóm tắt</span></span></a>
+      <a href="#scope" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Scope</span><span class="nav-vi">Phạm vi</span></span></a>
+      <a href="#options" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Options</span><span class="nav-vi">Các phương án</span></span></a>
+      <a href="#recommendation" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Recommendation</span><span class="nav-vi">Đề xuất</span></span></a>
+      <a href="#risks" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Risk assessment</span><span class="nav-vi">Đánh giá rủi ro</span></span></a>
+      <a href="#steps" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Implementation steps</span><span class="nav-vi">Các bước triển khai</span></span></a>
+      <a href="#validation" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Validation</span><span class="nav-vi">Xác minh</span></span></a>
+      <a href="#open-questions" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Open questions</span><span class="nav-vi">Câu hỏi còn mở</span></span></a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">Technical research report &middot; research only, no code changed</div>
+      <h1>Serverless UI Automation</h1>
+      <p class="hero-sub">
+        Whether packaging Playwright and a stripped Chromium build into AWS Lambda would speed up this
+        project's UI suite, checked against this repo's actual test count, CI setup, and billing status
+        rather than the internal study guide's hypothetical numbers.
+      </p>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Repo</span>
+          <span class="hero-meta-value">playwright-typescript @ main / 3c2c354</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Measured scale</span>
+          <span class="hero-meta-value">443 chromium UI tests, 938 browserless API tests</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Verdict</span>
+          <span class="tag tag-reject">Not recommended at current scale</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Status</span>
+          <span class="tag tag-medium">Research only, awaiting approval</span>
+        </div>
+      </div>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Summary</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">02</div><div class="label">Scope</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">03</div><div class="label">Options</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">04</div><div class="label">Recommendation</div></div>
+      </div>
+    </section>
+
+    <!-- Pre-section findings -->
+    <section class="content-section" style="--c: var(--red); padding-bottom: 0; border-bottom: none;">
+      <div class="callout solo" style="--cb: var(--red)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <h3>The premise targets the wrong bottleneck</h3>
+            <p>This repository is public on GitHub, so standard runners are already free on every operating
+            system the workflow uses. Today's CI compute bill is $0.00, not a cost serverless would beat.
+            The real constraint sits elsewhere: <code>playwright-with-slack.yml</code> pre-warms eight
+            staging storefronts with a 120-second curl because Azure cold starts would otherwise fail the
+            first request. Firing 443 concurrent browser sessions at that same staging estate would cause
+            the outage the serverless fan-out was supposed to avoid.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <h3>Tiền đề nhắm sai điểm nghẽn</h3>
+            <p>Repo này là public trên GitHub, nên runner tiêu chuẩn đã miễn phí trên mọi hệ điều hành mà
+            workflow đang dùng. Chi phí compute CI hôm nay là $0.00, không phải khoản chi mà serverless sẽ
+            đánh bại. Điểm nghẽn thật sự nằm ở chỗ khác: <code>playwright-with-slack.yml</code> phải làm
+            nóng trước tám storefront staging bằng curl 120 giây vì cold start của Azure sẽ khiến request
+            đầu tiên fail nếu không làm vậy. Bắn 443 phiên trình duyệt đồng thời vào đúng hạ tầng staging đó
+            sẽ gây ra chính sự cố mà việc phân tán sang serverless lẽ ra phải tránh.</p>
+          </div>
+        </div>
+      </div>
+      <div class="callout solo" style="--cb: var(--accent2)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <h3>The competing approach already exists here</h3>
+            <p><code>run-ui-tests.sh</code> already passes <code>--shard=$SHARD</code>, driven by a 3-shard
+            by 2-OS CI matrix, and <code>monocart merge</code> already reconciles the shard reports into one
+            summary. Whatever parallelism gain is available is a parameter change to this setup, not a new
+            platform to build.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <h3>Phương án cạnh tranh đã có sẵn ở đây</h3>
+            <p><code>run-ui-tests.sh</code> đã truyền <code>--shard=$SHARD</code>, được điều khiển bởi ma
+            trận CI 3 shard nhân 2 hệ điều hành, và <code>monocart merge</code> đã gộp các báo cáo shard
+            thành một bản tổng hợp. Bất kỳ lợi ích song song hoá nào còn khai thác được cũng chỉ là thay đổi
+            tham số trên hạ tầng này, không phải xây một nền tảng mới.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 Summary -->
+    <section class="content-section" id="summary" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Summary</h2>
+          <div class="section-desc">What was evaluated, and the recommendation up front</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The idea evaluated: move UI test execution off fixed CI runners and onto per-invocation
+          serverless compute. Package <code>playwright-core</code> with <code>@sparticuz/chromium</code>,
+          deploy to Lambda or an equivalent function platform, and fire off hundreds of concurrent
+          invocations, one test case each, then collect the results back in CI.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Ý tưởng được đánh giá: chuyển việc chạy test UI ra khỏi runner CI cố định, sang hạ tầng
+          serverless chạy theo từng lần gọi. Đóng gói <code>playwright-core</code> cùng
+          <code>@sparticuz/chromium</code>, triển khai lên Lambda hoặc nền tảng function tương đương, rồi
+          kích hoạt hàng trăm lần gọi đồng thời, mỗi lần chạy một test case, sau đó gom kết quả về lại CI.</p>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The research brief assumed this repo was much smaller than the study guide's 2,000-test
+          scenario. That's only half true. The suite totals roughly 1,389 tests, within reach of that
+          number, but the count that actually matters for a serverless-Chromium proposal is
+          <strong>443</strong>, the chromium UI tests. <code>@sparticuz/chromium</code> only helps browser
+          tests, and the other 938 tests are the API suite, deliberately browserless by design
+          (<code>api.config.ts</code> annotates its shared <code>use:</code> block "NO BROWSER"). Serverless
+          Chromium is irrelevant to two thirds of this suite.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Đề bài nghiên cứu giả định repo này nhỏ hơn nhiều so với kịch bản 2.000 test trong tài liệu học.
+          Điều đó chỉ đúng một nửa. Toàn bộ suite có khoảng 1.389 test, không quá xa con số đó, nhưng con số
+          thật sự quan trọng cho một đề xuất serverless-Chromium là <strong>443</strong>, tức các test UI
+          chromium. <code>@sparticuz/chromium</code> chỉ giúp được cho test có trình duyệt, còn 938 test còn
+          lại là API suite, cố tình không dùng trình duyệt theo thiết kế (<code>api.config.ts</code> ghi chú
+          khối <code>use:</code> dùng chung là "NO BROWSER"). Serverless Chromium không liên quan đến hai
+          phần ba suite này.</p>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Two facts decide this, both checked directly rather than assumed. First, this repository is
+          public, so standard GitHub-hosted runners are free on every OS; current CI compute cost is
+          $0.00, and any serverless migration moves that bill from zero to something. Second, the bottleneck
+          sits in the system under test, not in runner capacity: staging needs a two-minute warm-up curl
+          before it answers a single request, so it will not absorb 443 simultaneous browser sessions.
+          Firing the proposed fan-out at it would be a self-inflicted denial of service.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Hai sự thật quyết định kết luận này, cả hai đều được kiểm tra trực tiếp chứ không giả định.
+          Thứ nhất, repo này là public, nên runner tiêu chuẩn của GitHub miễn phí trên mọi hệ điều hành; chi
+          phí compute CI hiện tại là $0.00, và bất kỳ cuộc di dời sang serverless nào cũng đưa hoá đơn đó từ
+          không đồng lên một con số nào đó. Thứ hai, điểm nghẽn nằm ở hệ thống được kiểm thử, không phải ở
+          năng lực runner: staging cần curl làm nóng hai phút trước khi trả lời được một request, nên nó sẽ
+          không chịu nổi 443 phiên trình duyệt đồng thời. Bắn đúng lượng fan-out được đề xuất vào đó sẽ tạo
+          ra một cuộc từ chối dịch vụ tự gây ra.</p>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><strong>Recommendation:</strong> not recommended at current or near-term scale. Every real
+            wall-clock and cost improvement available right now lives inside the existing GitHub Actions
+            shard matrix, and getting it costs nothing.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><strong>Đề xuất:</strong> không khuyến nghị áp dụng ở quy mô hiện tại hay trong tương lai gần.
+            Mọi cải thiện thật về thời gian chạy và chi phí đang có sẵn đều nằm trong ma trận shard GitHub
+            Actions hiện có, và để đạt được chúng không tốn gì cả.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Scope -->
+    <section class="content-section" id="scope" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Scope</h2>
+          <div class="section-desc">Facts confirmed directly, files reviewed, and the assumptions this analysis rests on</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Facts below were confirmed directly this session rather than carried over from the study guide
+          or from general knowledge about serverless platforms.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Các sự kiện bên dưới được xác nhận trực tiếp trong phiên nghiên cứu này, không lấy lại từ tài
+          liệu học hay từ kiến thức chung về nền tảng serverless.</p>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">This repository</div>
+          <ul>
+            <li><code>github.com/hoanglk12/playwright-typescript</code>, confirmed public via the GitHub REST API (<code>"private": false</code>) and via <code>git remote -v</code>.</li>
+            <li><code>@playwright/test</code> and <code>playwright</code> both pinned at 1.61.1, bundling Chromium 149.0.7827.55, Firefox 151.0, WebKit 26.5.</li>
+            <li><code>playwright.config.ts</code>: <code>fullyParallel: true</code>, chromium and firefox projects (webkit commented out), five reporters including monocart.</li>
+            <li><code>api.config.ts</code>: <code>fullyParallel: false</code>, 8 workers, nine projects, no browser anywhere in the suite.</li>
+            <li>Sharding already runs in production: <code>run-ui-tests.sh</code> line 22 passes <code>--shard=$SHARD</code>, fed by a <code>shardTotal: 3</code> matrix across <code>windows-latest</code> and <code>macos-latest</code> (<code>ubuntu-latest</code> is commented out and absent from the Slack workflow entirely).</li>
+            <li>Shard reconciliation uses <code>npx monocart merge</code>; Playwright's native <code>--reporter=blob</code> plus <code>merge-reports</code> is not used anywhere in the repo.</li>
+            <li>Slack summary counts are extracted from <code>monocart-merged-ui/index.json</code>, with a silent <code>N/A</code> fallback if that file's shape changes.</li>
+            <li>Staging targets pre-warm with a 120-second curl per storefront, commented "Pre-warming staging storefronts to prevent Azure cold-start timeouts."</li>
+            <li><code>src/config/base-test.ts</code> declares 23 fixture keys; <code>CLAUDE.md</code> documents 14, a pre-existing doc-drift item unrelated to this research.</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Platform facts, AWS Lambda and @sparticuz/chromium</div>
+          <ul>
+            <li>Lambda timeout caps at 900 seconds; memory 128&ndash;10,240 MB; <code>/tmp</code> 512 MB default, up to 10,240 MB; package 50 MB zipped or 250 MB unzipped, 10 GB for container images; default concurrency 1,000 per region.</li>
+            <li><code>@sparticuz/chromium</code> is actively maintained (v149.0.0, modified 2026-05-27) and happens to match Playwright's pinned Chromium major (149) today, though its release history has gaps at majors 139, 142, and 144&ndash;146.</li>
+            <li>Microsoft Playwright Testing (Preview) retired 2026-03-08, folded into Azure App Testing's Playwright Workspaces, now billed at $0.01 per Linux test-minute.</li>
+            <li>GitHub Actions per-minute rates on private repos: Linux x64 $0.006, Windows $0.010, macOS $0.062 (about 10.3&times; Linux). On public repos, standard runners are free outright.</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Assumptions this analysis rests on</div>
+          <ul>
+            <li><strong>A1.</strong> Shard wall clock is roughly 25 minutes, covering checkout, install, and the tests themselves; this session had no access to actual run history.</li>
+            <li><strong>A2.</strong> Average UI test takes about 20 seconds, derived from the 60-second CI timeout as a ceiling, not measured directly.</li>
+            <li><strong>A3.</strong> A serverless Chromium invocation takes about 30 seconds at roughly 3,008 MB: a few seconds to extract Chromium into <code>/tmp</code>, about a second to launch, then the test and teardown.</li>
+            <li><strong>A4.</strong> Playwright's TypeScript transform cache would need relocating under Lambda's read-only filesystem, or specs pre-compiled at build time. Reasoned through, not verified.</li>
+            <li><strong>A5.</strong> Staging cannot absorb 443 concurrent browser sessions. Inferred with high confidence from the 120-second pre-warm requirement, not load-tested directly.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Options -->
+    <section class="content-section" id="options" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Options</h2>
+          <div class="section-desc">Three ways to get more UI test throughput, compared on cost, wall clock, and report integration</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Option</th><th>Verdict</th><th>Compute cost per run</th></tr></thead>
+          <tbody>
+            <tr><td>Option 1: hand-rolled Lambda per test case (the study guide's pattern)</td><td><span class="tag tag-reject">Rejected</span></td><td class="muted">~$0.65, plus ~$32.40/mo NAT if staging is IP-allowlisted</td></tr>
+            <tr><td>Option 2: tune the existing shard-plus-matrix setup</td><td><span class="tag tag-adopt">Recommended</span></td><td class="muted">$0.00 today (public repo); ~$0.80 private-repo counterfactual</td></tr>
+            <tr><td>Option 3: managed cloud browser grid (Playwright Workspaces or equivalent)</td><td><span class="tag tag-partial">Escalation path only</span></td><td class="muted">~$1.58</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option 2: tune the existing shard matrix (recommended, already about 80% built)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Not an adoption, a parameter change. Raise <code>shardTotal</code> from 3 toward 8, move or drop the macOS shards, add <code>--reporter=blob</code> plus <code>merge-reports</code> for a single native report with working traces, and tighten <code>timeout-minutes</code> down from 120.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Không phải áp dụng mới, chỉ là thay đổi tham số. Tăng <code>shardTotal</code> từ 3 lên 8, chuyển hoặc bỏ shard macOS, thêm <code>--reporter=blob</code> cùng <code>merge-reports</code> để có một báo cáo gốc duy nhất với trace hoạt động được, và rút ngắn <code>timeout-minutes</code> từ 120.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Near-zero extra effort; <code>monocart merge</code> already reconciles any shard count; wall clock drops as shards rise, to a point</td><td>Returns diminish past about 8 to 10 shards on one OS once fixed setup time starts to dominate</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option 3: managed cloud browser grid</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Playwright Workspaces or an equivalent (BrowserStack, LambdaTest, Sauce Labs) is Playwright-native: <code>playwright.config.ts</code>, every spec, all 23 fixtures, retries, traces, and reporters stay exactly as they are. Only the connect target changes.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Playwright Workspaces hay một dịch vụ tương đương (BrowserStack, LambdaTest, Sauce Labs) mang tính Playwright-native: <code>playwright.config.ts</code>, mọi spec, cả 23 fixture, retry, trace, và reporter đều giữ nguyên. Chỉ đích kết nối thay đổi.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Genuinely unbounded parallelism, no cold start, and the Playwright process still owns the run, so every reporter and the Slack integration keep working unchanged</td><td>Vendor dependency (Microsoft retired the predecessor product, MPT, after only a preview period); doesn't solve the staging-capacity problem either, since a managed grid firing 443 sessions at staging causes the same self-inflicted outage</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option 1: hand-rolled Lambda per test case (rejected)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>The raw platform limits aren't what kill this: the 15-minute Lambda timeout, 250 MB package limit, and 1,000-concurrency default all comfortably clear this project's needs, and Chromium's major version happens to line up with <code>@sparticuz/chromium</code> today. What kills it is everything downstream of the handler model.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Giới hạn thô của nền tảng không phải thứ giết chết phương án này: timeout Lambda 15 phút, giới hạn gói 250 MB, và concurrency mặc định 1.000 đều thoải mái đáp ứng nhu cầu dự án, và phiên bản chính của Chromium hiện đang khớp với <code>@sparticuz/chromium</code>. Thứ giết chết phương án này là mọi thứ nằm sau mô hình handler.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">None that outweigh the cons</td><td>It's a rewrite of 443 tests, not a migration: the guide's handler bypasses the runner entirely, and with it all 23 fixtures, 11 helpers, retries, tracing, video, and monocart itself, since every spec imports <code>test</code> from a base-test module the handler never touches</td></tr>
+            <tr><td class="muted"></td><td>Attacks a bottleneck that doesn't exist (staging saturates first, see the summary), inverts the pay-per-second pitch (public repo means $0.00 today, Lambda compute plus a possible NAT Gateway means real money), works against Playwright's own browser-reuse optimization, can't run Firefox at all since <code>@sparticuz/chromium</code> is Chromium-only, and turns report reconciliation and Chromium-version pinning into permanent bespoke maintenance</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Configuration</th><th>Compute cost</th><th>Fixed monthly</th></tr></thead>
+          <tbody>
+            <tr><td>Today, public repo (actual)</td><td><strong>$0.00</strong></td><td>$0</td></tr>
+            <tr><td class="muted">Today, private-repo counterfactual</td><td class="muted">~$5.62</td><td class="muted">$0</td></tr>
+            <tr><td>Option 2 tuned (8 Ubuntu shards)</td><td>~$0.80</td><td>$0</td></tr>
+            <tr><td>Option 3, Playwright Workspaces</td><td>~$1.58</td><td>$0</td></tr>
+            <tr><td>Option 1, Lambda</td><td>~$0.65</td><td>~$32.40 if a NAT Gateway is needed</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>The private-repo counterfactual exists only to locate the real inefficiency: three macOS shards would be 83% of that hypothetical bill, for engine coverage that <code>ubuntu-latest</code> already provides identically at a tenth of the price, since WebKit is commented out. At 2,000 browser tests, Lambda and Actions-shard costs converge; Lambda never opens a decisive cost gap at any scale this project is plausibly headed toward.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Kịch bản phản thực với repo private chỉ tồn tại để xác định sự kém hiệu quả thật sự: ba shard macOS chiếm 83% hoá đơn giả định đó, cho cùng mức bao phủ engine mà <code>ubuntu-latest</code> đã cung cấp y hệt với giá bằng một phần mười, vì WebKit đã bị comment out. Ở mức 2.000 test có trình duyệt, chi phí Lambda và chi phí shard Actions hội tụ về gần nhau; Lambda không bao giờ mở ra khoảng cách chi phí quyết định ở bất kỳ quy mô nào dự án này có khả năng vươn tới.</p></div>
+      </div>
+    </section>
+
+    <!-- 04 Recommendation -->
+    <section class="content-section" id="recommendation" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Recommended approach</h2>
+          <div class="section-desc">Tune Option 2 now, hold Option 3 in reserve, reject Option 1</div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Don't adopt Option 1. Don't adopt Option 3 yet. Tune Option 2, which is already built.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Không áp dụng Option 1. Chưa áp dụng Option 3. Tinh chỉnh Option 2, thứ đã có sẵn.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">1. There's no cost problem to solve</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>This repo is public, so CI compute is already free. Option 1 would create a cost problem where none exists: about $0.65 a run in compute, plus a roughly $32.40-a-month NAT floor if staging turns out to be IP-allowlisted.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Repo này là public, nên compute CI đã miễn phí sẵn. Option 1 sẽ tạo ra một vấn đề chi phí ở nơi vốn không có: khoảng $0.65 mỗi lần chạy cho compute, cộng thêm mức sàn NAT khoảng $32.40 mỗi tháng nếu staging hoá ra có IP allowlist.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">2. The count that matters is 443, not 2,000</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The 938 API tests are browserless by design, so serverless Chromium does nothing for them regardless of how the total suite size compares to the study guide's scenario.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>938 test API không dùng trình duyệt theo thiết kế, nên serverless Chromium không giúp được gì cho chúng, bất kể tổng kích thước suite so với kịch bản trong tài liệu học ra sao.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">3. The binding constraint is the system under test</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Staging needs a 120-second warm-up before it answers one request; it will not absorb 443 concurrent sessions. Unbounded runner parallelism buys nothing once the system under test saturates first, and risks taking staging down.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Staging cần làm nóng 120 giây trước khi trả lời được một request; nó sẽ không chịu nổi 443 phiên đồng thời. Song song hoá runner không giới hạn không mua được gì một khi hệ thống được kiểm thử bão hoà trước, và có nguy cơ làm sập staging.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">4. Option 1 is a rewrite, not a migration</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The guide's handler bypasses the runner entirely, and with it all 23 fixtures, 11 helpers, retries, traces, videos, and every reporter. That's the disqualifying fact, not Lambda's platform limits, which this project clears comfortably.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Handler trong tài liệu học bỏ qua hoàn toàn runner, và cùng với đó là cả 23 fixture, 11 helper, retry, trace, video, và mọi reporter. Đó mới là sự thật khiến phương án bị loại, không phải giới hạn nền tảng của Lambda, thứ mà dự án này vượt qua thoải mái.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">5. The cheap wins are already inside the existing workflow</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Raise <code>shardTotal</code>, adopt <code>--reporter=blob</code> plus <code>merge-reports</code> for a real single report with working traces, and tighten <code>timeout-minutes</code>. All three are inside the workflow file already in use.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tăng <code>shardTotal</code>, áp dụng <code>--reporter=blob</code> cùng <code>merge-reports</code> để có một báo cáo thật với trace hoạt động được, và rút ngắn <code>timeout-minutes</code>. Cả ba việc này đều nằm trong file workflow đang dùng sẵn.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Revisit this recommendation only when all three hold: more than 2,000 chromium tests (a
+          roughly 4.5&times; increase from today), Option 2's shard-scaling ceiling demonstrably not
+          enough against a stated PR-feedback target, and staging load-verified to absorb 100 or more
+          concurrent browser sessions without pre-warming. If all three hold, escalate to Option 3, not
+          Option 1.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Chỉ xem lại đề xuất này khi cả ba điều kiện cùng đúng: hơn 2.000 test chromium (tăng khoảng
+          4,5 lần so với hiện tại), trần mở rộng shard của Option 2 chứng minh được là không đủ so với một
+          mục tiêu phản hồi PR đã nêu rõ, và staging đã được xác minh tải để chịu được 100 phiên trình duyệt
+          đồng thời trở lên mà không cần làm nóng trước. Nếu cả ba đúng, hãy leo thang lên Option 3, không
+          phải Option 1.</p>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The pattern this study guide item describes is legitimate at the scale it actually assumes:
+            thousands of browser tests, a system under test built to take that load, and a CI bill that
+            genuinely hurts. This project has none of those three conditions right now, so the honest
+            answer is not recommended, not "not recommended yet."</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Mô hình mà mục này trong tài liệu học mô tả là hợp lý ở đúng quy mô mà nó giả định: hàng
+            nghìn test có trình duyệt, một hệ thống được kiểm thử được xây để chịu tải đó, và một hoá đơn CI
+            thật sự gây đau. Dự án này hiện không có điều kiện nào trong ba điều kiện đó, nên câu trả lời
+            trung thực là không khuyến nghị, chứ không phải "chưa khuyến nghị".</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 Risks -->
+    <section class="content-section" id="risks" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Risk assessment</h2>
+          <div class="section-desc">What each option risks, and how likely it is to actually bite</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr><td>Self-inflicted denial of service against staging from 443 concurrent sessions</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-high">High</span></td><td class="muted">Don't fan out beyond staging's measured capacity; a small load-test ramp against the staging hosts would settle this cheaply</td></tr>
+            <tr><td>Cost increase rather than decrease, since the public-repo baseline is $0</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-high">Certain under Option 1 or 3</span></td><td class="muted">Stay on GitHub-hosted runners; optimize shard count instead</td></tr>
+            <tr><td>NAT Gateway fixed floor if staging is IP-allowlisted</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Unknown</span></td><td class="muted">Confirm allowlisting before spending anything; if allowlisted, Option 1 is dead on arrival economically</td></tr>
+            <tr><td>443-test rewrite forced by the handler model</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-high">Certain under Option 1</span></td><td class="muted">Don't adopt Option 1; use Option 3 if browser scale-out is ever genuinely needed</td></tr>
+            <tr><td>Report fragmentation across Slack, monocart, JUnit, and JSON</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-high">Certain under Option 1</span></td><td class="muted"><code>monocart merge</code> already solves this for N shards; add blob plus <code>merge-reports</code> for native single-report trace continuity</td></tr>
+            <tr><td>Loss of trace-viewer and video continuity</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">High under Option 1</span></td><td class="muted">Playwright's blob reporter is the supported path; a hand-rolled aggregation won't reproduce trace-viewer linking</td></tr>
+            <tr><td>Chromium version drift against <code>@sparticuz</code>'s release gaps</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Medium, gaps confirmed</span></td><td class="muted">Pin both explicitly and gate Playwright upgrades on <code>@sparticuz</code> availability</td></tr>
+            <tr><td>Firefox and WebKit coverage lost entirely</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-high">Certain under Option 1</span></td><td class="muted">Keep a separate job for non-Chromium engines, meaning two systems, not one</td></tr>
+            <tr><td>Secrets living in ephemeral functions</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">Secrets Manager with least-privilege IAM; watch the 4 KB Lambda env-var cap</td></tr>
+            <tr><td>Flaky cold starts read as product bugs</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">Distinguish infra retries from test retries in reporting; new tooling required</td></tr>
+            <tr><td>GitHub Actions concurrent-job cap silently queuing extra shards</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Unknown</span></td><td class="muted">Confirm the account's concurrent-job limit before raising <code>shardTotal</code> past about 6; queued jobs show no error, only lost parallelism</td></tr>
+            <tr><td>monocart trend-cache reset on a runner-OS change</td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-low">Certain if OS changes</span></td><td class="muted">Accept a one-time history reset, or re-key deliberately</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Rollback.</strong> Option 2 is a YAML revert, a single commit. Option 1 has no clean
+          rollback once 443 specs have been rewritten to a handler contract; you'd end up maintaining two
+          execution models indefinitely through any transition period.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Rollback.</strong> Option 2 chỉ là revert file YAML, một commit duy nhất. Option 1
+          không có đường rollback sạch một khi 443 spec đã được viết lại theo hợp đồng handler; bạn sẽ phải
+          duy trì hai mô hình thực thi song song vô thời hạn suốt giai đoạn chuyển đổi.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 Implementation steps -->
+    <section class="content-section" id="steps" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Implementation steps</h2>
+          <div class="section-desc">Option 2 only, and only after Q1 shows a real problem to solve</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Per <code>CLAUDE.md</code>, research doesn't auto-flow into implementation; this needs explicit
+          approval via <code>qa-orchestrator</code> WORKFLOW-10 before any step below runs. Wall clock, not
+          cost, is the metric these steps are ordered around, since the six matrix jobs run concurrently and
+          total UI duration is the slowest shard, not the sum of all of them.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Theo <code>CLAUDE.md</code>, research không tự động chuyển sang implementation; việc này cần
+          được phê duyệt rõ ràng qua <code>qa-orchestrator</code> WORKFLOW-10 trước khi bất kỳ bước nào dưới
+          đây được chạy. Thời gian chạy thực tế, không phải chi phí, là thước đo mà các bước này được sắp
+          xếp theo, vì sáu job trong ma trận chạy đồng thời và tổng thời gian UI là shard chậm nhất, không
+          phải tổng của tất cả.</p>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Phase 1: Answer the questions that gate everything else</div>
+      <ol class="ordered">
+        <li>Pull actual <code>ui-test</code> job durations from recent runs and state an explicit PR-feedback target. If current duration already meets it, stop here.</li>
+        <li>Confirm whether Windows and macOS UI coverage is deliberate policy. WebKit is commented out, so macOS currently adds no engine coverage beyond what Ubuntu would provide.</li>
+        <li>Confirm the account's GitHub Actions concurrent-job limit before raising the shard count. This determines whether the next phase actually delivers parallelism or just queues jobs silently.</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Phase 2: Scale the shard matrix</div>
+      <ol class="ordered">
+        <li>Raise <code>shardTotal</code> from 3 toward 8 on a single OS, and measure. This is the actual wall-clock lever.</li>
+        <li>If OS coverage from Phase 1 is required, keep the per-OS shard count lower rather than doubling total job count, until the concurrency cap from Phase 1 is confirmed to accommodate more.</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Phase 3: Cost hygiene and report quality</div>
+      <ol class="ordered">
+        <li>Move the macOS shards to <code>ubuntu-latest</code> only if measurement shows macOS is genuinely the slowest shard; otherwise this is a cost lever relevant only if the repo ever goes private, not a wall-clock win. Expect a one-time monocart trend-cache reset.</li>
+        <li>Add <code>--reporter=blob</code> plus <code>npx playwright merge-reports</code> as an additive reporter, keeping all five existing reporters, for a native single HTML report with intact trace-viewer links.</li>
+        <li>Reduce <code>timeout-minutes</code> from 120 to about 1.5&times; the measured worst shard.</li>
+        <li>Verify the Slack path end to end; the <code>test-report</code> outputs fail silently to <code>N/A</code> rather than erroring.</li>
+      </ol>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Explicitly out of scope for implementation:</strong> any new AWS/Lambda infrastructure,
+          any change to <code>src/config/base-test.ts</code> or the fixture layer, and any new external SDK
+          or CI secret. Separately, and unrelated to this research: <code>CLAUDE.md</code> documents 14 UI
+          fixtures while <code>base-test.ts</code> declares 23, worth its own doc-drift ticket.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Nằm ngoài phạm vi triển khai, ghi rõ:</strong> bất kỳ hạ tầng AWS/Lambda mới nào, bất kỳ
+          thay đổi nào ở <code>src/config/base-test.ts</code> hay lớp fixture, và bất kỳ SDK ngoài hay secret
+          CI mới nào. Riêng biệt, và không liên quan đến nghiên cứu này: <code>CLAUDE.md</code> ghi nhận 14
+          fixture UI trong khi <code>base-test.ts</code> khai báo 23, đáng có một ticket doc-drift riêng.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 Validation -->
+    <section class="content-section" id="validation" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Validation</h2>
+          <div class="section-desc">How to prove any change here actually helped, before and after each step</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Baseline first, across three runs</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Record per-shard wall clock, total wall clock, and pass/fail/flaky counts before changing anything. Without a baseline, no claim afterward is actually checkable.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Ghi lại thời gian chạy từng shard, tổng thời gian chạy, và số lượng pass/fail/flaky trước khi thay đổi bất cứ điều gì. Không có baseline, không tuyên bố nào sau đó thật sự kiểm chứng được.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Wall clock is the only success metric that matters</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Cost is already $0 on this public repo, so the target is a measured reduction in the <code>ui-test</code> job's total duration against whatever the Phase 1 PR-feedback target establishes.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Chi phí đã là $0 trên repo public này, nên mục tiêu là giảm được thời gian tổng của job <code>ui-test</code>, đo được, so với mục tiêu phản hồi PR đã xác lập ở Phase 1.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Report-integrity gate</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>After each change, confirm the merged monocart JSON's test total matches the pre-change total, Slack shows real numbers instead of <code>N/A</code>, JUnit and JSON outputs still parse, and the trend chart still renders (accepting a one-time reset if the cache key changed).</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Sau mỗi thay đổi, xác nhận tổng số test trong JSON monocart đã gộp khớp với tổng trước khi thay đổi, Slack hiển thị số thật thay vì <code>N/A</code>, JUnit và JSON vẫn parse được, và biểu đồ trend vẫn render được (chấp nhận reset một lần nếu cache key đổi).</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Flake delta and queued-time check</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Compare flaky counts across three runs before and after; a rise is empirical evidence of staging's concurrency ceiling. Separately, confirm no shard job shows queued or waiting time in the run timeline, since queued time means the shard count has exceeded the account's concurrency cap and further increases are counterproductive.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>So sánh số lần flaky qua ba lần chạy trước và sau; nếu tăng lên, đó là bằng chứng thực nghiệm cho trần concurrency của staging. Riêng biệt, xác nhận không có job shard nào bị queued hay chờ trong timeline của lần chạy, vì thời gian queued nghĩa là số shard đã vượt trần concurrency của tài khoản và việc tăng thêm sẽ phản tác dụng.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Artifact completeness</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Trigger a deliberate failure and confirm the log, screenshot, video, and trace all still attach to the right test in the merged report.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Cố tình gây ra một lần fail và xác nhận log, screenshot, video, và trace đều vẫn được đính kèm đúng vào test tương ứng trong báo cáo đã gộp.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">If a serverless pilot is ever authorized despite this recommendation</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Scope it to one spec file against one storefront, with pass criteria set up front: merged JSON byte-comparable in shape to the Actions-produced one, traces opening correctly in trace viewer, Slack numbers matching, staging's error rate not rising under the pilot's concurrency, and total cost including any NAT Gateway staying below the Actions baseline. Any one failing kills the pilot.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Giới hạn phạm vi vào một spec file trên một storefront, với tiêu chí đạt được xác định trước: JSON đã gộp so sánh được từng byte về hình dạng với bản do Actions tạo ra, trace mở đúng trong trace viewer, số liệu Slack khớp, tỷ lệ lỗi của staging không tăng dưới mức concurrency của pilot, và tổng chi phí kể cả NAT Gateway vẫn thấp hơn baseline của Actions. Chỉ cần một tiêu chí fail là pilot bị huỷ.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 Open questions -->
+    <section class="content-section" id="open-questions" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Open questions</h2>
+          <div class="section-desc">Gate these before touching the shard matrix, whether or not serverless is ever revisited</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Q1: Is the PR feedback loop actually too slow</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>No target has been stated anywhere. Without a number there's no problem statement to validate against, which makes this the single most important open question in the report.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Chưa có mục tiêu nào được nêu ra ở bất kỳ đâu. Không có con số cụ thể thì không có phát biểu vấn đề nào để kiểm chứng, khiến đây trở thành câu hỏi mở quan trọng nhất trong báo cáo này.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Q2: Is staging IP-allowlisted</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The workflow's egress-IP probe suggests someone cared about this at some point. If yes, Lambda needs a NAT Gateway, a fixed cost that alone would exceed every compute saving modeled for Option 1.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Bước kiểm tra IP đi ra trong workflow gợi ý rằng ai đó từng quan tâm đến việc này. Nếu có, Lambda cần một NAT Gateway, một chi phí cố định mà riêng nó đã vượt mọi khoản tiết kiệm compute được mô hình hoá cho Option 1.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Q3 and Q4: Is the Windows/macOS shard split deliberate</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Deliberate OS-coverage policy, or historical drift nobody revisited? WebKit is commented out, so macOS currently runs the same engines Ubuntu would, at a much higher private-repo rate.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Là chính sách bao phủ hệ điều hành có chủ đích, hay chỉ là trôi dạt lịch sử chưa ai xem lại? WebKit đã bị comment out, nên macOS hiện đang chạy cùng engine mà Ubuntu sẽ chạy, với mức giá trên repo private cao hơn nhiều.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Q5: What's the actual per-shard wall clock split</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>How does it divide between fixed setup and test execution? This sets the ceiling on how far shard-count scaling can go before returns diminish.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nó chia như thế nào giữa setup cố định và thời gian chạy test? Điều này xác định trần cho việc mở rộng số shard trước khi lợi ích giảm dần.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Q6: What is the account's GitHub Actions concurrent-job limit</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Raising the shard count without knowing this is the mistake an earlier draft of this report made. If the limit is exceeded, extra shard jobs queue silently, with no error and no obvious signal in the run summary, quietly converting the intended parallelism gain into serialized waiting.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Tăng số shard mà không biết giới hạn này là sai lầm mà một bản nháp trước đó của báo cáo này đã mắc phải. Nếu vượt giới hạn, các job shard thêm vào sẽ bị queued âm thầm, không báo lỗi và không có tín hiệu rõ ràng nào trong bản tóm tắt lần chạy, âm thầm biến lợi ích song song hoá dự kiến thành chờ đợi tuần tự.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="approval-banner">
+      <span class="icon">&#9432;</span>
+      <p><strong>Research only, no files modified.</strong> Implementation requires explicit approval via
+      <code>qa-orchestrator</code> WORKFLOW-10 before any step in the implementation plan above runs.</p>
+    </div>
+
+    <div class="footer">
+      Technical Research Report &middot; Playwright TypeScript Automation Framework &middot; repo facts
+      confirmed directly against the GitHub API, git remote, and workflow files rather than assumed from
+      the study guide &middot; 2026-07-26
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

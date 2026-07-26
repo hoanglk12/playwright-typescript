@@ -7,7 +7,6 @@ import { PageRef } from './page-ref';
 export class DomScanHelper {
   constructor(private readonly pageRef: PageRef) {}
 
-  /** Returns true if ANY of the given selectors is visible on the page. */
   async hasAnyVisible(selectors: string[]): Promise<boolean> {
     for (const selector of selectors) {
       try {
@@ -20,7 +19,6 @@ export class DomScanHelper {
     return false;
   }
 
-  /** Returns the first selector from the list that is currently visible, or null. */
   async firstVisible(selectors: string[]): Promise<string | null> {
     for (const selector of selectors) {
       try {
@@ -33,7 +31,6 @@ export class DomScanHelper {
     return null;
   }
 
-  /** Returns all matching elements' text content as a trimmed string array. */
   async getAllTextContents(selector: string): Promise<string[]> {
     try {
       const texts = await this.pageRef.current.locator(selector).allTextContents();
@@ -43,7 +40,7 @@ export class DomScanHelper {
     }
   }
 
-  /** Returns all matching elements' attribute values (filters out nulls). */
+  /** Filters out elements where the attribute is absent. */
   async getAllAttributes(selector: string, attribute: string): Promise<string[]> {
     try {
       const locator = this.pageRef.current.locator(selector);
@@ -59,10 +56,7 @@ export class DomScanHelper {
     }
   }
 
-  /**
-   * Returns true if the element matching selector has the given aria-label.
-   * @param exact Default true — requires exact match. Set false for partial match.
-   */
+  /** @param exact Set false for a partial (substring) match. */
   async hasAriaLabel(selector: string, expected: string, exact = true): Promise<boolean> {
     try {
       const val = await this.pageRef.current.locator(selector).first().getAttribute('aria-label');
@@ -73,7 +67,6 @@ export class DomScanHelper {
     }
   }
 
-  /** Returns the visible text of the element, or empty string if not found/not visible. */
   async safeGetText(selector: string): Promise<string> {
     try {
       const el = this.pageRef.current.locator(selector).first();
@@ -84,7 +77,6 @@ export class DomScanHelper {
     }
   }
 
-  /** Returns count of elements matching selector (0 if none). */
   async count(selector: string): Promise<number> {
     try {
       return await this.pageRef.current.locator(selector).count();

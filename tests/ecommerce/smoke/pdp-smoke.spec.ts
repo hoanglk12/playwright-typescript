@@ -200,7 +200,6 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         const actualSecondToggle = toggleLabels.find((l) => l.toUpperCase().includes(secondLabelWord));
 
         if (actualSecondToggle) {
-          // If no sizes visible yet, click the first toggle to initialise the size panel
           if (initialSizes.length === 0 && actualFirstToggle) {
             await logger.step(`Step 13a - Click first toggle "${actualFirstToggle}" to initialise size panel`, async () => {
               await ecommercePDPPage.clickSizeGenderToggle(actualFirstToggle);
@@ -327,7 +326,6 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       }
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       let targetSize: string | null = null;
       await logger.step('Step 11 - Select a size that enables Add to Cart (try up to 3)', async () => {
         targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
@@ -512,7 +510,6 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
       });
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       let targetSize: string | null = null;
       await logger.step('Step 12 - Select a size that enables Add to Cart (try up to 3)', async () => {
         targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);

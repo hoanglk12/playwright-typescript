@@ -28,27 +28,20 @@ export class TestLogger {
     this.testTitle = testTitle;
   }
 
-  /**
-   * Clear all logs - used in global setup
-   */
   static clearLogs(): void {
     try {
-      // Clear console (if running in terminal)
       if (process.stdout.isTTY) {
         console.clear();
       }
 
-      // Ensure log directory exists
       if (!fs.existsSync(TestLogger.logDir)) {
         fs.mkdirSync(TestLogger.logDir, { recursive: true });
       }
 
-      // Clear log file
       if (fs.existsSync(TestLogger.logFile)) {
         fs.writeFileSync(TestLogger.logFile, '');
       }
 
-      // Clear any existing log files in the directory
       const logFiles = fs.readdirSync(TestLogger.logDir).filter(file => 
         file.endsWith('.log') || file.endsWith('.txt')
       );
@@ -65,9 +58,6 @@ export class TestLogger {
     }
   }
 
-  /**
-   * Initialize logging session - called at start of test run
-   */
   static initializeLogging(): void {
     const timestamp = TestLogger.formatTimestamp();
     const sessionHeader = `
@@ -79,12 +69,10 @@ export class TestLogger {
 
 `;
 
-    // Ensure log directory exists
     if (!fs.existsSync(TestLogger.logDir)) {
       fs.mkdirSync(TestLogger.logDir, { recursive: true });
     }
 
-    // Write session header to log file
     fs.writeFileSync(TestLogger.logFile, sessionHeader);
     console.log(sessionHeader);
   }
@@ -113,9 +101,6 @@ export class TestLogger {
     this.logStepLine(message, dataOrBody);
   }
 
-  /**
-   * Shared step log-line formatting/emission, used by both call forms of `step()`.
-   */
   private logStepLine(message: string, data?: any): void {
     this.stepCounter++;
     const timestamp = TestLogger.formatTimestamp();
@@ -131,9 +116,6 @@ export class TestLogger {
     }
   }
 
-  /**
-   * Log an action being performed
-   */
   action(action: string, target?: string): void {
     const timestamp = TestLogger.formatTimestamp();
     const message = target ? `${action} on ${target}` : action;
@@ -143,9 +125,6 @@ export class TestLogger {
     this.writeToFile(logMessage);
   }
 
-  /**
-   * Log an assertion/verification
-   */
   verify(verification: string, expected?: any, actual?: any, isSoft?: boolean): void {
     const timestamp = TestLogger.formatTimestamp();
     const prefix = isSoft ? '🔵 [SOFT]' : '✅';
@@ -164,9 +143,6 @@ export class TestLogger {
     }
   }
 
-  /**
-   * Log an error or issue
-   */
   error(error: string, details?: any): void {
     const timestamp = TestLogger.formatTimestamp();
     const logMessage = `❌ [${timestamp}] Error: ${error}`;
@@ -181,9 +157,6 @@ export class TestLogger {
     }
   }
 
-  /**
-   * Log test information
-   */
   info(message: string, data?: any): void {
     const timestamp = TestLogger.formatTimestamp();
     const logMessage = `ℹ️  [${timestamp}] Info: ${message}`;
@@ -198,9 +171,6 @@ export class TestLogger {
     }
   }
 
-  /**
-   * Log test completion
-   */
   complete(status: 'passed' | 'failed', duration?: number): void {
     const timestamp = TestLogger.formatTimestamp();
     const emoji = status === 'passed' ? '✅' : '❌';
@@ -236,9 +206,6 @@ export class TestLogger {
     }
   }
 
-  /**
-   * Return this logger's captured lines as a single string, for per-test attachment
-   */
   getBuffer(): string {
     return this.buffer.join('\n');
   }
@@ -273,9 +240,6 @@ export class TestLogger {
   }
 }
 
-/**
- * Create a logger instance for a test
- */
 export function createTestLogger(testTitle: string): TestLogger {
   const logger = new TestLogger(testTitle);
   logger.registerForCurrentTest();

@@ -1,18 +1,13 @@
 import { AdminData, AdminTestData } from '../../src/data/admin-data';
 import { test, expect } from '@config/base-test';
 import { createTestLogger } from '../../src/utils/test-logger';
-/**
- * Admin Login Tests
- * @feature Admin Authentication
- * @story Login Functionality
- */
+
 test.describe('Admin Login Tests', () => {
 
   test('TC_01 - Login fails with empty username and empty password', async ({
     loginPage,
     percyHelper,
   }) => {
-    //Declare logger for test steps
     const logger = createTestLogger('User cannot login with empty credentials');
 
     await logger.step('Step 1 - Navigate to login page', async () => {
@@ -46,7 +41,6 @@ test.describe('Admin Login Tests', () => {
     percyHelper,
   }) => {
 
-    //Declare logger for test steps
     const logger = createTestLogger('User cannot login with wrong credentials');
 
     await logger.step('Step 1 - Navigate to login page', async () => {

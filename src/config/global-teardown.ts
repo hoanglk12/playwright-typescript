@@ -3,57 +3,36 @@ import path from 'path';
 import { FullConfig } from '@playwright/test';
 import { getEnvironment } from './environment';
 
-/**
- * Global teardown configuration for Playwright tests
- * Runs once after all tests - equivalent to @AfterTest/@AfterClass in Maven framework
- * 
- * Based on BaseTest.java methods:
- * - closeBrowserAndDriver()
- * - closeDriverInstance()
- * - showBrowserConsoleLogs()
- * - Cleanup and resource management
- */
 async function globalTeardown(config: FullConfig) {
 
   console.log('🧹 Starting global teardown...');
 
-  // 1. Close any remaining browser instances and clean up driver processes
- // 2. Generate final test reports and summaries
   await generateFinalReports();
 
-  // 3. Clean up temporary files and authentication states
   await cleanupTemporaryFiles();
 
-  // 4. Show summary statistics
   await showTestSummary();
 
-  // 5. Validate cleanup completed successfully
   await validateCleanup();
   
   console.log('✅ Global teardown completed successfully');
 }
 
 
-/**
- * Generate final test reports and summaries
- */
 async function generateFinalReports(): Promise<void> {
   console.log('📊 Generating final reports...');
-  
+
   try {
-    // Check if HTML report exists
     const htmlReportPath = path.resolve(process.cwd(), 'playwright-report');
     if (fs.existsSync(htmlReportPath)) {
       console.log(`   ✅ HTML report available at: ${htmlReportPath}/index.html`);
     }
 
-    // Check if monocart report exists
     const monocartHtml = path.resolve(process.cwd(), 'monocart-report', 'index.html');
     if (fs.existsSync(monocartHtml)) {
       console.log(`   ✅ Monocart report available at: ${monocartHtml}`);
     }
 
-    // Check if JSON results exist
     const jsonResultsPath = path.resolve(process.cwd(), 'test-results');
     if (fs.existsSync(jsonResultsPath)) {
       const files = fs.readdirSync(jsonResultsPath);
@@ -61,7 +40,6 @@ async function generateFinalReports(): Promise<void> {
       console.log(`   ✅ ${jsonFiles.length} JSON result files generated`);
     }
     
-    // Generate a simple summary file
     await generateTestSummaryFile();
     
   } catch (error) {
@@ -69,9 +47,6 @@ async function generateFinalReports(): Promise<void> {
   }
 }
 
-/**
- * Generate a test summary file
- */
 async function generateTestSummaryFile(): Promise<void> {
   try {
     const summaryPath = path.resolve(process.cwd(), 'test-summary.txt');    const timestamp = new Date().toISOString();
@@ -109,9 +84,6 @@ Commands to view reports:
   }
 }
 
-/**
- * Clean up temporary files and authentication states
- */
 async function cleanupTemporaryFiles(): Promise<void> {
   console.log('🗑️ Cleaning up temporary files...');
   
@@ -142,9 +114,6 @@ async function cleanupTemporaryFiles(): Promise<void> {
   }
 }
 
-/**
- * Show test execution summary
- */
 async function showTestSummary(): Promise<void> {
   console.log('📈 Test Execution Summary:');
   
@@ -153,7 +122,6 @@ async function showTestSummary(): Promise<void> {
     console.log(`   🌍 Environment: ${process.env.NODE_ENV || 'testing'}`);
     console.log(`   🌐 Front Site: ${environment.frontSiteUrl}`);
     console.log(`   🔧 Admin Panel: ${environment.adminUrl}`);
-    // Detect browser/project from Playwright CLI arguments if available
     let browserName = process.env.BROWSER || environment.defaultBrowser;
     const projectArg = process.argv.find(arg => arg.startsWith('--project='));
     if (projectArg) {
@@ -163,7 +131,7 @@ async function showTestSummary(): Promise<void> {
     console.log(`   👁️ Headless: ${environment.headless ? 'Yes' : 'No'}`);
     console.log(`   ⚡ Workers: ${environment.parallelWorkers}`);
     console.log(`   ⏱️ Timeout: ${environment.timeout}ms`);
-    console.log(`   🔄 Retries: ${environment.retries}`);    // Check for report files
+    console.log(`   🔄 Retries: ${environment.retries}`);
     const htmlReportExists = fs.existsSync(path.resolve(process.cwd(), 'playwright-report', 'index.html'));
     const monocartReportExists = fs.existsSync(path.resolve(process.cwd(), 'monocart-report', 'index.html'));
 
@@ -181,14 +149,10 @@ async function showTestSummary(): Promise<void> {
   }
 }
 
-/**
- * Validate that cleanup completed successfully
- */
 async function validateCleanup(): Promise<void> {
   console.log('✅ Validating cleanup...');
   
   try {
-    // Check for any remaining temporary files
     const tempFiles = [
       '.auth/temp*',
       'temp/*',
@@ -198,7 +162,6 @@ async function validateCleanup(): Promise<void> {
     let cleanupIssues = 0;
     
     for (const pattern of tempFiles) {
-      // Simple validation - in a real implementation you might use glob patterns
       const basePath = pattern.split('/')[0];
       if (fs.existsSync(basePath)) {
         const files = fs.readdirSync(basePath);

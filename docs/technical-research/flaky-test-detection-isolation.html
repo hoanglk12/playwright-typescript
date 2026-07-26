@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automatic Flaky Test Detection and Isolation: Technical Research</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); margin-top: 6px; }
+    .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .nav-en { font-size: 13px; }
+    .nav-vi { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+    .hero {
+      padding: 64px 56px 48px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 36px; font-weight: 900; line-height: 1.18; margin-bottom: 18px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 16px; color: var(--muted); max-width: 720px; margin-bottom: 28px; }
+
+    .hero-meta { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 32px; }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .hero-meta-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .hero-meta-value { font-size: 13.5px; font-weight: 700; }
+
+    .topic-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
+    }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .content-section { padding: 52px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
+    }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .sub-heading { font-size: 16px; font-weight: 700; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .sub-heading .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+    .content-section > .sub-heading:first-of-type { margin-top: 0; }
+
+    .lang-pair { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
+    .lang-col { padding-right: 26px; }
+    .lang-col + .lang-col { padding-right: 0; padding-left: 26px; border-left: 1px solid var(--border); }
+    .lang-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface2);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .lang-col p { color: var(--muted); font-size: 14.5px; }
+    .lang-col code { white-space: normal; overflow-wrap: break-word; }
+
+    .breakdown {
+      margin: 6px 0 30px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 10px;
+    }
+    .breakdown-row .lang-pair { margin-bottom: 0; }
+    .breakdown-row .lang-col p { font-size: 13.5px; }
+    .breakdown-row ul { margin: 0; padding-left: 18px; }
+    .breakdown-row li { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .breakdown-row li:last-child { margin-bottom: 0; }
+    .breakdown-row li code { color: var(--text); }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 18px 0 28px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout .lang-pair { flex: 1; margin-bottom: 0; }
+    .callout .lang-tag { background: color-mix(in srgb, var(--cb) 22%, var(--surface2)); }
+    .callout .lang-col p { color: var(--text); font-size: 13.5px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+    .callout.solo .lang-pair { display: block; }
+    .callout.solo .lang-col + .lang-col { padding-left: 0; border-left: none; }
+
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin: 6px 0 30px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    thead th {
+      padding: 11px 16px; text-align: left;
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); font-weight: 700; white-space: nowrap;
+    }
+    tbody tr { border-top: 1px solid var(--border); }
+    tbody td { padding: 12px 16px; font-size: 12.8px; vertical-align: top; color: var(--text); }
+    tbody td.muted { color: var(--muted); }
+    tbody td code { white-space: normal; }
+    .tag { display: inline-block; border-radius: 4px; padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tag-high, .tag-reject { background: rgba(255,82,82,.15); color: #ff8a80; }
+    .tag-medium, .tag-partial { background: rgba(255,179,0,.15); color: #ffcc66; }
+    .tag-low, .tag-confirmed, .tag-adopt { background: rgba(61,220,132,.15); color: #6ee7a0; }
+    .tag-neutral { background: rgba(136,146,176,.15); color: var(--muted); }
+
+    .code-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border); border-bottom: none;
+      border-radius: 8px 8px 0 0; padding: 8px 14px;
+    }
+    .code-filename { font-size: 12px; color: var(--muted); font-family: 'Fira Code', Consolas, monospace; }
+    .code-lang { font-size: 11px; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: .06em; }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 0 0 8px 8px;
+      padding: 18px; overflow-x: auto; font-size: 12.5px; line-height: 1.65;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace; margin-bottom: 26px;
+    }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type{ color: #ffcb6b; }
+    .num { color: #f78c6c; }
+    .prop{ color: #89ddff; }
+    code:not(pre code) {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    .ordered { padding-left: 22px; margin: 0 0 26px; }
+    .ordered li { font-size: 13.8px; color: var(--text); margin-bottom: 10px; padding-left: 4px; }
+    .ordered li:last-child { margin-bottom: 0; }
+    .ordered li code { font-size: 12px; }
+
+    .approval-banner {
+      margin: 0 56px 40px; padding: 18px 22px; border-radius: 10px;
+      background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.35);
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .approval-banner .icon { font-size: 18px; color: var(--amber); }
+    .approval-banner p { font-size: 13.5px; color: var(--text); }
+    .approval-banner strong { color: var(--amber); }
+
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+    .footer a { color: var(--muted); }
+
+    @media (max-width: 1000px) { .hero, .content-section, .footer, .approval-banner { margin-left: 0; margin-right: 0; padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+      .lang-pair { grid-template-columns: 1fr; }
+      .lang-col + .lang-col {
+        padding-left: 0; border-left: none;
+        border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px;
+      }
+      .callout { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Flaky Test Detection</h2>
+      <p>Technical Research Report &middot; 2026-07-26</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Report</div>
+      <a href="#summary" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Summary</span><span class="nav-vi">Tóm tắt</span></span></a>
+      <a href="#facts" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Confirmed facts</span><span class="nav-vi">Sự thật đã xác minh</span></span></a>
+      <a href="#scope" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Scope</span><span class="nav-vi">Phạm vi</span></span></a>
+      <a href="#options" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Options</span><span class="nav-vi">Các phương án</span></span></a>
+      <a href="#recommendation" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Recommendation</span><span class="nav-vi">Đề xuất</span></span></a>
+      <a href="#risks" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Risk assessment</span><span class="nav-vi">Đánh giá rủi ro</span></span></a>
+      <a href="#steps" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Implementation steps</span><span class="nav-vi">Các bước triển khai</span></span></a>
+      <a href="#validation" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Validation</span><span class="nav-vi">Xác minh</span></span></a>
+      <a href="#open-questions" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Open questions</span><span class="nav-vi">Câu hỏi còn mở</span></span></a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">Technical research report &middot; research only, no code changed</div>
+      <h1>Automatic Flaky Test Detection and Isolation</h1>
+      <p class="hero-sub">
+        Playwright already computes a per-test <code>flaky</code> outcome and monocart already stores it, but
+        nothing in this framework reads either signal beyond a single Slack field on the UI side. This report
+        traces exactly what Playwright 1.61.1 and monocart 2.11.2 give for free, verified against the installed
+        source rather than assumed, and lays out a phased path from "surface what already exists" to "rerun a
+        flagged test in isolation to tell true flakiness apart from shared-state pollution."
+      </p>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Repo</span>
+          <span class="hero-meta-value">playwright-typescript</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Verified against</span>
+          <span class="hero-meta-value">Playwright 1.61.1 &middot; monocart 2.11.2</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Verdict</span>
+          <span class="tag tag-adopt">Adopt A + B + C, phased</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Deferred</span>
+          <span class="tag tag-partial">D deferred, F rejected</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Status</span>
+          <span class="tag tag-medium">Awaiting user approval</span>
+        </div>
+      </div>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Summary</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">02</div><div class="label">Scope</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">03</div><div class="label">Options</div></div>
+        <div class="topic-chip" style="--c: var(--green)"><div class="num">04</div><div class="label">Recommendation</div></div>
+      </div>
+    </section>
+
+    <!-- 01 Summary -->
+    <section class="content-section" id="summary" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Summary</h2>
+          <div class="section-desc">What already runs for free, and the four gaps sitting on top of it</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Playwright computes a per-test <code>flaky</code> outcome the moment a test fails at least once
+          and then passes or gets skipped within its retry budget. This repo already retries in CI: UI
+          via <code>env.retries</code> (default 2), API hardcoded to 2. monocart already stores a
+          <code>caseType: 'flaky'</code> flag per test too. None of that is a proposal; it runs on every CI build
+          today.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Playwright tự tính ra outcome <code>flaky</code> cho một test ngay khi test đó fail ít nhất một
+          lần rồi pass hoặc bị skip trong giới hạn retry. Repo này đã bật retry trên CI: phía UI qua
+          <code>env.retries</code> (mặc định 2), phía API hardcode cứng là 2. monocart cũng đã lưu sẵn cờ
+          <code>caseType: 'flaky'</code> cho từng test. Không có gì trong đó là đề xuất, nó đang chạy thật trên
+          mọi lần build CI.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Gap</th><th>Where it shows up</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>API flaky count is dropped at four separate points</td>
+              <td class="muted"><code>api.config.ts:77-88</code>, <code>playwright-with-slack.yml:571-620</code> &amp; <code>:907-960</code>, <code>api-restful-tests-with-slack.yml:102-120</code></td>
+              <td>UI Slack already shows a &#128257; Flaky field; API Slack does not, even though the underlying data exists</td>
+            </tr>
+            <tr>
+              <td>No cross-run flakiness memory</td>
+              <td class="muted">monocart trend file is summary-level only (<code>share.js:156-172</code>)</td>
+              <td>Can't answer "which tests flake 1 run in 20" without a new store</td>
+            </tr>
+            <tr>
+              <td>No mechanism to re-run a flagged test alone</td>
+              <td class="muted"><code>--last-failed</code> excludes flaky tests by design (<code>ok()</code> returns true for flaky)</td>
+              <td>Can't distinguish true flakiness from order-dependency without one</td>
+            </tr>
+            <tr>
+              <td>No quarantine convention</td>
+              <td class="muted">no <code>@flaky</code> tag, <code>grepInvert</code>, or list anywhere in the repo</td>
+              <td>Confirmed flaky tests have no documented place to live once identified</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><strong>Top-line conclusion:</strong> the expensive part of flaky triage, capturing what went
+            wrong on the failing attempt, is already solved. <code>consoleHelper</code> and
+            <code>attachVerboseLogFailureContext</code> both gate on <code>testInfo.status</code>, which is
+            per-attempt, so a flaky test's failing attempt already carries full console/network/redacted-payload
+            diagnostics today, with zero changes needed. What's missing is aggregation and routing, not capture.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><strong>Kết luận chính:</strong> phần tốn kém nhất trong việc triage flaky test, bắt lại chuyện gì
+            đã xảy ra ở lần chạy fail, đã được giải quyết sẵn. Cả <code>consoleHelper</code> lẫn
+            <code>attachVerboseLogFailureContext</code> đều gate theo <code>testInfo.status</code>, vốn tính theo
+            từng attempt, nên lần chạy fail của một test flaky đã có sẵn đầy đủ console/network/payload đã redact,
+            không cần sửa gì cả. Thứ còn thiếu là gom lại và định tuyến dữ liệu, không phải chuyện bắt dữ liệu.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent)"><span class="dot"></span>What's proposed</div>
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>A three-increment path: (A) close the API flaky-reporting gap with config and workflow edits only,
+          no new code; (B) add a small "flaky ledger" reporter that emits an ID-precise list in the exact shape
+          Playwright's own <code>--last-failed-file</code> reader expects; (C) add a non-blocking CI job that
+          reruns flagged tests in isolation to separate true flakiness from order-dependency. Auto-quarantine,
+          auto-skip, gating flags, retry-count changes, and any third-party service are carved out for separate
+          sign-off, covered in section 04.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Một lộ trình ba bước: (A) vá lỗ hổng báo cáo flaky phía API chỉ bằng sửa config và workflow, không
+          thêm code mới; (B) thêm một reporter "flaky ledger" nhỏ, xuất ra danh sách chính xác theo ID, đúng định
+          dạng mà chính bộ đọc <code>--last-failed-file</code> của Playwright mong đợi; (C) thêm một job CI không
+          chặn pipeline, chạy lại riêng lẻ các test bị gắn cờ để phân biệt flaky thật với lỗi phụ thuộc thứ tự.
+          Auto-quarantine, auto-skip, các cờ gate, thay đổi số lần retry, và bất kỳ dịch vụ bên thứ ba nào đều
+          được tách riêng, cần user duyệt độc lập, nói rõ ở mục 04.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Confirmed facts -->
+    <section class="content-section" id="facts" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Confirmed facts</h2>
+          <div class="section-desc">Verified against installed source, not general Playwright knowledge</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>Every row below was checked against <code>node_modules/playwright/lib</code> and
+          <code>node_modules/monocart-reporter/lib</code>, not assumed from general familiarity with
+          Playwright.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Mọi dòng dưới đây đều được đối chiếu trực tiếp với <code>node_modules/playwright/lib</code> và
+          <code>node_modules/monocart-reporter/lib</code>, không suy đoán từ hiểu biết Playwright nói chung.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Claim</th><th>Verdict</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="muted">A test is <code>flaky</code> only when it has both an expected/skipped result and an unexpected one across its own attempts</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>computeTestCaseOutcome()</code>, <code>common/index.js:2524-2550</code>: computed per <code>TestCase</code>, never across shards or across different tests</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>ok()</code> treats flaky as a passing outcome</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>common/index.js:2766-2769</code>: <code>ok()</code> returns true for <code>expected | flaky | skipped</code>. A flaky test never fails the run.</td>
+            </tr>
+            <tr>
+              <td class="muted">Failed-then-cascade-skipped also reads as <code>flaky</code></td>
+              <td><span class="tag tag-partial">Confirmed, false-positive source</span></td>
+              <td class="muted">The only route to <code>unexpected</code> requires zero expected <em>and</em> zero skipped results (<code>:2547</code>). Serial-mode cascade skips in <code>misc-api</code> specs can manufacture a false flaky reading.</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>--last-failed</code> can rerun flagged flaky tests</td>
+              <td><span class="tag tag-reject">Rejected</span></td>
+              <td class="muted"><code>.last-run.json</code> is written from <code>!t.ok()</code> (<code>runner/index.js:6179</code>); since <code>ok()</code> is true for flaky, they're structurally excluded.</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>--last-failed-file</code> accepts a hand-written ID list</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>runner/index.js:6012-6014</code> does no validation beyond parsing <code>{status, failedTests}</code> and filtering by ID. This is the mechanism Option C is built on.</td>
+            </tr>
+            <tr>
+              <td class="muted">Test IDs are stable and project-scoped</td>
+              <td><span class="tag tag-partial">Confirmed, with a rot condition</span></td>
+              <td class="muted"><code>common/index.js:2071-2079</code>: <code>sha1(path) + sha1([project=id]path+titles)</code>. Stable across reruns of the same commit; invalidated by file moves, title renames, or project renames.</td>
+            </tr>
+            <tr>
+              <td class="muted">monocart's trend file carries per-test history</td>
+              <td><span class="tag tag-reject">Rejected</span></td>
+              <td class="muted"><code>platform/share.js:156-172</code> copies only date, duration, and scalar summary fields per entry. No per-test data survives into trends.</td>
+            </tr>
+            <tr>
+              <td class="muted">monocart already stores per-test flaky classification today</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>visitor.js:238-366</code>: <code>outcome: testCase.outcome()</code> and <code>caseType: 'flaky'</code> are already in every <code>monocart-report/index.json</code>. Nothing currently reads it.</td>
+            </tr>
+            <tr>
+              <td class="muted">Existing failure-context gating needs no change for flaky tests</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>base-test.ts:124</code> / <code>ApiTest.ts:203</code> gate on <code>testInfo.status</code>, which is per-attempt. A flaky test's failing attempt already gets its attachment; its passing attempt does not.</td>
+            </tr>
+            <tr>
+              <td class="muted">Single-test isolation is a valid discriminator for the API suite</td>
+              <td><span class="tag tag-reject">Rejected</span></td>
+              <td class="muted"><code>api.config.ts:41</code>'s own comment: shared <code>cartId</code>/<code>addressId</code> state across tests in a spec. Running one test alone will fail for reasons unrelated to flakiness.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--red)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>The <code>--last-failed-file</code> path is also a write target: <code>LastRunReporter</code>
+            overwrites it at <code>onEnd</code>. A rerun invoked with a flaky-ID file as that override path will
+            replace the file with its own failures. Any implementation must copy the ledger to a scratch path
+            first.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Đường dẫn <code>--last-failed-file</code> cũng là một đích ghi: <code>LastRunReporter</code> sẽ
+            ghi đè nó ở bước <code>onEnd</code>. Một lần rerun dùng file ID flaky làm đường dẫn override đó sẽ bị
+            thay bằng chính danh sách fail của lần rerun đó. Bất kỳ triển khai nào cũng phải copy ledger sang một
+            đường dẫn tạm trước.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Scope -->
+    <section class="content-section" id="scope" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Scope</h2>
+          <div class="section-desc">Which files change, and only under which option</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>No option touches <code>BasePage</code>, any of the 11 shared helpers, any page object, or any spec
+          file (Option E touches titles only, and only if adopted). Reporters and CI workflows are a
+          Playwright-level concern that sits outside the composition-based POM entirely.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Không phương án nào động đến <code>BasePage</code>, 11 helper dùng chung, page object nào, hay spec
+          file nào (Option E chỉ động đến title, và chỉ khi được chọn). Reporter và workflow CI là vấn đề ở tầng
+          Playwright, nằm hoàn toàn ngoài composition-based POM.</p>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Option A &middot; API flaky parity</div>
+          <ul>
+            <li><code>api.config.ts:69-88</code>: add a Flaky row to the <code>onEnd</code> step-summary table</li>
+            <li><code>.github/workflows/playwright-with-slack.yml</code>: extract steps <code>:571-620</code>, job outputs <code>:401-423</code>, Slack blocks <code>:907-960</code></li>
+            <li><code>.github/workflows/api-restful-tests-with-slack.yml</code>: extract steps <code>:102-205</code>, outputs <code>:34-151</code>, Slack blocks <code>:328-375</code></li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Option B &middot; flaky ledger reporter</div>
+          <ul>
+            <li>New file <code>src/reporters/flaky-ledger-reporter.ts</code></li>
+            <li>Reporter array registration in <code>playwright.config.ts:49-91</code> and <code>api.config.ts:50-91</code></li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Option C &middot; rerun-in-isolation CI job</div>
+          <ul>
+            <li>New job in <code>.github/workflows/playwright-with-slack.yml</code> plus artifact upload/download</li>
+            <li><code>package.json</code>: new <code>test:flaky:rerun</code> / <code>test:api:flaky:rerun</code> scripts</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Deferred / carved out (D, E, F)</div>
+          <ul>
+            <li>Option D: a new history store, plus the pre-existing non-shard-scoped trend cache key at <code>playwright-with-slack.yml:152</code></li>
+            <li>Option E: <code>@flaky</code> tag convention documented in CLAUDE.md, applied manually per test with a tracking ticket</li>
+            <li>Option F: new dependency, reporter registration, secrets, not recommended now</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Options -->
+    <section class="content-section" id="options" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Options</h2>
+          <div class="section-desc">Six approaches, from "surface what's already free" to a third-party service</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option A: surface what already runs for free</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Route the API suite's already-computed flaky count through the same onEnd &rarr; workflow &rarr; Slack path the UI suite already uses. No new dependency, no new code.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Đưa số lượng flaky đã tính sẵn của bộ API suite đi qua cùng đường onEnd &rarr; workflow &rarr; Slack mà UI suite đã dùng. Không thêm dependency, không thêm code.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Corrects a real asymmetry between the two suites' Slack reports</td><td>Gives a count, not a list of which tests</td></tr>
+            <tr><td>Lowest risk: markdown table rows and workflow <code>echo</code>/extract steps only</td><td>Still invisible locally, since local runs have <code>retries: 0</code></td></tr>
+            <tr><td>Merged UI summary already computes <code>summary.flaky</code> correctly, so the API single-job case needs no merge logic</td><td>Doesn't distinguish true flakiness from order-dependency</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option B: flaky ledger reporter</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>A <code>Reporter</code> that walks <code>suite.allTests()</code> at <code>onEnd</code>, selects <code>outcome() === 'flaky'</code>, and emits an ID-precise <code>flaky-ids.json</code> in Playwright's own <code>.last-run.json</code> shape, plus a richer <code>flaky-report.json</code> for humans.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Một <code>Reporter</code> duyệt qua <code>suite.allTests()</code> ở <code>onEnd</code>, chọn ra <code>outcome() === 'flaky'</code>, xuất ra <code>flaky-ids.json</code> chính xác theo ID, đúng định dạng <code>.last-run.json</code> của Playwright, cùng một <code>flaky-report.json</code> đầy đủ hơn cho con người đọc.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Uses the documented public Reporter API, already a dependency: no new package</td><td>New code to own and type under strict mode</td></tr>
+            <tr><td>Emits IDs, not titles, avoiding the 8-project fan-out and regex-escaping problem inherent to <code>--grep</code> on shared <code>TC_01 - ...</code> titles</td><td>Test IDs invalidate on file move, title rename, or project rename</td></tr>
+            <tr><td>Purely additive to the reporter array; html/json/junit/monocart are unaffected</td><td>Must be registered in both configs separately, with distinct output dirs</td></tr>
+            <tr><td>Its per-run artifact makes Option D a pure add-on later, at no extra design cost now</td><td>On its own, changes nothing observable; only useful paired with C or D</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option C: rerun-in-isolation, the discriminator</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Consume the ledger's ID list in a follow-up CI job. This means different things per suite: the UI suite (<code>fullyParallel: true</code>) can rerun a single flagged test alone at <code>--workers=1</code>. The API suite (<code>fullyParallel: false</code>, shared <code>cartId</code>/<code>addressId</code>) cannot; the correct unit there is the whole spec file for that one project.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Dùng danh sách ID từ ledger trong một job CI tiếp theo. Điều này khác nhau giữa hai suite: UI suite (<code>fullyParallel: true</code>) có thể chạy lại riêng một test bị gắn cờ ở <code>--workers=1</code>. API suite (<code>fullyParallel: false</code>, chia sẻ <code>cartId</code>/<code>addressId</code>) thì không thể, đơn vị đúng ở đó là cả spec file cho đúng một project.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>The only technique that separates "flaky test" from "order-dependent test", the distinction that actually determines the fix</td><td>Two different rerun strategies for two suites, more workflow surface</td></tr>
+            <tr><td>Uses only built-in CLI (<code>--last-failed --last-failed-file=</code>), no bespoke filtering</td><td>Adds CI wall-clock; must stay non-blocking</td></tr>
+            <tr><td>Directly relevant to known repo hazards: Firefox Juggler teardown workarounds, ecommerce cold starts</td><td>The input file gets overwritten by the rerun unless copied first</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option D: cross-run rolling flaky rate &middot; deferred</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>The only approach that catches low-frequency flakes that a single run misses entirely</td><td>Cannot reuse the monocart trend mechanism: trends are summary-only, verified</td></tr>
+            <tr><td>Compatible with Option B's per-run artifact as a pure aggregation step</td><td>The existing UI trend cache key is already not shard-scoped, so it would inherit a live bug</td></tr>
+            <tr><td class="muted">None</td><td>Test-ID rot means history needs to key on file+title+project, not the hash</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option E: quarantine convention &middot; manual tag only</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variant</th><th>Assessment</th></tr></thead>
+          <tbody>
+            <tr><td><code>@flaky</code> tag + <code>grepInvert</code>, non-blocking job runs only tagged tests</td><td><span class="tag tag-adopt">Preferred</span>, matches the existing tag convention, fully reversible, greppable</td></tr>
+            <tr><td>Quarantine list file (<code>src/data/quarantine.ts</code>)</td><td><span class="tag tag-neutral">Redundant</span> with tags; ID/title entries rot the same way</td></tr>
+            <tr><td><code>test.fixme(!!process.env.CI, 'ticket')</code></td><td><span class="tag tag-partial">Loses signal</span>: stops the test running at all, so you never learn it's fixed</td></tr>
+            <tr><td>Automatic tagging/skipping by tooling</td><td><span class="tag tag-reject">Not recommended</span>: silently erodes coverage without review</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option F: third-party service &middot; not recommended now</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Turnkey cross-run flake rates, quarantine UX, dashboards</td><td>Duplicates the monocart + Cloudflare Pages + Slack stack already built here</td></tr>
+            <tr><td>Some options (Currents, TestDino) are Playwright-native</td><td>New secrets, and a new data-egress path for redacted staging/API content that today only reaches internal Slack and Cloudflare Pages</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 05 Recommendation -->
+    <section class="content-section" id="recommendation" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Recommended approach</h2>
+          <div class="section-desc">A + B + C, in that order, each independently reviewable</div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Adopt A, then B, then C as three separate, reviewable increments. Defer D until B's artifact
+            exists to aggregate. Adopt E only as a manually-applied tag with a tracking ticket, never automatic.
+            Do not adopt F now.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Áp dụng A, rồi B, rồi C thành ba bước riêng biệt, mỗi bước đều xét duyệt độc lập. Hoãn D lại cho
+            đến khi có artifact của B để gom dữ liệu. Chỉ áp dụng E dưới dạng tag gắn thủ công kèm ticket theo
+            dõi, không bao giờ tự động. Chưa áp dụng F ở thời điểm này.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">1. A is a genuine, cheap fix, worth landing on its own</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>It closes a real asymmetry with echo/markdown-table edits only, and it establishes the baseline number that tells you whether B and C are worth building at all. If the API flaky count stays at zero, C has no work to do.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nó vá một sự bất đối xứng có thật chỉ bằng sửa echo/bảng markdown, đồng thời cho ra con số nền để biết B và C có đáng xây hay không. Nếu số flaky của API luôn bằng không, C không có gì để làm cả.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">2. B converts a number into an actionable list, safely</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Its output format is chosen so Playwright's own <code>--last-failed-file</code> reader consumes it with no bespoke filtering. It changes no test behaviour, so it's safe to land and observe before building anything on top of it.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Định dạng output của nó được chọn sao cho chính bộ đọc <code>--last-failed-file</code> của Playwright dùng được luôn, không cần lọc thêm gì. Nó không thay đổi hành vi test nào, nên an toàn để triển khai và quan sát trước khi xây thêm lên trên.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">3. C answers the question that actually determines the fix</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The repo has both failure modes on record: UI's Firefox Juggler teardown workarounds, and the API's explicit shared-state warning. Because failure diagnostics are already captured for flaky attempts, C plus the existing attachments is a complete triage loop with no new capture machinery.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Repo này đã ghi nhận cả hai kiểu lỗi: workaround teardown Firefox Juggler ở phía UI, và cảnh báo shared-state rõ ràng ở phía API. Vì thông tin chẩn đoán fail đã được bắt sẵn cho các lần chạy flaky, C cộng với các attachment đã có sẵn tạo thành một vòng triage hoàn chỉnh, không cần cơ chế bắt dữ liệu mới nào.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">4. D is deferred, not rejected</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The obvious substrate, monocart trends, provably cannot carry per-test history, and the existing cache-key pattern already has a live bug. B's per-run artifact makes D a pure add-on later, with no rework cost from waiting.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Nền tảng hiển nhiên, monocart trend, đã được chứng minh không thể mang lịch sử theo từng test, và pattern cache key hiện tại đã có bug thật. Artifact theo từng lần chạy của B khiến D chỉ là bước bổ sung sau này, chờ đợi không tốn công làm lại.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Do not bundle <code>--fail-on-flaky-tests</code>, retry-count changes, auto-quarantine, or a
+            third-party service into this work. Each is called out separately in the risk table below because
+            each reverses or interacts with a decision this repo has already made deliberately.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Không gộp <code>--fail-on-flaky-tests</code>, thay đổi số lần retry, auto-quarantine, hay dịch vụ
+            bên thứ ba vào lần thay đổi này. Mỗi thứ được tách riêng trong bảng rủi ro bên dưới vì mỗi thứ đều
+            đảo ngược hoặc tương tác với một quyết định mà repo này đã chủ đích đưa ra từ trước.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 Risks -->
+    <section class="content-section" id="risks" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Risk assessment</h2>
+          <div class="section-desc">What could break, and how each option is mitigated or rolled back</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Severity</th><th>Applies to</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Single-test isolation is an inverse signal for the API suite: shared <code>cartId</code>/<code>addressId</code> means an isolated test fails for reasons unrelated to flakiness</td>
+              <td><span class="tag tag-high">High</span></td>
+              <td class="muted">Option C</td>
+              <td class="muted">Never rerun API tests individually; rerun at spec-file granularity, scoped to the one failing project</td>
+            </tr>
+            <tr>
+              <td>False-positive flaky reading from serial-mode cascade skips in <code>misc-api</code> specs</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">A, B, C, D</td>
+              <td class="muted">Record whether any attempt was skipped in the ledger; flag those as suspect-cascade rather than flaky</td>
+            </tr>
+            <tr>
+              <td><code>--last-failed-file</code> gets overwritten by the rerun it drives</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Option C</td>
+              <td class="muted">Copy the ledger to a scratch path before invoking, or write the override elsewhere</td>
+            </tr>
+            <tr>
+              <td>More retries/reruns inflate monocart <code>index.json</code>, making the 25 MiB Cloudflare Pages strip step more likely to fire and silently delete artifacts</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Option C, and any retry increase</td>
+              <td class="muted">Keep the rerun job's report as a plain artifact, never merged into the deployed report; do not raise retry counts as part of this work</td>
+            </tr>
+            <tr>
+              <td>Non-shard-scoped trend cache key means only the first shard's save wins today</td>
+              <td><span class="tag tag-low">Low today</span></td>
+              <td class="muted">Option D</td>
+              <td class="muted">Fix as its own change: include shard index in the key, or persist trend only from the merged report job</td>
+            </tr>
+            <tr>
+              <td>Reporter throws and interrupts the run</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Option B</td>
+              <td class="muted">Wrap all ledger I/O in try/catch that logs and swallows, matching the existing precedent in <code>base-test.ts</code> and <code>ApiTest.ts</code></td>
+            </tr>
+            <tr>
+              <td>Flaky signal is structurally undetectable locally, since local runs use <code>retries: 0</code></td>
+              <td><span class="tag tag-low">Low</span></td>
+              <td class="muted">All options</td>
+              <td class="muted">Accept as the correct local default; document that flaky signal is CI-only</td>
+            </tr>
+            <tr>
+              <td><code>--fail-on-flaky-tests</code> would be partly inert on the API path, since <code>continue-on-error: true</code> already swallows non-zero exits there</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Carved out, not adopted</td>
+              <td class="muted">Out of scope for this work; documented so it isn't proposed as a quick win later without this caveat</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 07 Implementation steps -->
+    <section class="content-section" id="steps" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Implementation steps</h2>
+          <div class="section-desc">Ordered, per increment, for a future implementation agent</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Increment A &middot; API flaky parity</div>
+      <ol class="ordered">
+        <li>Add a &#128257; Flaky row to the <code>onEnd</code> step-summary table in <code>api.config.ts</code>, mirroring the UI config's existing row</li>
+        <li>Add a flaky-count line to the API and Misc extract steps in <code>playwright-with-slack.yml</code>, mirroring the existing pattern used for passed/failed/skipped</li>
+        <li>Add <code>api_flaky</code> / <code>misc_flaky</code> job outputs, then a &#128257; Flaky field to the GRA and Misc Slack blocks</li>
+        <li>Repeat the extract/output/Slack-field additions in <code>api-restful-tests-with-slack.yml</code></li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Increment B &middot; flaky ledger reporter</div>
+      <ol class="ordered">
+        <li>Create <code>src/reporters/flaky-ledger-reporter.ts</code> implementing the <code>Reporter</code> interface, with named exported interfaces for the ledger's output shapes</li>
+        <li>In <code>onEnd</code>, select tests with <code>outcome() === 'flaky'</code> and record test ID, title, file/line, project, attempt count and statuses, and the first error message</li>
+        <li>Write <code>flaky-ids.json</code> in the exact <code>{status, failedTests}</code> shape <code>--last-failed-file</code> expects, plus a richer <code>flaky-report.json</code> for humans; mark any entry with a skipped attempt as suspect-cascade</li>
+        <li>Wrap all file I/O in try/catch that logs and never rethrows</li>
+        <li>Register the reporter in both <code>playwright.config.ts</code> and <code>api.config.ts</code> with distinct output directories so the two suites don't collide</li>
+        <li>Confirm <code>npm run lint</code> passes and a full run produces byte-identical <code>results.json</code>/HTML report content versus a baseline run</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Increment C &middot; rerun-in-isolation, non-blocking</div>
+      <ol class="ordered">
+        <li>Add a UI rerun script: single project, <code>--workers=1</code>, <code>--last-failed --last-failed-file=</code> pointed at a copy of the ledger</li>
+        <li>Add an API rerun script that groups ledger entries by project and spec file, and reruns each group as a whole file against its own project, never a single test in isolation</li>
+        <li>Add a non-blocking CI job, <code>continue-on-error: true</code>, with a hard timeout, gated to skip entirely when the ledger is empty</li>
+        <li>Copy the ledger to a scratch path before invoking the rerun, since the file is a write target too</li>
+        <li>Classify each rerun outcome as confirmed-flaky (failed again) or isolation-passed (suspected order-dependency), and surface the counts in the CI step summary</li>
+        <li>Leave the report artifacts from this job separate from the deployed Cloudflare Pages report</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Later, manual &middot; quarantine convention</div>
+      <ol class="ordered">
+        <li>Document the <code>@flaky</code> tag in CLAUDE.md's tag list</li>
+        <li>Apply it manually to a test only after Increment C has confirmed it more than once, referencing a tracking ticket</li>
+        <li>Add a non-blocking <code>@flaky</code>-only job so quarantined tests keep reporting instead of disappearing from the suite</li>
+      </ol>
+    </section>
+
+    <!-- 08 Validation -->
+    <section class="content-section" id="validation" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Validation</h2>
+          <div class="section-desc">How to prove each mechanism actually behaves as read from source</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to verify</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td>V1</td><td>Flaky classification behaves as read from source</td><td class="muted">A throwaway spec that fails on the first attempt and passes on retry; confirm the JSON reporter shows test-level <code>flaky</code>/<code>ok: true</code> alongside per-attempt <code>failed</code> then <code>passed</code></td></tr>
+            <tr><td>V2</td><td>Existing diagnostics survive flakiness without regression</td><td class="muted">Same run: confirm the failure-context attachment appears on the failing attempt only, on both a UI and an API spec</td></tr>
+            <tr><td>V3</td><td>The cascade-skip false positive reproduces</td><td class="muted">A serial pair where test 1 fails and test 2 cascade-skips; check whether test 1 reads as flaky, to confirm the suspect-cascade flag is needed</td></tr>
+            <tr><td>V4</td><td><code>--last-failed-file</code> accepts a hand-written ID list, the load-bearing assumption behind Option C</td><td class="muted">Hand-write a one-ID file and confirm <code>--last-failed --last-failed-file=... --list</code> selects exactly that test</td></tr>
+            <tr><td>V5</td><td>ID precision prevents an 8-project fan-out</td><td class="muted">Repeat V4 with a GRA test ID against <code>api.config.ts</code> and confirm only one project's instance runs</td></tr>
+            <tr><td>V6</td><td>The overwrite hazard is real</td><td class="muted">Run V4 to completion and confirm the input file gets rewritten by the run's own results</td></tr>
+            <tr><td>V7</td><td>The ledger reporter is non-intrusive</td><td class="muted">Diff <code>results.json</code> and the HTML report with and without the reporter registered; must match modulo timestamps/durations</td></tr>
+            <tr><td>V8</td><td>The isolation rerun actually discriminates, both directions</td><td class="muted">A deliberately order-dependent UI test that flakes under parallel execution should pass in isolation; a GRA test depending on a prior test's <code>cartId</code> should fail in isolation but pass at spec-file scope</td></tr>
+            <tr><td>V9</td><td>Artifact size doesn't regress the Cloudflare deploy</td><td class="muted">Compare deploy directory size before/after and confirm the 25 MiB strip steps don't start deleting anything new</td></tr>
+            <tr><td>V10</td><td>Slack payload renders correctly</td><td class="muted">Trigger the workflow manually on a branch and confirm the new Flaky fields render with no Block Kit validation error</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 09 Open questions -->
+    <section class="content-section" id="open-questions" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>Open questions</h2>
+          <div class="section-desc">Decisions that belong to the user, not to an implementation agent</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <ul style="padding-left: 18px; color: var(--muted); font-size: 13.5px;">
+            <li style="margin-bottom: 10px;">Is the goal visibility-only (dashboard + Slack), or eventual gating? This determines whether Increment C is worth building at all.</li>
+            <li style="margin-bottom: 10px;">Is auto-quarantine ever acceptable, or must every <code>@flaky</code> tag be human-applied with a ticket?</li>
+            <li style="margin-bottom: 10px;">Should the API suite's hardcoded retry count, which currently ignores its own environment config, be reconciled with the UI suite as part of this work, or tracked separately?</li>
+            <li style="margin-bottom: 10px;">Is cross-run flaky rate (Option D) wanted soon enough to prioritise fixing the non-shard-scoped trend cache key now, ahead of when it's actually needed?</li>
+            <li>Any appetite for a third-party service, or is the existing monocart + Cloudflare Pages + Slack stack the committed direction?</li>
+          </ul>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <ul style="padding-left: 18px; color: var(--muted); font-size: 13.5px;">
+            <li style="margin-bottom: 10px;">Mục tiêu chỉ là tăng khả năng quan sát (dashboard + Slack), hay sẽ gate pipeline sau này? Điều này quyết định Increment C có đáng xây hay không.</li>
+            <li style="margin-bottom: 10px;">Auto-quarantine có bao giờ chấp nhận được không, hay mọi tag <code>@flaky</code> đều phải do người gắn kèm ticket?</li>
+            <li style="margin-bottom: 10px;">Số lần retry hardcode của API suite, hiện đang bỏ qua chính config môi trường của nó, có nên đồng bộ với UI suite trong lần này, hay tách riêng theo dõi sau?</li>
+            <li style="margin-bottom: 10px;">Flaky rate theo lịch sử nhiều lần chạy (Option D) có cần sớm đến mức nên ưu tiên sửa cache key trend chưa scope theo shard ngay từ bây giờ không?</li>
+            <li>Có cân nhắc dịch vụ bên thứ ba nào không, hay stack monocart + Cloudflare Pages + Slack hiện tại là hướng đã chốt?</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="approval-banner">
+  <span class="icon">&#9888;</span>
+  <p><strong>Awaiting user approval.</strong> This report is research only; no files were modified. Per CLAUDE.md's technical-research &rarr; approval-gate &rarr; implementation workflow, any implementation must be explicitly approved and routed through <code>qa-orchestrator</code>, even for Increment A.</p>
+</div>
+
+<div class="footer">
+  <p>Playwright TypeScript Automation Framework &middot; Technical Research Report &middot; generated 2026-07-26</p>
+</div>
+
+</body>
+</html>

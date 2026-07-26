@@ -121,9 +121,9 @@ export class EcommerceHelpSupportPage extends BasePage {
   }
 
   /**
-   * Returns true if either the header Help trigger or a direct Help link is visible.
-   * Call after `navigate()`. Returns false when neither is configured (or detectable)
-   * on this staging storefront — the spec should call `test.skip` in this case.
+   * Call after `navigate()`. Returns false when neither the trigger nor a direct link
+   * is configured (or detectable) on this staging storefront — the spec should call
+   * `test.skip` in this case.
    */
   async isHelpSupportLinkPresent(): Promise<boolean> {
     const [triggerVisible, directVisible] = await Promise.all([
@@ -151,11 +151,6 @@ export class EcommerceHelpSupportPage extends BasePage {
     await this.waits.waitForPageLoadState('domcontentloaded').catch(() => {});
   }
 
-  /**
-   * Returns true if the current URL matches the confirmed help/support destination
-   * pattern (see `HELP_DESTINATION_URL_PATTERN`). Exposed so the spec can soft-assert
-   * it without inlining the pattern in the spec file.
-   */
   isOnHelpDestination(): boolean {
     return EcommerceHelpSupportPage.HELP_DESTINATION_URL_PATTERN.test(this.page.url());
   }

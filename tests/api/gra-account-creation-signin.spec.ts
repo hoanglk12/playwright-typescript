@@ -1,10 +1,3 @@
-/**
- * PLA (Platypus Shoes) GraphQL API Tests
- * Tests for Account Management: Create Account, Sign In, Get Customer Details
- *
- * API Endpoint: Configured via environment (graphqlApiBaseUrl)
- */
-
 import { graTest as test, expect, softExpect } from './gra-test';
 import { graErrorMessages } from '../../src/data/api/gra-test-data';
 import { AuthType } from '../../src/api/ApiClient';

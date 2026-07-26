@@ -1,16 +1,3 @@
-/**
- * PLA (Platypus Shoes) GraphQL API Tests
- * Cart & MiniCart — all operations in one serial suite:
- *   createEmptyCart, cart queries (CartTrigger, MiniCart, CartDetails, checkUserIsAuthed)
- *   addProductsToCart, removeItemFromCart, updateCartItems, applyCouponToCart
- *
- * DEPENDENCY: Runs after pla-account-creation-signin.spec.ts which stores
- * customerToken in shared-state.ts.  Falls back to self-authentication
- * (create account + sign in) when run as a standalone file.
- *
- * API Endpoint: Configured via environment (graphqlApiBaseUrl)
- */
-
 import { graTest as test, expect, softExpect } from './gra-test';
 import {
   graErrorMessages,
@@ -82,11 +69,9 @@ const APPLY_COUPON_MUTATION = `
 
 const GET_ITEM_COUNT_QUERY = `query getItemCount($cartId:String!){cart(cart_id:$cartId){id ...CartTriggerFragment __typename}}fragment CartTriggerFragment on Cart{id total_quantity shipping_addresses{street selected_shipping_method{method_code __typename}__typename}__typename}`;
 
-// Fragments shared between MINI_CART_QUERY and GET_CART_DETAILS_QUERY — previously
-// duplicated byte-for-byte in both query strings below. Extracted once and composed via
-// template-literal interpolation; GET_CART_DETAILS_QUERY has its own additional fragments
-// (CartPageFragment, ShippingAddressFragment, PriceMainFragment, etc.) that are NOT
-// duplicated elsewhere and remain inline.
+// Fragments shared between MINI_CART_QUERY and GET_CART_DETAILS_QUERY. GET_CART_DETAILS_QUERY
+// has its own additional fragments (CartPageFragment, ShippingAddressFragment, PriceMainFragment,
+// etc.) that are NOT duplicated elsewhere and remain inline.
 const PRODUCT_LIST_FRAGMENT = `fragment ProductListFragment on Cart{id items{id prices{row_total_including_tax{value __typename}row_total{value __typename}__typename}custom_options{option_name option_value __typename}product{id name url_key url_suffix sku apparel21_brand_id{id attributes{attribute_value attribute_code __typename}__typename}gender{option_label __typename}thumbnail{url __typename}price{regularPrice{amount{currency value __typename}__typename}minimalPrice{amount{value currency __typename}__typename}__typename}price_range{maximum_price{regular_price{value currency __typename}__typename}minimum_price{final_price{value currency __typename}__typename}__typename}rating_summary attribute_set_label feature{option_label __typename}stock_status color_name __typename}quantity ...on ConfigurableCartItem{configurable_options{id option_label value_id value_label __typename}selected_simple{id sku stock_status color_name apparel21_gender_id{option_label __typename}thumbnail{url __typename}special_price price{regularPrice{amount{currency value __typename}__typename}minimalPrice{amount{value currency __typename}__typename}__typename}price_range{maximum_price{regular_price{value currency __typename}__typename}minimum_price{final_price{value currency __typename}__typename}__typename}__typename}__typename}__typename}__typename}`;
 
 const MULTIPLE_REWARDS_MESSAGE_FRAGMENT = `fragment MultipleRewardsMessageFragment on Cart{id multiple_rewards_message __typename}`;
@@ -152,7 +137,7 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 1 — Cart creation & read queries (existing coverage)
+  // SECTION 1 — Cart creation & read queries
   // ═══════════════════════════════════════════════════════════════════════════
 
   test('GRA_CreateCartAfterSignIn - should create new cartId with valid token', async ({
@@ -427,7 +412,7 @@ test.describe('GRA GraphQL API - Cart & MiniCart @api @graphql', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION 2 — Cart mutation operations (new coverage)
+  // SECTION 2 — Cart mutation operations
   // ═══════════════════════════════════════════════════════════════════════════
 
   // ── addProductsToCart ──────────────────────────────────────────────────────

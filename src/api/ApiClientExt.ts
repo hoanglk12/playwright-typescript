@@ -4,16 +4,7 @@ import { ApiResponseWrapper } from './ApiResponse';
 import { redactSensitiveData } from '../utils/redact';
 import { bufferVerboseLog } from '../utils/verbose-log-buffer';
 
-/**
- * Extended API client with response wrapper utilities
- */
 export class ApiClientExt extends ApiClient {
-  /**
-   * Send a GET request and return wrapped response
-   * @param url - URL path to request
-   * @param queryParams - Query parameters to include
-   * @returns API response wrapper
-   */
   async getWithWrapper(url: string, queryParams?: Record<string, any>): Promise<ApiResponseWrapper> {
     const response = await this.get(url, queryParams);
     const wrapper = new ApiResponseWrapper(response);
@@ -21,13 +12,6 @@ export class ApiClientExt extends ApiClient {
     return wrapper;
   }
 
-  /**
-   * Send a POST request and return wrapped response
-   * @param url - URL path to request
-   * @param data - Request body data
-   * @param headers - Additional headers
-   * @returns API response wrapper
-   */
   async postWithWrapper(url: string, data?: unknown, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
     const response = await this.post(url, data, headers);
     const wrapper = new ApiResponseWrapper(response);
@@ -35,13 +19,6 @@ export class ApiClientExt extends ApiClient {
     return wrapper;
   }
 
-  /**
-   * Send a PUT request and return wrapped response
-   * @param url - URL path to request
-   * @param data - Request body data
-   * @param headers - Additional headers
-   * @returns API response wrapper
-   */
   async putWithWrapper(url: string, data?: unknown, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
     const response = await this.put(url, data, headers);
     const wrapper = new ApiResponseWrapper(response);
@@ -49,13 +26,6 @@ export class ApiClientExt extends ApiClient {
     return wrapper;
   }
 
-  /**
-   * Send a PATCH request and return wrapped response
-   * @param url - URL path to request
-   * @param data - Request body data
-   * @param headers - Additional headers
-   * @returns API response wrapper
-   */
   async patchWithWrapper(url: string, data?: unknown, headers?: Record<string, string>): Promise<ApiResponseWrapper> {
     const response = await this.patch(url, data, headers);
     const wrapper = new ApiResponseWrapper(response);
@@ -63,12 +33,6 @@ export class ApiClientExt extends ApiClient {
     return wrapper;
   }
 
-  /**
-   * Send a DELETE request and return wrapped response
-   * @param url - URL path to request
-   * @param data - Request body data
-   * @returns API response wrapper
-   */
   async deleteWithWrapper(url: string, data?: unknown): Promise<ApiResponseWrapper> {
     const response = await this.delete(url, data);
     const wrapper = new ApiResponseWrapper(response);

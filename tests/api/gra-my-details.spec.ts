@@ -48,7 +48,6 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     const client = await createGraphQLClient();
     customerToken = await signInAndStoreToken(client, logger, site, siteState);
 
-    // Fetch customer ID from API if not available from shared-state
     customerId = siteState.getCustomerId();
     if (!customerId) {
       const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });

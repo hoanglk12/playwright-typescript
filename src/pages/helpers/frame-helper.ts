@@ -2,14 +2,12 @@ import { FrameLocator } from "@playwright/test";
 import { PageRef } from "./page-ref";
 
 /**
- * Modern iframe helpers using Playwright's frameLocator API.
- * The legacy switchToFrame / contentFrame pattern has been removed —
+ * iframe helpers. The legacy switchToFrame / contentFrame pattern was deliberately removed —
  * frameLocator composes cleanly with locators and handles retries automatically.
  */
 export class FrameHelper {
   constructor(private readonly pageRef: PageRef) {}
 
-  /** Returns a FrameLocator for chaining further locator calls. */
   locator(frameSelector: string): FrameLocator {
     return this.pageRef.current.frameLocator(frameSelector);
   }

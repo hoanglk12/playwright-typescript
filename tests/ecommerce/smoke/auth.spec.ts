@@ -266,7 +266,7 @@ test.describe('Ecommerce Auth - Brand Title @ecommerce @smoke @auth', () => {
         // Derive the brand token from site.name by stripping the market suffix (" AU" / " NZ").
         // Use only the last word of the brand token so that multi-word brands like
         // "Dr. Martens" also match panel headings that show only the last word
-        // (e.g. "LOGIN TO MARTENS"). Single-word brands are unaffected.
+        // (e.g. "LOGIN TO MARTENS").
         // toContainText with a timeout retries until the lazily-loaded CMS block
         // injects the branded heading — avoids the race where a single innerText()
         // snapshot reads "Email Address" before "LOGIN TO {BRAND}" renders.

@@ -17,19 +17,7 @@ import {
 /**
  * Base class for all page objects.
  *
- * Compose specialised helpers rather than adding methods here directly:
- *   this.waits.*    — page/element/network synchronisation
- *   this.elements.* — interactions, queries, scroll, keyboard
- *   this.style.*    — computed colour, dimension, CSS reads
- *   this.frames.*   — iframe operations (frameLocator API)
- *   this.files.*    — file upload / drag-and-drop
- *   this.storage.*  — cookies, localStorage, sessionStorage, clipboard
- *   this.network.*  — route mocking, request monitoring, performance
- *   this.tables.*   — HTML table interactions
- *   this.tabs.*     — window/tab switching, dialog accept/dismiss
- *   this.dom.*      — non-throwing DOM inspection queries
- *   this.overlays.* — cookie banner / popup / modal dismissal
- *
+ * Compose specialised helpers rather than adding methods here directly.
  * The delegated methods below keep the existing page-object call-sites working.
  */
 export abstract class BasePage {
@@ -151,7 +139,6 @@ export abstract class BasePage {
   }
 
   // ── Backward-compatible delegations ─────────────────────────────────────────
-  // These preserve the call-sites in existing page objects.
   // Prefer calling this.waits.* / this.elements.* / this.style.* directly in new code.
 
   // waits

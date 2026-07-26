@@ -1,8 +1,3 @@
-/**
- * PLA (Gratypus Shoes) GraphQL API — Search Test Data
- * Used by pla-search.spec.ts
- */
-
 export interface SearchTermsShape {
   valid: string;
   noResults: string;

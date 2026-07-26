@@ -1,6 +1,5 @@
 import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
 
-// Disable parallel execution for all tests
 test.describe.configure({ mode: 'serial' });
 
 // Booking Endpoints

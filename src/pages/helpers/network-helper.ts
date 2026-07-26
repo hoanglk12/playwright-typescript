@@ -6,14 +6,7 @@ export class NetworkHelper {
   constructor(private readonly pageRef: PageRef) {}
 
   /**
-   * Start collecting matching request URLs. Returns the live array and a stop function.
-   * Call stop() when done to remove the listener.
-   *
-   * @example
-   * const { requests, stop } = this.network.monitorNetworkRequests('/api/');
-   * await doSomething();
-   * stop();
-   * expect(requests).toContain(...);
+   * The returned array is live — it keeps filling until stop() removes the listener.
    */
   monitorNetworkRequests(urlPattern?: string | RegExp): { requests: string[]; stop: () => void } {
     const requests: string[] = [];

@@ -1,13 +1,10 @@
 /**
- * PLA (Platypus Shoes) GraphQL API Tests
- * Loyalty & Rewards — applyRewardPointsToCart (PlatyPoints) + applyQantasPointsToCart (QFF)
- *
  * Exploration notes (confirmed 2026-06-02 against staging):
  *
  * applyRewardPointsToCart(cartId: ID!)
  *   Succeeds with no errors. Returns applied_multiple_rewards: null when the account has
  *   no PlatyPoints balance. No error is thrown for a zero-balance account.
- *   Auth guard: graphql-authorization error for unauthenticated calls. ✅ testable
+ *   Auth guard: graphql-authorization error for unauthenticated calls. Testable.
  *
  * applyQantasPointsToCart(input: ApplyQantasPointsInput!)
  *   Required input fields: cart_id (String!), quote_ref (String!), points_burned (Int!),
@@ -16,7 +13,7 @@
  *   response regardless of input validity, but the side effect succeeds — the cart's
  *   applied_qantas_points is populated. Verify via a separate cart query (TC_04).
  *   Auth guard: NONE on staging — unauthenticated calls also receive ISE (not an auth error).
- *   Invalid cart_id: "Could not find a cart" error. ✅ testable
+ *   Invalid cart_id: "Could not find a cart" error. Testable.
  *   QFF credentials (memberNumber, lastName, PIN) are Qantas-API inputs for obtaining
  *   a real quote_ref — that external step is outside Magento GraphQL scope.
  *
@@ -155,7 +152,6 @@ test.describe('GRA GraphQL API - Loyalty & Rewards @api @graphql', () => {
     if (!cartId || !customerToken) return;
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     try {
-      // Remove QFF and PlatyPoints discounts
       await authClient.mutateWrapped(REMOVE_QANTAS_POINTS_MUTATION, { input: { cart_id: cartId } });
       await authClient.mutateWrapped(REMOVE_REWARD_POINTS_MUTATION, { cartId });
     } catch {

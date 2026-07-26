@@ -29,7 +29,7 @@ export const TIMEOUTS = {
   // 8 sequential staging calls can exceed the 30s default hook timeout on slow brands)
   API_SUITE_SETUP: 90000,
 
-  //Timeout
+  // General timeouts
   TIMEOUT_SHORT: 7000,
   TIMEOUT_MEDIUM: 10000,
   TIMEOUT_LONG: 30000,

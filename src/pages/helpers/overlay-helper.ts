@@ -36,10 +36,6 @@ export class OverlayHelper {
     private readonly elements: ElementHelper,
   ) {}
 
-  /**
-   * Tries to dismiss a cookie consent banner.
-   * Returns true if a banner was found and dismissed, false if none visible.
-   */
   async dismissCookieBanner(): Promise<boolean> {
     for (const selector of DEFAULT_COOKIE_SELECTORS) {
       try {
@@ -54,11 +50,6 @@ export class OverlayHelper {
     return false;
   }
 
-  /**
-   * Tries to close a generic popup/modal.
-   * @param closeSelectors Optional override list. Defaults to built-in list.
-   * Returns true if dismissed.
-   */
   async dismissPopup(closeSelectors?: string[]): Promise<boolean> {
     const selectors = closeSelectors ?? DEFAULT_CLOSE_SELECTORS;
     for (const selector of selectors) {
@@ -74,9 +65,7 @@ export class OverlayHelper {
     return false;
   }
 
-  /**
-   * Waits up to `timeout` ms for ALL provided overlay selectors to disappear.
-   */
+  /** Waits for ALL provided selectors to disappear, not just the first. */
   async waitForOverlayGone(overlaySelectors: string[], timeout?: number): Promise<void> {
     const t = timeout ?? TIMEOUTS.ELEMENT_VISIBLE;
     for (const selector of overlaySelectors) {
@@ -88,7 +77,6 @@ export class OverlayHelper {
     }
   }
 
-  /** Checks if any overlay from the provided list is currently visible. */
   async isAnyOverlayVisible(overlaySelectors: string[]): Promise<boolean> {
     for (const selector of overlaySelectors) {
       try {
@@ -102,7 +90,6 @@ export class OverlayHelper {
     return false;
   }
 
-  /** Tries cookie banner first, then popup. Returns true if anything was dismissed. */
   async dismissAll(): Promise<boolean> {
     const cookieDismissed = await this.dismissCookieBanner();
     const popupDismissed = await this.dismissPopup();

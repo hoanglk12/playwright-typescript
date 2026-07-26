@@ -11,9 +11,6 @@ import { TestLogger } from '../utils/test-logger';
 import { consumeVerboseLogBuffer } from '../utils/verbose-log-buffer';
 import { redactSensitiveText } from '../utils/redact';
 
-/**
- * API Test fixture interface
- */
 export interface ApiTestFixtures {
   apiBaseUrl: string;
   restfulApiBaseURL: string;
@@ -34,11 +31,7 @@ export interface ApiTestFixtures {
   attachVerboseLogFailureContext: void;
 }
 
-/**
- * Base API test configuration with fixtures for API testing
- */
 export const apiTest = base.extend<ApiTestFixtures>({
-    // Define the base URL for API requests, defaults to environment variable or fallback
     apiBaseUrl: async ({}, use) => {
         const apiEnv = getApiEnvironment();
         await use(apiEnv.apiBaseUrl);
@@ -52,14 +45,11 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await use(apiEnv.dummyjsonBaseUrl);
     },
 
-    // GraphQL endpoint URL
     graphqlURL: async ({}, use) => {
         const apiEnv = getApiEnvironment();
-        // Combine graphqlBaseUrl + graphqlEndpoint
         await use(apiEnv.graphqlBaseUrl + apiEnv.graphqlEndpoint);
     },
 
-    // Provide a basic API client
     apiClient: async ({ apiBaseUrl }, use) => {
         const client = new ApiClient({ baseURL: apiBaseUrl });
         await client.init();
@@ -67,7 +57,6 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await client.dispose();
     },
 
-    // Provide an extended API client with response wrapper
     apiClientExt: async ({ apiBaseUrl }, use) => {
         const client = new ApiClientExt({ baseURL: apiBaseUrl });
         await client.init();
@@ -86,7 +75,6 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await client.dispose();
     },
 
-    // Provide a Restful Booker service
     bookingService: async ({ apiBaseUrl }, use) => {
         const apiEnv = getApiEnvironment();
         const service = new RestfulBookerService({ 
@@ -98,7 +86,6 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await service.dispose();
     },
 
-    // Provide a DummyJSON service
     dummyjsonService: async ({ dummyjsonBaseUrl }, use) => {
         const apiEnv = getApiEnvironment();
         const service = new DummyJsonService({
@@ -110,7 +97,6 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await service.dispose();
     },
 
-    // Provide a GraphQL client
     graphqlClient: async ({ graphqlURL }, use) => {
         const apiEnv = getApiEnvironment();
         const client = new GraphQLClient({ 
@@ -122,7 +108,6 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await client.dispose();
     },
 
-    // Helper to create API clients with custom options
     createClient: async ({ apiBaseUrl }, use) => {
         const clients: ApiClient[] = [];
         const createClientFn = async (options: Partial<ApiClientOptions>): Promise<ApiClient> => {
@@ -137,7 +122,6 @@ export const apiTest = base.extend<ApiTestFixtures>({
         }
     },
 
-    // Helper to create extended API clients with custom options
     createClientExt: async ({ apiBaseUrl }, use) => {
         const clients: ApiClientExt[] = [];
         const createClientFn = async (options: Partial<ApiClientOptions>): Promise<ApiClientExt> => {
@@ -208,7 +192,6 @@ export const apiTest = base.extend<ApiTestFixtures>({
         await testInfo.attach('api-verbose-failure-context.json', { body, contentType: 'application/json' });
     }, { auto: true }],
 
-    // Helper to create GraphQL clients with custom options
     createGraphQLClient: async ({ graphqlURL }, use) => {
         const clients: GraphQLClient[] = [];
         const createClientFn = async (options: Partial<GraphQLClientOptions> = {}): Promise<GraphQLClient> => {
@@ -229,6 +212,5 @@ export const apiTest = base.extend<ApiTestFixtures>({
     },
 });
 
-// Export the API test and expect functions
 export { expect } from '@playwright/test';
 export const softExpect: typeof expect.soft = expect.soft.bind(expect);

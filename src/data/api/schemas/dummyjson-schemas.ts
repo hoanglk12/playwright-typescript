@@ -15,12 +15,10 @@ import {
 
 /**
  * Zod schemas mirroring src/api/services/dummyjson/models.ts.
- * Ground rules (per Zod pilot plan):
  * - Always z.looseObject — unknown keys are additive API evolution, not a test failure.
  * - Never z.coerce.* — coercion would mask the exact type drift schemas exist to catch.
- * - .optional() mirrors the source interface exactly.
- * - Each schema carries a z.ZodType<Interface> annotation to bind schema to the
- *   hand-written interface without relying on z.infer (interfaces stay authoritative).
+ * - Each schema carries a z.ZodType<Interface> annotation rather than deriving types via
+ *   z.infer, so the hand-written interfaces stay authoritative.
  */
 
 export const ProductSchema: z.ZodType<Product> = z.looseObject({
@@ -42,10 +40,8 @@ export const ProductsListSchema: z.ZodType<ProductsListResponse> = z.looseObject
   limit: z.number(),
 });
 
-// Product as returned by the simulated DELETE endpoint — isDeleted/deletedOn are
-// required here even though they're optional on the base Product interface.
-// Written out explicitly (not ProductSchema.extend(...)) since a z.ZodType<Product>
-// annotation erases the underlying ZodObject type that .extend() needs.
+// Returned by the simulated DELETE endpoint. Written out rather than ProductSchema.extend(...)
+// since the z.ZodType<Product> annotation erases the ZodObject type .extend() needs.
 export const ProductDeletedSchema: z.ZodType<Product & DeletedResource> = z.looseObject({
   id: z.number(),
   title: z.string(),
@@ -88,10 +84,8 @@ export const CartsListSchema: z.ZodType<CartsListResponse> = z.looseObject({
   limit: z.number(),
 });
 
-// Cart as returned by the simulated DELETE endpoint — isDeleted/deletedOn are
-// required here even though they're optional on the base Cart interface.
-// Written out explicitly (not CartSchema.extend(...)) since a z.ZodType<Cart>
-// annotation erases the underlying ZodObject type that .extend() needs.
+// Returned by the simulated DELETE endpoint. Written out rather than CartSchema.extend(...)
+// since the z.ZodType<Cart> annotation erases the ZodObject type .extend() needs.
 export const CartDeletedSchema: z.ZodType<Cart & DeletedResource> = z.looseObject({
   id: z.number(),
   products: z.array(CartProductSchema),
@@ -122,10 +116,8 @@ export const UsersListSchema: z.ZodType<UsersListResponse> = z.looseObject({
   limit: z.number(),
 });
 
-// User as returned by the simulated DELETE endpoint — isDeleted/deletedOn are
-// required here even though they're optional on the base User interface.
-// Written out explicitly (not UserSchema.extend(...)) since a z.ZodType<User>
-// annotation erases the underlying ZodObject type that .extend() needs.
+// Returned by the simulated DELETE endpoint. Written out rather than UserSchema.extend(...)
+// since the z.ZodType<User> annotation erases the ZodObject type .extend() needs.
 export const UserDeletedSchema: z.ZodType<User & DeletedResource> = z.looseObject({
   id: z.number(),
   firstName: z.string(),

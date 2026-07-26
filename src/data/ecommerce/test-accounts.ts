@@ -25,7 +25,6 @@ export const testAccounts: SiteAuthMap = {
   'Dr. Martens NZ': { email: 'qa.drmartens.nz.t1@mailinator.com', password },
 };
 
-// Uses each site's real email address with a known-wrong password.
 // Intentionally wrong password confirms "incorrect credentials" error path (E2E-AUTH-003).
 // The wrong password is hardcoded because it is intentionally invalid — it is NOT a real credential.
 export const invalidCredentials: SiteAuthMap = {
@@ -65,9 +64,7 @@ export interface GuestCheckoutEmail {
   email: string;
 }
 
-// E2E-CHKOUT-003 — Generates a unique guest-checkout email for the shipping-form regression
-// test, mirroring createFreshAccountCredentials()'s mailinator + Date.now() + random-suffix
-// pattern so repeated test runs never collide on the same address.
+// E2E-CHKOUT-003 — unique per call so repeated test runs never collide on the same address.
 export function createGuestCheckoutEmail(): GuestCheckoutEmail {
   const ts = Date.now();
   const rand = faker.string.alphanumeric(8).toLowerCase();
@@ -104,10 +101,6 @@ export interface GuestShippingAddress {
   addressQuery: string;
 }
 
-// E2E-CHKOUT-004 — Generates guest shipping-address form data for the shipping-method
-// selection regression test. Pass `isNz: true` for storefronts with `storeHeader === 'nz'` —
-// the AU default address does not resolve on the NZ region's address-autocomplete (see the
-// addressQuery field doc above for the confirmed recon finding).
 export function createGuestShippingAddress(isNz = false): GuestShippingAddress {
   return {
     firstName: faker.person.firstName(),

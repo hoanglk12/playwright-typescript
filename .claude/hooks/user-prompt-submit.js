@@ -108,6 +108,7 @@ CODING STANDARDS:
 - Extend BasePage — never call page.locator() or page.click() directly in page classes
 - Use TIMEOUTS constants from src/constants/timeouts.ts — never magic numbers
 - No comments unless the WHY is non-obvious
+- Any comment you write or edit must pass the AI-comment-smell checklist (qa-code-reviewer.md §16); for a comments-cleanup task on an existing file, invoke /code-humanizer instead of reviewing ad hoc
 
 SOFT ASSERTION RULES (apply every time you write an assertion):
 - Multiple independent checks in one test → use softAssert fixture (inject via { myPage, softAssert })

@@ -134,18 +134,12 @@ export class EcommerceTrackOrderPage extends BasePage {
    */
   async navigate(baseUrl: string): Promise<void> {
     await this.page.goto(baseUrl, { waitUntil: 'commit' });
-    // Wait for the HTML to be parsed so document.body is available before
-    // scrollToBottom() accesses document.body.scrollHeight.
     await this.waits.waitForPageLoadState('domcontentloaded');
-    // Scroll to bottom so the intersection observer renders the footer and the
-    // Track Order link becomes part of the DOM (same rationale as home-page.ts
-    // assertLoyaltyProgramVisible which also targets footer-gated content).
     await this.elements.scrollToBottom();
     await this.trackOrderLink.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD }).catch(() => {});
   }
 
   /**
-   * Returns true if the Track Order link is visible in the footer/nav.
    * Call after `navigate()` (which already scrolls to the bottom).
    * Returns false when the link is not configured on the storefront — the spec
    * should call `test.skip` in this case.
@@ -165,10 +159,6 @@ export class EcommerceTrackOrderPage extends BasePage {
     await this.pageHeading.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD }).catch(() => {});
   }
 
-  /**
-   * Individual field visibility queries — exposed so the spec can soft-assert
-   * each field independently without inlining locators in the spec file.
-   */
   async isOrderNumberInputVisible(): Promise<boolean> {
     return this.elements.isLocatorVisible(this.orderNumberInput);
   }
@@ -182,8 +172,6 @@ export class EcommerceTrackOrderPage extends BasePage {
   }
 
   /**
-   * Returns true if at least one of the three expected form elements
-   * (order number input, email input, submit button) is visible on the page.
    * Used as the hard pass/fail gate before per-field soft assertions.
    */
   async isFormPresent(): Promise<boolean> {

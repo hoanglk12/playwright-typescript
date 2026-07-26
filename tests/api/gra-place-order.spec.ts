@@ -1,11 +1,4 @@
 /**
- * PLA (Platypus Shoes) GraphQL API Tests
- * Place Order — placeOrder mutation
- *
- * TC_01: Happy path — placeOrder on fully configured cart returns order number
- * TC_02: Missing shipping address → placeOrder returns error
- * TC_03: Missing payment method → placeOrder returns error
- *
  * Note: OOS item scenario (placeOrder with OOS item in cart) is not implemented because
  * PLA staging blocks out-of-stock items at the addProductsToCart level via user_errors,
  * making it impossible to have an OOS item in the cart to reach the placeOrder stage.

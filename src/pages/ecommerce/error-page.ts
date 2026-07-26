@@ -15,13 +15,8 @@ import { TIMEOUTS } from '../../constants/timeouts';
 export class EcommerceErrorPage extends BasePage {
   /**
    * "Back to Home" CTA — rendered as a <button> (not <a>) across all 8 GRA storefronts.
-   * Confirmed via live DOM inspection on staging: Platypus AU/NZ, Skechers AU/NZ,
-   * Vans AU/NZ, Dr. Martens AU/NZ all render a <button> element with this text.
-   * A case-insensitive regex covers all observed label variants:
-   *   Platypus    → "Back to Home"
-   *   Skechers    → "Back to Home"
-   *   Vans        → "Back to Home"
-   *   Dr. Martens → "Back to Home"
+   * Confirmed via live DOM inspection on staging: every storefront renders the label
+   * "Back to Home"; the wider regex covers unverified variants.
    * `.first()` prevents strict-mode violations when multiple matches exist on the page.
    */
   private readonly backToHomeBtn = this.page

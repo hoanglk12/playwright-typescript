@@ -119,6 +119,9 @@ export class MyPage extends BasePage {
 | `ecommerceAccountModalPage` | `EcommerceAccountModalPage` | ecommerce |
 | `ecommerceErrorPage` | `EcommerceErrorPage` | ecommerce |
 | `ecommerceCheckoutPage` | `EcommerceCheckoutPage` | ecommerce |
+| `ecommerceTrackOrderPage` | `EcommerceTrackOrderPage` | ecommerce |
+| `ecommerceHelpSupportPage` | `EcommerceHelpSupportPage` | ecommerce |
+| `ecommerceWishlistPage` | `EcommerceWishlistPage` | ecommerce |
 | `percyHelper` | `PercyHelper` | visual regression |
 | `softAssert` | `SoftAssertHelper` | soft assertions with logger integration |
 | `consoleHelper` | `ConsoleHelper` | console/page-error/failed-request capture, attached on UI test failure |
@@ -275,11 +278,13 @@ Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain seri
 |---|---|---|
 | `apiBaseUrl` | `string` | Resolved base URL from env |
 | `restfulApiBaseURL` | `string` | Restful-device API base URL |
+| `dummyjsonBaseUrl` | `string` | DummyJSON API base URL |
 | `graphqlURL` | `string` | `graphqlBaseUrl + graphqlEndpoint` |
 | `apiClient` | `ApiClient` | Raw REST client (low-level HTTP) |
 | `apiClientExt` | `ApiClientExt` | REST client with `*WithWrapper` methods (preferred) |
 | `restfulApiClient` | `RestfulApiClient` | Device API (restful-device service) |
 | `bookingService` | `RestfulBookerService` | Restful-booker service abstraction |
+| `dummyjsonService` | `DummyJsonService` | DummyJSON service (auth/products/carts/users) |
 | `graphqlClient` | `GraphQLClient` | GraphQL queries and mutations |
 | `createClient` | factory | Custom `ApiClient` with any `ApiClientOptions` |
 | `createClientExt` | factory | Custom `ApiClientExt` with any `ApiClientOptions` |
@@ -512,7 +517,7 @@ Both `playwright.config.ts` and `api.config.ts` auto-detect CI environments (`CI
 
 ## Firefox Teardown — Do Not Remove
 
-All eight ecommerce fixtures in `base-test.ts` (`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`, `ecommerceCartOverlayPage`, `ecommerceAccountModalPage`, `ecommerceErrorPage`, `ecommerceCheckoutPage`) navigate to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround from any of these fixtures.
+All twelve ecommerce fixtures in `base-test.ts` (`ecommerceHomePage`, `ecommerceNavPage`, `ecommerceSearchPage`, `ecommercePLPPage`, `ecommercePDPPage`, `ecommerceCartOverlayPage`, `ecommerceAccountModalPage`, `ecommerceErrorPage`, `ecommerceCheckoutPage`, `ecommerceTrackOrderPage`, `ecommerceHelpSupportPage`, `ecommerceWishlistPage`) navigate to `about:blank` before teardown on Firefox. This is intentional: Firefox's Juggler protocol hangs on `context.close()` when SPAs have active service workers or persistent WebSocket connections. Do not remove this workaround from any of these fixtures.
 
 ## monocart Reporter
 
@@ -686,3 +691,14 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **A precondition check passes but the guarded step still fails.** The check is likely vacuously true (e.g., `isAddToCartEnabled()` on DM NZ is always `true` regardless of size selection). Do not continue iterating on the guarded step — call advisor to verify whether the precondition is a valid proxy.
 
 **The advisor counter resets automatically** after you call `advisor()`. The stuck-loop hook (`advisor-nudge.js`) is a backstop for general loops, not a replacement for this list.
+
+### 6. Comments — Route Through the Humanizer
+
+**Every comment any agent writes or edits gets checked against the AI-generated-code-smell checklist before the task is considered done — not just during review.**
+
+This applies to every agent working in this repo (main session, `automation-test-architect`, `playwright-test-generator`, `technical-implementation-agent`, `technical-debt-fixer`, and any ad-hoc subagent), not only `qa-code-reviewer`. The checklist itself lives in one place — `.claude/agents/qa-code-reviewer.md` §16 — apply it directly rather than re-deriving your own notion of "good comment."
+
+- **Writing new code with a comment in it:** before finishing, check that comment against §16 (restates the code, JSDoc that repeats the signature, emoji, rule-of-three padding, verbose blocks). If it fails, cut or rewrite it inline — don't wait for a separate review pass.
+- **Any task whose purpose is auditing or cleaning up existing comments in a file** ("review comments," "clean this up," "make this read like a human wrote it"): invoke the `code-humanizer` skill (`/code-humanizer`) instead of reapplying the checklist ad hoc — it's the canonical entry point and keeps the checklist in one place. Note this is distinct from the repo-agnostic `humanizer` skill, which targets prose/doc text, not code comments.
+- Default per this file's own convention: **write no comment at all** unless removing it would lose a non-obvious WHY (business rule, workaround, subtle invariant). The checklist exists to catch comments that violate that default, not to justify adding more.
+- This is advisory the same way §16 is advisory during review — it should shape what you write, but a stray restating comment is not itself grounds to block an otherwise-correct change.

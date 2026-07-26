@@ -1,8 +1,3 @@
-/**
- * PLA (Platypus Shoes) GraphQL API Test Data
- * Centralized test data for Account Management tests
- */
-
 const generateRandomString = (length: number = 8): string => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -172,11 +167,9 @@ export interface ExpectedCustomerData {
 }
 
 /**
- * Generates a fresh, self-consistent GraTestData instance for any brand.
- * The emailPrefix is used as the email address prefix (e.g. 'pla', 'skx', 'drm', 'van').
- * All fields (email, name, address) share the same randomly-generated values,
- * so credentials and address data are always in sync within a single instance.
- * Call once per suite (e.g. at module load or in beforeAll) rather than per-test.
+ * All fields (email, name, address) share the same randomly-generated values, so credentials
+ * and address data are always in sync within a single instance. Call once per suite (e.g. at
+ * module load or in beforeAll) rather than per-test.
  */
 export function createBrandTestData(emailPrefix: string): GraTestData {
   const timestamp = Date.now();

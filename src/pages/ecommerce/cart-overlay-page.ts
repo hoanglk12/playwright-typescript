@@ -36,10 +36,9 @@ export class EcommerceCartOverlayPage extends BasePage {
   }
 
   // Detects a visible mini cart overlay panel — NOT the persistent header cart icon.
-  // Requires all three: (1) modal/overlay role or class semantics — includes aside/
-  // complementary because Platypus AU renders the mini cart as an aside panel, (2) fixed/
-  // absolute CSS positioning (overlay panels overlay content; persistent header chrome is
-  // relative/sticky), and (3) an actionable cart CTA ("checkout", "view cart/bag", "proceed").
+  // Requires all three: (1) modal/overlay role or class semantics, (2) fixed/absolute CSS
+  // positioning (overlay panels overlay content; persistent header chrome is relative/
+  // sticky), and (3) an actionable cart CTA ("checkout", "view cart/bag", "proceed").
   // This prevents false-positives from always-present header cart elements.
   async isOverlayVisible(): Promise<boolean> {
     const sel = this.overlayPanelSelector;
@@ -210,12 +209,6 @@ export class EcommerceCartOverlayPage extends BasePage {
        * match /subtotal/i, so e1008 is correctly identified as the deepest label element and
        * its own text is used for price extraction. Adding a price guard here would incorrectly
        * skip elements whose children carry a price alongside the label.
-       *
-       * From the label element, price extraction tries:
-       *   1. The label element's own text (subtotal row as a single element)
-       *   2. The next sibling's text (label cell | price cell layout)
-       *   3. The parent's text (row container whose innerText merges label + price)
-       * Returns the first /[A-Z]{0,3}\$[\d,]+\.\d{2}/ match or '' if none found.
        */
       const extractPriceNearInPanel = (panel: Element, labelRe: RegExp): string => {
         const allEls = Array.from(panel.querySelectorAll('*'));
@@ -227,9 +220,6 @@ export class EcommerceCartOverlayPage extends BasePage {
           if (priceRe.test(ownText) && ownText.length < 20) continue;
 
           // Require deepest label match: descend until no child also matches labelRe.
-          // The price guard is intentionally absent — a child carrying a price AND the label
-          // text is still a "match", which would promote us to descend further. We only stop
-          // descending when NO child matches the label (price-only or other-text children).
           const childMatchesLabel = Array.from(el.children).some((child) =>
             labelRe.test(getText(child)),
           );

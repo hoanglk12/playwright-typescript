@@ -45,23 +45,14 @@ export interface TransactionData {
   transferAmount: string;
 }
 
-/**
- * Generate random test data
- */
 export class HomeTestDataGenerator {
-  
-  /**
-   * Generate random email
-   */
+
   static generateRandomEmail(): string {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
     return `test_${timestamp}_${random}@automation.com`;
   }
 
-  /**
-   * Generate random customer data
-   */
   static generateCustomerData(): CustomerData {
     const timestamp = Date.now();
     return {
@@ -77,9 +68,6 @@ export class HomeTestDataGenerator {
     };
   }
 
-  /**
-   * Generate random account data
-   */
   static generateAccountData(): AccountData {
     return {
       accountType: Math.random() > 0.5 ? 'Savings' : 'Current',
@@ -87,9 +75,6 @@ export class HomeTestDataGenerator {
     };
   }
 
-  /**
-   * Generate random transaction amounts
-   */
   static generateTransactionData(): TransactionData {
     return {
       depositAmount: (Math.floor(Math.random() * 1000) + 100).toString(),

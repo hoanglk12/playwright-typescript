@@ -135,7 +135,6 @@ export class WaitHelper {
     await this.pageRef.current.waitForURL(pattern, { timeout });
   }
 
-  /** Waits until the current page URL satisfies the given predicate function. */
   async waitForUrlPredicate(predicate: (url: string) => boolean, timeout?: number): Promise<void> {
     const t = timeout ?? TIMEOUTS.PAGE_LOAD;
     await this.pageRef.current.waitForURL((url) => predicate(url.toString()), { timeout: t });

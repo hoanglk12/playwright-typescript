@@ -25,9 +25,7 @@ import {
 
 // E2E-CHKOUT-006 — Product identity captured during ATC, surfaced on the 'ok' outcome so
 // callers can verify the order-review surface later shows the SAME product/quantity that was
-// actually added (rather than merely asserting a row exists). Captured once, before the
-// size-selection loop, since product name/price are stable across size variants and this keeps
-// the isAddToCartEnabled() -> addToCart() adjacency tight (see the Step 8-9 comment below).
+// actually added (rather than merely asserting a row exists).
 interface CheckoutCtaOkResult {
   status: 'ok';
   productName: string;
@@ -41,10 +39,8 @@ interface CheckoutCtaSkippedResult {
 
 type CheckoutCtaResult = CheckoutCtaOkResult | CheckoutCtaSkippedResult;
 
-// E2E-CHKOUT-006 — Parses a price string captured via EcommercePDPPage.getPrice() (e.g.
-// "$139.99") into a number, matching the same digit/decimal-point extraction strategy used by
-// EcommerceCheckoutPage.getOrderSummaryTotals()'s internal parsePrice(). Returns null when no
-// numeric value can be extracted.
+// Matches the same digit/decimal-point extraction strategy as
+// EcommerceCheckoutPage.getOrderSummaryTotals()'s internal parsePrice().
 function parsePriceToken(token: string): number | null {
   const cleaned = token.replace(/[^0-9.]/g, '');
   if (cleaned.length === 0) return null;
@@ -52,13 +48,9 @@ function parsePriceToken(token: string): number | null {
   return Number.isNaN(value) ? null : value;
 }
 
-// Shared setup for checkout-regression tests: verifies origin health, navigates to a PLP,
-// finds a purchasable product/size, adds it to cart, and opens the checkout CTA flow up to
-// (but not including) the final checkout-state assertion — each test supplies its own
-// assertion after this returns. Returns `{ status: 'skipped' }` when a precondition forces a
-// skip (the caller must `return` immediately since `test.skip()` has already been called
-// internally). Returns `{ status: 'ok', productName, productPrice, size }` otherwise, carrying
-// the product identity captured at ATC time for tests that verify the order-review surface.
+// Stops short of the final checkout-state assertion — each test supplies its own after this
+// returns. On `{ status: 'skipped' }` the caller must `return` immediately, since `test.skip()`
+// has already been called internally.
 async function addToCartAndReachCheckoutCta(params: {
   site: Storefront;
   navLabel: string | undefined;

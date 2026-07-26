@@ -3,29 +3,14 @@ import { BasePage } from '../base-page';
 import { ServicesAZData } from '../../data/services-az-data';
 import { TIMEOUTS } from '../../constants/timeouts';
 
-/**
- * Represents a single A-Z letter filter entry.
- */
 export interface LetterInfo {
-  /** The uppercase letter (A-Z) */
   letter: string;
-  /** Whether the link is enabled (has services) */
   enabled: boolean;
-  /** The Playwright Locator for the link */
   locator: Locator;
 }
 
-/**
- * Services A-Z List Page Object
- *
- * Covers:
- * - Navigation via hamburger menu → Services → Services A-Z List
- * - A-Z letter filter bar interaction
- * - Scroll-to-section verification after clicking a letter
- */
 export class ServicesAZPage extends BasePage {
   // ── Navigation locators ───────────────────────────────────────────
-  /** Semantic role-based locator — avoids brittle aria-label attribute selectors */
   private readonly hamburgerMenuBtn: Locator;
   private readonly sideNavLink = '.side-navigation__link';
   // WHY: scoped to the <li> containing the /en/services link so no structural chaining is needed;
@@ -37,11 +22,9 @@ export class ServicesAZPage extends BasePage {
   private readonly pageMainHeading = 'main h1';
 
   // ── A-Z page locators ─────────────────────────────────────────────
-  /** Section heading for a given letter (e.g. <h2>D</h2>) — use with toBeInViewport() */
   getSectionHeading(letter: string): Locator {
     return this.page.locator('main h2').filter({ hasText: new RegExp(`^${letter}$`) });
   }
-  /** Service items within the section that follows the heading */
   private sectionServiceLinks(letter: string): Locator {
     return this.page
       .locator('main div.az-list__listing-segment-inner')
@@ -56,11 +39,6 @@ export class ServicesAZPage extends BasePage {
 
   // ── Navigation helpers ────────────────────────────────────────────
 
-  /**
-   * Navigate to the homepage and wait for the page to be fully interactive.
-   * Using networkidle ensures JavaScript has finished enabling dynamic elements
-   * (e.g. the hamburger menu button) before any interaction.
-   */
   async navigateToHomePage(): Promise<void> {
     await this.gotoWithOptions(ServicesAZData.homePageUrl, {
       waitUntil: 'domcontentloaded',
@@ -70,9 +48,6 @@ export class ServicesAZPage extends BasePage {
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
   }
-  /**
-   * Open the hamburger / side navigation menu.
-   */
   async openHamburgerMenu(): Promise<void> {
     await this.hamburgerMenuBtn.click();
     await this.elements.locator(this.sideNavLink).first().waitFor({
@@ -81,9 +56,6 @@ export class ServicesAZPage extends BasePage {
     });
   }
 
-  /**
-   * Expand the "Services" sub-menu inside the side navigation.
-   */
   async expandServicesSubMenu(): Promise<void> {
     await this.elements.clickLocator(this.servicesNavToggle);
     await this.elements.locator(this.servicesAZLink).waitFor({
@@ -92,25 +64,17 @@ export class ServicesAZPage extends BasePage {
     });
   }
 
-  /**
-   * Click the "Services A-Z List" link inside the expanded services menu.
-   */
   async clickServicesAZLink(): Promise<void> {
     await Promise.all([
       this.waits.waitForPageLoadState('domcontentloaded', TIMEOUTS.PAGE_LOAD),
       this.elements.locator(this.servicesAZLink).click(),
     ]);
-    // Confirm we actually landed on the A-Z page
     await this.elements.locator(this.pageMainHeading).first().waitFor({
       state: 'visible',
       timeout: TIMEOUTS.ELEMENT_VISIBLE,
     });
   }
 
-  /**
-   * Full navigation flow:
-   * Homepage → hamburger → Services → Services A-Z List
-   */
   async navigateToServicesAZListViaMenu(): Promise<void> {
     await this.navigateToHomePage();
     await this.openHamburgerMenu();
@@ -120,13 +84,6 @@ export class ServicesAZPage extends BasePage {
 
   // ── A-Z letter helpers ────────────────────────────────────────────
 
-  /**
-   * Return information about every letter in the A-Z filter bar.
-   *
-   * A letter is considered **enabled** if its link element has a
-   * computed `text-decoration` that includes `underline` OR if the cursor
-   * style is `pointer` (the page uses `cursor: pointer` on enabled links).
-   */
   async getAllLetters(): Promise<LetterInfo[]> {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const letters: LetterInfo[] = [];
@@ -137,7 +94,6 @@ export class ServicesAZPage extends BasePage {
         this.page.locator(`a[href="#"]`)
       );
 
-      // Fallback: use aria-label-based locator to be sure
       const ariaLoc = this.page.getByRole('link', { name: `Letter ${char}` });
       const finalLoc = (await ariaLoc.count()) > 0 ? ariaLoc : loc;
 
@@ -156,18 +112,11 @@ export class ServicesAZPage extends BasePage {
     return letters;
   }
 
-  /**
-   * Return only the enabled (clickable) letters.
-   */
   async getEnabledLetters(): Promise<LetterInfo[]> {
     const all = await this.getAllLetters();
     return all.filter((l) => l.enabled);
   }
 
-  /**
-   * Pick a random enabled letter and click it.
-   * @returns The uppercase letter that was clicked.
-   */
   async clickRandomEnabledLetter(): Promise<string> {
     const enabled = await this.getEnabledLetters();
     if (enabled.length === 0) {
@@ -180,16 +129,10 @@ export class ServicesAZPage extends BasePage {
 
   // ── Assertion helpers ─────────────────────────────────────────────
 
-  /**
-   * Returns `true` when the section heading for the given letter is
-   * inside the current viewport (i.e. the page scrolled to it).
-   */
   async isSectionHeadingInViewport(letter: string): Promise<boolean> {
     const heading = this.getSectionHeading(letter);
     await heading.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
-    // Poll until the heading enters the viewport (replaces fixed waitForTimeout).
-    // waitForFunction re-evaluates until the predicate returns truthy.
     // WHY: no WaitHelper equivalent for arbitrary JS polling
     const elementHandle = await heading.elementHandle();
     if (elementHandle) {
@@ -205,8 +148,7 @@ export class ServicesAZPage extends BasePage {
 
     return heading.evaluate((el: Element) => {
       const rect = el.getBoundingClientRect();
-      // Allow heading to be anywhere in the visible viewport
-      // (sticky header may push it down, so we use a generous range)
+      // sticky header may push it down, so we use a generous range
       return (
         rect.top >= -50 &&
         rect.bottom <= window.innerHeight + 50 &&
@@ -216,17 +158,11 @@ export class ServicesAZPage extends BasePage {
     });
   }
 
-  /**
-   * Get the list of service names displayed under a letter section.
-   */
   async getServiceNamesForLetter(letter: string): Promise<string[]> {
     const links = this.sectionServiceLinks(letter);
     return links.allTextContents();
   }
 
-  /**
-   * Get the page heading text to confirm we are on the correct page.
-   */
   async getPageHeading(): Promise<string> {
     const heading = this.elements.locator(this.pageMainHeading).first();
     await heading.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });

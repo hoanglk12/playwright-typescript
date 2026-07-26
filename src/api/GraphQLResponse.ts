@@ -4,17 +4,9 @@ import * as z from 'zod';
 import { ApiResponseWrapper } from './ApiResponse';
 import { GraphQLResponse } from './GraphQLClient';
 
-/**
- * GraphQL Response wrapper extending ApiResponseWrapper
- * Provides GraphQL-specific assertion and utility methods
- */
 export class GraphQLResponseWrapper extends ApiResponseWrapper {
   private graphqlResponse?: GraphQLResponse;
 
-  /**
-   * Get the GraphQL response structure
-   * @returns Parsed GraphQL response with data and errors
-   */
   public async getGraphQLResponse<T = any>(): Promise<GraphQLResponse<T>> {
     if (!this.graphqlResponse) {
       this.graphqlResponse = await this.json<GraphQLResponse<T>>();
@@ -22,65 +14,39 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this.graphqlResponse as GraphQLResponse<T>;
   }
 
-  /**
-   * Get the data from GraphQL response
-   * @returns Data portion of GraphQL response
-   */
   public async getData<T = any>(): Promise<T | undefined> {
     const response = await this.getGraphQLResponse<T>();
     return response.data;
   }
 
-  /**
-   * Get errors from GraphQL response
-   * @returns Array of GraphQL errors or undefined
-   */
   public async getErrors(): Promise<GraphQLResponse['errors']> {
     const response = await this.getGraphQLResponse();
     return response.errors;
   }
 
-  /**
-   * Check if the GraphQL response has errors
-   * @returns true if response contains errors
-   */
   public async hasErrors(): Promise<boolean> {
     const errors = await this.getErrors();
     return !!errors && errors.length > 0;
   }
 
-  /**
-   * Get error messages as an array of strings
-   * @returns Array of error messages
-   */
   public async getErrorMessages(): Promise<string[]> {
     const errors = await this.getErrors();
     if (!errors) return [];
     return errors.map(error => error.message);
   }
 
-  /**
-   * Assert that the GraphQL response has no errors
-   */
   public async assertNoErrors(): Promise<this> {
     const errors = await this.getErrors();
     expect(errors).toBeUndefined();
     return this;
   }
 
-  /**
-   * Assert that the GraphQL response has errors
-   */
   public async assertHasErrors(): Promise<this> {
     const hasErrors = await this.hasErrors();
     expect(hasErrors).toBe(true);
     return this;
   }
 
-  /**
-   * Assert that the GraphQL response contains a specific error message
-   * @param expectedMessage - Expected error message (partial match)
-   */
   public async assertErrorMessage(expectedMessage: string): Promise<this> {
     const messages = await this.getErrorMessages();
     const hasMessage = messages.some(msg => msg.includes(expectedMessage));
@@ -88,21 +54,12 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this;
   }
 
-  /**
-   * Assert that the GraphQL response data contains expected properties
-   * @param expected - Expected data structure (partial match)
-   */
   public async assertData(expected: Record<string, any>): Promise<this> {
     const data = await this.getData();
     expect(data).toMatchObject(expected);
     return this;
   }
 
-  /**
-   * Assert that a specific field in the data equals the expected value
-   * @param path - Path to the field (dot notation)
-   * @param value - Expected value
-   */
   public async assertDataField(path: string, value: unknown): Promise<this> {
     const data = await this.getData();
     const actual = this.extractFromPath(data, path);
@@ -110,11 +67,6 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this;
   }
 
-  /**
-   * Assert that a specific field in the data contains the expected value
-   * @param path - Path to the field (dot notation)
-   * @param value - Expected value
-   */
   public async assertDataFieldContains(path: string, value: unknown): Promise<this> {
     const data = await this.getData();
     const actual = this.extractFromPath(data, path);
@@ -129,9 +81,6 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this;
   }
 
-  /**
-   * Assert that the response has data (not null/undefined)
-   */
   public async assertHasData(): Promise<this> {
     const data = await this.getData();
     expect(data).toBeDefined();
@@ -139,10 +88,6 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this;
   }
 
-  /**
-   * Assert that a specific error code exists in the response
-   * @param errorCode - Expected error code in extensions
-   */
   public async assertErrorCode(errorCode: string): Promise<this> {
     const errors = await this.getErrors();
     expect(errors).toBeDefined();
@@ -155,10 +100,6 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this;
   }
 
-  /**
-   * Assert that an error occurs at a specific path
-   * @param path - Expected error path
-   */
   public async assertErrorPath(path: string[]): Promise<this> {
     const errors = await this.getErrors();
     expect(errors).toBeDefined();
@@ -171,32 +112,18 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this;
   }
 
-  /**
-   * Extract value from nested object using dot notation
-   * @param obj - Object to extract from
-   * @param path - Path in dot notation
-   * @returns Extracted value
-   */
   private extractFromPath(obj: unknown, path: string): unknown {
     return path.split('.').reduce((prev: unknown, curr: string) => {
       return prev && (prev as Record<string, unknown>)[curr];
     }, obj);
   }
 
-  /**
-   * Get all field names from the data response
-   * @returns Array of field names
-   */
   public async getDataFields(): Promise<string[]> {
     const data = await this.getData();
     if (!data || typeof data !== 'object') return [];
     return Object.keys(data);
   }
 
-  /**
-   * Assert that the data contains specific fields
-   * @param fields - Expected field names
-   */
   public async assertDataHasFields(fields: string[]): Promise<this> {
     const actualFields = await this.getDataFields();
     
@@ -207,11 +134,6 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return this;
   }
 
-  /**
-   * Get the number of items in a list field
-   * @param path - Path to the list field
-   * @returns Number of items
-   */
   public async getListSize(path: string): Promise<number> {
     const data = await this.getData();
     const list = this.extractFromPath(data, path);
@@ -223,11 +145,6 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
     return list.length;
   }
 
-  /**
-   * Assert that a list field has a specific size
-   * @param path - Path to the list field
-   * @param expectedSize - Expected number of items
-   */
   public async assertListSize(path: string, expectedSize: number): Promise<this> {
     const actualSize = await this.getListSize(path);
     expect(actualSize).toBe(expectedSize);
@@ -235,10 +152,8 @@ export class GraphQLResponseWrapper extends ApiResponseWrapper {
   }
 
   /**
-   * Assert that the GraphQL response data matches a Zod schema
    * Kept independent from assertNoErrors() — validating the data shape and
    * checking for GraphQL errors are two different checks
-   * @param schema - Zod schema to validate the data field against
    */
   public async assertDataSchema<T>(schema: z.ZodType<T>): Promise<this> {
     const data = await this.getData();

@@ -1,11 +1,3 @@
-/**
- * PLA (Platypus Shoes) GraphQL API Tests
- * Checkout Shipping — setShippingAddressesOnCart, setShippingMethodsOnCart
- *
- * Prerequisites: authenticated cart with at least one product.
- * Always-fresh auth and cart per CLAUDE.md rules.
- */
-
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createCheckoutShippingData } from '../../src/data/api/gra-checkout-shipping-data';
 import { signInAndStoreToken, createFreshCart, discoverInStockSkus, addFirstAddableProduct } from './api-test-helpers';
@@ -377,7 +369,6 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
         return;
       }
 
-      // Pick second method if multiple, otherwise reuse first (idempotent set)
       const targetMethod = availableMethods.length > 1 ? availableMethods[1] : availableMethods[0];
       carrier_code = targetMethod.carrier_code;
       method_code = targetMethod.method_code;

@@ -150,8 +150,7 @@ export class EcommerceHomePage extends BasePage {
    * Scrolls to the bottom of the page on each poll attempt to trigger lazy-loaded footer
    * content (loyalty CTAs live in the footer and are not rendered until the page is
    * scrolled into view). Uses textContent (not innerText) so hidden/off-screen elements
-   * are included. The method receives programName as an argument and passes it into
-   * page.evaluate() — no class-level locator field needed for a dynamic value.
+   * are included.
    */
   async assertLoyaltyProgramVisible(programName: string, siteName: string): Promise<void> {
     await expect
@@ -159,10 +158,7 @@ export class EcommerceHomePage extends BasePage {
         async () => {
           try {
             return await this.page.evaluate((name) => {
-              // Scroll to bottom to trigger lazy-loaded footer content
               window.scrollTo(0, document.body.scrollHeight);
-              // Use textContent (includes hidden elements) instead of innerText
-              // which skips elements with display:none or visibility:hidden
               const text = (document.body.textContent ?? '').replace(/\s+/g, ' ').toLowerCase();
               return text.includes(name.toLowerCase());
             }, programName);

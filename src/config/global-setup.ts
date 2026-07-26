@@ -13,12 +13,9 @@ async function globalSetup(config: FullConfig) {
 
 
   console.log('🚀 Starting Global Setup...\n');
-  // Clear all logs before starting test execution
   TestLogger.clearLogs();
 
-  // Initialize logging session
   TestLogger.initializeLogging();
-  // Load environment configuration
   const environment = getEnvironment();
   console.log('📋 Environment configuration:', {
     name: process.env.NODE_ENV || process.env.ENV || 'testing',
@@ -32,22 +29,16 @@ async function globalSetup(config: FullConfig) {
   console.log(`🌐 FrontSite URL: ${environment.frontSiteUrl}\n`);
 
   try {
-    // Step 1: Clean up previous test results
     await cleanupTestResults();
 
-    // Step 2: Initialize directories
     await initializeDirectories();
 
-    // Step 3: Validate environment
     await validateEnvironment(environment);
 
-    // Step 4: Validate required environment variables are actually set (not just defaulted)
     validateRequiredEnvVars();
 
-    // Step 5: Validate browser installations for the projects actually configured to run
     await validateBrowsers(config);
 
-    // Step 6: Test connectivity to target applications — fail fast, these are hard requirements
     await testConnectivity(environment);
 
     console.log('\n✅ Global Setup completed successfully!\n');
@@ -58,9 +49,6 @@ async function globalSetup(config: FullConfig) {
   }
 }
 
-/**
- * Clean up previous test results and artifacts
- */
 async function cleanupTestResults(): Promise<void> {
   console.log('🧹 Cleaning up previous test results...');
 
@@ -89,9 +77,6 @@ async function cleanupTestResults(): Promise<void> {
   }
 }
 
-/**
- * Initialize required directories
- */
 async function initializeDirectories(): Promise<void> {
   console.log('📁 Initializing directories...');
   
@@ -116,9 +101,6 @@ async function initializeDirectories(): Promise<void> {
   }
 }
 
-/**
- * Validate environment configuration
- */
 async function validateEnvironment(environment: Environment): Promise<void> {
   console.log('🔍 Validating environment configuration...');
   
@@ -134,7 +116,6 @@ async function validateEnvironment(environment: Environment): Promise<void> {
     console.log(`   ✅ ${name} URL validated: ${url}`);
   }
   
-  // Validate timeout settings
   if (environment.timeout < 5000) {
     console.warn('   ⚠️ Timeout setting is very low, this may cause test failures');
   }

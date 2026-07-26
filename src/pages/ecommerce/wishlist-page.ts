@@ -107,9 +107,9 @@ export class EcommerceWishlistPage extends BasePage {
   }
 
   /**
-   * Returns true if the header wishlist trigger is visible. Call after
-   * `navigate()`. Returns false when it is not configured (or detectable) on
-   * this staging storefront — the spec should call `test.skip` in this case.
+   * Call after `navigate()`. Returns false when the trigger is not configured
+   * (or detectable) on this staging storefront — the spec should call
+   * `test.skip` in this case.
    */
   async isWishlistLinkPresent(): Promise<boolean> {
     return this.elements.isLocatorVisible(this.headerWishlistTrigger);
@@ -126,25 +126,14 @@ export class EcommerceWishlistPage extends BasePage {
     await this.wishlistHeading.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD }).catch(() => {});
   }
 
-  /**
-   * Returns true if the "MY WISHLIST" heading is visible. Exposed so the spec
-   * can soft-assert it without inlining the locator in the spec file.
-   */
   async isWishlistHeadingVisible(): Promise<boolean> {
     return this.elements.isLocatorVisible(this.wishlistHeading);
   }
 
-  /**
-   * Returns true if the guest empty-state message ("You have no items in your
-   * list.") is visible.
-   */
   async isEmptyWishlistMessageVisible(): Promise<boolean> {
     return this.elements.isLocatorVisible(this.emptyWishlistMessage);
   }
 
-  /**
-   * Returns true if the guest sign-in/register prompt is visible.
-   */
   async isLoginPromptVisible(): Promise<boolean> {
     return this.elements.isLocatorVisible(this.loginPrompt);
   }

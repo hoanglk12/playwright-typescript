@@ -33,12 +33,11 @@ export class PercyHelper {
     }
   }
 
-  /** Snapshot a scoped element by CSS selector. */
   async snapshotElement(name: string, selector: string, options: PercySnapshotOptions = {}): Promise<void> {
     await this.snapshot(name, { ...options, scope: selector });
   }
 
-  /** Snapshot the same state at multiple explicit widths, overriding percy.yml defaults. */
+  /** Overrides the widths configured in percy.yml. */
   async snapshotResponsive(
     name: string,
     widths: number[] = [360, 375, 768, 1440, 1512, 1920],

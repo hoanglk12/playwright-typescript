@@ -2,16 +2,10 @@ import { test, expect } from '@config/base-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 
-/**
- * Insights Page Tests
- * @feature Insights Search
- * @story Insights Search Functionality
- */
 test.describe('Insights Page Search @insights @frontsite', () => {
   test('Search for Banking content', async ({
     insightsPage,
   }) => {
-    // Logger is scoped to this test to avoid shared mutable state between tests
     const logger = createTestLogger('Insights Search Scenarios');
 
     await logger.step('Step 1 - Navigate to Insights page', async () => {

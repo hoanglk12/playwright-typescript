@@ -604,7 +604,6 @@ export class EcommerceCheckoutPage extends BasePage {
           if (r.width === 0 || r.height === 0) continue;
           const style = getComputedStyle(panel as Element);
           if (style.position !== 'fixed' && style.position !== 'absolute') continue;
-          // Iterate interactive elements inside the panel
           const candidates = Array.from(
             panel.querySelectorAll('a, button, input[type="submit"]'),
           );
@@ -726,7 +725,6 @@ export class EcommerceCheckoutPage extends BasePage {
                 const text =
                   (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
                 if (!text) return false;
-                // Pre-filter: text must contain at least one keyword to match
                 if (
                   !/(please|required|must|invalid|cannot|blank)/i.test(text)
                 ) {
@@ -765,10 +763,8 @@ export class EcommerceCheckoutPage extends BasePage {
           messages.push(text);
         };
 
-        // ARIA signals
         Array.from(document.querySelectorAll(ariasel)).forEach(addIfVisible);
 
-        // Text pattern fallback (leaf nodes only)
         const re = new RegExp(textpat, 'i');
         Array.from(document.querySelectorAll('*')).forEach((el) => {
           if ((el as Element).children.length > 0) return;

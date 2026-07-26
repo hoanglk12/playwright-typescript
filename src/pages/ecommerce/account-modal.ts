@@ -3,7 +3,6 @@ import { BasePage } from '../base-page';
 import { TIMEOUTS } from '../../constants/timeouts';
 
 export class EcommerceAccountModalPage extends BasePage {
-  // Used in navigate() to wait for React hydration before interacting.
   private readonly mainElement: Locator = this.page.locator('main');
 
   // Trusted Playwright Locator for the account icon button. React synthetic
@@ -266,7 +265,6 @@ export class EcommerceAccountModalPage extends BasePage {
         const textRegex = new RegExp(pattern, 'i');
         const candidates = Array.from(document.querySelectorAll(selector));
         return candidates.some((el) => {
-          // Must have non-zero dimensions
           const r = (el as Element).getBoundingClientRect();
           if (r.width === 0 || r.height === 0) return false;
           const style = getComputedStyle(el as Element);
@@ -358,12 +356,10 @@ export class EcommerceAccountModalPage extends BasePage {
     return this.loginButtonLocator;
   }
 
-  // Fill the email input inside the login panel.
   async fillEmail(email: string): Promise<void> {
     await this.emailInputLocator.fill(email);
   }
 
-  // Fill the password input inside the login panel.
   async fillPassword(password: string): Promise<void> {
     await this.passwordInputLocator.fill(password);
   }
@@ -388,7 +384,6 @@ export class EcommerceAccountModalPage extends BasePage {
     await tokenMutationPromise;
   }
 
-  // Convenience method: fill email, fill password, then click Login.
   async login(email: string, password: string): Promise<void> {
     await this.fillEmail(email);
     await this.fillPassword(password);

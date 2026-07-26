@@ -1,4 +1,3 @@
-// Export all API testing utilities
 export { ApiClient, AuthType } from '../../ApiClient';
 export type { ApiClientOptions } from '../../ApiClient';
 export { ApiResponseWrapper } from '../../ApiResponse';

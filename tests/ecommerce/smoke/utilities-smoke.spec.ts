@@ -4,7 +4,6 @@ import { createTestLogger } from '@utils/test-logger';
 
 test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
   // SPA hydration on staging storefronts is slow, especially in Firefox.
-  // test.slow() triples all default timeouts for tests in this describe block.
   test.slow();
 
   for (const site of storefronts) {

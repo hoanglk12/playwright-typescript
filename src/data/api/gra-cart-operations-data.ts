@@ -1,8 +1,3 @@
-/**
- * PLA (Platypus Shoes) GraphQL API — Cart Operations Test Data
- * Used by pla-cart_minicart_operations.spec.ts
- */
-
 export interface CartOperationsDataShape {
   invalidSku: string;
   invalidCartId: string;

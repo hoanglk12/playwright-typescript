@@ -4,7 +4,6 @@ export interface SiteContext {
   siteCode: string;
   baseURL: string;
   testData: GraTestData;
-  // Phase 2: consumed by store-header injection (NZ sites) and brand-aware assertions
   brand: string;
   storeHeader?: string;
   countryCode: string;

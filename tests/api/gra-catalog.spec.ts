@@ -260,7 +260,6 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       }
     });
 
-    // If brand_id not found from general search, retry with a brand-specific search term
     if (!discoveredBrandId) {
       await logger.step('Retry brand_id discovery via brand-specific search', async () => {
         const brandSearchGql = await (await client.queryWrapped(DISCOVER_PRODUCTS_QUERY, {
@@ -616,7 +615,6 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
 
     await logger.step('Step 3 - Assert variants have stock_status (configurable product)', async () => {
       if (!product.variants || product.variants.length === 0) {
-        // Simple product — verify base stock_status is present instead
         softExpect(product.stock_status).toBeDefined();
         logger.action('Note', 'TC_09 — discovered product is simple (no variants); base stock_status verified');
         return;

@@ -69,17 +69,12 @@ export interface AdminDataShape {
   EMPTY_CREDENTIALS: Credentials;
 }
 
-/**
- * Test data for CMS admin application
- */
 export const AdminTestData: AdminTestDataShape = {
-  // Valid test credentials (these would be generated during registration)
   validCredentials: {
-    userId: '', // Will be populated during test execution
-    password: '', // Will be populated during test execution
+    userId: '', // Populated during test execution
+    password: '',
   },
 
-  // Invalid credentials for negative testing
   invalidCredentials: {
     invalidUserId: 'invalid123',
     invalidPassword: 'invalid123',
@@ -89,7 +84,6 @@ export const AdminTestData: AdminTestDataShape = {
 
  
 
-  // Expected messages
   expectedMessages: {
     loginSuccess: 'Welcome To Manager\'s Page of Guru99 Bank',
     invalidLogin: 'User or Password is not valid',
@@ -100,7 +94,6 @@ export const AdminTestData: AdminTestDataShape = {
 
   },
 
-  // URLs
   urls: {
     homePage: '/',
     loginPage: '/',

@@ -51,8 +51,6 @@ export const CREATE_ACCOUNT_MUTATION = `
   }
 `;
 
-// Aliases createEmptyCart -> cartId. gra-support-features previously used the field
-// unaliased (data.createEmptyCart) — its consuming code has been updated to read data.cartId.
 export const CREATE_CART_MUTATION = `mutation CreateCart { cartId: createEmptyCart }`;
 
 // ── Customer read queries ──────────────────────────────────────────────────────
@@ -69,10 +67,6 @@ export const CREATE_CART_MUTATION = `mutation CreateCart { cartId: createEmptyCa
 //   CustomerInformationFragment + CustomerLoyaltyFragment set and tolerates loyalty
 //   partial-errors via assertNoCriticalErrors(gql, ['loyalty', 'loyalty_program_status']).
 // Do NOT collapse these into one query.
-//
-// A fourth query, GetCustomerPersonalInfo, previously existed as a local const in
-// gra-customer-profile.spec.ts but was never invoked by any test in that file — it has been
-// removed as dead code rather than hoisted here.
 export const GET_CUSTOMER_ID_QUERY = `
   query GetCustomerId {
     customer { id }
@@ -379,15 +373,12 @@ export interface SkuDiscoveryOptions {
   pageSize: number;
 }
 
-// Shared discoverInStockSkus() options — used by gra-checkout-shipping, gra-checkout-billing-payment,
-// and gra-cart-minicart, which all previously duplicated this identical options object.
 export const SKU_DISCOVERY_DEFAULTS: Readonly<SkuDiscoveryOptions> = {
   searchTerms: ['', 'shoe', 'nike', 'a'],
   pageSize: 10,
 };
 
-// pageSize hoisted to a variable — previously hardcoded to 10 or 20 depending on the spec.
-// Also a strict superset of gra-wishlist's former local DiscoverWishlistProducts query
+// A strict superset of gra-wishlist's former local DiscoverWishlistProducts query
 // (same $search/$pageSize variables, selecting only sku/name/__typename) — the extra
 // stock_status/variants/currentPage fields are harmless since that spec only reads
 // sku/name/__typename from the result.
@@ -451,8 +442,6 @@ export const REMOVE_ITEM_MUTATION = `
   }
 `;
 
-// Shared between gra-loyalty-rewards (AU) and gra-loyalty-rewards-nz — both previously
-// duplicated these three verbatim.
 export const GET_CART_ITEMS_QUERY = `
   query GetCartItems($cartId: String!) {
     cart(cart_id: $cartId) {

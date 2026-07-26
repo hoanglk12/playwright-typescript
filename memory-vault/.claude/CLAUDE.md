@@ -1,6 +1,6 @@
 # CLAUDE.md — Memory Vault Retrieval Policy
 
-This vault is the curated knowledge layer for the **Playwright TypeScript automation framework** at `C:\Users\Lincoln.Pham\Documents\AccentGroupDocs\AutomationTest\playwright-typescript`. It is the authoritative source for all memory notes and provides an Obsidian graph view, backlinks, and search across all remembered context.
+This vault is the curated knowledge layer for the **Playwright TypeScript automation framework** at the project root (path varies by machine — do not hard-code it here). It is the authoritative source for all memory notes and provides an Obsidian graph view, backlinks, and search across all remembered context.
 
 ## Read order
 

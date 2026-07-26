@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 
 /**
- * API-specific environment configurations
  * This helps keep API tests isolated from UI tests
  */
 export interface ApiEnvironment {
@@ -15,11 +14,7 @@ export interface ApiEnvironment {
   retries: number;
 }
 
-/**
- * Load environment configurations for API testing only
- */
 export function getApiEnvironment(): ApiEnvironment {
-  // Load environment variables based on NODE_ENV
   const env = process.env.NODE_ENV || 'testing';
   const envPath = `.env.${env}`;
   
@@ -27,12 +22,10 @@ export function getApiEnvironment(): ApiEnvironment {
     dotenv.config({ path: envPath, quiet: true });
   }
   
-  // Fallback to default .env file if exists
   if (fs.existsSync('.env')) {
     dotenv.config({ path: '.env', quiet: true });
   }
   
-  // Detect CI environment
   const isCI = process.env.CI === 'true' || 
                process.env.GITLAB_CI === 'true' || 
                process.env.TF_BUILD === 'True' || // Azure DevOps

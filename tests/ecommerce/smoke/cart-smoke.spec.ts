@@ -80,7 +80,6 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       });
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       let targetSize: string | null = null;
       await logger.step('Step 12 - Select a size that enables Add to Cart (try up to 3)', async () => {
         targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
@@ -148,7 +147,6 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       });
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // selectFirstPurchasableSize tries up to 3 and returns the first that enables ATC.
       let targetSize: string | null = null;
       await logger.step('Step 12 - Select a size that enables Add to Cart (try up to 3)', async () => {
         targetSize = await selectFirstPurchasableSize(ecommercePDPPage, availableSizes);
@@ -239,7 +237,6 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
       });
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
-      // Try up to 3 sizes and stop at the first that actually enables Add to Cart.
       // addToCart is called immediately after isAddToCartEnabled to minimize the window in which
       // the SPA can lose the button (observed on Vans AU with ~400ms gap).
       let targetSize: string | null = null;
@@ -614,8 +611,7 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
 
       // Some sizes show as non-disabled in the DOM but are sold-out (show "NOTIFY ME" not ATC).
       // addToCart is called immediately after isAddToCartEnabled to minimise the window in which
-      // the SPA can lose the button (observed on Vans AU with ~400ms gap). Try up to 5 candidates
-      // to find the FIRST workable size (sizeA).
+      // the SPA can lose the button (observed on Vans AU with ~400ms gap).
       let sizeA: string | null = null;
       await logger.step('Step 8 - Select first size, then Add to Cart immediately (try up to 5 sizes)', async () => {
         for (const size of availableSizes.slice(0, 5)) {
@@ -988,7 +984,6 @@ test.describe('Ecommerce Cart Smoke @ecommerce @smoke @cart', () => {
         ).toBe(true);
       });
 
-      // SECONDARY check (soft, best-effort): "Apply" button presence alongside the promo field.
       await logger.step('Step 14 - Best-effort check: Apply promo button visible on /cart', async () => {
         const applyVisible = await ecommerceCheckoutPage.hasApplyPromoButton();
         softAssert.toBeTruthy(

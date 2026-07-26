@@ -1,11 +1,3 @@
-/**
- * PLA (Platypus Shoes) GraphQL API Tests
- * Checkout Billing & Payment — setBillingAddressOnCart, setPaymentMethodOnCart
- *
- * Prerequisites: authenticated cart with at least one product and shipping address/method set.
- * Always-fresh auth and cart per CLAUDE.md rules.
- */
-
 import { graTest as test, expect, softExpect } from './gra-test';
 import { createCheckoutBillingPaymentData } from '../../src/data/api/gra-checkout-billing-payment-data';
 import {

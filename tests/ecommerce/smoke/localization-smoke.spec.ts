@@ -4,15 +4,12 @@ import { LocalizationExpectations } from '@data/ecommerce/localization-data';
 import { createTestLogger } from '@utils/test-logger';
 import { getPreferredNavLabel, navigateToPlp } from './smoke-helpers';
 
-// E2E-LOC-001 scope: Platypus AU and Skechers AU only
 const LOC_001_SITES = ['Platypus AU', 'Skechers AU'];
 const auSites = storefronts.filter((s) => LOC_001_SITES.includes(s.name));
 
-// E2E-LOC-004 scope: Skechers AU and Skechers NZ only
 const LOC_004_SITES = ['Skechers AU', 'Skechers NZ'];
 const loc004Sites = storefronts.filter((s) => LOC_004_SITES.includes(s.name));
 
-// E2E-LOC-002 scope: Platypus NZ and Skechers NZ only
 const LOC_002_SITES = ['Platypus NZ', 'Skechers NZ'];
 const nzSites = storefronts.filter((s) => LOC_002_SITES.includes(s.name));
 

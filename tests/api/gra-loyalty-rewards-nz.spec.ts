@@ -1,11 +1,10 @@
 /**
- * GRA GraphQL API Tests — Loyalty & Rewards (NZ store views)
  * PlatyPoints only — Qantas QFF is an AU-only loyalty programme and is absent from this file.
  *
  * applyRewardPointsToCart(cartId: ID!)
  *   Succeeds with no errors. Returns applied_multiple_rewards: null when the account has
  *   no PlatyPoints balance. No error is thrown for a zero-balance account.
- *   Auth guard: graphql-authorization error for unauthenticated calls. ✅ testable
+ *   Auth guard: graphql-authorization error for unauthenticated calls. Testable.
  */
 
 import { graTest as test, expect, softExpect } from './gra-test';

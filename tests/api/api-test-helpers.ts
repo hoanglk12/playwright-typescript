@@ -22,9 +22,6 @@ import {
 } from '../../src/data/api/gra-graphql-operations';
 
 /**
- * Signs in fresh with site.testData.validCredentials, creates the account first if it
- * doesn't exist yet, stores the token via state.setCustomerToken, and returns it.
- *
  * Always authenticates fresh — never reuses an existing shared-state token.
  * Per tests/api/CLAUDE.md: "Never reuse getCustomerToken() from shared-state."
  */
@@ -50,7 +47,6 @@ export async function signInAndStoreToken(
     return token;
   }
 
-  // Sign-in failed — create account first (ignore "already exists"), then retry
   logger.step('Auth: sign-in failed — creating account first');
   const createGql = await (
     await client.mutateWrapped(CREATE_ACCOUNT_MUTATION, site.testData.validCustomer)
@@ -113,11 +109,6 @@ export function assertNoCriticalErrors(
   expect(criticalErrors, 'unexpected GraphQL errors').toHaveLength(0);
 }
 
-/**
- * Creates a fresh cart via createEmptyCart. Throws only if the mutation succeeds with no
- * errors but cartId is genuinely missing (mirrors signInAndStoreToken's "succeeded but X was
- * missing" pattern) — callers keep their own siteState.setCartId(...) after this returns.
- */
 export async function createFreshCart(
   client: GraphQLClient,
   logger?: TestLogger,
@@ -133,10 +124,7 @@ export async function createFreshCart(
 }
 
 /**
- * Collects only confirmed in-stock SimpleProduct SKUs or IN_STOCK ConfigurableProduct variant
- * SKUs — no fallback to a bare item.sku for configurable parent products, per tests/api/CLAUDE.md
- * "Place Order — SKU Discovery". Never throws — an empty result is a valid outcome the caller
- * inspects and reacts to.
+ * Never throws — an empty result is a valid outcome the caller inspects and reacts to.
  */
 export async function discoverInStockSkus(
   client: GraphQLClient,
@@ -175,11 +163,8 @@ export interface AddedProduct {
 }
 
 /**
- * Tries each candidate SKU via addProductsToCart until one succeeds (checked via wasRejected,
- * covering both top-level errors and user_errors). When opts.removeAfterProbe is true,
- * immediately removes the added item after a successful add, leaving the cart as it was
- * (gra-cart-minicart's probe-add-then-remove pattern). Never throws for "no candidate worked" —
- * callers inspect result.added and react (e.g. throw their own contextual error).
+ * Never throws for "no candidate worked" — callers inspect result.added and react (e.g. throw
+ * their own contextual error).
  */
 export async function addFirstAddableProduct(
   client: GraphQLClient,

@@ -3,11 +3,6 @@ import { DragAndDropData } from '../../src/data/drag-and-drop-data';
 import { createTestLogger } from '../../src/utils/test-logger';
 import path from 'path';
 
-/**
- * Upload File Tests
- * @feature Upload File
- * @story Upload File
- */
 
   
 test.describe('Form Drag And Drop Tests', () => {
