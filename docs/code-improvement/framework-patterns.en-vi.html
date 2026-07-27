@@ -1,0 +1,2663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playwright TypeScript Framework: Design Patterns (EN/VI)</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+      --tag-bg: #1e2640;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; padding: 40px 48px; max-width: 2200px; }
+
+    .sidebar-logo {
+      padding: 0 24px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: block;
+      padding: 7px 12px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(91,138,245,.15); color: var(--accent); }
+    .nav-num { display: inline-block; width: 20px; font-size: 11px; color: var(--muted); }
+    .nav-sub { display: block; font-size: 10px; color: var(--muted); padding-left: 32px; margin-top: -4px; margin-bottom: 4px; }
+
+    .page-header { margin-bottom: 40px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+    .page-header h1 { font-size: 26px; font-weight: 800; background: linear-gradient(135deg,#5b8af5,#ce93d8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .page-header .sub { color: var(--muted); margin-top: 8px; font-size: 14px; }
+    .meta-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .chip {
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      border: 1px solid;
+    }
+    .chip-blue { background: rgba(91,138,245,.1); border-color: rgba(91,138,245,.4); color: #5b8af5; }
+    .chip-green { background: rgba(61,220,132,.1); border-color: rgba(61,220,132,.4); color: #3ddc84; }
+    .chip-purple { background: rgba(206,147,216,.1); border-color: rgba(206,147,216,.4); color: #ce93d8; }
+
+    .section { margin-bottom: 56px; }
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg,var(--accent),var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 19px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* ── Bilingual column pair ── */
+    .bi-block { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; margin-bottom: 18px; }
+    .col-en, .col-vi { min-width: 0; }
+    .col-vi { border-left: 1px solid var(--border); padding-left: 28px; }
+    .lang-tag {
+      font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px; display: inline-block;
+    }
+    .lang-tag.vi { color: var(--cyan); }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 4px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .card-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .card-body { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+    .card-body strong { color: var(--text); }
+    .card-icon { font-size: 15px; }
+
+    .pattern { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .pattern-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .pattern-title { font-size: 14px; font-weight: 700; }
+    .pattern-body { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.65; }
+    .pattern-body strong { color: var(--text); }
+    .badge {
+      padding: 3px 9px; border-radius: 4px; font-size: 10.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0;
+    }
+    .badge-arch { background: rgba(91,138,245,.15); color: var(--accent); }
+    .badge-test { background: rgba(61,220,132,.15); color: var(--green); }
+    .badge-ci { background: rgba(255,179,0,.15); color: var(--amber); }
+    .badge-api { background: rgba(0,188,212,.15); color: var(--cyan); }
+    .badge-ts { background: rgba(206,147,216,.15); color: var(--purple); }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      font-size: 11.5px;
+      line-height: 1.55;
+      font-family: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    }
+    .code-label {
+      display: inline-block; font-size: 10px; font-weight: 700; color: var(--muted);
+      letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .kw { color: #c792ea; }
+    .fn { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .type { color: #ffcb6b; }
+    .num { color: #f78c6c; }
+    .prop { color: #89ddff; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 4px 0; }
+    th { background: var(--surface2); color: var(--accent); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border); }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--muted); vertical-align: top; }
+    td strong { color: var(--text); }
+    code {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1px 6px; font-size: 11.5px;
+      font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    .callout {
+      border-radius: 8px; padding: 12px 16px; font-size: 12.5px;
+      display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 0;
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .callout-blue { background: rgba(91,138,245,.08); border: 1px solid rgba(91,138,245,.25); }
+    .callout-green { background: rgba(61,220,132,.08); border: 1px solid rgba(61,220,132,.25); }
+    .callout-amber { background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.25); }
+    .callout-body { color: var(--muted); }
+    .callout-body strong { color: var(--text); }
+
+    .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .flow-node {
+      padding: 7px 14px; border-radius: 8px; font-size: 11.5px; font-weight: 600;
+      background: var(--surface2); border: 1px solid var(--border); white-space: nowrap;
+    }
+    .flow-arrow { color: var(--muted); font-size: 16px; }
+    .flow-node.highlight { background: rgba(91,138,245,.15); border-color: rgba(91,138,245,.4); color: var(--accent); }
+    .flow-node.green { background: rgba(61,220,132,.1); border-color: rgba(61,220,132,.35); color: var(--green); }
+    .flow-node.amber { background: rgba(255,179,0,.1); border-color: rgba(255,179,0,.35); color: var(--amber); }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+    @media (max-width: 1500px) { .bi-block { grid-template-columns: 1fr; } .col-vi { border-left: none; padding-left: 0; border-top: 1px dashed var(--border); padding-top: 14px; margin-top: 4px; } }
+    @media (max-width: 800px) {
+      .sidebar { display: none; }
+      .main { padding: 28px 20px; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>PW TypeScript Framework</h2>
+      <p>Patterns &amp; Best Practices: EN / VI</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Architecture / Kiến trúc</div>
+      <a href="#pom" class="nav-item"><span class="nav-num">01</span>Composition-Based POM</a>
+      <a href="#helpers" class="nav-item"><span class="nav-num">02</span>Helper Layer</a>
+      <a href="#fixtures" class="nav-item"><span class="nav-num">03</span>Custom Fixtures</a>
+      <a href="#imports" class="nav-item"><span class="nav-num">04</span>Import Convention</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Test Patterns / Mẫu test</div>
+      <a href="#structure" class="nav-item"><span class="nav-num">05</span>Test Structure</a>
+      <a href="#data" class="nav-item"><span class="nav-num">06</span>Test Data</a>
+      <a href="#assertions" class="nav-item"><span class="nav-num">07</span>Assertions</a>
+      <a href="#logging" class="nav-item"><span class="nav-num">08</span>Logging</a>
+      <a href="#timeouts" class="nav-item"><span class="nav-num">09</span>Timeouts</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">API Testing / Kiểm thử API</div>
+      <a href="#api-clients" class="nav-item"><span class="nav-num">10</span>API Client Hierarchy</a>
+      <a href="#graphql" class="nav-item"><span class="nav-num">11</span>GraphQL Patterns</a>
+      <a href="#gra" class="nav-item"><span class="nav-num">12</span>GRA Multi-Brand</a>
+      <a href="#api-state" class="nav-item"><span class="nav-num">13</span>Shared State</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Execution / Thực thi</div>
+      <a href="#parallel" class="nav-item"><span class="nav-num">14</span>Parallelism &amp; Workers</a>
+      <a href="#retry" class="nav-item"><span class="nav-num">15</span>Retry Mechanism</a>
+      <a href="#env" class="nav-item"><span class="nav-num">16</span>Environment Config</a>
+      <a href="#lifecycle" class="nav-item"><span class="nav-num">17</span>Global Lifecycle</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">CI/CD &amp; Reporting</div>
+      <a href="#cicd" class="nav-item"><span class="nav-num">18</span>CI/CD Pipelines</a>
+      <a href="#reporting" class="nav-item"><span class="nav-num">19</span>Reporting</a>
+      <a href="#visual" class="nav-item"><span class="nav-num">20</span>Visual Testing</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Code Quality / Chất lượng mã</div>
+      <a href="#typescript" class="nav-item"><span class="nav-num">21</span>TypeScript Quality</a>
+      <a href="#mocking" class="nav-item"><span class="nav-num">22</span>API Mocking</a>
+      <a href="#workarounds" class="nav-item"><span class="nav-num">23</span>Browser Workarounds</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <div class="page-header">
+      <h1>Framework Design Patterns &amp; Best Practices</h1>
+      <p class="sub">Bilingual reference (English / Vietnamese) for all patterns, conventions, and automation practices applied in this Playwright TypeScript framework.</p>
+      <p class="sub" style="margin-top:2px">Tài liệu tham khảo song ngữ (Anh / Việt) về các pattern, quy ước và thực hành automation được áp dụng trong framework Playwright TypeScript này.</p>
+      <div class="meta-chips">
+        <span class="chip chip-blue">Playwright v1.59</span>
+        <span class="chip chip-blue">TypeScript Strict</span>
+        <span class="chip chip-green">Composition-Based POM</span>
+        <span class="chip chip-green">GRA Multi-Brand API</span>
+        <span class="chip chip-purple">GitHub Actions CI</span>
+        <span class="chip chip-purple">Monocart + Slack</span>
+      </div>
+    </div>
+
+    <section class="section" id="pom">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Composition-Based Page Object Model</h2>
+          <div class="section-desc">Favour composition over inheritance for all browser interactions / Ưu tiên composition hơn inheritance cho mọi thao tác trình duyệt</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">AbstractBasePage → Composed Helpers</span>
+          <span class="badge badge-arch">Architecture</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              <strong>All page objects extend <code>BasePage</code></strong>, which owns 8 specialised helper instances as <code>protected readonly</code> fields.
+              Browser interactions are delegated to helpers. <strong>Never call <code>page.locator()</code> or <code>page.click()</code> directly inside a page class.</strong>
+              This decouples interaction logic from page semantics and keeps helpers testable and swappable on their own.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              <strong>Mọi page object đều kế thừa <code>BasePage</code></strong>, lớp này sở hữu 8 helper chuyên biệt dưới dạng field <code>protected readonly</code>.
+              Các thao tác trình duyệt được ủy quyền cho helper. <strong>Không gọi trực tiếp <code>page.locator()</code> hay <code>page.click()</code> bên trong một page class.</strong>
+              Cách này tách logic thao tác khỏi ngữ nghĩa của page, giúp helper dễ kiểm thử và dễ thay thế độc lập.
+            </p>
+          </div>
+        </div>
+        <pre><span class="cmt">// src/pages/base-page.ts: abstract root of the POM hierarchy</span>
+<span class="kw">export abstract class</span> <span class="type">BasePage</span> {
+  <span class="kw">protected</span> page: <span class="type">Page</span>;
+  <span class="kw">protected readonly</span> waits:    <span class="type">WaitHelper</span>;
+  <span class="kw">protected readonly</span> elements: <span class="type">ElementHelper</span>;
+  <span class="kw">protected readonly</span> style:    <span class="type">StyleHelper</span>;
+  <span class="kw">protected readonly</span> frames:   <span class="type">FrameHelper</span>;
+  <span class="kw">protected readonly</span> files:    <span class="type">FileHelper</span>;
+  <span class="kw">protected readonly</span> storage:  <span class="type">StorageHelper</span>;
+  <span class="kw">protected readonly</span> network:  <span class="type">NetworkHelper</span>;
+  <span class="kw">protected readonly</span> tables:   <span class="type">TableHelper</span>;
+
+  <span class="fn">constructor</span>(page: <span class="type">Page</span>) {
+    <span class="kw">this</span>.page     = page;
+    <span class="kw">this</span>.waits    = <span class="kw">new</span> <span class="type">WaitHelper</span>(page);
+    <span class="kw">this</span>.elements = <span class="kw">new</span> <span class="type">ElementHelper</span>(page, <span class="kw">this</span>.waits);
+    <span class="kw">this</span>.style    = <span class="kw">new</span> <span class="type">StyleHelper</span>(page, <span class="kw">this</span>.waits);
+    <span class="kw">this</span>.frames   = <span class="kw">new</span> <span class="type">FrameHelper</span>(page);
+    <span class="kw">this</span>.files    = <span class="kw">new</span> <span class="type">FileHelper</span>(page, <span class="kw">this</span>.waits);
+    <span class="kw">this</span>.storage  = <span class="kw">new</span> <span class="type">StorageHelper</span>(page);
+    <span class="kw">this</span>.network  = <span class="kw">new</span> <span class="type">NetworkHelper</span>(page);
+    <span class="kw">this</span>.tables   = <span class="kw">new</span> <span class="type">TableHelper</span>(page, <span class="kw">this</span>.waits, <span class="kw">this</span>.elements);
+  }
+}</pre>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">Locators Hoisted to Class Fields</span>
+          <span class="badge badge-arch">Convention</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              All <code>Locator</code> instances and raw selector strings <strong>must be declared as <code>private readonly</code> class fields</strong> at the top of every page class.
+              This keeps selectors discoverable in one place, allows refactors without touching method bodies, and satisfies TypeScript's strict mode.
+              Dynamic (parameter-driven) locators live in private helper methods that reference the field-level constants.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Mọi <code>Locator</code> và chuỗi selector thô <strong>phải được khai báo dưới dạng field <code>private readonly</code></strong> ở đầu mỗi page class.
+              Cách này giúp selector nằm ở một nơi dễ tra cứu, cho phép refactor mà không cần đụng vào thân method, và đáp ứng chế độ strict của TypeScript.
+              Locator động (phụ thuộc tham số) được đặt trong các private helper method, các method này tham chiếu tới hằng số ở cấp field.
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <div class="code-label">✅ Correct</div>
+            <pre><span class="kw">class</span> <span class="type">CheckoutPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="cmt">// Locators as class fields</span>
+  <span class="kw">private readonly</span> submitBtn =
+    <span class="kw">this</span>.page.<span class="fn">getByRole</span>(<span class="str">'button'</span>,
+      { name: <span class="str">'Place Order'</span> });
+  <span class="kw">private readonly</span> itemSel =
+    <span class="str">'[data-testid="cart-item"]'</span>;
+
+  <span class="kw">async</span> <span class="fn">placeOrder</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="kw">await this</span>.elements.<span class="fn">clickLocator</span>(
+      <span class="kw">this</span>.submitBtn);
+  }
+}</pre>
+          </div>
+          <div class="col-vi">
+            <div class="code-label">✅ Đúng</div>
+            <pre><span class="kw">class</span> <span class="type">CheckoutPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="cmt">// Locator khai báo dưới dạng class field</span>
+  <span class="kw">private readonly</span> submitBtn =
+    <span class="kw">this</span>.page.<span class="fn">getByRole</span>(<span class="str">'button'</span>,
+      { name: <span class="str">'Place Order'</span> });
+  <span class="kw">private readonly</span> itemSel =
+    <span class="str">'[data-testid="cart-item"]'</span>;
+
+  <span class="kw">async</span> <span class="fn">placeOrder</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="kw">await this</span>.elements.<span class="fn">clickLocator</span>(
+      <span class="kw">this</span>.submitBtn);
+  }
+}</pre>
+          </div>
+        </div>
+        <div class="bi-block" style="margin-top:-8px">
+          <div class="col-en">
+            <div class="code-label">❌ Banned</div>
+            <pre><span class="kw">class</span> <span class="type">CheckoutPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="kw">async</span> <span class="fn">placeOrder</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="cmt">// WRONG: inline selector in helper call</span>
+    <span class="kw">await this</span>.elements.<span class="fn">clickElement</span>(
+      <span class="str">'[data-testid="submit"]'</span>);
+
+    <span class="cmt">// WRONG: direct page.locator</span>
+    <span class="kw">await this</span>.page
+      .<span class="fn">locator</span>(<span class="str">'.btn-submit'</span>)
+      .<span class="fn">click</span>();
+  }
+}</pre>
+          </div>
+          <div class="col-vi">
+            <div class="code-label">❌ Cấm dùng</div>
+            <pre><span class="kw">class</span> <span class="type">CheckoutPage</span> <span class="kw">extends</span> <span class="type">BasePage</span> {
+  <span class="kw">async</span> <span class="fn">placeOrder</span>(): <span class="type">Promise&lt;void&gt;</span> {
+    <span class="cmt">// SAI: selector viết thẳng trong lời gọi helper</span>
+    <span class="kw">await this</span>.elements.<span class="fn">clickElement</span>(
+      <span class="str">'[data-testid="submit"]'</span>);
+
+    <span class="cmt">// SAI: gọi page.locator trực tiếp</span>
+    <span class="kw">await this</span>.page
+      .<span class="fn">locator</span>(<span class="str">'.btn-submit'</span>)
+      .<span class="fn">click</span>();
+  }
+}</pre>
+          </div>
+        </div>
+        <div class="bi-block" style="margin-top:6px">
+          <div class="col-en">
+            <div class="callout callout-amber">
+              <span class="callout-icon">🚫</span>
+              <div class="callout-body"><strong>Banned selectors:</strong> Hierarchical structural selectors like <code>div &gt; span &gt; ul &gt; li:nth-child(2)</code> are prohibited. They break on any DOM restructure and carry no semantic meaning. Prefer <code>getByRole()</code>, <code>getByLabel()</code>, <code>getByText()</code>. CSS selectors are only acceptable for computed-style queries (<code>this.style.*</code>) or <code>evaluate()</code> calls.</div>
+            </div>
+          </div>
+          <div class="col-vi">
+            <div class="callout callout-amber">
+              <span class="callout-icon">🚫</span>
+              <div class="callout-body"><strong>Selector bị cấm:</strong> Cấm dùng selector cấu trúc phân cấp kiểu <code>div &gt; span &gt; ul &gt; li:nth-child(2)</code>. Chúng dễ gãy khi DOM thay đổi cấu trúc và không mang ý nghĩa ngữ nghĩa nào. Ưu tiên <code>getByRole()</code>, <code>getByLabel()</code>, <code>getByText()</code>. CSS selector chỉ chấp nhận cho truy vấn computed-style (<code>this.style.*</code>) hoặc trong lời gọi <code>evaluate()</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="helpers">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Helper Layer: Single Responsibility Classes</h2>
+          <div class="section-desc">Each helper class owns one domain of browser interaction / Mỗi helper class phụ trách một mảng thao tác trình duyệt</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <table>
+            <thead><tr><th>Field</th><th>Class</th><th>Responsibility</th></tr></thead>
+            <tbody>
+              <tr><td><code>this.waits</code></td><td><strong>WaitHelper</strong></td><td>Page/element/network synchronisation, AJAX, spinner detection, custom poll conditions</td></tr>
+              <tr><td><code>this.elements</code></td><td><strong>ElementHelper</strong></td><td>Clicks, text input, getText, attributes, scroll, drag-drop, keyboard, dropdowns</td></tr>
+              <tr><td><code>this.style</code></td><td><strong>StyleHelper</strong></td><td>Computed colours (to hex), CSS properties, element dimensions, image natural size</td></tr>
+              <tr><td><code>this.frames</code></td><td><strong>FrameHelper</strong></td><td>iframe operations via <code>frameLocator()</code> API</td></tr>
+              <tr><td><code>this.files</code></td><td><strong>FileHelper</strong></td><td>File upload via input or drag-and-drop, multi-file, clear uploaded</td></tr>
+              <tr><td><code>this.storage</code></td><td><strong>StorageHelper</strong></td><td>Cookies, localStorage, sessionStorage, clipboard read/write</td></tr>
+              <tr><td><code>this.network</code></td><td><strong>NetworkHelper</strong></td><td>Route mocking, request interception, HAR recording, performance timing</td></tr>
+              <tr><td><code>this.tables</code></td><td><strong>TableHelper</strong></td><td>HTML table row/cell access, sorting, pagination, data extraction</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <table>
+            <thead><tr><th>Field</th><th>Class</th><th>Trách nhiệm</th></tr></thead>
+            <tbody>
+              <tr><td><code>this.waits</code></td><td><strong>WaitHelper</strong></td><td>Đồng bộ page/element/network, phát hiện AJAX, spinner, các điều kiện poll tùy chỉnh</td></tr>
+              <tr><td><code>this.elements</code></td><td><strong>ElementHelper</strong></td><td>Click, nhập text, getText, thuộc tính, scroll, kéo thả, bàn phím, dropdown</td></tr>
+              <tr><td><code>this.style</code></td><td><strong>StyleHelper</strong></td><td>Màu computed (đổi sang hex), thuộc tính CSS, kích thước phần tử, kích thước gốc của ảnh</td></tr>
+              <tr><td><code>this.frames</code></td><td><strong>FrameHelper</strong></td><td>Thao tác iframe qua API <code>frameLocator()</code></td></tr>
+              <tr><td><code>this.files</code></td><td><strong>FileHelper</strong></td><td>Upload file qua input hoặc kéo thả, nhiều file, xóa file đã upload</td></tr>
+              <tr><td><code>this.storage</code></td><td><strong>StorageHelper</strong></td><td>Cookie, localStorage, sessionStorage, đọc/ghi clipboard</td></tr>
+              <tr><td><code>this.network</code></td><td><strong>NetworkHelper</strong></td><td>Mock route, chặn request, ghi HAR, đo hiệu năng</td></tr>
+              <tr><td><code>this.tables</code></td><td><strong>TableHelper</strong></td><td>Truy cập dòng/ô bảng HTML, sắp xếp, phân trang, trích xuất dữ liệu</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:6px">
+        <div class="col-en">
+          <div class="callout callout-blue">
+            <span class="callout-icon">ℹ️</span>
+            <div class="callout-body"><strong>Backward-compatible delegations:</strong> <code>BasePage</code> still exposes shim methods like <code>this.clickElement()</code> so existing page objects compile unchanged. New code should call the helper directly: <code>this.elements.clickElement()</code>. New browser interactions belong in a helper class, never in <code>BasePage</code> itself.</div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="callout callout-blue">
+            <span class="callout-icon">ℹ️</span>
+            <div class="callout-body"><strong>Delegation tương thích ngược:</strong> <code>BasePage</code> vẫn giữ các method shim như <code>this.clickElement()</code> để page object cũ biên dịch được không cần sửa. Code mới nên gọi thẳng helper: <code>this.elements.clickElement()</code>. Thao tác trình duyệt mới luôn thuộc về một helper class, không đặt trong <code>BasePage</code>.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="fixtures">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Custom Fixtures: Playwright Extension Pattern</h2>
+          <div class="section-desc">Page objects and shared utilities injected via <code>test.extend()</code> / Page object và tiện ích dùng chung được inject qua <code>test.extend()</code></div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">test.extend&lt;CustomFixtures&gt;</span>
+          <span class="badge badge-arch">Design Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              <code>src/config/base-test.ts</code> extends Playwright's <code>test</code> with all page objects and utilities.
+              Tests receive page objects via destructuring; no <code>new</code> calls in spec files.
+              Each fixture is instantiated lazily, per test, keeping tests isolated from each other.
+              The <code>use()</code> function marks the setup/teardown boundary: code after <code>await use(...)</code> runs during teardown.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              <code>src/config/base-test.ts</code> mở rộng <code>test</code> của Playwright với toàn bộ page object và tiện ích.
+              Test nhận page object qua destructuring, không có lời gọi <code>new</code> nào trong file spec.
+              Mỗi fixture được khởi tạo theo kiểu lazy, cho từng test, giữ các test tách biệt với nhau.
+              Hàm <code>use()</code> đánh dấu ranh giới setup/teardown: đoạn code sau <code>await use(...)</code> chạy trong giai đoạn teardown.
+            </p>
+          </div>
+        </div>
+        <pre><span class="cmt">// src/config/base-test.ts</span>
+<span class="kw">export const</span> test = base.<span class="fn">extend</span>&lt;<span class="type">CustomFixtures</span>&gt;({
+  homePage: <span class="kw">async</span> ({ page }, use) =&gt; {
+    <span class="kw">await</span> <span class="fn">use</span>(<span class="kw">new</span> <span class="type">HomePage</span>(page));
+  },
+
+  softAssert: <span class="kw">async</span> ({}, use) =&gt; {
+    <span class="kw">await</span> <span class="fn">use</span>(<span class="kw">new</span> <span class="type">SoftAssertHelper</span>(<span class="kw">new</span> <span class="type">TestLogger</span>(base.<span class="fn">info</span>().title)));
+  },
+
+  ecommerceCartOverlayPage: <span class="kw">async</span> ({ page }, use) =&gt; {
+    <span class="kw">await</span> <span class="fn">use</span>(<span class="kw">new</span> <span class="type">EcommerceCartOverlayPage</span>(page));
+    <span class="cmt">// Teardown: Firefox SPA service-worker workaround (see §23)</span>
+    <span class="kw">if</span> (page.<span class="fn">context</span>().<span class="fn">browser</span>()?.browserType().<span class="fn">name</span>() === <span class="str">'firefox'</span>) {
+      <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'about:blank'</span>, { waitUntil: <span class="str">'commit'</span> }).<span class="fn">catch</span>(() =&gt; {});
+    }
+  },
+});
+
+<span class="kw">export</span> { expect };
+<span class="kw">export const</span> softExpect: <span class="kw">typeof</span> expect.soft = expect.soft.<span class="fn">bind</span>(expect);</pre>
+      </div>
+    </section>
+
+    <section class="section" id="imports">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Import Convention &amp; Path Aliases</h2>
+          <div class="section-desc">Strict import rules prevent fixture loss and circular dependencies / Quy tắc import nghiêm ngặt tránh mất fixture và phụ thuộc vòng</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <table>
+            <thead><tr><th>Context</th><th>Import from</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td><strong>UI / frontsite tests</strong></td><td><code>@config/base-test</code></td><td>Gets all page object fixtures plus <code>softExpect</code></td></tr>
+              <tr><td><strong>GRA API specs</strong> (<code>pla-*.spec.ts</code>)</td><td><code>./gra-test</code></td><td>Gets <code>site: SiteContext</code> and <code>siteState</code> fixtures for multi-brand injection</td></tr>
+              <tr><td><strong>Non-GRA API specs</strong></td><td><code>../../src/api/ApiTest</code></td><td>Gets <code>apiClient</code>, <code>graphqlClient</code>, etc.</td></tr>
+              <tr><td><strong>Never</strong></td><td><code>@playwright/test</code> in spec files</td><td>Loses all custom fixtures silently: tests still compile, but the fixtures come back undefined</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <table>
+            <thead><tr><th>Ngữ cảnh</th><th>Import từ</th><th>Lý do</th></tr></thead>
+            <tbody>
+              <tr><td><strong>UI / test frontsite</strong></td><td><code>@config/base-test</code></td><td>Có đủ mọi fixture page object cộng thêm <code>softExpect</code></td></tr>
+              <tr><td><strong>Spec API của GRA</strong> (<code>pla-*.spec.ts</code>)</td><td><code>./gra-test</code></td><td>Có fixture <code>site: SiteContext</code> và <code>siteState</code> để inject đa thương hiệu</td></tr>
+              <tr><td><strong>Spec API ngoài GRA</strong></td><td><code>../../src/api/ApiTest</code></td><td>Có <code>apiClient</code>, <code>graphqlClient</code>, v.v.</td></tr>
+              <tr><td><strong>Không bao giờ</strong></td><td><code>@playwright/test</code> trong file spec</td><td>Mất toàn bộ fixture tùy chỉnh một cách âm thầm: test vẫn biên dịch được, nhưng fixture trả về undefined</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:12px">
+        <div class="col-en">
+          <div class="callout callout-green">
+            <span class="callout-icon">📁</span>
+            <div class="callout-body"><strong>TypeScript path aliases</strong> (configured in <code>tsconfig.json</code>):
+              <code>@pages/*</code> → <code>src/pages/*</code> &nbsp;|&nbsp;
+              <code>@utils/*</code> → <code>src/utils/*</code> &nbsp;|&nbsp;
+              <code>@config/*</code> → <code>src/config/*</code> &nbsp;|&nbsp;
+              <code>@data/*</code> → <code>src/data/*</code> &nbsp;|&nbsp;
+              <code>@tests/*</code> → <code>tests/*</code>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="callout callout-green">
+            <span class="callout-icon">📁</span>
+            <div class="callout-body"><strong>Path alias của TypeScript</strong> (cấu hình trong <code>tsconfig.json</code>):
+              <code>@pages/*</code> → <code>src/pages/*</code> &nbsp;|&nbsp;
+              <code>@utils/*</code> → <code>src/utils/*</code> &nbsp;|&nbsp;
+              <code>@config/*</code> → <code>src/config/*</code> &nbsp;|&nbsp;
+              <code>@data/*</code> → <code>src/data/*</code> &nbsp;|&nbsp;
+              <code>@tests/*</code> → <code>tests/*</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section class="section" id="structure">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Test Structure &amp; Naming Conventions</h2>
+          <div class="section-desc">Consistent patterns across all specs for discoverability and CI filtering / Quy ước nhất quán giữa các spec để dễ tra cứu và lọc trong CI</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@config/base-test'</span>;
+<span class="kw">import</span> { <span class="type">MyData</span> } <span class="kw">from</span> <span class="str">'../../src/data/my-data'</span>;
+<span class="kw">import</span> { <span class="fn">createTestLogger</span> } <span class="kw">from</span> <span class="str">'../../src/utils/test-logger'</span>;
+
+test.<span class="fn">describe</span>(<span class="str">'Feature Name @tag1 @tag2'</span>, () =&gt; {
+  test(<span class="str">'TC_01 - Description of what the test does'</span>, <span class="kw">async</span> ({ myPage }) =&gt; {
+    <span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_01 Description'</span>);
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 1 - Navigate to page'</span>);
+    <span class="kw">await</span> myPage.<span class="fn">navigateToPage</span>();
+
+    logger.<span class="fn">step</span>(<span class="str">'Step 2 - Assert element visible'</span>);
+    <span class="fn">expect</span>(<span class="kw">await</span> myPage.<span class="fn">isElementVisible</span>()).<span class="fn">toBeTruthy</span>();
+  });
+});</pre>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <pre><span class="kw">import</span> { test, expect } <span class="kw">from</span> <span class="str">'@config/base-test'</span>;
+<span class="kw">import</span> { <span class="type">MyData</span> } <span class="kw">from</span> <span class="str">'../../src/data/my-data'</span>;
+<span class="kw">import</span> { <span class="fn">createTestLogger</span> } <span class="kw">from</span> <span class="str">'../../src/utils/test-logger'</span>;
+
+test.<span class="fn">describe</span>(<span class="str">'Feature Name @tag1 @tag2'</span>, () =&gt; {
+  test(<span class="str">'TC_01 - Description of what the test does'</span>, <span class="kw">async</span> ({ myPage }) =&gt; {
+    <span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_01 Description'</span>);
+
+    logger.<span class="fn">step</span>(<span class="str">'Bước 1 - Điều hướng tới trang'</span>);
+    <span class="kw">await</span> myPage.<span class="fn">navigateToPage</span>();
+
+    logger.<span class="fn">step</span>(<span class="str">'Bước 2 - Kiểm tra phần tử hiển thị'</span>);
+    <span class="fn">expect</span>(<span class="kw">await</span> myPage.<span class="fn">isElementVisible</span>()).<span class="fn">toBeTruthy</span>();
+  });
+});</pre>
+        </div>
+      </div>
+
+      <div class="bi-block" style="margin-top:16px">
+        <div class="col-en">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title"><span class="card-icon">🏷️</span>Test Naming</div>
+              <div class="card-body">
+                <strong>UI/API:</strong> <code>TC_01 - Description</code><br>
+                <strong>Ecommerce smoke:</strong> <code>E2E-{DOMAIN}-{NNN}-{site}</code><br>
+                <strong>Legacy PLA:</strong> <code>PLA_OperationName - description</code><br>
+                Never rename existing tests: it breaks CI tag filtering and monocart history.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-icon">🏷️</span>Tagging Strategy</div>
+              <div class="card-body">
+                Tags go in the <code>test.describe()</code> name string.<br>
+                <strong>Common tags:</strong> <code>@api</code>, <code>@graphql</code>, <code>@regression</code>, <code>@smoke</code>, <code>@frontsite</code>, <code>@ecommerce</code>, <code>@admin</code><br>
+                Run subsets with <code>--grep "@smoke"</code> in CI.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-icon">🔧</span>forbidOnly in CI</div>
+              <div class="card-body">
+                <code>forbidOnly: !!process.env.CI</code> in both configs.<br>
+                Any accidental <code>test.only()</code> committed to the repo fails the build immediately instead of silently skipping other tests.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-icon">📋</span>Two Configs, Two Scopes</div>
+              <div class="card-body">
+                <strong>playwright.config.ts</strong>: UI tests, ignores <code>**/api/**</code><br>
+                <strong>api.config.ts</strong>: API tests only, no browser<br>
+                Both read from <code>src/config/environment.ts</code> via <code>.env.{NODE_ENV}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title"><span class="card-icon">🏷️</span>Đặt tên test</div>
+              <div class="card-body">
+                <strong>UI/API:</strong> <code>TC_01 - Description</code><br>
+                <strong>Ecommerce smoke:</strong> <code>E2E-{DOMAIN}-{NNN}-{site}</code><br>
+                <strong>PLA cũ:</strong> <code>PLA_OperationName - description</code><br>
+                Không đổi tên test đã có: việc này phá vỡ bộ lọc tag trong CI và lịch sử của monocart.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-icon">🏷️</span>Chiến lược gắn tag</div>
+              <div class="card-body">
+                Tag được đặt trong chuỗi tên của <code>test.describe()</code>.<br>
+                <strong>Tag thường dùng:</strong> <code>@api</code>, <code>@graphql</code>, <code>@regression</code>, <code>@smoke</code>, <code>@frontsite</code>, <code>@ecommerce</code>, <code>@admin</code><br>
+                Chạy tập con bằng <code>--grep "@smoke"</code> trong CI.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-icon">🔧</span>forbidOnly trong CI</div>
+              <div class="card-body">
+                <code>forbidOnly: !!process.env.CI</code> ở cả hai config.<br>
+                Bất kỳ <code>test.only()</code> nào lỡ commit vào repo sẽ làm build fail ngay lập tức, thay vì âm thầm bỏ qua các test khác.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-icon">📋</span>Hai config, hai phạm vi</div>
+              <div class="card-body">
+                <strong>playwright.config.ts</strong>: test UI, bỏ qua <code>**/api/**</code><br>
+                <strong>api.config.ts</strong>: chỉ test API, không dùng trình duyệt<br>
+                Cả hai đều đọc cấu hình từ <code>src/config/environment.ts</code> qua <code>.env.{NODE_ENV}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="data">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Test Data Management</h2>
+          <div class="section-desc">Typed, generated, never hardcoded in specs / Có kiểu dữ liệu, được sinh động, không bao giờ hardcode trong spec</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory + Typed Interface Pattern</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              All test data lives in <code>src/data/</code>. Every exported constant and generator return type <strong>must carry a named interface annotation</strong>: never rely on TypeScript inference for exported data shapes. Static constants use <code>const</code> objects; dynamic/random data uses generator classes with explicit return types.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Toàn bộ dữ liệu test nằm trong <code>src/data/</code>. Mọi hằng số export và kiểu trả về của generator <strong>phải gắn interface có tên</strong>: không dựa vào suy luận kiểu của TypeScript cho các shape dữ liệu được export. Hằng số tĩnh dùng object <code>const</code>; dữ liệu động/ngẫu nhiên dùng generator class với kiểu trả về khai báo rõ ràng.
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <pre><span class="cmt">// Correct: named interfaces, annotated const, typed generator</span>
+<span class="kw">export interface</span> <span class="type">LoginCredentials</span> { username: <span class="type">string</span>; password: <span class="type">string</span>; }
+
+<span class="kw">export interface</span> <span class="type">AdminDataShape</span> {
+  VALID_ADMIN:    <span class="type">LoginCredentials</span>;
+  INVALID_ADMIN:  <span class="type">LoginCredentials</span>;
+  EMPTY_CREDENTIALS: <span class="type">LoginCredentials</span>;
+}
+
+<span class="kw">export const</span> AdminData: <span class="type">AdminDataShape</span> = {
+  VALID_ADMIN:   { username: <span class="str">'admin'</span>, password: <span class="str">'pass123'</span> },
+  INVALID_ADMIN: { username: <span class="str">'wrong'</span>, password: <span class="str">'wrong'</span>  },
+  EMPTY_CREDENTIALS: { username: <span class="str">''</span>, password: <span class="str">''</span> },
+};
+
+<span class="kw">export class</span> <span class="type">AdminTestDataGenerator</span> {
+  <span class="kw">static</span> <span class="fn">generateCustomerData</span>(): <span class="type">CustomerData</span> { <span class="cmt">// explicit return type</span>
+    <span class="kw">const</span> ts = Date.<span class="fn">now</span>();
+    <span class="kw">return</span> { customerName: <span class="str">`Test ${ts}`</span>, email: <span class="str">`test${ts}@mail.com`</span> };
+  }
+}</pre>
+          </div>
+          <div class="col-vi">
+            <pre><span class="cmt">// Đúng: interface có tên, const có annotation, generator có kiểu</span>
+<span class="kw">export interface</span> <span class="type">LoginCredentials</span> { username: <span class="type">string</span>; password: <span class="type">string</span>; }
+
+<span class="kw">export interface</span> <span class="type">AdminDataShape</span> {
+  VALID_ADMIN:    <span class="type">LoginCredentials</span>;
+  INVALID_ADMIN:  <span class="type">LoginCredentials</span>;
+  EMPTY_CREDENTIALS: <span class="type">LoginCredentials</span>;
+}
+
+<span class="kw">export const</span> AdminData: <span class="type">AdminDataShape</span> = {
+  VALID_ADMIN:   { username: <span class="str">'admin'</span>, password: <span class="str">'pass123'</span> },
+  INVALID_ADMIN: { username: <span class="str">'wrong'</span>, password: <span class="str">'wrong'</span>  },
+  EMPTY_CREDENTIALS: { username: <span class="str">''</span>, password: <span class="str">''</span> },
+};
+
+<span class="kw">export class</span> <span class="type">AdminTestDataGenerator</span> {
+  <span class="kw">static</span> <span class="fn">generateCustomerData</span>(): <span class="type">CustomerData</span> { <span class="cmt">// kiểu trả về khai báo rõ</span>
+    <span class="kw">const</span> ts = Date.<span class="fn">now</span>();
+    <span class="kw">return</span> { customerName: <span class="str">`Test ${ts}`</span>, email: <span class="str">`test${ts}@mail.com`</span> };
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:14px">
+        <div class="col-en">
+          <table>
+            <thead><tr><th>Location</th><th>Content</th></tr></thead>
+            <tbody>
+              <tr><td><code>src/data/*.ts</code></td><td>UI / general test data modules</td></tr>
+              <tr><td><code>src/data/api/</code></td><td>API test data: one file per feature domain (<code>pla-catalog-data.ts</code>, <code>pla-auth-data.ts</code>…)</td></tr>
+              <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td>Ecommerce brand/storefront config constants</td></tr>
+              <tr><td><code>src/data/api/sites.ts</code></td><td>GRA brand registry: <code>SiteContext</code> per brand with baseURL, testData, hasLoyalty flag</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <table>
+            <thead><tr><th>Vị trí</th><th>Nội dung</th></tr></thead>
+            <tbody>
+              <tr><td><code>src/data/*.ts</code></td><td>Module dữ liệu test cho UI / dùng chung</td></tr>
+              <tr><td><code>src/data/api/</code></td><td>Dữ liệu test API: mỗi domain tính năng một file (<code>pla-catalog-data.ts</code>, <code>pla-auth-data.ts</code>…)</td></tr>
+              <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td>Hằng số cấu hình thương hiệu/storefront cho ecommerce</td></tr>
+              <tr><td><code>src/data/api/sites.ts</code></td><td>Danh mục thương hiệu GRA: <code>SiteContext</code> theo từng brand gồm baseURL, testData, cờ hasLoyalty</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:20px">
+        <div class="pattern-header">
+          <span class="pattern-title">Interface vs Factory: Two Separate Concepts</span>
+          <span class="badge badge-ts">Clarification</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              The pattern name <strong>"Factory + Typed Interface"</strong> names two distinct things working together, not one concept.
+              The <strong>interface</strong> is only a shape contract: it declares what fields exist and their types at compile time. It creates nothing.
+              The <strong>factory</strong> is the function or class method that generates dynamic values at runtime and returns a fully populated object satisfying that interface.
+              Defining an interface with typed properties is <em>not</em> the factory; it is only the "Typed Interface" half.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Tên gọi <strong>"Factory + Typed Interface"</strong> gọi tên hai thứ khác nhau cùng phối hợp, không phải một khái niệm.
+              <strong>Interface</strong> chỉ là hợp đồng về hình dạng dữ liệu: nó khai báo có những field nào và kiểu gì tại thời điểm biên dịch. Nó không tạo ra gì cả.
+              <strong>Factory</strong> là hàm hoặc method của class sinh giá trị động lúc runtime và trả về một object đầy đủ, thỏa mãn interface đó.
+              Định nghĩa một interface với các thuộc tính có kiểu <em>không phải</em> là factory; đó chỉ là nửa "Typed Interface".
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <div class="code-label">Interface: shape contract only (compile-time)</div>
+            <pre><span class="cmt">// Declares what fields must exist and their types</span>
+<span class="cmt">// Creates NOTHING: no values, no logic</span>
+<span class="kw">export interface</span> <span class="type">GraTestData</span> {
+  validCustomer:    <span class="type">CustomerInput</span>;
+  validCredentials: <span class="type">ValidCredentials</span>;
+  invalidCartId:    <span class="type">string</span>;
+}</pre>
+          </div>
+          <div class="col-vi">
+            <div class="code-label">Interface: chỉ là hợp đồng shape (compile-time)</div>
+            <pre><span class="cmt">// Khai báo field nào phải có và kiểu của chúng</span>
+<span class="cmt">// KHÔNG tạo ra gì: không giá trị, không logic</span>
+<span class="kw">export interface</span> <span class="type">GraTestData</span> {
+  validCustomer:    <span class="type">CustomerInput</span>;
+  validCredentials: <span class="type">ValidCredentials</span>;
+  invalidCartId:    <span class="type">string</span>;
+}</pre>
+          </div>
+        </div>
+        <div class="bi-block" style="margin-top:-8px">
+          <div class="col-en">
+            <div class="code-label">Factory: generates values and builds the object (runtime)</div>
+            <pre><span class="cmt">// Generate dynamic values first</span>
+<span class="kw">export function</span> <span class="fn">createBrandTestData</span>(prefix: <span class="type">string</span>): <span class="type">GraTestData</span> {
+  <span class="kw">const</span> email = <span class="str">`${prefix}test${Date.now()}@mail.com`</span>;
+  <span class="kw">const</span> name  = <span class="fn">generateFirstName</span>();
+  <span class="cmt">// Return a REAL OBJECT: all fields use the same values</span>
+  <span class="kw">return</span> { validCustomer: { email, firstname: name, ... },
+           validCredentials: { email, ... } };
+}</pre>
+          </div>
+          <div class="col-vi">
+            <div class="code-label">Factory: sinh giá trị rồi dựng object (runtime)</div>
+            <pre><span class="cmt">// Sinh giá trị động trước</span>
+<span class="kw">export function</span> <span class="fn">createBrandTestData</span>(prefix: <span class="type">string</span>): <span class="type">GraTestData</span> {
+  <span class="kw">const</span> email = <span class="str">`${prefix}test${Date.now()}@mail.com`</span>;
+  <span class="kw">const</span> name  = <span class="fn">generateFirstName</span>();
+  <span class="cmt">// Trả về một OBJECT THẬT: mọi field dùng chung giá trị</span>
+  <span class="kw">return</span> { validCustomer: { email, firstname: name, ... },
+           validCredentials: { email, ... } };
+}</pre>
+          </div>
+        </div>
+        <div class="bi-block" style="margin-top:6px">
+          <div class="col-en">
+            <div class="callout callout-blue">
+              <span class="callout-icon">ℹ️</span>
+              <div class="callout-body">
+                <strong>Why the factory generates values before the return:</strong> all fields for the same logical entity (email, name, address) must share the same randomly generated values.
+                If email were generated separately inside <code>validCustomer</code> and again inside <code>validCredentials</code>, two different <code>Date.now()</code> calls would produce two different emails, and the credentials would no longer match the registered customer.
+              </div>
+            </div>
+          </div>
+          <div class="col-vi">
+            <div class="callout callout-blue">
+              <span class="callout-icon">ℹ️</span>
+              <div class="callout-body">
+                <strong>Vì sao factory sinh giá trị trước khi return:</strong> mọi field thuộc cùng một thực thể logic (email, tên, địa chỉ) phải dùng chung giá trị ngẫu nhiên đã sinh.
+                Nếu email được sinh riêng bên trong <code>validCustomer</code> rồi lại sinh riêng bên trong <code>validCredentials</code>, hai lần gọi <code>Date.now()</code> khác nhau sẽ cho ra hai email khác nhau, khi đó credentials sẽ không còn khớp với customer đã đăng ký.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">When to Use Factory vs Static Const</span>
+          <span class="badge badge-test">Decision Guide</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">Not every data file needs a factory. The choice depends entirely on whether the data must change per test run.</p>
+            <table style="margin:0">
+              <thead><tr><th>Data type</th><th>Use</th><th>Reason</th></tr></thead>
+              <tbody>
+                <tr><td>Customer email, name, address</td><td><strong>Factory</strong></td><td>Must be unique per run: registering the same email twice fails on a live backend</td></tr>
+                <tr><td>Brand URLs, nav labels, country codes</td><td><strong>Static const</strong></td><td>Fixed: Australia's country code is always <code>'AU'</code>, no generation needed</td></tr>
+                <tr><td>Error messages, expected strings</td><td><strong>Static const</strong></td><td>Fixed expected values used for assertion: must not change between runs</td></tr>
+                <tr><td>Invalid/negative test inputs</td><td><strong>Static const</strong></td><td>Deliberate bad values: randomising them would make negative tests unpredictable</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">Không phải file dữ liệu nào cũng cần factory. Lựa chọn phụ thuộc hoàn toàn vào việc dữ liệu có cần thay đổi mỗi lần chạy test hay không.</p>
+            <table style="margin:0">
+              <thead><tr><th>Loại dữ liệu</th><th>Dùng</th><th>Lý do</th></tr></thead>
+              <tbody>
+                <tr><td>Email, tên, địa chỉ khách hàng</td><td><strong>Factory</strong></td><td>Phải là duy nhất mỗi lần chạy: đăng ký cùng một email hai lần sẽ fail trên backend thật</td></tr>
+                <tr><td>URL thương hiệu, nhãn nav, mã quốc gia</td><td><strong>Static const</strong></td><td>Cố định: mã quốc gia của Australia luôn là <code>'AU'</code>, không cần sinh động</td></tr>
+                <tr><td>Thông báo lỗi, chuỗi kỳ vọng</td><td><strong>Static const</strong></td><td>Giá trị kỳ vọng cố định dùng để assert: không được đổi giữa các lần chạy</td></tr>
+                <tr><td>Input không hợp lệ/test âm</td><td><strong>Static const</strong></td><td>Giá trị sai có chủ đích: nếu random hóa sẽ khiến test âm không thể dự đoán được</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory Presence by File</span>
+          <span class="badge badge-test">Reference</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">Not all data files in <code>src/data/</code> contain a factory. The table below shows exactly which files have factory code and where.</p>
+            <table style="margin:0">
+              <thead><tr><th>File</th><th>Has Factory?</th><th>Factory location</th></tr></thead>
+              <tbody>
+                <tr><td><code>src/data/api/gra-test-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 163-267: <code>createBrandTestData(prefix)</code> function, generates email, name, phone, address (all linked)</td></tr>
+                <tr><td><code>src/data/admin-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 113-162: <code>AdminTestDataGenerator</code> class with 4 static <code>generate*()</code> methods</td></tr>
+                <tr><td><code>src/data/home-data.ts</code></td><td><strong style="color:var(--green)">Yes</strong></td><td>Lines 51-100: <code>HomeTestDataGenerator</code> class with 4 static <code>generate*()</code> methods</td></tr>
+                <tr><td><code>src/data/profile-listing-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Class <code>ProfileListingTestDataGenerator</code> exists but only holds a static URL property, no generator methods</td></tr>
+                <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only a <code>Storefront</code> interface plus <code>storefronts</code> readonly array; all values are fixed per brand</td></tr>
+                <tr><td><code>src/data/api/gra-address-book-countries-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces plus <code>addressBookCountriesData</code> const; country codes never change</td></tr>
+                <tr><td><code>src/data/api/gra-catalog-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces plus <code>GraCatalogData</code> const; search terms and invalid SKUs are fixed</td></tr>
+                <tr><td><code>src/data/api/gra-auth-data.ts</code></td><td><strong style="color:var(--red)">No</strong></td><td>Only interfaces plus const objects; deliberate bad tokens/emails must stay fixed for predictable negative tests</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">Không phải file dữ liệu nào trong <code>src/data/</code> cũng có factory. Bảng dưới đây liệt kê chính xác file nào có code factory và nằm ở đâu.</p>
+            <table style="margin:0">
+              <thead><tr><th>File</th><th>Có Factory?</th><th>Vị trí factory</th></tr></thead>
+              <tbody>
+                <tr><td><code>src/data/api/gra-test-data.ts</code></td><td><strong style="color:var(--green)">Có</strong></td><td>Dòng 163-267: hàm <code>createBrandTestData(prefix)</code>, sinh email, tên, sđt, địa chỉ (liên kết với nhau)</td></tr>
+                <tr><td><code>src/data/admin-data.ts</code></td><td><strong style="color:var(--green)">Có</strong></td><td>Dòng 113-162: class <code>AdminTestDataGenerator</code> với 4 static method <code>generate*()</code></td></tr>
+                <tr><td><code>src/data/home-data.ts</code></td><td><strong style="color:var(--green)">Có</strong></td><td>Dòng 51-100: class <code>HomeTestDataGenerator</code> với 4 static method <code>generate*()</code></td></tr>
+                <tr><td><code>src/data/profile-listing-data.ts</code></td><td><strong style="color:var(--red)">Không</strong></td><td>Có class <code>ProfileListingTestDataGenerator</code> nhưng chỉ chứa một thuộc tính URL tĩnh, không có method sinh dữ liệu</td></tr>
+                <tr><td><code>src/data/ecommerce/storefronts.ts</code></td><td><strong style="color:var(--red)">Không</strong></td><td>Chỉ có interface <code>Storefront</code> cùng mảng readonly <code>storefronts</code>; mọi giá trị cố định theo từng brand</td></tr>
+                <tr><td><code>src/data/api/gra-address-book-countries-data.ts</code></td><td><strong style="color:var(--red)">Không</strong></td><td>Chỉ có interface cùng const <code>addressBookCountriesData</code>; mã quốc gia không bao giờ đổi</td></tr>
+                <tr><td><code>src/data/api/gra-catalog-data.ts</code></td><td><strong style="color:var(--red)">Không</strong></td><td>Chỉ có interface cùng const <code>GraCatalogData</code>; từ khóa tìm kiếm và SKU không hợp lệ được cố định</td></tr>
+                <tr><td><code>src/data/api/gra-auth-data.ts</code></td><td><strong style="color:var(--red)">Không</strong></td><td>Chỉ có interface cùng các object const; token/email sai có chủ đích cần giữ cố định để test âm dự đoán được</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="assertions">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Assertion Patterns: Hard vs Soft</h2>
+          <div class="section-desc">Strategic choice between fail-fast and accumulate-all-failures / Lựa chọn chiến lược giữa fail-fast và gom hết lỗi rồi báo cáo</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Pattern A: <code>softExpect</code></div>
+              <div class="card-body">
+                Drop-in replacement for <code>expect</code>. <strong>Does NOT log internally</strong>, safe to pair with <code>logger.verify()</code> before it.<br><br>
+                <code>import { softExpect } from '@config/base-test';</code><br>
+                <code>softExpect(title).toContain('Expected');</code>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Pattern B: <code>softAssert</code> fixture</div>
+              <div class="card-body">
+                Integrates with <code>TestLogger</code>. Each call logs <code>🔵 [SOFT]</code> internally. <strong>Do NOT also call</strong> <code>logger.verify()</code> before it: that duplicates the log entry.<br><br>
+                <code>softAssert.toBe(count, 12, 'Item count');</code><br>
+                <code>await softAssert.toBeVisible(el, 'Header');</code>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Pattern A: <code>softExpect</code></div>
+              <div class="card-body">
+                Thay thế trực tiếp cho <code>expect</code>. <strong>KHÔNG tự log</strong>, an toàn khi dùng kèm <code>logger.verify()</code> trước nó.<br><br>
+                <code>import { softExpect } from '@config/base-test';</code><br>
+                <code>softExpect(title).toContain('Expected');</code>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Pattern B: fixture <code>softAssert</code></div>
+              <div class="card-body">
+                Tích hợp với <code>TestLogger</code>. Mỗi lần gọi tự log <code>🔵 [SOFT]</code>. <strong>Không gọi thêm</strong> <code>logger.verify()</code> trước nó: sẽ tạo log trùng lặp.<br><br>
+                <code>softAssert.toBe(count, 12, 'Item count');</code><br>
+                <code>await softAssert.toBeVisible(el, 'Header');</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:14px">
+        <div class="col-en">
+          <div class="pattern">
+            <div class="pattern-header">
+              <span class="pattern-title">When to Use Each Type</span>
+              <span class="badge badge-test">Decision Guide</span>
+            </div>
+            <table style="margin:0">
+              <thead><tr><th>Scenario</th><th>Use</th><th>Reason</th></tr></thead>
+              <tbody>
+                <tr><td>Multiple independent checks on same page state</td><td><strong>Soft</strong></td><td>See all failures at once</td></tr>
+                <tr><td>Per-item assertions inside a loop</td><td><strong>Soft</strong></td><td>All items reported, not just the first failure</td></tr>
+                <tr><td>Precondition that guards subsequent steps</td><td><strong>Hard</strong></td><td>Following steps are meaningless if this fails</td></tr>
+                <tr><td>Playwright locator assertions (<code>expect(locator).toBeVisible()</code>)</td><td><strong>Hard</strong></td><td><code>SoftAssertHelper</code> has no locator equivalent</td></tr>
+                <tr><td><code>expect.poll()</code></td><td><strong>Hard</strong></td><td>Has its own retry/timeout logic; soft adds no value</td></tr>
+                <tr><td>Single-assertion test</td><td><strong>Hard</strong></td><td>Soft provides no benefit with one check</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="pattern">
+            <div class="pattern-header">
+              <span class="pattern-title">Khi nào dùng loại nào</span>
+              <span class="badge badge-test">Hướng dẫn lựa chọn</span>
+            </div>
+            <table style="margin:0">
+              <thead><tr><th>Tình huống</th><th>Dùng</th><th>Lý do</th></tr></thead>
+              <tbody>
+                <tr><td>Nhiều kiểm tra độc lập trên cùng trạng thái trang</td><td><strong>Soft</strong></td><td>Thấy hết mọi lỗi cùng lúc</td></tr>
+                <tr><td>Assert từng item trong vòng lặp</td><td><strong>Soft</strong></td><td>Báo cáo đủ mọi item, không chỉ lỗi đầu tiên</td></tr>
+                <tr><td>Precondition làm điều kiện cho các bước sau</td><td><strong>Hard</strong></td><td>Nếu fail thì các bước tiếp theo không còn ý nghĩa</td></tr>
+                <tr><td>Assertion locator của Playwright (<code>expect(locator).toBeVisible()</code>)</td><td><strong>Hard</strong></td><td><code>SoftAssertHelper</code> không có phiên bản tương đương cho locator</td></tr>
+                <tr><td><code>expect.poll()</code></td><td><strong>Hard</strong></td><td>Đã có logic retry/timeout riêng; dùng soft không thêm giá trị</td></tr>
+                <tr><td>Test chỉ có một assertion</td><td><strong>Hard</strong></td><td>Soft không mang lại lợi ích khi chỉ có một kiểm tra</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="logging">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Structured Test Logging</h2>
+          <div class="section-desc">Observability for every test step, attached to HTML reports / Quan sát được từng bước test, đính kèm vào báo cáo HTML</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">TestLogger: Step / Action / Verify Triad</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              Every test creates a <code>TestLogger</code> via <code>createTestLogger(testName)</code>. Logs are written to <code>./test-logs/test-execution.log</code> and attached as annotations to the Playwright HTML report, so failure context sits directly in the report without opening log files.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Mỗi test tạo một <code>TestLogger</code> qua <code>createTestLogger(testName)</code>. Log được ghi vào <code>./test-logs/test-execution.log</code> và đính kèm dưới dạng annotation trong báo cáo HTML của Playwright, nhờ vậy ngữ cảnh lỗi nằm ngay trong báo cáo mà không cần mở file log.
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <pre><span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_01 Login with valid credentials'</span>);
+
+logger.<span class="fn">step</span>(<span class="str">'Step 1 - Navigate to login page'</span>);   <span class="cmt">// 🔍 numbered step</span>
+logger.<span class="fn">action</span>(<span class="str">'Click'</span>, <span class="str">'Submit button'</span>);        <span class="cmt">// ⚡ interaction</span>
+logger.<span class="fn">verify</span>(<span class="str">'URL contains /dashboard'</span>,         <span class="cmt">// ✅ assertion outcome</span>
+  <span class="str">'/dashboard'</span>, page.<span class="fn">url</span>());
+logger.<span class="fn">error</span>(err, <span class="str">'Sign-in mutation failed'</span>);   <span class="cmt">// ❌ error context</span></pre>
+          </div>
+          <div class="col-vi">
+            <pre><span class="kw">const</span> logger = <span class="fn">createTestLogger</span>(<span class="str">'TC_01 Login with valid credentials'</span>);
+
+logger.<span class="fn">step</span>(<span class="str">'Bước 1 - Điều hướng tới trang đăng nhập'</span>);   <span class="cmt">// 🔍 bước có đánh số</span>
+logger.<span class="fn">action</span>(<span class="str">'Click'</span>, <span class="str">'Nút Submit'</span>);        <span class="cmt">// ⚡ tương tác</span>
+logger.<span class="fn">verify</span>(<span class="str">'URL chứa /dashboard'</span>,         <span class="cmt">// ✅ kết quả assertion</span>
+  <span class="str">'/dashboard'</span>, page.<span class="fn">url</span>());
+logger.<span class="fn">error</span>(err, <span class="str">'Mutation đăng nhập thất bại'</span>);   <span class="cmt">// ❌ ngữ cảnh lỗi</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="timeouts">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>CI-Aware Timeout Constants</h2>
+          <div class="section-desc">Named constants, never magic numbers; longer in CI, shorter locally / Hằng số có tên, không dùng số ma thuật; dài hơn trong CI, ngắn hơn khi chạy local</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <pre><span class="cmt">// src/constants/timeouts.ts</span>
+<span class="kw">const</span> isCI = process.env.CI === <span class="str">'true'</span>;
+
+<span class="kw">export const</span> TIMEOUTS = {
+  PAGE_LOAD:        isCI ? <span class="num">60000</span> : <span class="num">30000</span>,   <span class="cmt">// adaptive</span>
+  ELEMENT_VISIBLE:  isCI ? <span class="num">20000</span> : <span class="num">10000</span>,
+  API_RESPONSE:     <span class="num">20000</span>,
+  API_SUITE_SETUP:  <span class="num">90000</span>,  <span class="cmt">// multi-call beforeAll (6+ sequential staging calls)</span>
+  POLL_INTERVAL_FAST:   <span class="num">500</span>,
+  POLL_INTERVAL_NORMAL: <span class="num">1000</span>,
+  POLL_INTERVAL_SLOW:   <span class="num">2000</span>,
+} <span class="kw">as const</span>;</pre>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <pre><span class="cmt">// src/constants/timeouts.ts</span>
+<span class="kw">const</span> isCI = process.env.CI === <span class="str">'true'</span>;
+
+<span class="kw">export const</span> TIMEOUTS = {
+  PAGE_LOAD:        isCI ? <span class="num">60000</span> : <span class="num">30000</span>,   <span class="cmt">// thích ứng theo môi trường</span>
+  ELEMENT_VISIBLE:  isCI ? <span class="num">20000</span> : <span class="num">10000</span>,
+  API_RESPONSE:     <span class="num">20000</span>,
+  API_SUITE_SETUP:  <span class="num">90000</span>,  <span class="cmt">// beforeAll gọi nhiều lần (6+ lời gọi staging tuần tự)</span>
+  POLL_INTERVAL_FAST:   <span class="num">500</span>,
+  POLL_INTERVAL_NORMAL: <span class="num">1000</span>,
+  POLL_INTERVAL_SLOW:   <span class="num">2000</span>,
+} <span class="kw">as const</span>;</pre>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:6px">
+        <div class="col-en">
+          <div class="callout callout-amber">
+            <span class="callout-icon">⚠️</span>
+            <div class="callout-body"><strong>API suite setup hooks:</strong> Any <code>beforeAll</code> with 6+ sequential staging API calls (auth + cart + SKU search + address + shipping + payment) must set <code>test.setTimeout(TIMEOUTS.API_SUITE_SETUP)</code> as its <strong>first line</strong>, or the hook exceeds the 30s default and every test in the block shows as "did not run".</div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="callout callout-amber">
+            <span class="callout-icon">⚠️</span>
+            <div class="callout-body"><strong>Hook setup của API suite:</strong> Bất kỳ <code>beforeAll</code> nào có từ 6 lời gọi API staging tuần tự trở lên (auth + cart + tìm SKU + địa chỉ + vận chuyển + thanh toán) phải đặt <code>test.setTimeout(TIMEOUTS.API_SUITE_SETUP)</code> làm <strong>dòng đầu tiên</strong>, nếu không hook sẽ vượt mốc mặc định 30s và mọi test trong block hiện trạng thái "did not run".</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section class="section" id="api-clients">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div>
+          <h2>API Client Hierarchy</h2>
+          <div class="section-desc">Layered REST and GraphQL clients with response wrapper chains / Client REST và GraphQL phân lớp cùng chuỗi wrapper cho response</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <div class="flow">
+            <div class="flow-node highlight">ApiClient<br><small>Low-level HTTP</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node green">ApiClientExt<br><small>*WithWrapper methods</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node amber">ApiResponseWrapper<br><small>Fluent assertions</small></div>
+          </div>
+          <div class="flow" style="margin-top:6px">
+            <div class="flow-node highlight">ApiClient</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node green">GraphQLClient<br><small>query/mutate/batch</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node amber">GraphQLResponseWrapper<br><small>assertNoErrors, assertDataField…</small></div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <div class="flow">
+            <div class="flow-node highlight">ApiClient<br><small>HTTP cấp thấp</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node green">ApiClientExt<br><small>Các method *WithWrapper</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node amber">ApiResponseWrapper<br><small>Assertion dạng fluent</small></div>
+          </div>
+          <div class="flow" style="margin-top:6px">
+            <div class="flow-node highlight">ApiClient</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node green">GraphQLClient<br><small>query/mutate/batch</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node amber">GraphQLResponseWrapper<br><small>assertNoErrors, assertDataField…</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:14px">
+        <div class="col-en">
+          <pre><span class="cmt">// Preferred: ApiClientExt, fluent wrapper chain</span>
+<span class="kw">const</span> response = <span class="kw">await</span> apiClientExt.<span class="fn">getWithWrapper</span>(<span class="str">'/resource/1'</span>);
+<span class="kw">await</span> response.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+<span class="kw">await</span> response.<span class="fn">assertJsonPath</span>(<span class="str">'user.name'</span>, <span class="str">'Alice'</span>);
+<span class="kw">await</span> response.<span class="fn">assertHasHeader</span>(<span class="str">'content-type'</span>);
+<span class="kw">const</span> id = <span class="kw">await</span> response.<span class="fn">extract</span>(<span class="str">'data.id'</span>);
+
+<span class="cmt">// GraphQL: assertNoErrors() FIRST on every happy-path test</span>
+<span class="kw">const</span> gql = <span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(QUERY, { id: <span class="str">'1'</span> });
+<span class="kw">await</span> gql.<span class="fn">assertNoErrors</span>();           <span class="cmt">// always first</span>
+<span class="kw">await</span> gql.<span class="fn">assertDataField</span>(<span class="str">'user.id'</span>, <span class="str">'1'</span>);</pre>
+        </div>
+        <div class="col-vi">
+          <pre><span class="cmt">// Ưu tiên: ApiClientExt, chuỗi wrapper dạng fluent</span>
+<span class="kw">const</span> response = <span class="kw">await</span> apiClientExt.<span class="fn">getWithWrapper</span>(<span class="str">'/resource/1'</span>);
+<span class="kw">await</span> response.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+<span class="kw">await</span> response.<span class="fn">assertJsonPath</span>(<span class="str">'user.name'</span>, <span class="str">'Alice'</span>);
+<span class="kw">await</span> response.<span class="fn">assertHasHeader</span>(<span class="str">'content-type'</span>);
+<span class="kw">const</span> id = <span class="kw">await</span> response.<span class="fn">extract</span>(<span class="str">'data.id'</span>);
+
+<span class="cmt">// GraphQL: gọi assertNoErrors() TRƯỚC TIÊN trong mọi test happy-path</span>
+<span class="kw">const</span> gql = <span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(QUERY, { id: <span class="str">'1'</span> });
+<span class="kw">await</span> gql.<span class="fn">assertNoErrors</span>();           <span class="cmt">// luôn gọi đầu tiên</span>
+<span class="kw">await</span> gql.<span class="fn">assertDataField</span>(<span class="str">'user.id'</span>, <span class="str">'1'</span>);</pre>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">AuthType Strategy Enum</span>
+          <span class="badge badge-api">API Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">Auth strategies are expressed as an <strong>enum</strong>, never as string literals. Each value triggers different header construction inside <code>ApiClient.init()</code>. New strategies are added by extending the enum, with no switch-statement sprawl in test code.</p>
+            <table style="margin:0">
+              <thead><tr><th>Value</th><th>Header produced</th></tr></thead>
+              <tbody>
+                <tr><td><code>AuthType.NONE</code></td><td>No auth headers</td></tr>
+                <tr><td><code>AuthType.BASIC</code></td><td><code>Authorization: Basic &lt;base64&gt;</code></td></tr>
+                <tr><td><code>AuthType.BEARER</code></td><td><code>Authorization: Bearer &lt;token&gt;</code></td></tr>
+                <tr><td><code>AuthType.API_KEY</code></td><td>Custom header name + value</td></tr>
+                <tr><td><code>AuthType.CUSTOM</code></td><td>Arbitrary <code>customHeaders</code> map</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">Chiến lược xác thực được biểu diễn dưới dạng <strong>enum</strong>, không bao giờ dùng chuỗi literal. Mỗi giá trị kích hoạt cách dựng header khác nhau bên trong <code>ApiClient.init()</code>. Chiến lược mới được thêm bằng cách mở rộng enum, không cần rải switch-statement khắp code test.</p>
+            <table style="margin:0">
+              <thead><tr><th>Giá trị</th><th>Header được tạo ra</th></tr></thead>
+              <tbody>
+                <tr><td><code>AuthType.NONE</code></td><td>Không có header xác thực</td></tr>
+                <tr><td><code>AuthType.BASIC</code></td><td><code>Authorization: Basic &lt;base64&gt;</code></td></tr>
+                <tr><td><code>AuthType.BEARER</code></td><td><code>Authorization: Bearer &lt;token&gt;</code></td></tr>
+                <tr><td><code>AuthType.API_KEY</code></td><td>Tên header tùy chỉnh + giá trị</td></tr>
+                <tr><td><code>AuthType.CUSTOM</code></td><td>Map <code>customHeaders</code> tùy ý</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">Static Token Store: Cross-Test Auth Sharing</span>
+          <span class="badge badge-api">API Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              <code>ApiClient.tokenStore</code> is a static <code>Record&lt;string, string&gt;</code>. Tokens persist across all tests within a single worker process. Use <code>ApiClient.storeToken(key, token)</code> after login, then retrieve with <code>ApiClient.getToken(key)</code> in later tests.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              <code>ApiClient.tokenStore</code> là một <code>Record&lt;string, string&gt;</code> static. Token tồn tại xuyên suốt mọi test trong cùng một tiến trình worker. Dùng <code>ApiClient.storeToken(key, token)</code> sau khi đăng nhập, sau đó lấy lại bằng <code>ApiClient.getToken(key)</code> ở các test sau.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">Factory Fixtures: Dynamic Client Creation at Test Time</span>
+          <span class="badge badge-api">Factory Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              <code>ApiTest.ts</code> exposes four <strong>factory fixtures</strong> alongside the standard singleton fixtures (<code>apiClient</code>, <code>graphqlClient</code>, etc.).
+              A factory fixture is not a pre-built client, it is a <strong>function</strong> the test calls to create one or more clients on demand, each with custom options merged on top of environment defaults.
+              The fixture itself manages the full lifecycle: it initialises every client the test creates and disposes them all after <code>use()</code> completes. The test body never calls <code>init()</code> or <code>dispose()</code>.
+            </p>
+            <table style="margin:0 0 16px">
+              <thead><tr><th>Factory fixture</th><th>Returns</th><th>When to use over the singleton</th></tr></thead>
+              <tbody>
+                <tr><td><code>createClient</code></td><td><code>ApiClient</code></td><td>Need a low-level client with non-default auth or headers</td></tr>
+                <tr><td><code>createClientExt</code></td><td><code>ApiClientExt</code></td><td>Need a wrapper-chain client with Bearer token or API key</td></tr>
+                <tr><td><code>createRestfulApiClient</code></td><td><code>RestfulApiClient</code></td><td>Need a device API client with custom timeout or auth</td></tr>
+                <tr><td><code>createGraphQLClient</code></td><td><code>GraphQLClient</code></td><td>Need a GraphQL client pointed at a different brand baseURL (GRA pattern)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              <code>ApiTest.ts</code> cung cấp bốn <strong>factory fixture</strong> bên cạnh các fixture singleton tiêu chuẩn (<code>apiClient</code>, <code>graphqlClient</code>, v.v.).
+              Factory fixture không phải là một client dựng sẵn, mà là một <strong>hàm</strong> mà test gọi để tạo một hoặc nhiều client theo yêu cầu, mỗi client có option tùy chỉnh được merge lên trên giá trị mặc định của môi trường.
+              Bản thân fixture quản lý toàn bộ vòng đời: nó khởi tạo mọi client mà test tạo ra và dispose tất cả sau khi <code>use()</code> hoàn tất. Thân test không bao giờ gọi <code>init()</code> hay <code>dispose()</code>.
+            </p>
+            <table style="margin:0 0 16px">
+              <thead><tr><th>Factory fixture</th><th>Trả về</th><th>Khi nào dùng thay singleton</th></tr></thead>
+              <tbody>
+                <tr><td><code>createClient</code></td><td><code>ApiClient</code></td><td>Cần client cấp thấp với auth hoặc header khác mặc định</td></tr>
+                <tr><td><code>createClientExt</code></td><td><code>ApiClientExt</code></td><td>Cần client dạng wrapper-chain với Bearer token hoặc API key</td></tr>
+                <tr><td><code>createRestfulApiClient</code></td><td><code>RestfulApiClient</code></td><td>Cần client device API với timeout hoặc auth tùy chỉnh</td></tr>
+                <tr><td><code>createGraphQLClient</code></td><td><code>GraphQLClient</code></td><td>Cần client GraphQL trỏ tới baseURL của brand khác (pattern GRA)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <div class="code-label">Factory fixture internals (createClientExt)</div>
+            <pre><span class="cmt">// src/api/ApiTest.ts:118-130</span>
+createClientExt: <span class="kw">async</span> ({ apiBaseUrl }, use) =&gt; {
+  <span class="kw">const</span> clients: <span class="type">ApiClientExt</span>[] = [];   <span class="cmt">// ① lifecycle tracker</span>
+
+  <span class="kw">const</span> factory = <span class="kw">async</span> (
+    options: <span class="type">Partial</span>&lt;<span class="type">ApiClientOptions</span>&gt;
+  ): <span class="type">Promise</span>&lt;<span class="type">ApiClientExt</span>&gt; =&gt; {
+    <span class="kw">const</span> client = <span class="kw">new</span> <span class="type">ApiClientExt</span>({
+      baseURL: apiBaseUrl, ...options  <span class="cmt">// ② merge defaults + overrides</span>
+    });
+    <span class="kw">await</span> client.<span class="fn">init</span>();               <span class="cmt">// ③ always initialised</span>
+    clients.<span class="fn">push</span>(client);              <span class="cmt">// ④ registered for teardown</span>
+    <span class="kw">return</span> client;
+  };
+
+  <span class="kw">await</span> <span class="fn">use</span>(factory);                 <span class="cmt">// ⑤ hand factory to the test</span>
+
+  <span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> clients)
+    <span class="kw">await</span> c.<span class="fn">dispose</span>();               <span class="cmt">// ⑥ dispose ALL created clients</span>
+},</pre>
+          </div>
+          <div class="col-vi">
+            <div class="code-label">Bên trong factory fixture (createClientExt)</div>
+            <pre><span class="cmt">// src/api/ApiTest.ts:118-130</span>
+createClientExt: <span class="kw">async</span> ({ apiBaseUrl }, use) =&gt; {
+  <span class="kw">const</span> clients: <span class="type">ApiClientExt</span>[] = [];   <span class="cmt">// ① theo dõi vòng đời</span>
+
+  <span class="kw">const</span> factory = <span class="kw">async</span> (
+    options: <span class="type">Partial</span>&lt;<span class="type">ApiClientOptions</span>&gt;
+  ): <span class="type">Promise</span>&lt;<span class="type">ApiClientExt</span>&gt; =&gt; {
+    <span class="kw">const</span> client = <span class="kw">new</span> <span class="type">ApiClientExt</span>({
+      baseURL: apiBaseUrl, ...options  <span class="cmt">// ② merge mặc định + override</span>
+    });
+    <span class="kw">await</span> client.<span class="fn">init</span>();               <span class="cmt">// ③ luôn được khởi tạo</span>
+    clients.<span class="fn">push</span>(client);              <span class="cmt">// ④ đăng ký để teardown</span>
+    <span class="kw">return</span> client;
+  };
+
+  <span class="kw">await</span> <span class="fn">use</span>(factory);                 <span class="cmt">// ⑤ đưa factory cho test dùng</span>
+
+  <span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> clients)
+    <span class="kw">await</span> c.<span class="fn">dispose</span>();               <span class="cmt">// ⑥ dispose TOÀN BỘ client đã tạo</span>
+},</pre>
+          </div>
+        </div>
+        <div class="bi-block" style="margin-top:-8px">
+          <div class="col-en">
+            <div class="code-label">Usage in a test</div>
+            <pre><span class="cmt">// Singleton: một client, auth mặc định, không option</span>
+test(<span class="str">'TC_01'</span>, <span class="kw">async</span> ({ apiClientExt }) =&gt; {
+  <span class="kw">const</span> r = <span class="kw">await</span> apiClientExt.<span class="fn">getWithWrapper</span>(<span class="str">'/public'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+});
+
+<span class="cmt">// Factory: caller specifies only the delta</span>
+test(<span class="str">'TC_05'</span>, <span class="kw">async</span> ({ createClientExt }) =&gt; {
+  <span class="kw">const</span> authed = <span class="kw">await</span> <span class="fn">createClientExt</span>({
+    authType: <span class="type">AuthType</span>.BEARER,
+    token: storedToken,         <span class="cmt">// only override what differs</span>
+  });
+  <span class="kw">const</span> r = <span class="kw">await</span> authed.<span class="fn">getWithWrapper</span>(<span class="str">'/protected'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+  <span class="cmt">// no dispose(): factory fixture handles it</span>
+});</pre>
+          </div>
+          <div class="col-vi">
+            <div class="code-label">Sử dụng trong test</div>
+            <pre><span class="cmt">// Singleton: một client, auth mặc định, không option</span>
+test(<span class="str">'TC_01'</span>, <span class="kw">async</span> ({ apiClientExt }) =&gt; {
+  <span class="kw">const</span> r = <span class="kw">await</span> apiClientExt.<span class="fn">getWithWrapper</span>(<span class="str">'/public'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+});
+
+<span class="cmt">// Factory: bên gọi chỉ khai báo phần khác biệt</span>
+test(<span class="str">'TC_05'</span>, <span class="kw">async</span> ({ createClientExt }) =&gt; {
+  <span class="kw">const</span> authed = <span class="kw">await</span> <span class="fn">createClientExt</span>({
+    authType: <span class="type">AuthType</span>.BEARER,
+    token: storedToken,         <span class="cmt">// chỉ override phần khác</span>
+  });
+  <span class="kw">const</span> r = <span class="kw">await</span> authed.<span class="fn">getWithWrapper</span>(<span class="str">'/protected'</span>);
+  <span class="kw">await</span> r.<span class="fn">assertStatus</span>(<span class="num">200</span>);
+  <span class="cmt">// không cần dispose(): factory fixture tự lo</span>
+});</pre>
+          </div>
+        </div>
+        <div class="bi-block" style="margin-top:6px">
+          <div class="col-en">
+            <div class="callout callout-amber">
+              <span class="callout-icon">⚠️</span>
+              <div class="callout-body">
+                <strong>Factory fixture vs singleton fixture:</strong> The standard fixtures (<code>apiClient</code>, <code>apiClientExt</code>, <code>graphqlClient</code>) are singletons: one instance per test, default auth, no custom options.
+                Use the factory fixtures when a test needs <strong>non-default auth</strong>, <strong>multiple independent clients</strong>, or a client pointed at a <strong>different base URL</strong> (e.g. GRA brand URL via <code>createGraphQLClient({ baseURL: site.baseURL })</code>).
+                Without factory fixtures, the test would need manual <code>new Client(...)</code> plus <code>init()</code> plus <code>try/finally dispose()</code>: the factory removes all three.
+              </div>
+            </div>
+          </div>
+          <div class="col-vi">
+            <div class="callout callout-amber">
+              <span class="callout-icon">⚠️</span>
+              <div class="callout-body">
+                <strong>Factory fixture so với singleton fixture:</strong> Các fixture chuẩn (<code>apiClient</code>, <code>apiClientExt</code>, <code>graphqlClient</code>) là singleton: một instance mỗi test, auth mặc định, không có option tùy chỉnh.
+                Dùng factory fixture khi test cần <strong>auth khác mặc định</strong>, <strong>nhiều client độc lập</strong>, hoặc một client trỏ tới <strong>base URL khác</strong> (ví dụ URL brand GRA qua <code>createGraphQLClient({ baseURL: site.baseURL })</code>).
+                Nếu không có factory fixture, test phải tự gọi <code>new Client(...)</code> cộng <code>init()</code> cộng <code>try/finally dispose()</code>: factory loại bỏ cả ba bước này.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="graphql">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div>
+          <h2>GraphQL Testing Patterns</h2>
+          <div class="section-desc">Safe variable passing, error guards, staging tolerance / Truyền variable an toàn, guard lỗi, dung sai cho môi trường staging</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <div class="code-label">✅ Safe: variables as second arg</div>
+          <pre><span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(
+  <span class="str">`query GetUser($id: ID!) {
+    user(id: $id) { name }
+  }`</span>,
+  { id }   <span class="cmt">// variables object</span>
+);</pre>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <div class="code-label">✅ An toàn: variables là tham số thứ hai</div>
+          <pre><span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(
+  <span class="str">`query GetUser($id: ID!) {
+    user(id: $id) { name }
+  }`</span>,
+  { id }   <span class="cmt">// object variables</span>
+);</pre>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:-8px">
+        <div class="col-en">
+          <div class="code-label">❌ Banned: string interpolation</div>
+          <pre><span class="cmt">// Injection risk, and breaks query caching</span>
+<span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(
+  <span class="str">`query { user(id: "${id}") { name } }`</span>
+);</pre>
+        </div>
+        <div class="col-vi">
+          <div class="code-label">❌ Cấm dùng: nội suy chuỗi</div>
+          <pre><span class="cmt">// Rủi ro injection, và phá caching của query</span>
+<span class="kw">await</span> graphqlClient.<span class="fn">queryWrapped</span>(
+  <span class="str">`query { user(id: "${id}") { name } }`</span>
+);</pre>
+        </div>
+      </div>
+
+      <div class="bi-block" style="margin-top:16px">
+        <div class="col-en">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Error Presence Guard</div>
+              <div class="card-body">
+                <strong>Always</strong> use <code>if (gql.errors?.length)</code>, never <code>if (gql.errors)</code>.
+                An empty array <code>[]</code> is truthy: the bare check silently misclassifies a failed response as success.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Staging Price-Range Tolerance</div>
+              <div class="card-body">
+                Catalog queries use <code>assertNoCriticalErrors(gql)</code> instead of <code>assertNoErrors()</code>. This tolerates <code>price_range</code> path errors (broken staging data) while failing on all other error types.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Schema Gap Handling</div>
+              <div class="card-body">
+                Operations absent from the staging schema (<code>productSearch</code>, <code>guestOrder</code>) are detected by checking for <code>"Cannot query field"</code> in errors and returning early: the test is not marked failed.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">GraphQL Batching</div>
+              <div class="card-body">
+                <code>GraphQLClient</code> supports query batching via <code>addToBatch()</code> plus <code>executeBatch()</code>. Configurable <code>maxBatchSize</code>. Used for introspection and bulk operations.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Guard kiểm tra sự tồn tại lỗi</div>
+              <div class="card-body">
+                <strong>Luôn</strong> dùng <code>if (gql.errors?.length)</code>, không bao giờ dùng <code>if (gql.errors)</code>.
+                Mảng rỗng <code>[]</code> vẫn là truthy: kiểm tra thô sẽ âm thầm coi một response lỗi là thành công.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Dung sai price-range trên staging</div>
+              <div class="card-body">
+                Query catalog dùng <code>assertNoCriticalErrors(gql)</code> thay vì <code>assertNoErrors()</code>. Cách này bỏ qua lỗi ở path <code>price_range</code> (do dữ liệu staging bị hỏng) nhưng vẫn fail với mọi loại lỗi khác.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Xử lý schema bị thiếu</div>
+              <div class="card-body">
+                Các operation không có trong schema staging (<code>productSearch</code>, <code>guestOrder</code>) được phát hiện bằng cách kiểm tra chuỗi <code>"Cannot query field"</code> trong lỗi, rồi return sớm: test không bị đánh dấu fail.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Gộp batch GraphQL</div>
+              <div class="card-body">
+                <code>GraphQLClient</code> hỗ trợ gộp batch query qua <code>addToBatch()</code> cộng <code>executeBatch()</code>. Có thể cấu hình <code>maxBatchSize</code>. Dùng cho introspection và các thao tác hàng loạt.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="gra">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div>
+          <h2>GRA Multi-Brand Test Pattern</h2>
+          <div class="section-desc">One shared spec suite running across 4 brand endpoints via Playwright projects / Một bộ spec dùng chung chạy trên 4 endpoint thương hiệu qua project của Playwright</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Project-Per-Brand with Metadata Injection</span>
+          <span class="badge badge-api">Design Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              <code>api.config.ts</code> declares <strong>one Playwright project per brand</strong> (<code>pla-au</code>, <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code>). Each project sets <code>metadata: { siteCode: '...' }</code>.
+              All 15 <code>pla-*.spec.ts</code> files are shared across all brand projects unchanged.
+              The <code>graTest</code> fixture reads <code>testInfo.project.metadata.siteCode</code> to inject the correct <code>SiteContext</code> (baseURL, testData, currency, feature flags).
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              <code>api.config.ts</code> khai báo <strong>một project Playwright cho mỗi brand</strong> (<code>pla-au</code>, <code>skx-au</code>, <code>drm-au</code>, <code>van-au</code>). Mỗi project đặt <code>metadata: { siteCode: '...' }</code>.
+              Cả 15 file <code>pla-*.spec.ts</code> được dùng chung cho mọi project brand mà không cần sửa.
+              Fixture <code>graTest</code> đọc <code>testInfo.project.metadata.siteCode</code> để inject đúng <code>SiteContext</code> (baseURL, testData, tiền tệ, feature flag).
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <pre><span class="cmt">// api.config.ts: một project cho mỗi brand</span>
+projects: [
+  { name: <span class="str">'pla-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>], metadata: { siteCode: <span class="str">'pla-au'</span> } },
+  { name: <span class="str">'skx-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>], metadata: { siteCode: <span class="str">'skx-au'</span> } },
+  { name: <span class="str">'drm-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>],
+    testIgnore: [<span class="str">'**/pla-loyalty-rewards.spec.ts'</span>], <span class="cmt">// feature flag</span>
+    metadata: { siteCode: <span class="str">'drm-au'</span> } },
+],
+
+<span class="cmt">// gra-test.ts: site context được inject vào mọi lời gọi fixture</span>
+<span class="kw">const</span> site = siteRegistry[testInfo.project.metadata.siteCode]; <span class="cmt">// SiteContext</span>
+<span class="kw">const</span> graphqlClient = <span class="kw">await</span> <span class="fn">createGraphQLClient</span>({ baseURL: site.baseURL });</pre>
+          </div>
+          <div class="col-vi">
+            <pre><span class="cmt">// api.config.ts: một project cho mỗi brand</span>
+projects: [
+  { name: <span class="str">'pla-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>], metadata: { siteCode: <span class="str">'pla-au'</span> } },
+  { name: <span class="str">'skx-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>], metadata: { siteCode: <span class="str">'skx-au'</span> } },
+  { name: <span class="str">'drm-au'</span>, testMatch: [<span class="str">'**/pla-*.spec.ts'</span>],
+    testIgnore: [<span class="str">'**/pla-loyalty-rewards.spec.ts'</span>], <span class="cmt">// feature flag</span>
+    metadata: { siteCode: <span class="str">'drm-au'</span> } },
+],
+
+<span class="cmt">// gra-test.ts: site context được inject vào mọi lời gọi fixture</span>
+<span class="kw">const</span> site = siteRegistry[testInfo.project.metadata.siteCode]; <span class="cmt">// SiteContext</span>
+<span class="kw">const</span> graphqlClient = <span class="kw">await</span> <span class="fn">createGraphQLClient</span>({ baseURL: site.baseURL });</pre>
+          </div>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:14px">
+        <div class="col-en">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Always-Fresh Auth</div>
+              <div class="card-body">Every <code>beforeAll</code> calls <code>signInAndStoreToken(client, logger, site, siteState)</code>. Never reuse a cached token: prior test runs (e.g. TC_01 revoking tokens) invalidate stale strings.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Always-Fresh Cart</div>
+              <div class="card-body">Cart creation happens in <code>beforeAll</code>, never in a test. Playwright retries re-run <code>beforeAll</code> but not earlier tests, so a <code>cartId</code> set in a prior test is an empty string on retry.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Guest Carts for Negative Tests</div>
+              <div class="card-body">Magento's <code>createEmptyCart</code> for authenticated users returns the <em>existing active cart</em>. Negative tests (missing shipping / missing payment) use unauthenticated guest clients to guarantee a genuinely incomplete cart.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Safe SKU Discovery</div>
+              <div class="card-body">Candidate SKU lists collect only confirmed IN_STOCK <code>SimpleProduct</code> or <code>ConfigurableProduct</code> variant SKUs. There is no <code>else if (item.sku)</code> fallback, since that would grab unaddable parent configurable SKUs.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Auth luôn mới</div>
+              <div class="card-body">Mọi <code>beforeAll</code> đều gọi <code>signInAndStoreToken(client, logger, site, siteState)</code>. Không bao giờ tái sử dụng token đã cache: các lần chạy test trước (ví dụ TC_01 thu hồi token) làm chuỗi cũ mất hiệu lực.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Cart luôn mới</div>
+              <div class="card-body">Việc tạo cart diễn ra trong <code>beforeAll</code>, không bao giờ trong thân test. Cơ chế retry của Playwright chạy lại <code>beforeAll</code> nhưng không chạy lại các test trước đó, nên <code>cartId</code> được set ở test trước sẽ là chuỗi rỗng khi retry.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Guest cart cho test âm</div>
+              <div class="card-body"><code>createEmptyCart</code> của Magento cho user đã đăng nhập trả về <em>cart đang hoạt động sẵn có</em>. Test âm (thiếu shipping / thiếu payment) dùng client guest chưa đăng nhập để đảm bảo có một cart thật sự chưa hoàn chỉnh.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Tìm SKU an toàn</div>
+              <div class="card-body">Danh sách SKU ứng viên chỉ thu thập các SKU biến thể <code>SimpleProduct</code> hoặc <code>ConfigurableProduct</code> đã xác nhận IN_STOCK. Không có fallback <code>else if (item.sku)</code>, vì cách đó sẽ lấy nhầm SKU cha dạng configurable không thể thêm vào giỏ.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="api-state">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div>
+          <h2>Shared State: Map-Keyed Singleton</h2>
+          <div class="section-desc">Per-brand isolated state without cross-contamination between workers / State tách biệt theo brand, không lẫn lộn giữa các worker</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">TestState + getStateForSite(siteCode)</span>
+          <span class="badge badge-api">Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              <code>tests/api/shared-state.ts</code> provides a <code>TestState</code> singleton class keyed by <code>siteCode</code>. When 8 brands run concurrently across 8 workers, each worker has its own Node.js process, so the Map is never shared across processes. Within a worker, the Map guarantees each brand's token, cartId, and addressId stay isolated. Setters throw on empty/falsy values to prevent silent blank-state bugs.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              <code>tests/api/shared-state.ts</code> cung cấp một class singleton <code>TestState</code>, khóa theo <code>siteCode</code>. Khi 8 brand chạy đồng thời trên 8 worker, mỗi worker có tiến trình Node.js riêng, nên Map không bao giờ bị chia sẻ giữa các tiến trình. Trong một worker, Map đảm bảo token, cartId, addressId của mỗi brand luôn tách biệt. Setter sẽ throw khi gặp giá trị rỗng/falsy để tránh lỗi state trống bị bỏ sót một cách âm thầm.
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <pre><span class="cmt">// Multiple brands: each gets its own bucket</span>
+<span class="kw">const</span> pla = <span class="fn">getStateForSite</span>(<span class="str">'pla-au'</span>);
+<span class="kw">const</span> skx = <span class="fn">getStateForSite</span>(<span class="str">'skx-au'</span>);
+
+pla.<span class="fn">setCustomerToken</span>(token);   <span class="cmt">// only affects pla-au</span>
+skx.<span class="fn">setCartId</span>(cartId);         <span class="cmt">// only affects skx-au</span></pre>
+          </div>
+          <div class="col-vi">
+            <pre><span class="cmt">// Nhiều brand: mỗi brand có bucket riêng</span>
+<span class="kw">const</span> pla = <span class="fn">getStateForSite</span>(<span class="str">'pla-au'</span>);
+<span class="kw">const</span> skx = <span class="fn">getStateForSite</span>(<span class="str">'skx-au'</span>);
+
+pla.<span class="fn">setCustomerToken</span>(token);   <span class="cmt">// chỉ ảnh hưởng pla-au</span>
+skx.<span class="fn">setCartId</span>(cartId);         <span class="cmt">// chỉ ảnh hưởng skx-au</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section class="section" id="parallel">
+      <div class="section-header">
+        <div class="section-num">14</div>
+        <div>
+          <h2>Parallelism &amp; Worker Configuration</h2>
+          <div class="section-desc">Different strategies for UI tests vs API tests / Chiến lược khác nhau cho test UI và test API</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <table>
+            <thead><tr><th>Config</th><th>fullyParallel</th><th>workers</th><th>Rationale</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>playwright.config.ts</strong><br>(UI tests)</td>
+                <td><code>true</code></td>
+                <td><code>WORKERS env || "50%"</code></td>
+                <td>Tests are stateless (each gets a fresh browser context). 50% of CPU cores by default balances speed and resource use. Override per run with <code>WORKERS=4</code> or <code>WORKERS=100%</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>api.config.ts</strong><br>(API tests)</td>
+                <td><code>false</code></td>
+                <td><code>4</code> (fixed)</td>
+                <td>4 brands run concurrently (one worker per brand). Within each worker, tests run sequentially, required because module-level <code>let</code> state (<code>cartId</code>, <code>token</code>) is shared across tests in the same file. <strong>Do NOT set <code>fullyParallel: true</code></strong>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <table>
+            <thead><tr><th>Config</th><th>fullyParallel</th><th>workers</th><th>Lý do</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>playwright.config.ts</strong><br>(test UI)</td>
+                <td><code>true</code></td>
+                <td><code>WORKERS env || "50%"</code></td>
+                <td>Test không giữ state (mỗi test có browser context mới). Mặc định dùng 50% số CPU core để cân bằng giữa tốc độ và tài nguyên. Ghi đè theo từng lần chạy bằng <code>WORKERS=4</code> hoặc <code>WORKERS=100%</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>api.config.ts</strong><br>(test API)</td>
+                <td><code>false</code></td>
+                <td><code>4</code> (cố định)</td>
+                <td>4 brand chạy đồng thời (mỗi brand một worker). Trong mỗi worker, test chạy tuần tự, bắt buộc vì state <code>let</code> ở cấp module (<code>cartId</code>, <code>token</code>) được dùng chung giữa các test trong cùng file. <strong>Không được đặt <code>fullyParallel: true</code></strong>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:6px">
+        <div class="col-en">
+          <div class="callout callout-amber">
+            <span class="callout-icon">⚠️</span>
+            <div class="callout-body"><strong>Serial mode removed from GRA specs (2026-06-11):</strong> <code>test.describe.configure({ mode: 'serial' })</code> was deliberately removed from all 15 <code>pla-*.spec.ts</code> files. <code>fullyParallel: false</code> alone guarantees sequential ordering without cascade-skip-on-failure. Serial mode would cascade-skip every remaining test when one fails, which hides real test signal.</div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="callout callout-amber">
+            <span class="callout-icon">⚠️</span>
+            <div class="callout-body"><strong>Bỏ serial mode khỏi spec GRA (2026-06-11):</strong> <code>test.describe.configure({ mode: 'serial' })</code> đã bị chủ động gỡ khỏi toàn bộ 15 file <code>pla-*.spec.ts</code>. Chỉ riêng <code>fullyParallel: false</code> đã đảm bảo thứ tự chạy tuần tự mà không gây cascade-skip khi fail. Serial mode sẽ skip dây chuyền mọi test còn lại khi một test fail, việc này che mất tín hiệu lỗi thật.</div>
+          </div>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:14px">
+        <div class="col-en">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Dynamic Worker Expression</div>
+              <div class="card-body"><code>"50%"</code> uses half the CPU cores (minimum 1). A numeric string like <code>"4"</code> fixes the count. The <code>WORKERS</code> env var overrides the default; the CI matrix uses it to tune per OS.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">CI Matrix: Windows + macOS</div>
+              <div class="card-body">The UI test job runs on both <code>windows-latest</code> and <code>macos-latest</code> simultaneously (<code>fail-fast: false</code>). This catches platform-specific issues, e.g. Firefox path-handling differences.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Firefox Skipped in CI Ecommerce</div>
+              <div class="card-body">The Firefox project has <code>testIgnore: ['**/ecommerce/smoke/**']</code> in CI. Ecommerce smoke tests run Chromium-only in CI to reduce flakiness from SPA service-worker teardown issues on Firefox.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Biểu thức worker động</div>
+              <div class="card-body"><code>"50%"</code> dùng nửa số CPU core (tối thiểu 1). Chuỗi số như <code>"4"</code> cố định số lượng. Biến môi trường <code>WORKERS</code> ghi đè giá trị mặc định; CI matrix dùng nó để tinh chỉnh theo từng hệ điều hành.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">CI Matrix: Windows + macOS</div>
+              <div class="card-body">Job test UI chạy đồng thời trên cả <code>windows-latest</code> và <code>macos-latest</code> (<code>fail-fast: false</code>). Cách này bắt được các vấn đề riêng của từng nền tảng, ví dụ khác biệt xử lý path trên Firefox.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Bỏ Firefox khi chạy CI ecommerce</div>
+              <div class="card-body">Project Firefox có <code>testIgnore: ['**/ecommerce/smoke/**']</code> trong CI. Test smoke ecommerce trong CI chỉ chạy trên Chromium để giảm flaky do vấn đề teardown service worker của SPA trên Firefox.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="retry">
+      <div class="section-header">
+        <div class="section-num">15</div>
+        <div>
+          <h2>Retry Mechanism</h2>
+          <div class="section-desc">Layered retry strategy: test-level, hook-level, and poll-based / Chiến lược retry nhiều tầng: cấp test, cấp hook, và dạng poll</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Test-Level Retries</div>
+              <div class="card-body">
+                <code>retries: process.env.CI ? env.retries : 0</code><br>
+                UI: 2 retries in CI, 0 locally.<br>
+                API: 2 retries in CI, 0 locally.<br>
+                Retries re-run the full test, including its <code>beforeAll</code>.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Trace on First Retry</div>
+              <div class="card-body">
+                <code>trace: "on-first-retry"</code> (default).<br>
+                Playwright records a full trace (DOM snapshots, network, console) on the first retry attempt. Zero overhead for passing tests, full debugging context for flaky ones.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Screenshots on Failure</div>
+              <div class="card-body">
+                <code>screenshot: "only-on-failure"</code>.<br>
+                Videos: <code>"retain-on-failure"</code>.<br>
+                Both configurable per environment via <code>SCREENSHOT_MODE</code> and <code>VIDEO_MODE</code> env vars.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Poll-Based Retry (Eventual Consistency)</div>
+              <div class="card-body">
+                <code>expect.poll(() =&gt; condition, { timeout, intervals })</code><br>
+                Used for staging eventual-consistency gaps (e.g. token revocation lag). Also exposed as <code>TIMEOUTS.POLL_INTERVAL_NORMAL</code> (1s) wait plus re-query loops.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">SKU Discovery Retry Loop</div>
+              <div class="card-body">
+                <code>beforeAll</code> tries multiple search terms and multiple SKU candidates in a loop. Each candidate's <code>addProductsToCart</code> call checks both <code>errors?.length</code> and <code>user_errors</code>, and only moves on once a SKU successfully lands in the cart.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">PDP Size Selection Retry</div>
+              <div class="card-body">
+                Ecommerce PDP tests retry navigating to products when the discovered size is out of stock. A max attempt limit prevents infinite loops; out-of-stock products are treated as an expected case, not a failure.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Retry cấp test</div>
+              <div class="card-body">
+                <code>retries: process.env.CI ? env.retries : 0</code><br>
+                UI: 2 lần retry trong CI, 0 lần khi chạy local.<br>
+                API: 2 lần retry trong CI, 0 lần khi chạy local.<br>
+                Retry chạy lại toàn bộ test, kể cả <code>beforeAll</code> của nó.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Trace ở lần retry đầu</div>
+              <div class="card-body">
+                <code>trace: "on-first-retry"</code> (mặc định).<br>
+                Playwright ghi trace đầy đủ (snapshot DOM, network, console) ở lần retry đầu tiên. Không tốn thêm chi phí cho test pass, đủ ngữ cảnh debug cho test flaky.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Screenshot khi fail</div>
+              <div class="card-body">
+                <code>screenshot: "only-on-failure"</code>.<br>
+                Video: <code>"retain-on-failure"</code>.<br>
+                Cả hai cấu hình được theo từng môi trường qua biến môi trường <code>SCREENSHOT_MODE</code> và <code>VIDEO_MODE</code>.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Retry dạng poll (eventual consistency)</div>
+              <div class="card-body">
+                <code>expect.poll(() =&gt; condition, { timeout, intervals })</code><br>
+                Dùng cho độ trễ eventual-consistency trên staging (ví dụ độ trễ thu hồi token). Cũng dùng dưới dạng chờ <code>TIMEOUTS.POLL_INTERVAL_NORMAL</code> (1s) cộng vòng lặp truy vấn lại.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Vòng lặp retry tìm SKU</div>
+              <div class="card-body">
+                <code>beforeAll</code> thử nhiều từ khóa tìm kiếm và nhiều SKU ứng viên trong một vòng lặp. Mỗi lời gọi <code>addProductsToCart</code> cho từng ứng viên kiểm tra cả <code>errors?.length</code> lẫn <code>user_errors</code>, chỉ tiếp tục khi một SKU được thêm thành công vào giỏ.
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Retry chọn size trên PDP</div>
+              <div class="card-body">
+                Test PDP của ecommerce retry điều hướng sang sản phẩm khác khi size tìm được hết hàng. Giới hạn số lần thử tránh vòng lặp vô hạn; sản phẩm hết hàng được coi là trường hợp dự kiến, không phải lỗi.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="env">
+      <div class="section-header">
+        <div class="section-num">16</div>
+        <div>
+          <h2>Environment Configuration</h2>
+          <div class="section-desc">Multi-environment support via .env file loading and NODE_ENV / Hỗ trợ nhiều môi trường qua nạp file .env và NODE_ENV</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <div class="flow">
+            <div class="flow-node"><code>NODE_ENV=staging</code></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node highlight"><code>dotenv.config(.env.staging)</code></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node green"><code>getEnvironment()</code></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node">Config object injected into config files</div>
+          </div>
+          <table style="margin-top:14px">
+            <thead><tr><th>Environment</th><th>Command</th></tr></thead>
+            <tbody>
+              <tr><td>Testing (default)</td><td><code>npm test</code> or <code>NODE_ENV=testing npm test</code></td></tr>
+              <tr><td>Staging</td><td><code>npm run test:staging</code></td></tr>
+              <tr><td>Production</td><td><code>npm run test:production</code></td></tr>
+              <tr><td>API, all environments</td><td><code>npm run test:api</code>, <code>test:api:testing</code>, <code>test:api:staging</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <div class="flow">
+            <div class="flow-node"><code>NODE_ENV=staging</code></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node highlight"><code>dotenv.config(.env.staging)</code></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node green"><code>getEnvironment()</code></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node">Object config được inject vào các file config</div>
+          </div>
+          <table style="margin-top:14px">
+            <thead><tr><th>Môi trường</th><th>Lệnh</th></tr></thead>
+            <tbody>
+              <tr><td>Testing (mặc định)</td><td><code>npm test</code> hoặc <code>NODE_ENV=testing npm test</code></td></tr>
+              <tr><td>Staging</td><td><code>npm run test:staging</code></td></tr>
+              <tr><td>Production</td><td><code>npm run test:production</code></td></tr>
+              <tr><td>API, mọi môi trường</td><td><code>npm run test:api</code>, <code>test:api:testing</code>, <code>test:api:staging</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:12px">
+        <div class="col-en">
+          <div class="callout callout-blue">
+            <span class="callout-icon">ℹ️</span>
+            <div class="callout-body"><strong>CI auto-detection:</strong> Both configs detect the <code>CI</code>, <code>GITLAB_CI</code>, <code>TF_BUILD</code>, and <code>GITHUB_ACTIONS</code> environment variables to automatically adjust retries, timeouts, and <code>forbidOnly</code>. No manual flag is needed when running in GitHub Actions.</div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="callout callout-blue">
+            <span class="callout-icon">ℹ️</span>
+            <div class="callout-body"><strong>Tự động nhận diện CI:</strong> Cả hai config đều nhận diện biến môi trường <code>CI</code>, <code>GITLAB_CI</code>, <code>TF_BUILD</code>, <code>GITHUB_ACTIONS</code> để tự điều chỉnh retries, timeout, và <code>forbidOnly</code>. Không cần flag thủ công nào khi chạy trong GitHub Actions.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="lifecycle">
+      <div class="section-header">
+        <div class="section-num">17</div>
+        <div>
+          <h2>Global Setup &amp; Teardown Lifecycle</h2>
+          <div class="section-desc">Suite-level bootstrapping and cleanup independent of individual tests / Bootstrap và dọn dẹp ở cấp suite, độc lập với từng test</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <div class="two-col-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="pattern">
+              <div class="pattern-title" style="margin-bottom:10px">🚀 Global Setup</div>
+              <div class="pattern-body">
+                1. Clear all logs and start a new logging session<br>
+                2. Load <code>.env.{NODE_ENV}</code> configuration<br>
+                3. Clean previous test results directories<br>
+                4. Create required output directories<br>
+                5. Validate browser installations<br>
+                6. Test connectivity to target applications<br>
+                7. Fail fast with a clear error if any step fails
+              </div>
+            </div>
+            <div class="pattern">
+              <div class="pattern-title" style="margin-bottom:10px">🧹 Global Teardown</div>
+              <div class="pattern-body">
+                1. Generate test summary (<code>test-summary.txt</code>)<br>
+                2. Run monocart report validation<br>
+                3. Archive artifacts in CI (upload to GitHub Actions)<br>
+                4. Clean temporary files<br>
+                5. Append GitHub Step Summary in CI<br>
+                6. Trigger Slack notification (via workflow)
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <div class="two-col-inner" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="pattern">
+              <div class="pattern-title" style="margin-bottom:10px">🚀 Global Setup</div>
+              <div class="pattern-body">
+                1. Xóa toàn bộ log và bắt đầu phiên log mới<br>
+                2. Nạp cấu hình <code>.env.{NODE_ENV}</code><br>
+                3. Dọn thư mục kết quả test trước đó<br>
+                4. Tạo các thư mục output cần thiết<br>
+                5. Kiểm tra các bản cài trình duyệt<br>
+                6. Kiểm tra kết nối tới ứng dụng đích<br>
+                7. Fail nhanh với lỗi rõ ràng nếu bước nào thất bại
+              </div>
+            </div>
+            <div class="pattern">
+              <div class="pattern-title" style="margin-bottom:10px">🧹 Global Teardown</div>
+              <div class="pattern-body">
+                1. Sinh tổng hợp kết quả test (<code>test-summary.txt</code>)<br>
+                2. Chạy kiểm tra báo cáo monocart<br>
+                3. Lưu trữ artifact trong CI (upload lên GitHub Actions)<br>
+                4. Dọn file tạm<br>
+                5. Ghi thêm GitHub Step Summary trong CI<br>
+                6. Kích hoạt thông báo Slack (qua workflow)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bi-block" style="margin-top:6px">
+        <div class="col-en">
+          <div class="callout callout-green">
+            <span class="callout-icon">✅</span>
+            <div class="callout-body"><strong>The API suite has its own lifecycle:</strong> <code>tests/api/global-setup.ts</code> and <code>tests/api/global-teardown.ts</code> handle API-specific bootstrapping (no browser, different output directories), configured in <code>api.config.ts</code> independently of the UI lifecycle.</div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <div class="callout callout-green">
+            <span class="callout-icon">✅</span>
+            <div class="callout-body"><strong>Suite API có vòng đời riêng:</strong> <code>tests/api/global-setup.ts</code> và <code>tests/api/global-teardown.ts</code> xử lý bootstrap riêng cho API (không dùng trình duyệt, thư mục output khác), được cấu hình trong <code>api.config.ts</code> độc lập với vòng đời của UI.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section class="section" id="cicd">
+      <div class="section-header">
+        <div class="section-num">18</div>
+        <div>
+          <h2>CI/CD Pipelines</h2>
+          <div class="section-desc">GitHub Actions workflows with Slack notifications, matrix strategy, caching, and Cloudflare deployment / Workflow GitHub Actions kèm thông báo Slack, matrix strategy, cache, và deploy lên Cloudflare</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <table>
+            <thead><tr><th>Workflow file</th><th>Purpose</th><th>Triggers</th></tr></thead>
+            <tbody>
+              <tr><td><code>playwright-with-slack.yml</code></td><td>Main UI + API pipeline with Slack Block Kit notification</td><td>push, PR, <code>workflow_dispatch</code></td></tr>
+              <tr><td><code>playwright.yml</code></td><td>Simpler UI tests without Slack</td><td>push, PR</td></tr>
+              <tr><td><code>api-restful-tests-with-slack.yml</code></td><td>GRA API tests with Slack summary</td><td>push, PR, <code>workflow_dispatch</code></td></tr>
+              <tr><td><code>api-restful-tests.yml</code></td><td>GRA API tests without Slack</td><td>push, PR</td></tr>
+              <tr><td><code>percy-visual-tests.yml</code></td><td>Percy visual regression run</td><td>push, <code>workflow_dispatch</code></td></tr>
+              <tr><td><code>lighthouse-ci.yml</code></td><td>Lighthouse performance assertions</td><td>push, <code>workflow_dispatch</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <table>
+            <thead><tr><th>File workflow</th><th>Mục đích</th><th>Trigger</th></tr></thead>
+            <tbody>
+              <tr><td><code>playwright-with-slack.yml</code></td><td>Pipeline chính cho UI + API kèm thông báo Slack Block Kit</td><td>push, PR, <code>workflow_dispatch</code></td></tr>
+              <tr><td><code>playwright.yml</code></td><td>Test UI đơn giản hơn, không có Slack</td><td>push, PR</td></tr>
+              <tr><td><code>api-restful-tests-with-slack.yml</code></td><td>Test API của GRA kèm tổng hợp Slack</td><td>push, PR, <code>workflow_dispatch</code></td></tr>
+              <tr><td><code>api-restful-tests.yml</code></td><td>Test API của GRA, không có Slack</td><td>push, PR</td></tr>
+              <tr><td><code>percy-visual-tests.yml</code></td><td>Chạy visual regression bằng Percy</td><td>push, <code>workflow_dispatch</code></td></tr>
+              <tr><td><code>lighthouse-ci.yml</code></td><td>Assertion hiệu năng bằng Lighthouse</td><td>push, <code>workflow_dispatch</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:18px">
+        <div class="pattern-header">
+          <span class="pattern-title">Key CI Patterns Applied</span>
+          <span class="badge badge-ci">CI/CD</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <div class="card-grid" style="margin-bottom:0">
+              <div class="card">
+                <div class="card-title">Browser Caching</div>
+                <div class="card-body"><code>actions/cache</code> keyed on the <code>package-lock.json</code> hash. Saves about 2 minutes per run by skipping the Playwright browser download when dependencies have not changed.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Matrix Strategy (Windows + macOS)</div>
+                <div class="card-body">UI jobs run on both OSes concurrently. <code>fail-fast: false</code> lets both complete even if one fails. The matrix handles shell/script-extension differences automatically.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">workflow_dispatch Inputs</div>
+                <div class="card-body">Environment, mode, workers, browser, and test type are all selectable at trigger time, enabling ad hoc single-browser or single-environment runs without code changes.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Shard Merging</div>
+                <div class="card-body">OS-specific JSON reports are downloaded as artifacts and merged in a <code>test-report</code> job. The merged counts feed Slack and the GitHub Step Summary. Monocart's JSON is used for trend history via a branch-scoped <code>actions/cache</code>.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Cloudflare Pages Deployment</div>
+                <div class="card-body">The Playwright HTML report and monocart report are deployed to Cloudflare Pages. Report URLs appear as Slack action buttons, so stakeholders can open the live interactive report without GitHub access.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">GitHub Step Summary</div>
+                <div class="card-body">The <code>monocart onEnd</code> hook appends a markdown results table to <code>$GITHUB_STEP_SUMMARY</code>, visible directly in the Actions run summary tab, so a quick pass/fail view needs no separate report URL.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Slack Block Kit Notification</div>
+                <div class="card-body">A rich Slack message with colour-coded status, per-suite counts (total/passed/failed/skipped/flaky/duration), environment and browser context, and action buttons (Workflow Run, UI Report, API Report, View Commit).</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Monocart Trend / History</div>
+                <div class="card-body">The previous run's <code>index.json</code> is cached per branch with <code>actions/cache</code>. When the <code>MONOCART_TREND_FILE</code> env var points to it, monocart renders a pass/fail trend chart across runs in the interactive report.</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <div class="card-grid" style="margin-bottom:0">
+              <div class="card">
+                <div class="card-title">Cache trình duyệt</div>
+                <div class="card-body"><code>actions/cache</code> khóa theo hash của <code>package-lock.json</code>. Tiết kiệm khoảng 2 phút mỗi lần chạy bằng cách bỏ qua bước tải trình duyệt Playwright khi dependency không đổi.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Matrix Strategy (Windows + macOS)</div>
+                <div class="card-body">Job UI chạy đồng thời trên cả hai hệ điều hành. <code>fail-fast: false</code> cho phép cả hai chạy xong dù một bên fail. Matrix tự xử lý khác biệt về shell/phần mở rộng script.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Input của workflow_dispatch</div>
+                <div class="card-body">Môi trường, mode, số worker, trình duyệt, loại test đều có thể chọn ngay lúc trigger, cho phép chạy tùy biến với một trình duyệt hoặc một môi trường mà không cần sửa code.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Gộp shard</div>
+                <div class="card-body">Báo cáo JSON theo từng hệ điều hành được tải về dưới dạng artifact rồi gộp trong job <code>test-report</code>. Số liệu gộp được đưa vào Slack và GitHub Step Summary. JSON của Monocart dùng cho lịch sử xu hướng qua <code>actions/cache</code> theo từng branch.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Deploy lên Cloudflare Pages</div>
+                <div class="card-body">Báo cáo HTML của Playwright và báo cáo monocart được deploy lên Cloudflare Pages. URL báo cáo xuất hiện dưới dạng nút hành động trên Slack, giúp các bên liên quan mở báo cáo tương tác trực tiếp mà không cần quyền truy cập GitHub.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">GitHub Step Summary</div>
+                <div class="card-body">Hook <code>monocart onEnd</code> ghi thêm bảng kết quả dạng markdown vào <code>$GITHUB_STEP_SUMMARY</code>, hiển thị ngay trong tab summary của Actions, nên chỉ cần xem nhanh pass/fail mà không cần URL báo cáo riêng.</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Thông báo Slack Block Kit</div>
+                <div class="card-body">Tin nhắn Slack đầy đủ với trạng thái mã màu, số liệu theo từng suite (tổng/pass/fail/skip/flaky/thời lượng), ngữ cảnh môi trường và trình duyệt, cùng các nút hành động (Workflow Run, UI Report, API Report, View Commit).</div>
+              </div>
+              <div class="card">
+                <div class="card-title">Xu hướng / lịch sử Monocart</div>
+                <div class="card-body"><code>index.json</code> của lần chạy trước được cache theo từng branch bằng <code>actions/cache</code>. Khi biến môi trường <code>MONOCART_TREND_FILE</code> trỏ tới file đó, monocart vẽ biểu đồ xu hướng pass/fail qua các lần chạy trong báo cáo tương tác.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="reporting">
+      <div class="section-header">
+        <div class="section-num">19</div>
+        <div>
+          <h2>Multi-Reporter Strategy</h2>
+          <div class="section-desc">Five reporters run in parallel, additive with no conflicts / Năm reporter chạy song song, cộng dồn và không xung đột</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <table>
+            <thead><tr><th>Reporter</th><th>Output</th><th>Audience / Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><strong>html</strong></td><td><code>playwright-report/</code> / <code>api-report/</code></td><td>Engineers: interactive step traces, screenshots, videos</td></tr>
+              <tr><td><strong>json</strong></td><td><code>test-results/results.json</code></td><td>CI tooling: programmatic parsing, artifact analysis, shard merging</td></tr>
+              <tr><td><strong>junit</strong></td><td><code>test-results/results.xml</code></td><td>Test management tools (Jira Xray, Azure DevOps): JUnit-compatible import</td></tr>
+              <tr><td><strong>list</strong> / <strong>line</strong></td><td>stdout</td><td>Console progress during local and CI runs</td></tr>
+              <tr><td><strong>monocart-reporter</strong></td><td><code>monocart-report/index.html</code></td><td>Stakeholders: rich grid, trend chart, GitHub Step Summary, Slack-ready summary counts</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <table>
+            <thead><tr><th>Reporter</th><th>Output</th><th>Đối tượng / Mục đích</th></tr></thead>
+            <tbody>
+              <tr><td><strong>html</strong></td><td><code>playwright-report/</code> / <code>api-report/</code></td><td>Kỹ sư: trace từng bước tương tác, screenshot, video</td></tr>
+              <tr><td><strong>json</strong></td><td><code>test-results/results.json</code></td><td>Công cụ CI: parse tự động, phân tích artifact, gộp shard</td></tr>
+              <tr><td><strong>junit</strong></td><td><code>test-results/results.xml</code></td><td>Công cụ quản lý test (Jira Xray, Azure DevOps): import tương thích JUnit</td></tr>
+              <tr><td><strong>list</strong> / <strong>line</strong></td><td>stdout</td><td>Tiến trình hiển thị trên console khi chạy local và CI</td></tr>
+              <tr><td><strong>monocart-reporter</strong></td><td><code>monocart-report/index.html</code></td><td>Bên liên quan: bảng dữ liệu chi tiết, biểu đồ xu hướng, GitHub Step Summary, số liệu tổng hợp sẵn sàng cho Slack</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="visual">
+      <div class="section-header">
+        <div class="section-num">20</div>
+        <div>
+          <h2>Visual Regression Testing</h2>
+          <div class="section-desc">Percy integration with silent skip when token is absent / Tích hợp Percy, tự bỏ qua âm thầm khi thiếu token</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Conditional Percy Snapshots</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              Percy snapshots only run when <code>PERCY_TOKEN</code> is set in the environment. When it is absent (local development), <code>percyHelper.snapshot()</code> silently skips, and the test passes without any visual assertion. This means visual tests can live in the same suite as functional tests without breaking local runs.
+              <code>PercyHelper</code> is NOT a <code>BasePage</code> field: it is only available via the <code>percyHelper</code> fixture.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Snapshot của Percy chỉ chạy khi biến môi trường <code>PERCY_TOKEN</code> được thiết lập. Khi thiếu (khi phát triển local), <code>percyHelper.snapshot()</code> tự bỏ qua âm thầm, và test vẫn pass mà không có assertion trực quan nào. Nhờ vậy test trực quan có thể nằm chung suite với test chức năng mà không phá vỡ lần chạy local.
+              <code>PercyHelper</code> KHÔNG phải một field của <code>BasePage</code>: nó chỉ khả dụng qua fixture <code>percyHelper</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section class="section" id="typescript">
+      <div class="section-header">
+        <div class="section-num">21</div>
+        <div>
+          <h2>TypeScript Quality Standards</h2>
+          <div class="section-desc">Strict mode, explicit typing, linting enforced in CI / Chế độ strict, kiểu tường minh, lint bắt buộc trong CI</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Strict Mode</div>
+              <div class="card-body"><code>"strict": true</code> in <code>tsconfig.json</code>. Enables <code>strictNullChecks</code>, <code>noImplicitAny</code>, <code>strictFunctionTypes</code>. CI runs <code>npm run lint</code> (<code>tsc --noEmit</code>); type errors fail the build.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Explicit Return Types</div>
+              <div class="card-body">All exported functions and generator methods declare explicit return types. Generator classes return typed interfaces, never inferred types. This prevents interface drift when implementations change.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">No <code>any</code> Casts</div>
+              <div class="card-body">The <code>AuthType.BEARER</code> enum is always used, never <code>"bearer" as any</code>. Data shapes carry named interfaces. <code>page.evaluate()</code> receives typed arrow functions, not raw strings, wherever avoidable.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Optional Chaining on Error Arrays</div>
+              <div class="card-body"><code>gql.errors?.[0]?.message ?? ''</code>, even inside a length check. TypeScript does not narrow <code>errors</code> to non-undefined inside <code>if (gql.errors?.length)</code>: optional chaining is still required on index access.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Module-Level <code>let</code> Initializers</div>
+              <div class="card-body"><code>let cartId: string = ''</code>, not <code>let cartId: string</code>. Explicit initializers keep TypeScript's definite-assignment checks unambiguous and make the "empty state" explicit.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Module Paths: NodeNext</div>
+              <div class="card-body"><code>"module": "NodeNext"</code> plus <code>"moduleResolution": "NodeNext"</code> aligns TypeScript's module resolution with Node.js ESM semantics, avoiding common <code>.js</code> extension and re-export issues.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Strict Mode</div>
+              <div class="card-body"><code>"strict": true</code> trong <code>tsconfig.json</code>. Bật <code>strictNullChecks</code>, <code>noImplicitAny</code>, <code>strictFunctionTypes</code>. CI chạy <code>npm run lint</code> (<code>tsc --noEmit</code>); lỗi kiểu làm build fail.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Kiểu trả về tường minh</div>
+              <div class="card-body">Mọi hàm export và method generator đều khai báo kiểu trả về rõ ràng. Generator class trả về interface có kiểu, không bao giờ để suy luận. Cách này ngăn interface trôi dạt khi implementation thay đổi.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Không dùng ép kiểu <code>any</code></div>
+              <div class="card-body">Luôn dùng enum <code>AuthType.BEARER</code>, không bao giờ dùng <code>"bearer" as any</code>. Các shape dữ liệu đều gắn interface có tên. <code>page.evaluate()</code> nhận arrow function có kiểu, không dùng chuỗi thô, ở mọi chỗ có thể tránh được.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Optional chaining trên mảng lỗi</div>
+              <div class="card-body"><code>gql.errors?.[0]?.message ?? ''</code>, kể cả bên trong kiểm tra length. TypeScript không thu hẹp <code>errors</code> về non-undefined bên trong <code>if (gql.errors?.length)</code>: vẫn cần optional chaining khi truy cập theo index.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Khởi tạo <code>let</code> ở cấp module</div>
+              <div class="card-body"><code>let cartId: string = ''</code>, không phải <code>let cartId: string</code>. Giá trị khởi tạo tường minh giúp kiểm tra definite-assignment của TypeScript rõ ràng và thể hiện rõ trạng thái "rỗng".</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Module path: NodeNext</div>
+              <div class="card-body"><code>"module": "NodeNext"</code> cộng <code>"moduleResolution": "NodeNext"</code> giúp cách resolve module của TypeScript khớp với ngữ nghĩa ESM của Node.js, tránh các vấn đề thường gặp về đuôi <code>.js</code> và re-export.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="mocking">
+      <div class="section-header">
+        <div class="section-num">22</div>
+        <div>
+          <h2>API Mocking for UI Tests</h2>
+          <div class="section-desc">Centralised mock scenarios, network interception via Playwright route API / Kịch bản mock tập trung, chặn network qua route API của Playwright</div>
+        </div>
+      </div>
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">ApiMockService: Centralised Scenarios</span>
+          <span class="badge badge-test">Pattern</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              <code>src/api/ApiMockService.ts</code> wraps Playwright's <code>page.route()</code> API into named scenario methods.
+              Tests call high-level methods like <code>mockSuccessfulLogin()</code> instead of managing route handlers directly.
+              <code>NetworkHelper</code> provides the low-level route/unroute/intercept primitives; <code>ApiMockService</code> composes them into reusable scenarios.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              <code>src/api/ApiMockService.ts</code> bọc API <code>page.route()</code> của Playwright thành các method kịch bản có tên.
+              Test gọi các method cấp cao như <code>mockSuccessfulLogin()</code> thay vì tự quản lý route handler.
+              <code>NetworkHelper</code> cung cấp các thao tác route/unroute/intercept cấp thấp; <code>ApiMockService</code> ghép chúng lại thành các kịch bản tái sử dụng được.
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <pre><span class="kw">const</span> mocks = <span class="kw">new</span> <span class="type">ApiMockService</span>(page);
+
+<span class="kw">await</span> mocks.<span class="fn">mockSuccessfulLogin</span>();          <span class="cmt">// stub auth endpoint</span>
+<span class="kw">await</span> mocks.<span class="fn">mockProductList</span>(productData);    <span class="cmt">// stub catalogue</span>
+<span class="kw">await</span> mocks.<span class="fn">mockGraphQLQuery</span>(<span class="str">'GetCart'</span>, {}); <span class="cmt">// stub specific GQL op</span>
+<span class="kw">await</span> mocks.<span class="fn">mockGraphQLError</span>(<span class="str">'PlaceOrder'</span>);  <span class="cmt">// simulate error</span></pre>
+          </div>
+          <div class="col-vi">
+            <pre><span class="kw">const</span> mocks = <span class="kw">new</span> <span class="type">ApiMockService</span>(page);
+
+<span class="kw">await</span> mocks.<span class="fn">mockSuccessfulLogin</span>();          <span class="cmt">// stub endpoint auth</span>
+<span class="kw">await</span> mocks.<span class="fn">mockProductList</span>(productData);    <span class="cmt">// stub catalog</span>
+<span class="kw">await</span> mocks.<span class="fn">mockGraphQLQuery</span>(<span class="str">'GetCart'</span>, {}); <span class="cmt">// stub một GQL op cụ thể</span>
+<span class="kw">await</span> mocks.<span class="fn">mockGraphQLError</span>(<span class="str">'PlaceOrder'</span>);  <span class="cmt">// mô phỏng lỗi</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="workarounds">
+      <div class="section-header">
+        <div class="section-num">23</div>
+        <div>
+          <h2>Browser-Specific Workarounds</h2>
+          <div class="section-desc">Documented fixes for known browser protocol / SPA issues / Các cách xử lý đã ghi nhận cho vấn đề protocol trình duyệt / SPA</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-header">
+          <span class="pattern-title">Firefox SPA Service-Worker Teardown</span>
+          <span class="badge badge-arch">Workaround</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              All six ecommerce fixtures (<code>ecommerceHomePage</code>, <code>ecommerceNavPage</code>, <code>ecommerceSearchPage</code>, <code>ecommercePLPPage</code>, <code>ecommercePDPPage</code>, <code>ecommerceCartOverlayPage</code>) navigate to <code>about:blank</code> before teardown on Firefox.
+              <strong>Root cause:</strong> Firefox's Juggler protocol hangs on <code>context.close()</code> when SPAs have active service workers or persistent WebSocket/analytics connections. Navigating to <code>about:blank</code> triggers the unload lifecycle, deregistering service workers and closing connections before the context is destroyed.
+              <strong>Do NOT remove</strong> this workaround from any of these fixtures.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Cả sáu fixture ecommerce (<code>ecommerceHomePage</code>, <code>ecommerceNavPage</code>, <code>ecommerceSearchPage</code>, <code>ecommercePLPPage</code>, <code>ecommercePDPPage</code>, <code>ecommerceCartOverlayPage</code>) đều điều hướng tới <code>about:blank</code> trước khi teardown trên Firefox.
+              <strong>Nguyên nhân gốc:</strong> Giao thức Juggler của Firefox bị treo ở <code>context.close()</code> khi SPA còn service worker đang hoạt động hoặc kết nối WebSocket/analytics còn mở. Điều hướng tới <code>about:blank</code> kích hoạt vòng đời unload, hủy đăng ký service worker và đóng kết nối trước khi context bị hủy.
+              <strong>Không được gỡ bỏ</strong> cách xử lý này khỏi bất kỳ fixture nào trong số này.
+            </p>
+          </div>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <pre><span class="cmt">// Fixture teardown (after await use(...))</span>
+<span class="kw">if</span> (page.<span class="fn">context</span>().<span class="fn">browser</span>()?.browserType().<span class="fn">name</span>() === <span class="str">'firefox'</span>) {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'about:blank'</span>, { waitUntil: <span class="str">'commit'</span>, timeout: <span class="num">5000</span> })
+    .<span class="fn">catch</span>(() =&gt; {});  <span class="cmt">// swallow: page may already be closing</span>
+}</pre>
+          </div>
+          <div class="col-vi">
+            <pre><span class="cmt">// Teardown của fixture (sau await use(...))</span>
+<span class="kw">if</span> (page.<span class="fn">context</span>().<span class="fn">browser</span>()?.browserType().<span class="fn">name</span>() === <span class="str">'firefox'</span>) {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'about:blank'</span>, { waitUntil: <span class="str">'commit'</span>, timeout: <span class="num">5000</span> })
+    .<span class="fn">catch</span>(() =&gt; {});  <span class="cmt">// bỏ qua lỗi: page có thể đã đang đóng</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">Firefox User Preferences for Stability</span>
+          <span class="badge badge-arch">Workaround</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              The Firefox project in <code>playwright.config.ts</code> sets explicit <code>firefoxUserPrefs</code> to disable geolocation, push notifications, background processes, and speculative connections that can cause flaky network waits or test-isolation issues. Network timeouts are also tightened to prevent lingering connections from blocking context teardown.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Project Firefox trong <code>playwright.config.ts</code> đặt tường minh <code>firefoxUserPrefs</code> để tắt geolocation, push notification, tiến trình nền, và kết nối speculative, những thứ có thể gây chờ network không ổn định hoặc vấn đề cô lập test. Timeout network cũng được siết chặt hơn để tránh kết nối còn treo làm nghẽn teardown của context.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pattern" style="margin-top:16px">
+        <div class="pattern-header">
+          <span class="pattern-title">Staging Eventual-Consistency Polling</span>
+          <span class="badge badge-api">Workaround</span>
+        </div>
+        <div class="bi-block">
+          <div class="col-en">
+            <span class="lang-tag">EN</span>
+            <p class="pattern-body">
+              PLA staging token revocation has a race condition: after <code>revokeCustomerToken</code>, the old token may still be accepted for 1 to 5 seconds. Tests poll the protected resource at <code>TIMEOUTS.POLL_INTERVAL_NORMAL</code> (1s) intervals until the <code>graphql-authorization</code> error appears, instead of asserting immediately after revocation.
+            </p>
+          </div>
+          <div class="col-vi">
+            <span class="lang-tag vi">VI</span>
+            <p class="pattern-body">
+              Việc thu hồi token trên staging của PLA có race condition: sau <code>revokeCustomerToken</code>, token cũ vẫn có thể được chấp nhận trong 1 đến 5 giây. Test poll tài nguyên được bảo vệ theo khoảng <code>TIMEOUTS.POLL_INTERVAL_NORMAL</code> (1s) cho tới khi lỗi <code>graphql-authorization</code> xuất hiện, thay vì assert ngay sau khi thu hồi.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num" style="background:linear-gradient(135deg,#3ddc84,#00bcd4)">✦</div>
+        <div>
+          <h2>Pattern Quick-Reference</h2>
+          <div class="section-desc">All patterns at a glance / Toàn bộ pattern trong một cái nhìn tổng quan</div>
+        </div>
+      </div>
+      <div class="bi-block">
+        <div class="col-en">
+          <span class="lang-tag">EN</span>
+          <table>
+            <thead><tr><th>Category</th><th>Pattern / Practice</th><th>Where Applied</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Architecture</strong></td><td>Composition over inheritance (helper delegation)</td><td><code>BasePage</code> + 8 helpers</td></tr>
+              <tr><td><strong>Architecture</strong></td><td>Abstract base class + concrete page objects</td><td><code>src/pages/**/*.ts</code></td></tr>
+              <tr><td><strong>Architecture</strong></td><td>Fixture-based dependency injection</td><td><code>src/config/base-test.ts</code></td></tr>
+              <tr><td><strong>Architecture</strong></td><td>Path aliases for layer isolation</td><td><code>tsconfig.json</code>, <code>@pages</code>, <code>@config</code>…</td></tr>
+              <tr><td><strong>Design</strong></td><td>Strategy pattern (AuthType enum)</td><td><code>ApiClient.ts</code></td></tr>
+              <tr><td><strong>Design</strong></td><td>Builder / fluent wrapper (ApiResponseWrapper)</td><td><code>ApiClientExt</code>, <code>GraphQLClient</code></td></tr>
+              <tr><td><strong>Design</strong></td><td>Singleton + Map-keyed state isolation</td><td><code>shared-state.ts</code></td></tr>
+              <tr><td><strong>Design</strong></td><td>Factory pattern (test data generators: files with generate* methods only)</td><td><code>src/data/api/gra-test-data.ts</code>, <code>admin-data.ts</code>, <code>home-data.ts</code></td></tr>
+              <tr><td><strong>Design</strong></td><td>Factory fixtures (dynamic client creation + auto lifecycle)</td><td><code>src/api/ApiTest.ts</code>: <code>createClient</code>, <code>createClientExt</code>, <code>createGraphQLClient</code>, <code>createRestfulApiClient</code></td></tr>
+              <tr><td><strong>Design</strong></td><td>Typed Interface: named interface on every exported data shape</td><td>All <code>src/data/**/*.ts</code> files (both factory and const files)</td></tr>
+              <tr><td><strong>Design</strong></td><td>Project-per-brand multi-brand injection</td><td><code>api.config.ts</code>, <code>gra-test.ts</code></td></tr>
+              <tr><td><strong>Test</strong></td><td>TC_XX naming + tag-based filtering</td><td>All spec files</td></tr>
+              <tr><td><strong>Test</strong></td><td>Dual assertion mode (hard vs soft)</td><td>All spec files</td></tr>
+              <tr><td><strong>Test</strong></td><td>Structured logging with Playwright annotations</td><td><code>TestLogger</code>, all spec files</td></tr>
+              <tr><td><strong>Test</strong></td><td>Named timeout constants (CI-aware)</td><td><code>src/constants/timeouts.ts</code></td></tr>
+              <tr><td><strong>Test</strong></td><td>Always-fresh auth + always-fresh cart</td><td>All GRA <code>beforeAll</code> blocks</td></tr>
+              <tr><td><strong>Test</strong></td><td>Guest carts for negative test isolation</td><td><code>pla-place-order.spec.ts</code> TC_02/TC_03</td></tr>
+              <tr><td><strong>Test</strong></td><td>Safe SKU discovery (candidate list + user_errors check)</td><td>Checkout/cart beforeAll hooks</td></tr>
+              <tr><td><strong>Test</strong></td><td>Staging tolerance (assertNoCriticalErrors)</td><td><code>pla-catalog.spec.ts</code></td></tr>
+              <tr><td><strong>Test</strong></td><td>Schema gap graceful handling</td><td><code>productSearch</code>, <code>guestOrder</code> tests</td></tr>
+              <tr><td><strong>Execution</strong></td><td>fullyParallel: true + 50% workers (UI)</td><td><code>playwright.config.ts</code></td></tr>
+              <tr><td><strong>Execution</strong></td><td>fullyParallel: false + 4 fixed workers (API)</td><td><code>api.config.ts</code></td></tr>
+              <tr><td><strong>Execution</strong></td><td>No serial mode in GRA specs (cascade-skip prevention)</td><td>All <code>pla-*.spec.ts</code></td></tr>
+              <tr><td><strong>Execution</strong></td><td>Test-level retries (2 in CI, 0 local)</td><td>Both configs</td></tr>
+              <tr><td><strong>Execution</strong></td><td>Trace on first retry</td><td>Both configs</td></tr>
+              <tr><td><strong>Execution</strong></td><td>beforeAll timeout scaling for multi-step setups</td><td><code>TIMEOUTS.API_SUITE_SETUP</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>OS matrix strategy (Windows + macOS)</td><td><code>playwright-with-slack.yml</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Browser caching (actions/cache)</td><td>All workflow files</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Shard report merging</td><td><code>test-report</code> job</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Cloudflare Pages report deployment</td><td><code>playwright-with-slack.yml</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Slack Block Kit rich notifications</td><td><code>*-with-slack.yml</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>GitHub Step Summary via monocart onEnd hook</td><td>Both configs</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Monocart trend/history (branch-scoped cache)</td><td>Both configs</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>forbidOnly guards against accidental test.only</td><td>Both configs</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Docker support (build + multi-browser + API)</td><td><code>package.json</code> docker:* scripts</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Lighthouse CI performance assertions</td><td><code>lighthouse-ci.yml</code></td></tr>
+              <tr><td><strong>Quality</strong></td><td>TypeScript strict mode + noEmit lint gate</td><td><code>tsconfig.json</code>, <code>npm run lint</code></td></tr>
+              <tr><td><strong>Quality</strong></td><td>Named interfaces on all exported data shapes</td><td><code>src/data/**/*.ts</code></td></tr>
+              <tr><td><strong>Quality</strong></td><td>errors?.length guard (never bare truthy)</td><td>All API spec files</td></tr>
+              <tr><td><strong>Quality</strong></td><td>Module-level GraphQL hoisting (never inline)</td><td>All API spec files</td></tr>
+              <tr><td><strong>Quality</strong></td><td>AuthType enum (never string literals)</td><td>All API spec files</td></tr>
+              <tr><td><strong>Quality</strong></td><td>Percy conditional snapshot (PERCY_TOKEN gate)</td><td><code>PercyHelper</code>, visual tests</td></tr>
+              <tr><td><strong>Workaround</strong></td><td>Firefox about:blank teardown (SPA service workers)</td><td>6 ecommerce fixtures</td></tr>
+              <tr><td><strong>Workaround</strong></td><td>Firefox user preferences (stability)</td><td><code>playwright.config.ts</code> Firefox project</td></tr>
+              <tr><td><strong>Workaround</strong></td><td>Poll-based eventual-consistency waits</td><td><code>pla-authentication.spec.ts</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-vi">
+          <span class="lang-tag vi">VI</span>
+          <table>
+            <thead><tr><th>Nhóm</th><th>Pattern / Thực hành</th><th>Áp dụng ở</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Kiến trúc</strong></td><td>Composition thay vì inheritance (ủy quyền cho helper)</td><td><code>BasePage</code> + 8 helper</td></tr>
+              <tr><td><strong>Kiến trúc</strong></td><td>Abstract base class + page object cụ thể</td><td><code>src/pages/**/*.ts</code></td></tr>
+              <tr><td><strong>Kiến trúc</strong></td><td>Dependency injection dựa trên fixture</td><td><code>src/config/base-test.ts</code></td></tr>
+              <tr><td><strong>Kiến trúc</strong></td><td>Path alias để tách lớp</td><td><code>tsconfig.json</code>, <code>@pages</code>, <code>@config</code>…</td></tr>
+              <tr><td><strong>Thiết kế</strong></td><td>Strategy pattern (enum AuthType)</td><td><code>ApiClient.ts</code></td></tr>
+              <tr><td><strong>Thiết kế</strong></td><td>Builder / fluent wrapper (ApiResponseWrapper)</td><td><code>ApiClientExt</code>, <code>GraphQLClient</code></td></tr>
+              <tr><td><strong>Thiết kế</strong></td><td>Singleton + cô lập state theo Map</td><td><code>shared-state.ts</code></td></tr>
+              <tr><td><strong>Thiết kế</strong></td><td>Factory pattern (generator dữ liệu test: chỉ các file có method generate*)</td><td><code>src/data/api/gra-test-data.ts</code>, <code>admin-data.ts</code>, <code>home-data.ts</code></td></tr>
+              <tr><td><strong>Thiết kế</strong></td><td>Factory fixture (tạo client động + tự quản lý vòng đời)</td><td><code>src/api/ApiTest.ts</code>: <code>createClient</code>, <code>createClientExt</code>, <code>createGraphQLClient</code>, <code>createRestfulApiClient</code></td></tr>
+              <tr><td><strong>Thiết kế</strong></td><td>Typed Interface: interface có tên cho mọi shape dữ liệu export</td><td>Toàn bộ file <code>src/data/**/*.ts</code> (cả factory lẫn const)</td></tr>
+              <tr><td><strong>Thiết kế</strong></td><td>Inject đa thương hiệu theo project-per-brand</td><td><code>api.config.ts</code>, <code>gra-test.ts</code></td></tr>
+              <tr><td><strong>Test</strong></td><td>Đặt tên TC_XX + lọc theo tag</td><td>Toàn bộ file spec</td></tr>
+              <tr><td><strong>Test</strong></td><td>Hai chế độ assertion (hard vs soft)</td><td>Toàn bộ file spec</td></tr>
+              <tr><td><strong>Test</strong></td><td>Logging có cấu trúc kèm annotation của Playwright</td><td><code>TestLogger</code>, toàn bộ file spec</td></tr>
+              <tr><td><strong>Test</strong></td><td>Hằng số timeout có tên (nhận biết CI)</td><td><code>src/constants/timeouts.ts</code></td></tr>
+              <tr><td><strong>Test</strong></td><td>Auth luôn mới + cart luôn mới</td><td>Toàn bộ block <code>beforeAll</code> của GRA</td></tr>
+              <tr><td><strong>Test</strong></td><td>Guest cart để cô lập test âm</td><td><code>pla-place-order.spec.ts</code> TC_02/TC_03</td></tr>
+              <tr><td><strong>Test</strong></td><td>Tìm SKU an toàn (danh sách ứng viên + kiểm tra user_errors)</td><td>Hook beforeAll của checkout/cart</td></tr>
+              <tr><td><strong>Test</strong></td><td>Dung sai trên staging (assertNoCriticalErrors)</td><td><code>pla-catalog.spec.ts</code></td></tr>
+              <tr><td><strong>Test</strong></td><td>Xử lý êm khi thiếu schema</td><td>Test <code>productSearch</code>, <code>guestOrder</code></td></tr>
+              <tr><td><strong>Thực thi</strong></td><td>fullyParallel: true + 50% worker (UI)</td><td><code>playwright.config.ts</code></td></tr>
+              <tr><td><strong>Thực thi</strong></td><td>fullyParallel: false + 4 worker cố định (API)</td><td><code>api.config.ts</code></td></tr>
+              <tr><td><strong>Thực thi</strong></td><td>Không dùng serial mode ở spec GRA (tránh cascade-skip)</td><td>Toàn bộ <code>pla-*.spec.ts</code></td></tr>
+              <tr><td><strong>Thực thi</strong></td><td>Retry cấp test (2 lần trong CI, 0 lần local)</td><td>Cả hai config</td></tr>
+              <tr><td><strong>Thực thi</strong></td><td>Trace ở lần retry đầu</td><td>Cả hai config</td></tr>
+              <tr><td><strong>Thực thi</strong></td><td>Tăng timeout beforeAll cho setup nhiều bước</td><td><code>TIMEOUTS.API_SUITE_SETUP</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Matrix hệ điều hành (Windows + macOS)</td><td><code>playwright-with-slack.yml</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Cache trình duyệt (actions/cache)</td><td>Toàn bộ file workflow</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Gộp báo cáo shard</td><td>Job <code>test-report</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Deploy báo cáo lên Cloudflare Pages</td><td><code>playwright-with-slack.yml</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Thông báo phong phú qua Slack Block Kit</td><td><code>*-with-slack.yml</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>GitHub Step Summary qua hook monocart onEnd</td><td>Cả hai config</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Xu hướng/lịch sử Monocart (cache theo branch)</td><td>Cả hai config</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>forbidOnly chặn test.only bị lỡ commit</td><td>Cả hai config</td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Hỗ trợ Docker (build + đa trình duyệt + API)</td><td>Script <code>docker:*</code> trong <code>package.json</code></td></tr>
+              <tr><td><strong>CI/CD</strong></td><td>Assertion hiệu năng bằng Lighthouse CI</td><td><code>lighthouse-ci.yml</code></td></tr>
+              <tr><td><strong>Chất lượng</strong></td><td>Chế độ strict của TypeScript + cổng lint noEmit</td><td><code>tsconfig.json</code>, <code>npm run lint</code></td></tr>
+              <tr><td><strong>Chất lượng</strong></td><td>Interface có tên cho mọi shape dữ liệu export</td><td><code>src/data/**/*.ts</code></td></tr>
+              <tr><td><strong>Chất lượng</strong></td><td>Guard errors?.length (không bao giờ dùng truthy thô)</td><td>Toàn bộ file spec API</td></tr>
+              <tr><td><strong>Chất lượng</strong></td><td>Hoist GraphQL lên cấp module (không viết inline)</td><td>Toàn bộ file spec API</td></tr>
+              <tr><td><strong>Chất lượng</strong></td><td>Enum AuthType (không dùng chuỗi literal)</td><td>Toàn bộ file spec API</td></tr>
+              <tr><td><strong>Chất lượng</strong></td><td>Snapshot Percy có điều kiện (cổng PERCY_TOKEN)</td><td><code>PercyHelper</code>, test trực quan</td></tr>
+              <tr><td><strong>Workaround</strong></td><td>Teardown về about:blank trên Firefox (service worker của SPA)</td><td>6 fixture ecommerce</td></tr>
+              <tr><td><strong>Workaround</strong></td><td>User preferences của Firefox (tính ổn định)</td><td>Project Firefox trong <code>playwright.config.ts</code></td></tr>
+              <tr><td><strong>Workaround</strong></td><td>Chờ dạng poll cho eventual-consistency</td><td><code>pla-authentication.spec.ts</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div style="text-align:center; color:var(--muted); font-size:12px; padding: 40px 0 20px; border-top: 1px solid var(--border); margin-top: 20px;">
+      Playwright TypeScript Framework: Design Patterns Reference (EN/VI) &nbsp;|&nbsp; Updated 2026-06-17
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const navItems = document.querySelectorAll('.nav-item');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navItems.forEach(n => n.classList.remove('active'));
+        const link = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

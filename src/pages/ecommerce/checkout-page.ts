@@ -2,6 +2,7 @@ import { type Page } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { TIMEOUTS } from '../../constants/timeouts';
 import { type GuestShippingAddress } from '../../data/ecommerce/test-accounts';
+import { type PayPalSandboxAccount } from '../../data/ecommerce/payment-accounts';
 
 export interface OrderSummaryTotals {
   subtotal: number | null;
@@ -239,6 +240,79 @@ export class EcommerceCheckoutPage extends BasePage {
   // Also used to exclude the placeholder from address-suggestion detection, since it contains
   // a comma and would otherwise false-match the suggestion heuristic (confirmed live).
   private readonly shippingMethodsLoadingTextPattern = /hang tight|finding the best option/i;
+
+  // E2E-PLAORD-001 — RECON FINDINGS (Platypus AU staging, confirmed live via playwright-cli
+  // against a real Braintree sandbox PayPal round-trip):
+  //   The payment step (reached after CONTINUE TO PAYMENT — already covered by
+  //   checkoutSubmitPattern's "continue" match, no new submit handling needed) renders one
+  //   native <input type="radio"> per payment method, each carrying a semantic Magento payment-
+  //   method code in its `value` attribute: "afterpay_gra", "braintree_gra" (Credit or Debit
+  //   Card), "braintree_paypal_gra" (PayPal), "braintree_paypal_pay_in_4_gra" (PayPal Pay in
+  //   4). None of the four inputs share a `name` attribute, so — unlike the accessible name
+  //   "PayPal", which is NOT a safe match target because "PayPal Pay in 4" contains it as a
+  //   substring — the `value="braintree_paypal_gra"` attribute selector is both stable
+  //   (Magento's own payment-method code, not a hashed class) and unambiguous.
+  //
+  //   Selecting this radio renders a genuine PayPal-hosted Smart Payment Button inside a
+  //   cross-origin <iframe title="PayPal" src="https://www.sandbox.paypal.com/smart/button...">
+  //   that REPLACES the storefront's own "place order" button — there is no separate "place
+  //   order" click for the PayPal path, the Smart Button itself is the submit action. The
+  //   iframe's `name` attribute is a long session-scoped hash that changes every page load and
+  //   cannot be used as a selector; `title="PayPal"` is the SDK's own stable accessibility
+  //   title and was confirmed unique among the ~7 iframes present on the payment step (the
+  //   others are PayPal "dispatch" frames, an "about:blank" frame, and a messaging-window
+  //   launcher). Because this iframe is genuinely cross-origin, `page.evaluate()` cannot reach
+  //   its content (browser same-origin policy) — this.frames (FrameHelper), which resolves via
+  //   Playwright's frameLocator rather than in-page script, is the only viable interaction path
+  //   here, hence the deviation from this file's usual page.evaluate() DOM-scan convention for
+  //   these specific methods.
+  //
+  //   Clicking the Smart Button opens a genuine POPUP window (not an inline iframe form) at
+  //   www.sandbox.paypal.com — confirmed sandbox, not live PayPal. Two distinct popup states
+  //   were observed depending on whether the sandbox buyer already has an active PayPal
+  //   session in the browser context: (a) a login form — "Email or mobile number" textbox +
+  //   "Next" button, followed by a "Password" textbox + "Log In" button; or (b) — only when a
+  //   prior PayPal session cookie exists — the review screen directly. Both funnel into the
+  //   same final review screen, confirmable via PayPal's own `data-testid="submit-button-
+  //   initial"` on the confirm button (captured from the actual Playwright call the recon
+  //   session generated when clicking it) — used as the primary selector since it does not
+  //   depend on the visible "Agree & Continue" label, which PayPal varies by buyer/funding
+  //   state. Clicking it authorises the sandbox payment; the popup closes itself (no explicit
+  //   close action needed) and the opener storefront tab asynchronously navigates to
+  //   `/ordersuccess`, rendering an `h1` "Nice work, you did it!" and a "Order Number <code>"
+  //   paragraph. The navigation is NOT instant — it lagged several seconds behind the popup
+  //   closing in recon — so waitForOrderSuccess() polls the opener's URL rather than assuming
+  //   an immediate redirect, and the popup tab is only closed by this page object AFTER that
+  //   poll resolves (closing it earlier was tried and cuts off the approval callback the
+  //   opener is still waiting on).
+  // E2E-PLAORD-001 — RECON FINDING (confirmed live, automated Chromium run against Platypus AU
+  // staging): CONTINUE TO PAYMENT's disabled state does not clear in the same tick as a
+  // delivery-method radio becoming `checked` — a debounce lag consistent with the
+  // getCheckedShippingMethodIndex() / waitForShippingSelectionSettled() races already
+  // documented above for the radios themselves. Calling submitCurrentStep() immediately after
+  // confirming a checked radio can still find CONTINUE TO PAYMENT disabled and silently no-op
+  // (submitCurrentStep()'s Pass 2 skips disabled buttons), leaving the flow stuck on the
+  // shipping step even though the button reliably becomes clickable moments later.
+  // waitForContinueToPaymentEnabled() closes this gap. `:has-text()` is a Playwright-specific
+  // CSS pseudo-class (not a raw browser selector), safe to use with ElementHelper the same way
+  // plain CSS selectors are used elsewhere in this file.
+  private readonly continueToPaymentButtonSelector = 'button:has-text("CONTINUE TO PAYMENT")';
+  private readonly braintreePaypalRadioSelector = 'input[type="radio"][value="braintree_paypal_gra"]';
+  private readonly paypalSmartButtonFrameSelector = 'iframe[title="PayPal"]';
+  // RECON FINDING (confirmed live, automated Chromium run): PayPal's Smart Payment Button
+  // renders as a `<div role="button" tabindex="0">`, not a `<button>` tag — the accessibility
+  // tree reports it as "button" by ROLE, which is what a getByRole()-style match sees, but a
+  // plain `button` CSS tag selector matches nothing inside this iframe. `role=button` (the
+  // Playwright ARIA-role selector engine, not a CSS tag) matches correctly.
+  private readonly paypalSmartButtonSelector = 'role=button';
+  private readonly paypalEmailFieldSelector = 'role=textbox[name="Email or mobile number"]';
+  private readonly paypalNextButtonSelector = 'role=button[name="Next"]';
+  private readonly paypalPasswordFieldSelector = 'role=textbox[name="Password"]';
+  private readonly paypalLogInButtonSelector = 'role=button[name="Log In"]';
+  private readonly paypalAgreeContinueTestIdSelector = '[data-testid="submit-button-initial"]';
+  private readonly paypalAgreeContinueButtonSelector = 'role=button[name="Agree & Continue"]';
+  private readonly orderSuccessUrlPattern = /\/ordersuccess/i;
+  private readonly orderNumberTextPattern = /order number\s*([a-z0-9-]+)/i;
 
   constructor(page: Page) {
     super(page);
@@ -1548,5 +1622,226 @@ export class EcommerceCheckoutPage extends BasePage {
       )
       .catch(() => {});
     return latest;
+  }
+
+  // E2E-PLAORD-001 — Polls (best-effort) until CONTINUE TO PAYMENT is enabled. See the
+  // continueToPaymentButtonSelector recon docblock for why this is a separate wait from
+  // confirming a shipping-method radio is checked, rather than assuming the two are
+  // simultaneous.
+  async waitForContinueToPaymentEnabled(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(() => this.elements.isElementEnabled(this.continueToPaymentButtonSelector), {
+        timeout: TIMEOUTS.NETWORK_IDLE_SLOW,
+        interval: TIMEOUTS.POLL_INTERVAL_NORMAL,
+      })
+      .catch(() => {});
+  }
+
+  // E2E-PLAORD-001 — Returns true once the payment step's method-selection radios are visible
+  // (see the class-level PayPal recon docblock). Callers should gate on this after clicking
+  // CONTINUE TO PAYMENT (via submitCurrentStep(), already matched by checkoutSubmitPattern's
+  // "continue") before attempting selectPayPalPaymentMethod().
+  async isOnPaymentStep(): Promise<boolean> {
+    let found = false;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          found = await this.elements.isElementDisplayed(this.braintreePaypalRadioSelector);
+          return found;
+        },
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
+      )
+      .catch(() => {});
+    return found;
+  }
+
+  // E2E-PLAORD-001 — Selects the "PayPal" payment method radio (see class-level recon
+  // docblock for why the value-attribute selector is used instead of an accessible-name
+  // match). Selecting it renders the PayPal Smart Button iframe — callers must follow with
+  // waitForPayPalSmartButtonReady() before attempting to click it.
+  async selectPayPalPaymentMethod(): Promise<void> {
+    await this.elements.clickElement(this.braintreePaypalRadioSelector);
+  }
+
+  // E2E-PLAORD-001 — Polls (best-effort) until the PayPal Smart Button iframe has hydrated and
+  // its button is visible. The SDK loads and renders this asynchronously after the radio is
+  // selected, so a fixed-timing click would race ahead of it.
+  async waitForPayPalSmartButtonReady(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(
+        () => this.frames.isVisible(this.paypalSmartButtonFrameSelector, this.paypalSmartButtonSelector),
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
+      )
+      .catch(() => {});
+  }
+
+  // E2E-PLAORD-001 — Clicks the PayPal Smart Button inside its cross-origin iframe. Must use
+  // this.frames (FrameHelper / frameLocator) rather than page.evaluate() — see class-level
+  // recon docblock for why the iframe's content is unreachable from page-script context.
+  // Composes frameLocator + .first() + elements.clickLocator() rather than FrameHelper.click()
+  // directly, since the latter has no .first() and would throw a strict-mode error if the SDK
+  // ever renders more than one <button> inside this iframe. Returns false (never throws) if
+  // the button could not be located/clicked.
+  private async clickPayPalSmartButton(): Promise<boolean> {
+    try {
+      const buttonLocator = this.frames
+        .locator(this.paypalSmartButtonFrameSelector)
+        .locator(this.paypalSmartButtonSelector)
+        .first();
+      await this.elements.clickLocator(buttonLocator);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // E2E-PLAORD-001 — Resolves whichever of the two confirmed "Agree & Continue" selectors is
+  // currently visible: the testid (primary — see class-level recon docblock) or the role-name
+  // fallback. Returns null if neither is visible.
+  private async resolveAgreeContinueSelector(): Promise<string | null> {
+    return this.dom.firstVisible([this.paypalAgreeContinueTestIdSelector, this.paypalAgreeContinueButtonSelector]);
+  }
+
+  // E2E-PLAORD-001 — Detects which of the two confirmed popup states is currently showing (see
+  // class-level recon docblock): a login form (email step or password step) or the review
+  // screen (already-authenticated session). Returns 'unknown' if neither signal appears within
+  // the timeout — callers must treat that as a failed popup load.
+  private async waitForPayPalPopupReady(): Promise<'login' | 'review' | 'unknown'> {
+    let state: 'login' | 'review' | 'unknown' = 'unknown';
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          if (await this.elements.isElementDisplayed(this.paypalEmailFieldSelector)) {
+            state = 'login';
+            return true;
+          }
+          if ((await this.resolveAgreeContinueSelector()) !== null) {
+            state = 'review';
+            return true;
+          }
+          return false;
+        },
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
+      )
+      .catch(() => {});
+    return state;
+  }
+
+  // E2E-PLAORD-001 — Drives the PayPal sandbox popup from whichever state
+  // waitForPayPalPopupReady() detected through to a click on "Agree & Continue". Must be
+  // called with `this.page` already switched to the popup (see completeBraintreePayPalCheckout).
+  // Returns false (never throws) if the popup never reached a recognised state or the final
+  // confirm button never appeared.
+  private async completePayPalSandboxPopupFlow(account: PayPalSandboxAccount): Promise<boolean> {
+    const popupState = await this.waitForPayPalPopupReady();
+    if (popupState === 'unknown') return false;
+
+    if (popupState === 'login') {
+      await this.elements.enterText(this.paypalEmailFieldSelector, account.email);
+      await this.elements.clickElement(this.paypalNextButtonSelector);
+      await this.waits
+        .waitForCustomCondition(() => this.elements.isElementDisplayed(this.paypalPasswordFieldSelector), {
+          timeout: TIMEOUTS.DIALOG_APPEAR,
+          interval: TIMEOUTS.POLL_INTERVAL_FAST,
+        })
+        .catch(() => {});
+      await this.elements.enterText(this.paypalPasswordFieldSelector, account.password);
+      await this.elements.clickElement(this.paypalLogInButtonSelector);
+      await this.waits
+        .waitForCustomCondition(async () => (await this.resolveAgreeContinueSelector()) !== null, {
+          timeout: TIMEOUTS.NETWORK_IDLE_SLOW,
+          interval: TIMEOUTS.POLL_INTERVAL_NORMAL,
+        })
+        .catch(() => {});
+    }
+
+    const agreeSelector = await this.resolveAgreeContinueSelector();
+    if (agreeSelector === null) return false;
+    await this.elements.clickElement(agreeSelector);
+    return true;
+  }
+
+  // E2E-PLAORD-001 — Polls (best-effort) until the storefront URL reaches /ordersuccess. Call
+  // after switching `this.page` back to the opener tab following the PayPal popup flow — the
+  // redirect is asynchronous and lagged several seconds behind the popup closing in recon.
+  async waitForOrderSuccess(): Promise<boolean> {
+    let found = false;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          found = this.orderSuccessUrlPattern.test(this.page.url());
+          return found;
+        },
+        { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
+      )
+      .catch(() => {});
+    return found;
+  }
+
+  // E2E-PLAORD-001 — Extracts the "Order Number <code>" text on the /ordersuccess surface.
+  // Returns null (never throws) if the pattern is not found.
+  async getOrderConfirmationNumber(): Promise<string | null> {
+    const pattern = this.orderNumberTextPattern.source;
+    return this.page
+      .evaluate((patternSrc: string) => {
+        const re = new RegExp(patternSrc, 'i');
+        const match = document.body.innerText.match(re);
+        return match ? match[1] : null;
+      }, pattern)
+      .catch(() => null);
+  }
+
+  // E2E-PLAORD-001 — Orchestrates the full PayPal Smart Button -> popup -> sandbox login/review
+  // -> order-success round trip. Assumes selectPayPalPaymentMethod() and
+  // waitForPayPalSmartButtonReady() have already been called (kept as separate steps so the
+  // spec can assert/log each transition, matching this file's other checkout flows). Restores
+  // `this.page` to the storefront (opener) tab before returning.
+  //
+  // Popup close ordering is deliberate: the popup is left open across waitForOrderSuccess(),
+  // not closed immediately after the "Agree & Continue" click. completePayPalSandboxPopupFlow()
+  // returns as soon as that click is dispatched — at that moment PayPal is still posting the
+  // approval and relaying it back to the opener over its cross-window message bridge before the
+  // popup closes itself, which (per the class-level recon docblock) is not instant. An earlier
+  // version of this method closed the popup at that point and it reliably cut off the callback
+  // the opener was still waiting on, so no order was ever placed. The popup is only closed here
+  // (if the PayPal SDK has not already closed it itself) after the opener's own order-success
+  // outcome is known, win or lose.
+  async completeBraintreePayPalCheckout(account: PayPalSandboxAccount): Promise<boolean> {
+    const openerPage = this.page;
+
+    const popupPromise = this.tabs.waitForNewWindowAndSwitch(TIMEOUTS.NETWORK_IDLE_SLOW);
+    const smartButtonClicked = await this.clickPayPalSmartButton();
+    if (!smartButtonClicked) {
+      // Settle the still-pending context().waitForEvent('page') listener before returning —
+      // leaving it dangling surfaces as an unrelated "Test ended" error at teardown.
+      await popupPromise.catch(() => {});
+      return false;
+    }
+
+    try {
+      await popupPromise;
+    } catch {
+      // waitForNewWindowAndSwitch may have already pointed pageRef.current at the popup
+      // (during bringToFront()/waitForLoadState()) before throwing — restore the opener.
+      await this.tabs.switchToPage(openerPage);
+      return false;
+    }
+    const popupPage = this.page;
+
+    let popupCompleted: boolean;
+    try {
+      popupCompleted = await this.completePayPalSandboxPopupFlow(account);
+    } finally {
+      await this.tabs.switchToPage(openerPage);
+    }
+
+    if (!popupCompleted) {
+      if (!popupPage.isClosed()) await popupPage.close().catch(() => {});
+      return false;
+    }
+
+    const orderSucceeded = await this.waitForOrderSuccess();
+    if (!popupPage.isClosed()) await popupPage.close().catch(() => {});
+    return orderSucceeded;
   }
 }

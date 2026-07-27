@@ -204,6 +204,7 @@ jobs:
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
+          PAYPAL_SANDBOX_PASSWORD: ${{ secrets.PAYPAL_SANDBOX_PASSWORD }}
           ADMIN_URL: ${{ secrets.ADMIN_URL }}
           FRONTSITE_URL: ${{ secrets.FRONTSITE_URL }}
           HEADLESS: 'true'
@@ -215,6 +216,7 @@ jobs:
         env:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
+          PAYPAL_SANDBOX_PASSWORD: ${{ secrets.PAYPAL_SANDBOX_PASSWORD }}
           ADMIN_URL: ${{ secrets.ADMIN_URL }}
           FRONTSITE_URL: ${{ secrets.FRONTSITE_URL }}
           HEADLESS: 'true'

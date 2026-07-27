@@ -19,6 +19,7 @@ node_modules/
 .playwright-mcp/
 .github/agents/
 .github/chatmodes/
+.playwright-cli/
 
 
 # Test artifacts and logs

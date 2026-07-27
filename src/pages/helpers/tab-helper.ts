@@ -104,6 +104,11 @@ export class TabHelper {
     await newPage.bringToFront();
   }
 
+  async switchToPage(target: Page): Promise<void> {
+    this.pageRef.current = target;
+    await target.bringToFront();
+  }
+
   // ── Window queries ───────────────────────────────────────────────────────────
 
   async getWindowCount(): Promise<number> {

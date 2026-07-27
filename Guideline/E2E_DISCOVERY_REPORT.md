@@ -488,8 +488,27 @@ await apiClient.post(`/rest/V1/carts/${cartId}/items`, {
 ```
 
 ---
+### 7.28 Place Order
 
-### 7.18 Authentication (Phase 2)
+| ID | Title | Priority | Sites |
+|---|---|---|---|
+| E2E-PLAORD-001 | Place order via Paypal using guest user          | P1 | All |
+| E2E-PLAORD-002 | Place order via Paypal using logged-in user      | P1 | All |
+| E2E-PLAORD-003 | Place order via Credit Card using guest user     | P1 | All |
+| E2E-PLAORD-004 | Place order via Credit Card using logged-in user | P1 | All |
+
+---
+
+**Paypal sandbox account**
+```
+Email: hoangmanutd12@gmail.com | Password: Ho@ngPHuy_6095
+```
+
+**Credit card account**
+```
+Card number: 4111 1111 1111 1111 (always) | CVC: any 3 digits number | Expiry: any future month/year -> see generateSandboxVisa
+```
+### 7.19 Authentication (Phase 2)
 
 | ID | Title | Priority | Sites |
 |---|---|---|---|
@@ -502,7 +521,7 @@ await apiClient.post(`/rest/V1/carts/${cartId}/items`, {
 
 ---
 
-### 7.19 Account (Phase 2 — requires logged-in state)
+### 7.20 Account (Phase 2 — requires logged-in state)
 
 | ID | Title | Priority | Sites |
 |---|---|---|---|
@@ -515,7 +534,7 @@ await apiClient.post(`/rest/V1/carts/${cartId}/items`, {
 
 ---
 
-### 7.20 Localization (Phase 2)
+### 7.21 Localization (Phase 2)
 
 | ID | Title | Priority | Sites |
 |---|---|---|---|
@@ -524,7 +543,7 @@ await apiClient.post(`/rest/V1/carts/${cartId}/items`, {
 
 ---
 
-### 7.21 Mobile / Responsive (Phase 2)
+### 7.22 Mobile / Responsive (Phase 2)
 
 All mobile tests use 375px viewport.
 
@@ -540,7 +559,7 @@ All mobile tests use 375px viewport.
 
 ---
 
-### 7.22 Error Handling (Phase 2)
+### 7.23 Error Handling (Phase 2)
 
 | ID | Title | Priority | Sites |
 |---|---|---|---|
@@ -552,7 +571,7 @@ All mobile tests use 375px viewport.
 
 ---
 
-### 7.23 Utilities (Phase 2)
+### 7.24 Utilities (Phase 2)
 
 | ID | Title | Priority | Sites |
 |---|---|---|---|
@@ -567,7 +586,6 @@ All mobile tests use 375px viewport.
 
 | Scenario | Reason |
 |---|---|
-| Payment full E2E (Afterpay, PayPal, card) | Requires sandbox credentials per payment provider |
 | Track Order with real order number | Requires live order IDs |
 | Qantas Points / Loyalty balance verification | Requires live account with earned points |
 | Find in Store | Requires geo data / store inventory API |
