@@ -1,0 +1,609 @@
+<title>Lighthouse Reports — Trend Layout (Draft)</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --border: #dde1e8;
+    --accent: #d9660a;
+    --accent-2: #2266b3;
+    --text: #1b1e27;
+    --muted: #6b7080;
+    --good: #17915a;
+    --warn: #b3760a;
+    --poor: #c0362c;
+    --mono: 'Cascadia Code', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-2: #14161f;
+      --border: #262a38;
+      --accent: #f6821f;
+      --accent-2: #4a9eff;
+      --text: #e2e4ed;
+      --muted: #8b8fa8;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --poor: #ef4444;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117; --surface: #1a1d27; --surface-2: #14161f; --border: #262a38;
+    --accent: #f6821f; --accent-2: #4a9eff; --text: #e2e4ed; --muted: #8b8fa8;
+    --good: #22c55e; --warn: #f59e0b; --poor: #ef4444;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f4; --border: #dde1e8;
+    --accent: #d9660a; --accent-2: #2266b3; --text: #1b1e27; --muted: #6b7080;
+    --good: #17915a; --warn: #b3760a; --poor: #c0362c;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: 1.75rem 1.25rem 3rem; }
+
+  .draft-banner {
+    display: flex; align-items: center; gap: 0.6rem;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+    color: var(--text);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    font-size: 0.82rem;
+    margin-bottom: 1.5rem;
+  }
+  .draft-banner strong { color: var(--accent); }
+  .draft-banner .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+  header.masthead {
+    display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+  .layout-pill {
+    font-family: var(--mono);
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--accent-2);
+    background: color-mix(in srgb, var(--accent-2) 14%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent-2) 35%, var(--border));
+    padding: 0.22rem 0.6rem; border-radius: 999px;
+  }
+  .meta {
+    color: var(--muted); font-size: 0.82rem; font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 2rem;
+  }
+  .meta b { color: var(--text); font-weight: 600; }
+
+  h2.section-title {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 1rem; font-weight: 700; color: var(--text);
+    margin: 0 0 1rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h2.section-title .icon { color: var(--accent); font-size: 0.95em; }
+  .new-tag {
+    font-family: var(--mono); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em;
+    color: var(--good);
+    background: color-mix(in srgb, var(--good) 16%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--good) 40%, var(--border));
+    padding: 0.15rem 0.5rem; border-radius: 5px;
+    text-transform: uppercase;
+  }
+
+  /* current snapshot table (mirrors the deployed dashboard's existing markup) */
+  .snapshot-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 2.5rem; }
+  table.snapshot { width: 100%; border-collapse: collapse; font-size: 0.875rem; background: var(--surface); }
+  table.snapshot thead { background: var(--surface-2); }
+  table.snapshot th {
+    text-align: left; padding: 0.65rem 1rem; color: var(--muted);
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+  table.snapshot td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); font-weight: 600; font-variant-numeric: tabular-nums; }
+  table.snapshot tr:last-child td { border-bottom: none; }
+  table.snapshot tr:hover td { background: color-mix(in srgb, var(--text) 3%, transparent); }
+  table.snapshot a.site-link { color: var(--accent); text-decoration: none; font-weight: 700; }
+  table.snapshot a.site-link:hover { text-decoration: underline; }
+
+  /* environment + form-factor controls */
+  .controls-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.1rem; }
+  .env-tabs { display: flex; gap: 0.4rem; }
+  .env-tab {
+    font-family: var(--sans); font-size: 0.82rem; font-weight: 600;
+    padding: 0.45rem 1rem; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    cursor: pointer;
+  }
+  .env-tab[aria-selected="true"] { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+  .env-tab .count { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-left: 0.35rem; }
+
+  .ff-toggle { display: flex; gap: 0.15rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 0.2rem; }
+  .ff-btn {
+    font-family: var(--sans); font-size: 0.78rem; font-weight: 600;
+    padding: 0.35rem 0.9rem; border-radius: 5px; border: none; background: transparent; color: var(--muted);
+    cursor: pointer;
+  }
+  .ff-btn[aria-selected="true"] { color: var(--text); background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  .env-panel { display: none; }
+  .env-panel.active { display: block; }
+  .ff-panel { display: none; }
+  .ff-panel.active { display: block; }
+
+  /* storefront trend cards */
+  .trend-card {
+    display: grid; grid-template-columns: 200px 1fr;
+    gap: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .trend-card .identity { display: flex; flex-direction: column; gap: 0.5rem; }
+  .trend-card .identity .name { font-weight: 700; font-size: 0.95rem; }
+  .trend-card .identity .flags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .flag {
+    font-family: var(--mono); font-size: 0.66rem; font-weight: 600;
+    padding: 0.12rem 0.4rem; border-radius: 4px; letter-spacing: 0.01em;
+  }
+  .flag.good { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+  .flag.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, transparent); }
+  .flag.poor { color: var(--poor); background: color-mix(in srgb, var(--poor) 18%, transparent); }
+
+  .metric-groups { display: flex; flex-direction: column; gap: 0.6rem; }
+  .metric-group-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+  .metric-tile {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+  }
+  .metric-tile .label { font-size: 0.68rem; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+  .metric-tile .value-row { display: flex; align-items: baseline; gap: 0.4rem; margin: 0.1rem 0 0.15rem; }
+  .metric-tile .value { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric-tile .delta { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; }
+  .metric-tile svg { display: block; width: 100%; height: 34px; }
+
+  .empty-state {
+    border: 1px dashed var(--border); border-radius: 10px; padding: 2rem 1.5rem;
+    text-align: center; color: var(--muted); font-size: 0.88rem; background: var(--surface);
+  }
+  .empty-state strong { color: var(--text); display: block; margin-bottom: 0.3rem; font-size: 0.95rem; }
+  .empty-state code { font-family: var(--mono); background: var(--surface-2); padding: 0.1rem 0.35rem; border-radius: 4px; }
+
+  .caption {
+    color: var(--muted); font-size: 0.8rem; margin-top: 0.9rem; line-height: 1.6;
+  }
+
+  footer {
+    margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.78rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  footer .src { font-family: var(--mono); }
+
+  @media (max-width: 640px) {
+    .trend-card { grid-template-columns: 1fr; }
+    .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+
+<div class="page">
+
+  <div class="draft-banner">
+    <span class="dot"></span>
+    <span><strong>Draft layout</strong> — proposed appearance of the Lighthouse dashboard once week-on-week trend monitoring ships (Option A, pending approval). Sparkline data below is illustrative, not live.</span>
+  </div>
+
+  <header class="masthead">
+    <h1>Lighthouse Reports</h1>
+    <span class="layout-pill">LAYOUT PREVIEW</span>
+  </header>
+  <p class="meta">Branch: <b>main</b> — Commit: <b>d81654e</b> — Sun, 26 Jul 2026 23:28:12 GMT</p>
+
+  <h2 class="section-title"><span class="icon">▣</span> Current Run — Desktop <span style="font-weight:400; color:var(--muted); font-size:0.78rem;">1350×940, simulated cable</span></h2>
+  <div class="snapshot-wrap">
+    <table class="snapshot">
+      <thead><tr><th>Storefront</th><th>Perf</th><th>A11y</th><th>Best Practices</th><th>SEO</th></tr></thead>
+      <tbody id="snapshot-desktop-body"></tbody>
+    </table>
+  </div>
+
+  <h2 class="section-title"><span class="icon">📱</span> Current Run — Mobile <span style="font-weight:400; color:var(--muted); font-size:0.78rem;">375×667, simulated Slow 4G</span></h2>
+  <div class="snapshot-wrap">
+    <table class="snapshot">
+      <thead><tr><th>Storefront</th><th>Perf</th><th>A11y</th><th>Best Practices</th><th>SEO</th></tr></thead>
+      <tbody id="snapshot-mobile-body"></tbody>
+    </table>
+  </div>
+
+  <h2 class="section-title"><span class="icon">📈</span> Week-on-Week Trend <span class="new-tag">New</span></h2>
+
+  <div class="controls-row">
+    <div class="env-tabs" role="tablist">
+      <button class="env-tab" role="tab" aria-selected="true" data-env="staging" onclick="selectEnv('staging')">Staging <span class="count">4 storefronts</span></button>
+      <button class="env-tab" role="tab" aria-selected="false" data-env="production" onclick="selectEnv('production')">Production <span class="count">0 runs</span></button>
+    </div>
+    <div class="ff-toggle" role="tablist" aria-label="Form factor">
+      <button class="ff-btn" role="tab" aria-selected="true" data-ff="desktop" onclick="selectFormFactor('desktop')">Desktop</button>
+      <button class="ff-btn" role="tab" aria-selected="false" data-ff="mobile" onclick="selectFormFactor('mobile')">Mobile</button>
+    </div>
+  </div>
+
+  <div class="env-panel active" data-env-panel="staging" id="staging-panel">
+    <div class="ff-panel active" data-ff-panel="desktop" id="staging-desktop-panel"></div>
+    <div class="ff-panel" data-ff-panel="mobile" id="staging-mobile-panel"></div>
+  </div>
+
+  <div class="env-panel" data-env-panel="production">
+    <div class="empty-state">
+      <strong>No production runs recorded yet</strong>
+      This series populates once a scheduled weekly production LHCI config exists — a follow-up item, not part of this trend increment (see <code>lighthouse-trend-monitoring.research.html</code>, Open Questions). Applies to both Desktop and Mobile.
+    </div>
+  </div>
+
+  <p class="caption">Each tile: last 10 weekly runs, current value, and the change since the previous run. Category tiles use Lighthouse's own 90 / 50 score bands; Web Vitals tiles use Google's published Core Web Vitals thresholds — the two are deliberately colored the same way so a reader learns one legend for the whole page. Mobile figures run under the same emulation profile as <code>lighthouserc.mobile.js</code> (375×667, simulated Slow 4G + CPU throttling), which is why Mobile scores and Web Vitals sit consistently below their Desktop counterparts.</p>
+
+  <footer>
+    <span>Rendered by an extended <span class="src">scripts/generate-lhci-index.js</span> — layout mockup only, not wired to real <span class="src">history.json</span></span>
+    <span>Ref: Confluence GRA1-3924492332, comment 4113760262</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var SCORE_GOOD = 0.9, SCORE_WARN = 0.5;
+
+  var CWV_THRESHOLDS = {
+    lcp: { good: 2500, warn: 4000, unit: 's', div: 1000, decimals: 1, label: 'LCP' },
+    cls: { good: 0.1,  warn: 0.25, unit: '',  div: 1,    decimals: 2, label: 'CLS' },
+    tbt: { good: 200,  warn: 600,  unit: 'ms', div: 1,   decimals: 0, label: 'TBT' },
+    fcp: { good: 1800, warn: 3000, unit: 's', div: 1000, decimals: 1, label: 'FCP' }
+  };
+
+  var STOREFRONTS = [
+    {
+      name: 'Platypus AU',
+      desktop: {
+        status: 'healthy',
+        scores: {
+          performance:    [0.88,0.87,0.89,0.90,0.91,0.90,0.92,0.91,0.90,0.92],
+          accessibility:  [0.97,0.97,0.96,0.97,0.97,0.98,0.97,0.97,0.98,0.97],
+          bestPractices:  [0.96,0.96,0.95,0.96,0.96,0.96,0.97,0.96,0.96,0.96],
+          seo:            [1.00,1.00,0.99,1.00,1.00,1.00,1.00,1.00,1.00,1.00]
+        },
+        vitals: {
+          lcp: [2380,2410,2390,2350,2300,2340,2280,2260,2290,2250],
+          cls: [0.06,0.07,0.06,0.06,0.05,0.06,0.05,0.05,0.06,0.05],
+          tbt: [140,150,145,138,130,142,128,120,135,125],
+          fcp: [1520,1540,1510,1490,1470,1500,1460,1440,1465,1430]
+        }
+      },
+      mobile: {
+        status: 'healthy',
+        scores: {
+          performance:    [0.52,0.53,0.54,0.55,0.56,0.55,0.57,0.56,0.57,0.58],
+          accessibility:  [0.97,0.97,0.96,0.97,0.97,0.98,0.97,0.97,0.98,0.97],
+          bestPractices:  [0.96,0.96,0.95,0.96,0.96,0.96,0.97,0.96,0.96,0.96],
+          seo:            [1.00,1.00,0.99,1.00,1.00,1.00,1.00,1.00,1.00,1.00]
+        },
+        vitals: {
+          lcp: [4200,4150,4100,4050,4000,4080,3950,3900,3980,3900],
+          cls: [0.07,0.08,0.07,0.07,0.06,0.07,0.06,0.06,0.07,0.06],
+          tbt: [520,540,510,500,480,505,470,455,490,460],
+          fcp: [2600,2650,2600,2580,2550,2590,2540,2520,2555,2530]
+        }
+      }
+    },
+    {
+      name: 'Skechers NZ',
+      desktop: {
+        status: 'regressed',
+        scores: {
+          performance:    [0.82,0.83,0.82,0.84,0.83,0.82,0.83,0.82,0.81,0.82],
+          accessibility:  [0.96,0.96,0.97,0.96,0.95,0.94,0.90,0.86,0.83,0.81],
+          bestPractices:  [0.93,0.93,0.92,0.93,0.93,0.92,0.93,0.93,0.92,0.93],
+          seo:            [0.98,0.98,0.98,0.99,0.98,0.98,0.98,0.98,0.98,0.98]
+        },
+        vitals: {
+          lcp: [2900,2870,2910,2860,2890,2900,2880,2910,2895,2905],
+          cls: [0.09,0.09,0.10,0.09,0.09,0.10,0.09,0.09,0.10,0.09],
+          tbt: [260,255,270,260,258,265,262,268,264,266],
+          fcp: [1780,1760,1790,1770,1785,1775,1780,1790,1785,1788]
+        }
+      },
+      mobile: {
+        status: 'regressed',
+        scores: {
+          performance:    [0.48,0.49,0.48,0.50,0.49,0.48,0.49,0.48,0.47,0.48],
+          accessibility:  [0.96,0.96,0.97,0.96,0.95,0.94,0.90,0.86,0.83,0.81],
+          bestPractices:  [0.93,0.93,0.92,0.93,0.93,0.92,0.93,0.93,0.92,0.93],
+          seo:            [0.98,0.98,0.98,0.99,0.98,0.98,0.98,0.98,0.98,0.98]
+        },
+        vitals: {
+          lcp: [4600,4550,4620,4580,4600,4610,4590,4630,4605,4615],
+          cls: [0.11,0.11,0.12,0.11,0.11,0.12,0.11,0.11,0.12,0.11],
+          tbt: [560,555,570,560,558,565,562,568,564,566],
+          fcp: [2850,2830,2860,2840,2855,2845,2850,2860,2855,2858]
+        }
+      }
+    },
+    {
+      name: 'Vans AU',
+      desktop: {
+        status: 'improved',
+        scores: {
+          performance:    [0.71,0.73,0.75,0.78,0.80,0.83,0.85,0.87,0.88,0.89],
+          accessibility:  [0.95,0.95,0.95,0.96,0.95,0.96,0.96,0.96,0.97,0.96],
+          bestPractices:  [0.93,0.93,0.94,0.93,0.94,0.95,0.95,0.95,0.96,0.96],
+          seo:            [0.97,0.97,0.98,0.98,0.98,0.98,0.99,0.99,0.99,0.99]
+        },
+        vitals: {
+          lcp: [4200,4050,3900,3700,3500,3300,3100,2950,2800,2650],
+          cls: [0.14,0.13,0.12,0.11,0.10,0.09,0.08,0.08,0.07,0.07],
+          tbt: [520,490,460,420,390,360,330,300,280,260],
+          fcp: [2400,2300,2250,2150,2080,2000,1950,1880,1820,1780]
+        }
+      },
+      mobile: {
+        status: 'improved',
+        scores: {
+          performance:    [0.42,0.44,0.47,0.50,0.53,0.57,0.60,0.63,0.65,0.67],
+          accessibility:  [0.95,0.95,0.95,0.96,0.95,0.96,0.96,0.96,0.97,0.96],
+          bestPractices:  [0.93,0.93,0.94,0.93,0.94,0.95,0.95,0.95,0.96,0.96],
+          seo:            [0.97,0.97,0.98,0.98,0.98,0.98,0.99,0.99,0.99,0.99]
+        },
+        vitals: {
+          lcp: [6800,6500,6100,5700,5300,4900,4500,4200,3900,3650],
+          cls: [0.18,0.17,0.15,0.14,0.13,0.11,0.10,0.10,0.09,0.09],
+          tbt: [980,910,850,780,720,650,590,540,500,470],
+          fcp: [3600,3450,3350,3200,3080,2950,2850,2750,2650,2580]
+        }
+      }
+    },
+    {
+      name: 'Dr. Martens NZ',
+      desktop: {
+        status: 'watch',
+        scores: {
+          performance:    [0.86,0.87,0.86,0.87,0.86,0.87,0.86,0.85,0.86,0.85],
+          accessibility:  [0.94,0.94,0.95,0.94,0.94,0.95,0.94,0.94,0.94,0.94],
+          bestPractices:  [0.96,0.96,0.96,0.96,0.96,0.96,0.96,0.96,0.96,0.96],
+          seo:            [0.99,0.99,0.99,0.99,0.99,0.99,0.99,0.99,0.99,0.99]
+        },
+        vitals: {
+          lcp: [2600,2580,2610,2590,2605,2595,2615,2600,2610,2620],
+          cls: [0.08,0.08,0.08,0.08,0.09,0.08,0.08,0.08,0.09,0.08],
+          tbt: [180,175,185,190,210,240,280,330,390,460],
+          fcp: [1600,1590,1610,1605,1615,1600,1610,1605,1615,1610]
+        }
+      },
+      mobile: {
+        status: 'watch',
+        scores: {
+          performance:    [0.64,0.65,0.64,0.63,0.62,0.61,0.60,0.58,0.56,0.53],
+          accessibility:  [0.94,0.94,0.95,0.94,0.94,0.95,0.94,0.94,0.94,0.94],
+          bestPractices:  [0.96,0.96,0.96,0.96,0.96,0.96,0.96,0.96,0.96,0.96],
+          seo:            [0.99,0.99,0.99,0.99,0.99,0.99,0.99,0.99,0.99,0.99]
+        },
+        vitals: {
+          lcp: [4900,4880,4920,4900,4915,4905,4925,4910,4920,4930],
+          cls: [0.09,0.09,0.09,0.09,0.10,0.09,0.09,0.09,0.10,0.09],
+          tbt: [420,410,440,460,510,580,660,750,860,980],
+          fcp: [2950,2940,2960,2955,2965,2950,2960,2955,2965,2960]
+        }
+      }
+    }
+  ];
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  function scoreColor(v) {
+    if (v >= SCORE_GOOD) return 'good';
+    if (v >= SCORE_WARN) return 'warn';
+    return 'poor';
+  }
+
+  function vitalColor(key, v) {
+    var t = CWV_THRESHOLDS[key];
+    if (v <= t.good) return 'good';
+    if (v <= t.warn) return 'warn';
+    return 'poor';
+  }
+
+  function fmtScore(v) { return Math.round(v * 100).toString(); }
+
+  function fmtVital(key, v) {
+    var t = CWV_THRESHOLDS[key];
+    return (v / t.div).toFixed(t.decimals) + t.unit;
+  }
+
+  var gradCounter = 0;
+
+  function sparkline(values, colorVar) {
+    var w = 100, h = 34, pad = 4;
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var range = (max - min) || 1;
+    var stepX = (w - pad * 2) / (values.length - 1);
+    var pts = values.map(function (v, i) {
+      var x = pad + i * stepX;
+      var y = pad + (h - pad * 2) * (1 - (v - min) / range);
+      return [x, y];
+    });
+    var line = pts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+    var area = line + ' L ' + pts[pts.length - 1][0].toFixed(1) + ' ' + (h - pad).toFixed(1) +
+      ' L ' + pts[0][0].toFixed(1) + ' ' + (h - pad).toFixed(1) + ' Z';
+    var gridLines = [0.25, 0.5, 0.75].map(function (f) {
+      var y = pad + (h - pad * 2) * f;
+      return '<line x1="' + pad + '" y1="' + y.toFixed(1) + '" x2="' + (w - pad) + '" y2="' + y.toFixed(1) + '" stroke="currentColor" stroke-opacity="0.08" stroke-width="1"/>';
+    }).join('');
+    var last = pts[pts.length - 1];
+    var gradId = 'g' + (gradCounter++);
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="color:var(--text)">' +
+      '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="var(' + colorVar + ')" stop-opacity="0.35"/>' +
+      '<stop offset="100%" stop-color="var(' + colorVar + ')" stop-opacity="0"/></linearGradient></defs>' +
+      gridLines +
+      '<path d="' + area + '" fill="url(#' + gradId + ')" stroke="none"/>' +
+      '<path d="' + line + '" fill="none" stroke="var(' + colorVar + ')" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.4" fill="var(' + colorVar + ')"/>' +
+      '</svg>';
+  }
+
+  function scoreDelta(values) {
+    var d = values[values.length - 1] - values[values.length - 2];
+    var pts = Math.round(d * 100);
+    if (pts === 0) return { text: '– flat', cls: '' };
+    return pts > 0
+      ? { text: '▲ +' + pts + ' pts', cls: 'good' }
+      : { text: '▼ ' + pts + ' pts', cls: 'poor' };
+  }
+
+  function vitalDelta(key, values) {
+    var t = CWV_THRESHOLDS[key];
+    var d = values[values.length - 1] - values[values.length - 2];
+    var disp = Math.abs(d / t.div).toFixed(t.decimals) + t.unit;
+    if (Math.abs(d) < (t.div * Math.pow(10, -t.decimals)) / 2) return { text: '– flat', cls: '' };
+    var better = key === 'cls' ? 'better' : 'faster';
+    var worse = key === 'cls' ? 'worse' : 'slower';
+    return d < 0
+      ? { text: '▼ ' + disp + ' ' + better, cls: 'good' }
+      : { text: '▲ ' + disp + ' ' + worse, cls: 'poor' };
+  }
+
+  function statusFlag(status) {
+    var map = {
+      healthy:   { cls: 'good', text: 'STABLE' },
+      improved:  { cls: 'good', text: 'IMPROVING' },
+      watch:     { cls: 'warn', text: 'WATCH — TBT' },
+      regressed: { cls: 'poor', text: 'REGRESSED' }
+    };
+    return map[status] || { cls: '', text: status.toUpperCase() };
+  }
+
+  function renderSnapshotRow(sf, ff) {
+    var scores = sf[ff].scores;
+    var perf = scores.performance[scores.performance.length - 1];
+    var a11y = scores.accessibility[scores.accessibility.length - 1];
+    var bp = scores.bestPractices[scores.bestPractices.length - 1];
+    var seo = scores.seo[scores.seo.length - 1];
+    var tr = el('tr');
+    tr.innerHTML =
+      '<td><a class="site-link" href="#">' + sf.name + '</a></td>' +
+      '<td style="color:var(--' + scoreColor(perf) + ')">' + fmtScore(perf) + '</td>' +
+      '<td style="color:var(--' + scoreColor(a11y) + ')">' + fmtScore(a11y) + '</td>' +
+      '<td style="color:var(--' + scoreColor(bp) + ')">' + fmtScore(bp) + '</td>' +
+      '<td style="color:var(--' + scoreColor(seo) + ')">' + fmtScore(seo) + '</td>';
+    return tr;
+  }
+
+  function scoreTile(label, values) {
+    var last = values[values.length - 1];
+    var c = scoreColor(last);
+    var delta = scoreDelta(values);
+    var tile = el('div', 'metric-tile');
+    tile.innerHTML =
+      '<div class="label">' + label + '</div>' +
+      '<div class="value-row"><span class="value" style="color:var(--' + c + ')">' + fmtScore(last) + '</span></div>' +
+      sparkline(values, '--' + c) +
+      '<div class="delta" style="color:var(--' + (delta.cls || 'muted') + ')">' + delta.text + '</div>';
+    return tile;
+  }
+
+  function vitalTile(key, values) {
+    var last = values[values.length - 1];
+    var c = vitalColor(key, last);
+    var delta = vitalDelta(key, values);
+    var t = CWV_THRESHOLDS[key];
+    var tile = el('div', 'metric-tile');
+    tile.innerHTML =
+      '<div class="label">' + t.label + '</div>' +
+      '<div class="value-row"><span class="value" style="color:var(--' + c + ')">' + fmtVital(key, last) + '</span></div>' +
+      sparkline(values, '--' + c) +
+      '<div class="delta" style="color:var(--' + (delta.cls || 'muted') + ')">' + delta.text + '</div>';
+    return tile;
+  }
+
+  function renderCard(sf, ff) {
+    var data = sf[ff];
+    var card = el('div', 'trend-card');
+    var identity = el('div', 'identity');
+    var flag = statusFlag(data.status);
+    identity.innerHTML = '<div class="name">' + sf.name + '</div><div class="flags"><span class="flag ' + flag.cls + '">' + flag.text + '</span></div>';
+    card.appendChild(identity);
+
+    var groups = el('div', 'metric-groups');
+
+    var scoreLabel = el('div', 'metric-group-label', 'Category scores · last 10 runs');
+    var scoreGrid = el('div', 'metric-grid');
+    scoreGrid.appendChild(scoreTile('Perf', data.scores.performance));
+    scoreGrid.appendChild(scoreTile('A11y', data.scores.accessibility));
+    scoreGrid.appendChild(scoreTile('Best Practices', data.scores.bestPractices));
+    scoreGrid.appendChild(scoreTile('SEO', data.scores.seo));
+
+    var vitalLabel = el('div', 'metric-group-label', 'Core Web Vitals · lab data');
+    var vitalGrid = el('div', 'metric-grid');
+    vitalGrid.appendChild(vitalTile('lcp', data.vitals.lcp));
+    vitalGrid.appendChild(vitalTile('cls', data.vitals.cls));
+    vitalGrid.appendChild(vitalTile('tbt', data.vitals.tbt));
+    vitalGrid.appendChild(vitalTile('fcp', data.vitals.fcp));
+
+    groups.appendChild(scoreLabel);
+    groups.appendChild(scoreGrid);
+    groups.appendChild(vitalLabel);
+    groups.appendChild(vitalGrid);
+    card.appendChild(groups);
+    return card;
+  }
+
+  var snapshotDesktopBody = document.getElementById('snapshot-desktop-body');
+  var snapshotMobileBody = document.getElementById('snapshot-mobile-body');
+  STOREFRONTS.forEach(function (sf) {
+    snapshotDesktopBody.appendChild(renderSnapshotRow(sf, 'desktop'));
+    snapshotMobileBody.appendChild(renderSnapshotRow(sf, 'mobile'));
+  });
+
+  var stagingDesktopPanel = document.getElementById('staging-desktop-panel');
+  var stagingMobilePanel = document.getElementById('staging-mobile-panel');
+  STOREFRONTS.forEach(function (sf) {
+    stagingDesktopPanel.appendChild(renderCard(sf, 'desktop'));
+    stagingMobilePanel.appendChild(renderCard(sf, 'mobile'));
+  });
+
+  window.selectEnv = function (env) {
+    document.querySelectorAll('.env-tab').forEach(function (t) {
+      t.setAttribute('aria-selected', t.getAttribute('data-env') === env ? 'true' : 'false');
+    });
+    document.querySelectorAll('.env-panel').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-env-panel') === env);
+    });
+  };
+
+  window.selectFormFactor = function (ff) {
+    document.querySelectorAll('.ff-btn').forEach(function (b) {
+      b.setAttribute('aria-selected', b.getAttribute('data-ff') === ff ? 'true' : 'false');
+    });
+    document.querySelectorAll('.ff-panel').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-ff-panel') === ff);
+    });
+  };
+})();
+</script>

@@ -1,0 +1,650 @@
+<title>Lighthouse Reports — Trend Layout, Page Types (Draft)</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --border: #dde1e8;
+    --accent: #d9660a;
+    --accent-2: #2266b3;
+    --text: #1b1e27;
+    --muted: #6b7080;
+    --good: #17915a;
+    --warn: #b3760a;
+    --poor: #c0362c;
+    --mono: 'Cascadia Code', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-2: #14161f;
+      --border: #262a38;
+      --accent: #f6821f;
+      --accent-2: #4a9eff;
+      --text: #e2e4ed;
+      --muted: #8b8fa8;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --poor: #ef4444;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117; --surface: #1a1d27; --surface-2: #14161f; --border: #262a38;
+    --accent: #f6821f; --accent-2: #4a9eff; --text: #e2e4ed; --muted: #8b8fa8;
+    --good: #22c55e; --warn: #f59e0b; --poor: #ef4444;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f4; --border: #dde1e8;
+    --accent: #d9660a; --accent-2: #2266b3; --text: #1b1e27; --muted: #6b7080;
+    --good: #17915a; --warn: #b3760a; --poor: #c0362c;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: 1.75rem 1.25rem 3rem; }
+
+  .draft-banner {
+    display: flex; align-items: center; gap: 0.6rem;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+    color: var(--text);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    font-size: 0.82rem;
+    margin-bottom: 1.5rem;
+  }
+  .draft-banner strong { color: var(--accent); }
+  .draft-banner .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+  header.masthead {
+    display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+  .layout-pill {
+    font-family: var(--mono);
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--accent-2);
+    background: color-mix(in srgb, var(--accent-2) 14%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent-2) 35%, var(--border));
+    padding: 0.22rem 0.6rem; border-radius: 999px;
+  }
+  .meta {
+    color: var(--muted); font-size: 0.82rem; font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 2rem;
+  }
+  .meta b { color: var(--text); font-weight: 600; }
+
+  h2.section-title {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 1rem; font-weight: 700; color: var(--text);
+    margin: 0 0 1rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h2.section-title .icon { color: var(--accent); font-size: 0.95em; }
+  .new-tag {
+    font-family: var(--mono); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em;
+    color: var(--good);
+    background: color-mix(in srgb, var(--good) 16%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--good) 40%, var(--border));
+    padding: 0.15rem 0.5rem; border-radius: 5px;
+    text-transform: uppercase;
+  }
+
+  /* top-level environment + form-factor controls (apply to overview + trend sections) */
+  .controls-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.4rem; }
+  .env-tabs { display: flex; gap: 0.4rem; }
+  .env-tab {
+    font-family: var(--sans); font-size: 0.82rem; font-weight: 600;
+    padding: 0.45rem 1rem; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    cursor: pointer;
+  }
+  .env-tab[aria-selected="true"] { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+  .env-tab .count { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-left: 0.35rem; }
+
+  .ff-toggle { display: flex; gap: 0.15rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 0.2rem; }
+  .ff-btn {
+    font-family: var(--sans); font-size: 0.78rem; font-weight: 600;
+    padding: 0.35rem 0.9rem; border-radius: 5px; border: none; background: transparent; color: var(--muted);
+    cursor: pointer;
+  }
+  .ff-btn[aria-selected="true"] { color: var(--text); background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  .env-panel { display: none; }
+  .env-panel.active { display: block; }
+  .ff-panel { display: none; }
+  .ff-panel.active { display: block; }
+  .ff-pagetype-panel { display: none; }
+  .ff-pagetype-panel.active { display: block; }
+
+  /* overview heatmap: storefront x page type, current run only */
+  .heatmap-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 0.75rem; }
+  table.heatmap { width: 100%; border-collapse: collapse; font-size: 0.875rem; background: var(--surface); }
+  table.heatmap thead { background: var(--surface-2); }
+  table.heatmap th {
+    text-align: center; padding: 0.6rem 0.75rem; color: var(--muted);
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  table.heatmap th:first-child, table.heatmap td:first-child { text-align: left; }
+  table.heatmap th.col-active { color: var(--accent-2); }
+  table.heatmap td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); text-align: center; }
+  table.heatmap tr:last-child td { border-bottom: none; }
+  .heat-cell { cursor: pointer; }
+  .heat-cell:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+  .heat-cell.col-active { background: color-mix(in srgb, var(--accent-2) 8%, transparent); }
+  .heat-score { font-family: var(--mono); font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums; }
+  .heat-dots { display: flex; gap: 0.25rem; justify-content: center; margin-top: 0.3rem; }
+  .heat-dots .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .heatmap-legend { color: var(--muted); font-size: 0.78rem; margin-bottom: 2.25rem; }
+
+  /* page-type tabs (drill into one page type for the trend cards below) */
+  .pt-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .pt-tab {
+    font-family: var(--sans); font-size: 0.82rem; font-weight: 600;
+    padding: 0.45rem 1rem; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    cursor: pointer;
+  }
+  .pt-tab[aria-selected="true"] { color: var(--text); border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 12%, var(--surface)); }
+
+  /* storefront trend cards */
+  .trend-card {
+    display: grid; grid-template-columns: 200px 1fr;
+    gap: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .trend-card .identity { display: flex; flex-direction: column; gap: 0.5rem; }
+  .trend-card .identity .name { font-weight: 700; font-size: 0.95rem; }
+  .trend-card .identity .flags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .flag {
+    font-family: var(--mono); font-size: 0.66rem; font-weight: 600;
+    padding: 0.12rem 0.4rem; border-radius: 4px; letter-spacing: 0.01em;
+  }
+  .flag.good { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+  .flag.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 18%, transparent); }
+  .flag.poor { color: var(--poor); background: color-mix(in srgb, var(--poor) 18%, transparent); }
+
+  .metric-groups { display: flex; flex-direction: column; gap: 0.6rem; }
+  .metric-group-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+  .metric-tile {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+  }
+  .metric-tile .label { font-size: 0.68rem; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+  .metric-tile .value-row { display: flex; align-items: baseline; gap: 0.4rem; margin: 0.1rem 0 0.15rem; }
+  .metric-tile .value { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric-tile .delta { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; }
+  .metric-tile svg { display: block; width: 100%; height: 34px; }
+
+  .empty-state {
+    border: 1px dashed var(--border); border-radius: 10px; padding: 2rem 1.5rem;
+    text-align: center; color: var(--muted); font-size: 0.88rem; background: var(--surface);
+  }
+  .empty-state strong { color: var(--text); display: block; margin-bottom: 0.3rem; font-size: 0.95rem; }
+  .empty-state code { font-family: var(--mono); background: var(--surface-2); padding: 0.1rem 0.35rem; border-radius: 4px; }
+
+  .caption {
+    color: var(--muted); font-size: 0.8rem; margin-top: 0.9rem; line-height: 1.6;
+  }
+  .callout {
+    border: 1px solid color-mix(in srgb, var(--accent-2) 40%, var(--border));
+    background: color-mix(in srgb, var(--accent-2) 8%, var(--surface));
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.85rem;
+    margin: 1.5rem 0 2rem;
+    line-height: 1.6;
+  }
+  .callout strong { color: var(--accent-2); }
+
+  footer {
+    margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.78rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  footer .src { font-family: var(--mono); }
+
+  @media (max-width: 640px) {
+    .trend-card { grid-template-columns: 1fr; }
+    .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+
+<div class="page">
+
+  <div class="draft-banner">
+    <span class="dot"></span>
+    <span><strong>Draft layout</strong> — variant exploring per-page-type reporting (Home, PLP, PDP, Wishlist) instead of a single homepage-only check per storefront. Sparkline and heatmap data below is illustrative, not live.</span>
+  </div>
+
+  <header class="masthead">
+    <h1>Lighthouse Reports</h1>
+    <span class="layout-pill">LAYOUT PREVIEW — PAGE TYPES</span>
+  </header>
+  <p class="meta">Branch: <b>main</b> — Commit: <b>d81654e</b> — Sun, 26 Jul 2026 23:28:12 GMT</p>
+
+  <div class="controls-row">
+    <div class="env-tabs" role="tablist">
+      <button class="env-tab" role="tab" aria-selected="true" data-env="staging" onclick="selectEnv('staging')">Staging <span class="count">4 storefronts</span></button>
+      <button class="env-tab" role="tab" aria-selected="false" data-env="production" onclick="selectEnv('production')">Production <span class="count">0 runs</span></button>
+    </div>
+    <div class="ff-toggle" role="tablist" aria-label="Form factor">
+      <button class="ff-btn" role="tab" aria-selected="true" data-ff="desktop" onclick="selectFormFactor('desktop')">Desktop</button>
+      <button class="ff-btn" role="tab" aria-selected="false" data-ff="mobile" onclick="selectFormFactor('mobile')">Mobile</button>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="icon">▣</span> Overview — Current Run, All Page Types <span class="new-tag">New</span></h2>
+
+  <div class="env-panel active" data-env-panel="staging">
+    <div class="ff-panel active" data-ff="desktop">
+      <div class="heatmap-wrap">
+        <table class="heatmap" id="heatmap-desktop"></table>
+      </div>
+    </div>
+    <div class="ff-panel" data-ff="mobile">
+      <div class="heatmap-wrap">
+        <table class="heatmap" id="heatmap-mobile"></table>
+      </div>
+    </div>
+  </div>
+  <div class="env-panel" data-env-panel="production">
+    <div class="empty-state">
+      <strong>No production runs recorded yet</strong>
+      Same gap as the homepage-only dashboard — this fills in once a scheduled weekly production LHCI config exists.
+    </div>
+  </div>
+
+  <p class="heatmap-legend">Large number = Performance score for that page. The three dots below it are Accessibility, Best Practices, and SEO, left to right, colored on the same 90 / 50 bands as everywhere else on this page. Click a cell to jump the trend section below to that page type.</p>
+
+  <div class="callout">
+    <strong>Why per-page-type matters:</strong> in the data below, Skechers NZ's accessibility problem and Dr. Martens NZ's rising Total Blocking Time are both confined to one page type each (PDP and Wishlist). A homepage-only check — which is all the dashboard runs today — would report both storefronts as fine.
+  </div>
+
+  <h2 class="section-title"><span class="icon">📈</span> Week-on-Week Trend <span class="new-tag">New</span></h2>
+
+  <div class="pt-tabs" role="tablist" aria-label="Page type">
+    <button class="pt-tab" role="tab" aria-selected="true" data-pagetype="home" onclick="selectPageType('home')">Home</button>
+    <button class="pt-tab" role="tab" aria-selected="false" data-pagetype="plp" onclick="selectPageType('plp')">PLP</button>
+    <button class="pt-tab" role="tab" aria-selected="false" data-pagetype="pdp" onclick="selectPageType('pdp')">PDP</button>
+    <button class="pt-tab" role="tab" aria-selected="false" data-pagetype="wishlist" onclick="selectPageType('wishlist')">Wishlist</button>
+  </div>
+
+  <div class="env-panel active" data-env-panel="staging" id="staging-trend-panel">
+    <!-- 8 ff x pagetype combinations, populated by script, toggled via .ff-pagetype-panel -->
+  </div>
+  <div class="env-panel" data-env-panel="production">
+    <div class="empty-state">
+      <strong>No production runs recorded yet</strong>
+      This series populates once a scheduled weekly production LHCI config exists — a follow-up item, not part of this increment. Applies to every page type and both form factors.
+    </div>
+  </div>
+
+  <p class="caption">Each tile: last 10 weekly runs for the selected page type, current value, and the change since the previous run. Category tiles use Lighthouse's own 90 / 50 score bands; Web Vitals tiles use Google's published Core Web Vitals thresholds. Mobile figures run under the same emulation profile as <code>lighthouserc.mobile.js</code> (375×667, simulated Slow 4G + CPU throttling). Wishlist's SEO baseline sits a little lower than the other page types because saved-items pages are typically <code>noindex</code>d.</p>
+
+  <footer>
+    <span>Rendered by an extended <span class="src">scripts/generate-lhci-index.js</span> — layout mockup only, not wired to real <span class="src">history.json</span></span>
+    <span>Ref: Confluence GRA1-3924492332, comment 4113760262</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var SCORE_GOOD = 0.9, SCORE_WARN = 0.5;
+
+  var CWV_THRESHOLDS = {
+    lcp: { good: 2500, warn: 4000, unit: 's', div: 1000, decimals: 1, label: 'LCP' },
+    cls: { good: 0.1,  warn: 0.25, unit: '',  div: 1,    decimals: 2, label: 'CLS' },
+    tbt: { good: 200,  warn: 600,  unit: 'ms', div: 1,   decimals: 0, label: 'TBT' },
+    fcp: { good: 1800, warn: 3000, unit: 's', div: 1000, decimals: 1, label: 'FCP' }
+  };
+
+  var PAGE_TYPES = [
+    { key: 'home', label: 'Home' },
+    { key: 'plp', label: 'PLP' },
+    { key: 'pdp', label: 'PDP' },
+    { key: 'wishlist', label: 'Wishlist' }
+  ];
+
+  // Baseline category scores + Core Web Vitals per page type per form factor.
+  // PDP is heaviest (gallery, badges, third-party widgets); PLP next (grid + filters);
+  // Wishlist sits behind auth with a lighter grid; Home is the lightest template.
+  var PAGE_BASE = {
+    home:     { desktop: { perf: 0.90, a11y: 0.97, bp: 0.96, seo: 1.00, lcp: 2300, cls: 0.06, tbt: 140, fcp: 1500 },
+                mobile:  { perf: 0.58, a11y: 0.97, bp: 0.96, seo: 1.00, lcp: 4100, cls: 0.07, tbt: 500, fcp: 2600 } },
+    plp:      { desktop: { perf: 0.84, a11y: 0.95, bp: 0.95, seo: 0.98, lcp: 2700, cls: 0.08, tbt: 190, fcp: 1650 },
+                mobile:  { perf: 0.50, a11y: 0.95, bp: 0.95, seo: 0.98, lcp: 4700, cls: 0.10, tbt: 560, fcp: 2750 } },
+    pdp:      { desktop: { perf: 0.78, a11y: 0.96, bp: 0.94, seo: 0.99, lcp: 3200, cls: 0.10, tbt: 250, fcp: 1800 },
+                mobile:  { perf: 0.44, a11y: 0.96, bp: 0.94, seo: 0.99, lcp: 5400, cls: 0.13, tbt: 650, fcp: 2950 } },
+    wishlist: { desktop: { perf: 0.83, a11y: 0.94, bp: 0.95, seo: 0.90, lcp: 2850, cls: 0.07, tbt: 170, fcp: 1620 },
+                mobile:  { perf: 0.50, a11y: 0.94, bp: 0.95, seo: 0.90, lcp: 4850, cls: 0.09, tbt: 480, fcp: 2700 } }
+  };
+
+  // Storefront personalities: a flat perf offset applied everywhere, plus at most
+  // one page-type-specific override to demonstrate why per-page-type data matters.
+  var STOREFRONT_CONFIGS = [
+    { name: 'Platypus AU', perfOffset: 0.03, overrides: {} },
+    { name: 'Skechers NZ', perfOffset: -0.05, overrides: { pdp: { a11yDrift: -0.020 } } },
+    { name: 'Vans AU', perfOffset: -0.02, overrides: { plp: { perfDrift: 0.022 } } },
+    { name: 'Dr. Martens NZ', perfOffset: -0.01, overrides: { wishlist: { tbtDriftDesktop: 28, tbtDriftMobile: 55 } } }
+  ];
+
+  var NOISE = [0, 0.6, -0.4, 0.3, -0.6, 0.5, -0.3, 0.4, -0.5, 0.2];
+
+  function buildScoreSeries(base, drift, amp) {
+    return NOISE.map(function (n, i) {
+      var v = base + drift * i + n * amp;
+      return Math.max(0, Math.min(1, Math.round(v * 1000) / 1000));
+    });
+  }
+
+  function buildVitalSeries(base, drift, amp, decimals) {
+    var mult = Math.pow(10, decimals || 0);
+    return NOISE.map(function (n, i) {
+      var v = base + drift * i + n * amp;
+      return Math.max(0, Math.round(v * mult) / mult);
+    });
+  }
+
+  function buildPageTypeData(pageKey, ff, cfg) {
+    var base = PAGE_BASE[pageKey][ff];
+    var ov = (cfg.overrides && cfg.overrides[pageKey]) || {};
+    var perf0 = base.perf + cfg.perfOffset;
+    var tbtDrift = ff === 'desktop' ? (ov.tbtDriftDesktop || 0) : (ov.tbtDriftMobile || 0);
+
+    var scores = {
+      performance: buildScoreSeries(perf0, ov.perfDrift || 0, 0.015),
+      accessibility: buildScoreSeries(base.a11y, ov.a11yDrift || 0, 0.010),
+      bestPractices: buildScoreSeries(base.bp, 0, 0.008),
+      seo: buildScoreSeries(base.seo, 0, 0.004)
+    };
+    var vitals = {
+      lcp: buildVitalSeries(base.lcp, 0, ff === 'desktop' ? 30 : 60),
+      cls: buildVitalSeries(base.cls, 0, 0.006, 3),
+      tbt: buildVitalSeries(base.tbt, tbtDrift, ff === 'desktop' ? 8 : 15),
+      fcp: buildVitalSeries(base.fcp, 0, ff === 'desktop' ? 25 : 45)
+    };
+
+    var perfDelta = scores.performance[9] - scores.performance[0];
+    var a11yDelta = scores.accessibility[9] - scores.accessibility[0];
+    var tbtDelta = vitals.tbt[9] - vitals.tbt[0];
+    var status = 'healthy';
+    if (a11yDelta <= -0.08) status = 'regressed';
+    else if (perfDelta >= 0.08) status = 'improved';
+    else if (tbtDelta >= 150) status = 'watch';
+
+    return { status: status, scores: scores, vitals: vitals };
+  }
+
+  var STOREFRONTS = STOREFRONT_CONFIGS.map(function (cfg) {
+    var pageTypes = {};
+    PAGE_TYPES.forEach(function (pt) {
+      pageTypes[pt.key] = {
+        desktop: buildPageTypeData(pt.key, 'desktop', cfg),
+        mobile: buildPageTypeData(pt.key, 'mobile', cfg)
+      };
+    });
+    return { name: cfg.name, pageTypes: pageTypes };
+  });
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  function scoreColor(v) {
+    if (v >= SCORE_GOOD) return 'good';
+    if (v >= SCORE_WARN) return 'warn';
+    return 'poor';
+  }
+
+  function vitalColor(key, v) {
+    var t = CWV_THRESHOLDS[key];
+    if (v <= t.good) return 'good';
+    if (v <= t.warn) return 'warn';
+    return 'poor';
+  }
+
+  function fmtScore(v) { return Math.round(v * 100).toString(); }
+
+  function fmtVital(key, v) {
+    var t = CWV_THRESHOLDS[key];
+    return (v / t.div).toFixed(t.decimals) + t.unit;
+  }
+
+  var gradCounter = 0;
+
+  function sparkline(values, colorVar) {
+    var w = 100, h = 34, pad = 4;
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var range = (max - min) || 1;
+    var stepX = (w - pad * 2) / (values.length - 1);
+    var pts = values.map(function (v, i) {
+      var x = pad + i * stepX;
+      var y = pad + (h - pad * 2) * (1 - (v - min) / range);
+      return [x, y];
+    });
+    var line = pts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+    var area = line + ' L ' + pts[pts.length - 1][0].toFixed(1) + ' ' + (h - pad).toFixed(1) +
+      ' L ' + pts[0][0].toFixed(1) + ' ' + (h - pad).toFixed(1) + ' Z';
+    var gridLines = [0.25, 0.5, 0.75].map(function (f) {
+      var y = pad + (h - pad * 2) * f;
+      return '<line x1="' + pad + '" y1="' + y.toFixed(1) + '" x2="' + (w - pad) + '" y2="' + y.toFixed(1) + '" stroke="currentColor" stroke-opacity="0.08" stroke-width="1"/>';
+    }).join('');
+    var last = pts[pts.length - 1];
+    var gradId = 'g' + (gradCounter++);
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="color:var(--text)">' +
+      '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="var(' + colorVar + ')" stop-opacity="0.35"/>' +
+      '<stop offset="100%" stop-color="var(' + colorVar + ')" stop-opacity="0"/></linearGradient></defs>' +
+      gridLines +
+      '<path d="' + area + '" fill="url(#' + gradId + ')" stroke="none"/>' +
+      '<path d="' + line + '" fill="none" stroke="var(' + colorVar + ')" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.4" fill="var(' + colorVar + ')"/>' +
+      '</svg>';
+  }
+
+  function scoreDelta(values) {
+    var d = values[values.length - 1] - values[values.length - 2];
+    var pts = Math.round(d * 100);
+    if (pts === 0) return { text: '– flat', cls: '' };
+    return pts > 0
+      ? { text: '▲ +' + pts + ' pts', cls: 'good' }
+      : { text: '▼ ' + pts + ' pts', cls: 'poor' };
+  }
+
+  function vitalDelta(key, values) {
+    var t = CWV_THRESHOLDS[key];
+    var d = values[values.length - 1] - values[values.length - 2];
+    var disp = Math.abs(d / t.div).toFixed(t.decimals) + t.unit;
+    if (Math.abs(d) < (t.div * Math.pow(10, -t.decimals)) / 2) return { text: '– flat', cls: '' };
+    var better = key === 'cls' ? 'better' : 'faster';
+    var worse = key === 'cls' ? 'worse' : 'slower';
+    return d < 0
+      ? { text: '▼ ' + disp + ' ' + better, cls: 'good' }
+      : { text: '▲ ' + disp + ' ' + worse, cls: 'poor' };
+  }
+
+  function statusFlag(status) {
+    var map = {
+      healthy:   { cls: 'good', text: 'STABLE' },
+      improved:  { cls: 'good', text: 'IMPROVING' },
+      watch:     { cls: 'warn', text: 'WATCH — TBT' },
+      regressed: { cls: 'poor', text: 'REGRESSED' }
+    };
+    return map[status] || { cls: '', text: status.toUpperCase() };
+  }
+
+  function scoreTile(label, values) {
+    var last = values[values.length - 1];
+    var c = scoreColor(last);
+    var delta = scoreDelta(values);
+    var tile = el('div', 'metric-tile');
+    tile.innerHTML =
+      '<div class="label">' + label + '</div>' +
+      '<div class="value-row"><span class="value" style="color:var(--' + c + ')">' + fmtScore(last) + '</span></div>' +
+      sparkline(values, '--' + c) +
+      '<div class="delta" style="color:var(--' + (delta.cls || 'muted') + ')">' + delta.text + '</div>';
+    return tile;
+  }
+
+  function vitalTile(key, values) {
+    var last = values[values.length - 1];
+    var c = vitalColor(key, last);
+    var delta = vitalDelta(key, values);
+    var t = CWV_THRESHOLDS[key];
+    var tile = el('div', 'metric-tile');
+    tile.innerHTML =
+      '<div class="label">' + t.label + '</div>' +
+      '<div class="value-row"><span class="value" style="color:var(--' + c + ')">' + fmtVital(key, last) + '</span></div>' +
+      sparkline(values, '--' + c) +
+      '<div class="delta" style="color:var(--' + (delta.cls || 'muted') + ')">' + delta.text + '</div>';
+    return tile;
+  }
+
+  function renderCard(sf, pageKey, ff) {
+    var data = sf.pageTypes[pageKey][ff];
+    var card = el('div', 'trend-card');
+    var identity = el('div', 'identity');
+    var flag = statusFlag(data.status);
+    identity.innerHTML = '<div class="name">' + sf.name + '</div><div class="flags"><span class="flag ' + flag.cls + '">' + flag.text + '</span></div>';
+    card.appendChild(identity);
+
+    var groups = el('div', 'metric-groups');
+
+    var scoreLabel = el('div', 'metric-group-label', 'Category scores · last 10 runs');
+    var scoreGrid = el('div', 'metric-grid');
+    scoreGrid.appendChild(scoreTile('Perf', data.scores.performance));
+    scoreGrid.appendChild(scoreTile('A11y', data.scores.accessibility));
+    scoreGrid.appendChild(scoreTile('Best Practices', data.scores.bestPractices));
+    scoreGrid.appendChild(scoreTile('SEO', data.scores.seo));
+
+    var vitalLabel = el('div', 'metric-group-label', 'Core Web Vitals · lab data');
+    var vitalGrid = el('div', 'metric-grid');
+    vitalGrid.appendChild(vitalTile('lcp', data.vitals.lcp));
+    vitalGrid.appendChild(vitalTile('cls', data.vitals.cls));
+    vitalGrid.appendChild(vitalTile('tbt', data.vitals.tbt));
+    vitalGrid.appendChild(vitalTile('fcp', data.vitals.fcp));
+
+    groups.appendChild(scoreLabel);
+    groups.appendChild(scoreGrid);
+    groups.appendChild(vitalLabel);
+    groups.appendChild(vitalGrid);
+    card.appendChild(groups);
+    return card;
+  }
+
+  function renderHeatmap(tableEl, ff) {
+    var thead = el('thead');
+    var headRow = el('tr');
+    headRow.appendChild(el('th', null, 'Storefront'));
+    PAGE_TYPES.forEach(function (pt) {
+      var th = el('th', 'heat-col', pt.label);
+      th.setAttribute('data-pagetype', pt.key);
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    tableEl.appendChild(thead);
+
+    var tbody = el('tbody');
+    STOREFRONTS.forEach(function (sf) {
+      var row = el('tr');
+      row.appendChild(el('td', null, sf.name));
+      PAGE_TYPES.forEach(function (pt) {
+        var data = sf.pageTypes[pt.key][ff];
+        var perf = data.scores.performance[data.scores.performance.length - 1];
+        var a11y = data.scores.accessibility[data.scores.accessibility.length - 1];
+        var bp = data.scores.bestPractices[data.scores.bestPractices.length - 1];
+        var seo = data.scores.seo[data.scores.seo.length - 1];
+        var cell = el('td', 'heat-cell');
+        cell.setAttribute('data-pagetype', pt.key);
+        cell.onclick = (function (key) { return function () { selectPageType(key); }; })(pt.key);
+        cell.innerHTML =
+          '<div class="heat-score" style="color:var(--' + scoreColor(perf) + ')">' + fmtScore(perf) + '</div>' +
+          '<div class="heat-dots">' +
+          '<span class="dot" style="background:var(--' + scoreColor(a11y) + ')"></span>' +
+          '<span class="dot" style="background:var(--' + scoreColor(bp) + ')"></span>' +
+          '<span class="dot" style="background:var(--' + scoreColor(seo) + ')"></span>' +
+          '</div>';
+        row.appendChild(cell);
+      });
+      tbody.appendChild(row);
+    });
+    tableEl.appendChild(tbody);
+  }
+
+  renderHeatmap(document.getElementById('heatmap-desktop'), 'desktop');
+  renderHeatmap(document.getElementById('heatmap-mobile'), 'mobile');
+
+  var trendPanel = document.getElementById('staging-trend-panel');
+  ['desktop', 'mobile'].forEach(function (ff) {
+    PAGE_TYPES.forEach(function (pt) {
+      var panel = el('div', 'ff-pagetype-panel' + (ff === 'desktop' && pt.key === 'home' ? ' active' : ''));
+      panel.setAttribute('data-ff', ff);
+      panel.setAttribute('data-pagetype', pt.key);
+      STOREFRONTS.forEach(function (sf) {
+        panel.appendChild(renderCard(sf, pt.key, ff));
+      });
+      trendPanel.appendChild(panel);
+    });
+  });
+
+  var state = { env: 'staging', ff: 'desktop', pageType: 'home' };
+
+  function render() {
+    document.querySelectorAll('.env-tab').forEach(function (t) {
+      t.setAttribute('aria-selected', t.getAttribute('data-env') === state.env ? 'true' : 'false');
+    });
+    document.querySelectorAll('.ff-btn').forEach(function (b) {
+      b.setAttribute('aria-selected', b.getAttribute('data-ff') === state.ff ? 'true' : 'false');
+    });
+    document.querySelectorAll('.pt-tab').forEach(function (t) {
+      t.setAttribute('aria-selected', t.getAttribute('data-pagetype') === state.pageType ? 'true' : 'false');
+    });
+    document.querySelectorAll('.env-panel').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-env-panel') === state.env);
+    });
+    document.querySelectorAll('.ff-panel').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-ff') === state.ff);
+    });
+    document.querySelectorAll('.ff-pagetype-panel').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-ff') === state.ff && p.getAttribute('data-pagetype') === state.pageType);
+    });
+    document.querySelectorAll('.heat-col, .heat-cell').forEach(function (c) {
+      c.classList.toggle('col-active', c.getAttribute('data-pagetype') === state.pageType);
+    });
+  }
+
+  window.selectEnv = function (env) { state.env = env; render(); };
+  window.selectFormFactor = function (ff) { state.ff = ff; render(); };
+  window.selectPageType = function (pt) {
+    state.pageType = pt;
+    render();
+    var target = document.querySelector('.pt-tabs');
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  render();
+})();
+</script>
