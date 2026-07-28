@@ -1,14 +1,17 @@
 import { test, expect, softExpect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
-import { createGuestCheckoutEmail, createGuestShippingAddress } from '@data/ecommerce/test-accounts';
+import { createGuestCheckoutEmail } from '@data/ecommerce/test-accounts';
 import { createTestLogger } from '@utils/test-logger';
 import type {
   OrderSummaryTotals,
   OrderReviewLineItem,
 } from '../../../src/pages/ecommerce/checkout-page';
-import type { GuestShippingAddress } from '@data/ecommerce/test-accounts';
 import { getPreferredNavLabel, shouldPreferMens } from '../smoke/smoke-helpers';
-import { addToCartAndReachCheckoutCta, parsePriceToken } from './checkout-helpers';
+import {
+  addToCartAndReachCheckoutCta,
+  fillGuestDetailsAndCommitAddress,
+  parsePriceToken,
+} from './checkout-helpers';
 
 test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
   test.slow();
@@ -172,7 +175,7 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
       ecommerceCartOverlayPage,
       ecommerceCheckoutPage,
       softAssert,
-    }) => {
+    }, testInfo) => {
       const logger = createTestLogger(`${tcId} - ${site.name} Shipping method selection updates order total`);
 
       const result = await addToCartAndReachCheckoutCta({
@@ -188,36 +191,23 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
       });
       if (result.status === 'skipped') return;
 
-      await logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST', async () => {
-        const { email: guestEmail } = createGuestCheckoutEmail();
-        await ecommerceCheckoutPage.fillGuestEmailAndContinue(guestEmail);
+      const guestStep = await fillGuestDetailsAndCommitAddress({
+        site,
+        ecommerceCheckoutPage,
+        logger,
+        addressSkipContext: 'shipping methods cannot be reliably rendered without a confirmed address',
       });
+      if (guestStep.status === 'skipped') return;
 
-      await logger.step('Step 16 - Assert the auth modal has closed and the shipping form is active', async () => {
-        // Precondition gate — must be hard, not soft: without a confirmed transition to the
-        // shipping form, every step below (address fill, method selection, total reads) would
-        // operate against the wrong page state and produce meaningless results.
-        const onShippingStep = await ecommerceCheckoutPage.isOnShippingStep();
-        logger.verify('Shipping form is active after guest email submit', 'true', String(onShippingStep));
+      await logger.step('Step 17b - Assert the shipping form contact fields settled (precondition)', async () => {
+        // Precondition gate — must be hard: an unsettled contact field is a likely app
+        // regression in the shipping form's remount behaviour, not environment/data flakiness
+        // like the address-autocomplete skip above — it should turn this test red, not gray.
         expect(
-          onShippingStep,
-          `${site.name}: Submitting a valid guest email should close the auth modal and advance to the shipping address form`,
+          guestStep.contactFieldsSettled,
+          `${site.name}: The shipping form's first name / last name / phone fields must settle on their intended values before shipping methods can be reliably tested`,
         ).toBeTruthy();
       });
-
-      let shippingAddress!: GuestShippingAddress;
-      let addressSelected = false;
-      await logger.step('Step 17 - Fill guest shipping contact fields and address, selecting an address suggestion', async () => {
-        shippingAddress = createGuestShippingAddress(site.storeHeader === 'nz');
-        addressSelected = await ecommerceCheckoutPage.fillGuestShippingAddress(shippingAddress);
-      });
-      if (!addressSelected) {
-        test.skip(
-          true,
-          `${site.name}: no address suggestion could be selected for "${shippingAddress.addressQuery}" — shipping methods cannot be reliably rendered without a confirmed address`,
-        );
-        return;
-      }
 
       await logger.step('Step 18 - Wait for shipping methods to become selectable (enabled)', async () => {
         await ecommerceCheckoutPage.waitForShippingMethodsReady();
@@ -229,11 +219,21 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         logger.verify('Selectable shipping method count', '>= 1', String(methodCount));
       });
       if (methodCount === 0) {
-        test.skip(
-          true,
-          `${site.name}: no shipping methods became selectable within the readiness timeout after committing an address — cannot verify a method-selection total delta`,
-        );
-        return;
+        // Hard failure, not a skip — a committed address that never produces a selectable
+        // shipping method is either a real backend/rate-calculation defect or a genuine test-
+        // harness timing bug (a documented flicker-to-zero exists on Dr. Martens AU — see
+        // waitForShippingMethodsReady()'s recon docblock), not routine environment flakiness like
+        // the address-autocomplete skip above. Attaches a forensic snapshot so a failure can be
+        // diagnosed from the report instead of needing a live re-run to find out why.
+        const diagnostics = await ecommerceCheckoutPage.captureShippingMethodDiagnostics();
+        await testInfo.attach('shipping-method-zero-count-diagnostics.json', {
+          body: JSON.stringify(diagnostics, null, 2),
+          contentType: 'application/json',
+        });
+        expect(
+          methodCount,
+          `${site.name}: No shipping method became selectable within the readiness timeout after committing an address (total radios: ${diagnostics.totalRadioCount}, enabled: ${diagnostics.enabledRadioCount}, loading text still visible: ${diagnostics.loadingTextVisible}, committed address still present: ${diagnostics.committedAddressValue !== null && diagnostics.committedAddressValue !== ''}) — see the attached diagnostics for the full page-text snapshot`,
+        ).toBeGreaterThan(0);
       }
 
       let currentTotals: OrderSummaryTotals = { subtotal: null, delivery: null, total: null, discount: null };
@@ -415,35 +415,23 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
       });
       if (result.status === 'skipped') return;
 
-      await logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST', async () => {
-        const { email: guestEmail } = createGuestCheckoutEmail();
-        await ecommerceCheckoutPage.fillGuestEmailAndContinue(guestEmail);
+      const guestStep = await fillGuestDetailsAndCommitAddress({
+        site,
+        ecommerceCheckoutPage,
+        logger,
+        addressSkipContext: 'the order-review panel cannot be reliably read without a confirmed address',
       });
+      if (guestStep.status === 'skipped') return;
 
-      await logger.step('Step 16 - Assert the auth modal has closed and the shipping form is active', async () => {
-        // Precondition gate — must be hard: without a confirmed transition to the shipping form,
-        // the order-review panel read below would operate against the wrong page state.
-        const onShippingStep = await ecommerceCheckoutPage.isOnShippingStep();
-        logger.verify('Shipping form is active after guest email submit', 'true', String(onShippingStep));
+      await logger.step('Step 17b - Assert the shipping form contact fields settled (precondition)', async () => {
+        // Precondition gate — must be hard: an unsettled contact field is a likely app
+        // regression in the shipping form's remount behaviour, not environment/data flakiness
+        // like the address-autocomplete skip above — it should turn this test red, not gray.
         expect(
-          onShippingStep,
-          `${site.name}: Submitting a valid guest email should close the auth modal and advance to the shipping address form`,
+          guestStep.contactFieldsSettled,
+          `${site.name}: The shipping form's first name / last name / phone fields must settle on their intended values before the order-review panel can be reliably read`,
         ).toBeTruthy();
       });
-
-      let shippingAddress!: GuestShippingAddress;
-      let addressSelected = false;
-      await logger.step('Step 17 - Fill guest shipping contact fields and address, selecting an address suggestion', async () => {
-        shippingAddress = createGuestShippingAddress(site.storeHeader === 'nz');
-        addressSelected = await ecommerceCheckoutPage.fillGuestShippingAddress(shippingAddress);
-      });
-      if (!addressSelected) {
-        test.skip(
-          true,
-          `${site.name}: no address suggestion could be selected for "${shippingAddress.addressQuery}" — the order-review panel cannot be reliably read without a confirmed address`,
-        );
-        return;
-      }
 
       await logger.step('Step 18 - Wait for shipping methods / order summary to settle', async () => {
         // The order-review item list is already fully rendered once the address is committed and

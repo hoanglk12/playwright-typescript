@@ -17,6 +17,45 @@ export interface OrderSummaryTotals {
   discount: number | null;
 }
 
+// E2E-PLAORD-001 — Outcome of fillGuestShippingAddress(), split into two independently
+// meaningful signals rather than one boolean: an autocomplete that never returned a suggestion
+// (region/data mismatch) and contact fields that never settled on their intended values
+// (sibling-remount race) are different problems, and a caller that collapses them reports the
+// wrong cause in its skip/failure message.
+export interface GuestShippingFillResult {
+  addressSelected: boolean;
+  contactFieldsSettled: boolean;
+  /**
+   * DIAGNOSTIC ONLY — no caller gates on this. Whether the address input still held a value
+   * after the post-commit contact re-fill. Exists to collect live evidence for a suspected (not
+   * yet observed) failure mode: the contact re-fill remounting the address input and discarding
+   * the committed suggestion, which `addressSelected` alone would not catch. It is deliberately
+   * not a gate — it is a single-shot read against the most remount-prone form in this file, so
+   * gating on it would risk converting a transient mid-remount read into a spurious skip.
+   *
+   * A false reading means INVESTIGATE, not "wipe confirmed": this read can itself report false
+   * without any wipe, because readTaggedFieldValue() re-tags via shippingAddressFieldPattern
+   * (which could match a different address-ish input a storefront renders post-commit) and
+   * tagFieldByAttrPattern() skips disabled inputs. Confirm the cause on a live run first; if it
+   * is a genuine wipe, promote this to a polled gate — never a single-shot one.
+   */
+  addressStillFilled: boolean;
+}
+
+// E2E-CHKOUT-004 — One-shot forensic snapshot taken when getSelectableShippingMethodCount()
+// reads 0, distinguishing failure causes a bare "0" cannot: no radios rendered at all (backend
+// never returned rates) vs radios rendered but still disabled (recalculation stalled) vs the
+// "Hang tight..." loading placeholder still showing vs the committed address having been lost
+// by the time this snapshot is taken.
+export interface ShippingMethodDiagnostics {
+  totalRadioCount: number;
+  enabledRadioCount: number;
+  visibleRadioCount: number;
+  loadingTextVisible: boolean;
+  committedAddressValue: string | null;
+  pageText: string;
+}
+
 // E2E-CHKOUT-006 — A single product line item as rendered in the order-review surface.
 export interface OrderReviewLineItem {
   /**
@@ -1083,33 +1122,80 @@ export class EcommerceCheckoutPage extends BasePage {
     return false;
   }
 
-  // E2E-CHKOUT-004 — Fills the shipping form's firstName/lastName/phoneNumber contact fields
-  // (NOT the address field — see fillShippingAddressAndSelectSuggestion() for that). Fields
-  // that cannot be located are silently skipped (best-effort; the caller's own precondition
-  // assertions are the source of truth for whether the form was actually filled).
-  async fillGuestShippingContactFields(data: {
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
-  }): Promise<void> {
-    await this.tagAndFillField(
-      this.shippingFirstNameFieldPattern,
-      this.shippingFirstNameTargetAttr,
-      this.shippingFirstNameTargetSelector,
-      data.firstName,
-    );
-    await this.tagAndFillField(
-      this.shippingLastNameFieldPattern,
-      this.shippingLastNameTargetAttr,
-      this.shippingLastNameTargetSelector,
-      data.lastName,
-    );
-    await this.tagAndFillField(
-      this.shippingPhoneFieldPattern,
-      this.shippingPhoneTargetAttr,
-      this.shippingPhoneTargetSelector,
-      data.phoneNumber,
-    );
+  // E2E-PLAORD-001 — RECON FINDING (confirmed live, all 8 GRA storefronts via a fixture-based
+  // throwaway recon spec that reused fillGuestShippingContactFields/tagFieldByAttrPattern): after
+  // tagging a field with tagFieldByAttrPattern(), the tag does not survive to the next field's
+  // fill — filling firstName then lastName then phoneNumber in a single pass left ONLY
+  // phoneNumber (the last field filled) holding its value; firstName/lastName read back empty
+  // even on Vans AU, a storefront where the rest of the flow (and this test) otherwise passes.
+  // Re-tagging via tagFieldByAttrPattern() itself (rather than querying the stale target
+  // attribute) is what makes a fresh read reliable here, mirroring tagAndFillField()'s own
+  // re-tag-before-every-attempt rationale. Returns null if the field cannot be located at all.
+  private async readTaggedFieldValue(
+    pattern: RegExp,
+    targetAttr: string,
+    targetSelector: string,
+  ): Promise<string | null> {
+    const tagged = await this.tagFieldByAttrPattern(pattern, targetAttr);
+    if (!tagged) return null;
+    return this.page
+      .evaluate((selector: string) => {
+        const el = document.querySelector<HTMLInputElement>(selector);
+        return el ? el.value : null;
+      }, targetSelector)
+      .catch(() => null);
+  }
+
+  // E2E-CHKOUT-004 / E2E-PLAORD-001 — Fills the shipping form's firstName/lastName/phoneNumber
+  // contact fields (NOT the address field — see fillShippingAddressAndSelectSuggestion() for
+  // that). Settles in rounds rather than a single fill-once pass: each round re-reads every
+  // field's CURRENT value (via a fresh tagFieldByAttrPattern re-tag, not the previous round's
+  // selector, which may point at an already-remounted node) and re-fills only the fields that
+  // don't yet hold their intended value, so a field wiped by a sibling's fill in the same round
+  // gets corrected on the next. Returns true once every field holds its intended value, or false
+  // if maxRounds is exhausted first — a false return means the form is NOT reliably filled and
+  // must be surfaced by the caller (fillGuestShippingAddress() reports it as
+  // GuestShippingFillResult.contactFieldsSettled), never discarded.
+  private async fillGuestShippingContactFields(
+    data: {
+      firstName: string;
+      lastName: string;
+      phoneNumber: string;
+    },
+    maxRounds = 4,
+  ): Promise<boolean> {
+    const fields = [
+      {
+        pattern: this.shippingFirstNameFieldPattern,
+        targetAttr: this.shippingFirstNameTargetAttr,
+        targetSelector: this.shippingFirstNameTargetSelector,
+        value: data.firstName,
+      },
+      {
+        pattern: this.shippingLastNameFieldPattern,
+        targetAttr: this.shippingLastNameTargetAttr,
+        targetSelector: this.shippingLastNameTargetSelector,
+        value: data.lastName,
+      },
+      {
+        pattern: this.shippingPhoneFieldPattern,
+        targetAttr: this.shippingPhoneTargetAttr,
+        targetSelector: this.shippingPhoneTargetSelector,
+        value: data.phoneNumber,
+      },
+    ];
+
+    for (let round = 0; round < maxRounds; round++) {
+      let allSettled = true;
+      for (const field of fields) {
+        const currentValue = await this.readTaggedFieldValue(field.pattern, field.targetAttr, field.targetSelector);
+        if (currentValue === field.value) continue;
+        allSettled = false;
+        await this.tagAndFillField(field.pattern, field.targetAttr, field.targetSelector, field.value);
+      }
+      if (allSettled) return true;
+    }
+    return false;
   }
 
   // E2E-CHKOUT-004 — Clicks the first rendered address-suggestion element below the tagged
@@ -1227,14 +1313,40 @@ export class EcommerceCheckoutPage extends BasePage {
       .catch(() => {});
   }
 
-  // E2E-CHKOUT-004 — Fills the full guest shipping form (contact fields + address) and
-  // reports whether the address suggestion was successfully committed. Returns false when the
-  // address field could not be located or no suggestion could be selected for `data.addressQuery`
-  // — callers must test.skip() in that case rather than proceeding to shipping-method checks.
-  async fillGuestShippingAddress(data: GuestShippingAddress): Promise<boolean> {
+  // E2E-CHKOUT-004 — Fills the full guest shipping form (contact fields + address) and reports
+  // both outcomes separately (see GuestShippingFillResult). `addressSelected` is false when the
+  // address field could not be located or no suggestion could be selected for
+  // `data.addressQuery`; `contactFieldsSettled` is false when the contact settle loop exhausted
+  // its rounds. Callers must test.skip() on either rather than proceeding to shipping-method
+  // checks — an unsettled contact field surfaces downstream as a disabled CONTINUE TO PAYMENT,
+  // which reads as an app defect rather than the fill problem it actually is.
+  //
+  // E2E-PLAORD-001 — RECON FINDING (confirmed live): committing the address suggestion can
+  // itself trigger a further re-render that reverts the contact fields filled just before it
+  // (same sibling-remount behaviour documented on fillGuestShippingContactFields()). Re-running
+  // the contact-field settle loop after a successful address commit corrects that without
+  // re-running the address step itself.
+  async fillGuestShippingAddress(data: GuestShippingAddress): Promise<GuestShippingFillResult> {
     await this.waitForShippingFormReady();
-    await this.fillGuestShippingContactFields(data);
-    return this.fillShippingAddressAndSelectSuggestion(data.addressQuery);
+    let contactFieldsSettled = await this.fillGuestShippingContactFields(data);
+
+    const addressSelected = await this.fillShippingAddressAndSelectSuggestion(data.addressQuery);
+    if (!addressSelected) {
+      return { addressSelected: false, contactFieldsSettled, addressStillFilled: false };
+    }
+
+    contactFieldsSettled = await this.fillGuestShippingContactFields(data);
+
+    const addressValue = await this.readTaggedFieldValue(
+      this.shippingAddressFieldPattern,
+      this.shippingAddressTargetAttr,
+      this.shippingAddressTargetSelector,
+    );
+    return {
+      addressSelected,
+      contactFieldsSettled,
+      addressStillFilled: (addressValue ?? '').trim() !== '',
+    };
   }
 
   // E2E-CHKOUT-004 — Waits (best-effort) until the delivery-method list has actually finished
@@ -1299,6 +1411,49 @@ export class EcommerceCheckoutPage extends BasePage {
         ).length;
       })
       .catch(() => 0);
+  }
+
+  // E2E-CHKOUT-004 — Captures a forensic snapshot for a getSelectableShippingMethodCount()===0
+  // reading. Distinguishes three previously-conflated causes: no radios in the DOM at all
+  // (backend never returned rates), radios present but still disabled (recalculation stalled or
+  // still in flight), and the "Hang tight..." loading placeholder still showing (still loading,
+  // not stalled). Also re-reads the committed address, since a caller reaching this point has
+  // already committed one earlier — if it now reads empty, the address was lost by a later
+  // re-render rather than the shipping-rate call ever failing. `pageText` is capped to keep the
+  // attachment readable; it is a debugging aid, not something any assertion parses.
+  async captureShippingMethodDiagnostics(): Promise<ShippingMethodDiagnostics> {
+    const loadingPattern = this.shippingMethodsLoadingTextPattern.source;
+    const domSnapshot = await this.page
+      .evaluate((loadingSrc: string) => {
+        const isVisible = (el: Element): boolean => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        const radios = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
+        const loadingRe = new RegExp(loadingSrc, 'i');
+        return {
+          totalRadioCount: radios.length,
+          enabledRadioCount: radios.filter((el) => !el.disabled).length,
+          visibleRadioCount: radios.filter((el) => isVisible(el)).length,
+          loadingTextVisible: loadingRe.test(document.body.innerText),
+          pageText: document.body.innerText.slice(0, 4000),
+        };
+      }, loadingPattern)
+      .catch(() => ({
+        totalRadioCount: -1,
+        enabledRadioCount: -1,
+        visibleRadioCount: -1,
+        loadingTextVisible: false,
+        pageText: '(page snapshot failed)',
+      }));
+
+    const committedAddressValue = await this.readTaggedFieldValue(
+      this.shippingAddressFieldPattern,
+      this.shippingAddressTargetAttr,
+      this.shippingAddressTargetSelector,
+    );
+
+    return { ...domSnapshot, committedAddressValue };
   }
 
   // E2E-CHKOUT-004 — Returns true if a shipping method already arrived pre-selected (some
@@ -1780,15 +1935,32 @@ export class EcommerceCheckoutPage extends BasePage {
 
   // E2E-PLAORD-001 — Extracts the "Order Number <code>" text on the /ordersuccess surface.
   // Returns null (never throws) if the pattern is not found.
+  //
+  // RECON FINDING (confirmed live, Vans NZ staging) — waitForOrderSuccess() gates on the URL
+  // reaching /ordersuccess, but the order-details content within that route's shared app shell
+  // can still be rendering (e.g. an async order-lookup fetch) at the moment the URL check
+  // passes — a single one-shot read raced ahead of that content and read null even though the
+  // order had genuinely succeeded. Polls the same read for DIALOG_APPEAR before giving up, the
+  // same settle pattern used elsewhere in this class (e.g. hasRequiredFieldValidation()).
   async getOrderConfirmationNumber(): Promise<string | null> {
     const pattern = this.orderNumberTextPattern.source;
-    return this.page
-      .evaluate((patternSrc: string) => {
-        const re = new RegExp(patternSrc, 'i');
-        const match = document.body.innerText.match(re);
-        return match ? match[1] : null;
-      }, pattern)
-      .catch(() => null);
+    let orderNumber: string | null = null;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          orderNumber = await this.page
+            .evaluate((patternSrc: string) => {
+              const re = new RegExp(patternSrc, 'i');
+              const match = document.body.innerText.match(re);
+              return match ? match[1] : null;
+            }, pattern)
+            .catch(() => null);
+          return orderNumber !== null;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return orderNumber;
   }
 
   // E2E-PLAORD-001 — Orchestrates the full PayPal Smart Button -> popup -> sandbox login/review

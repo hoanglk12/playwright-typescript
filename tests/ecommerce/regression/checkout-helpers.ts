@@ -6,7 +6,11 @@ import type { EcommerceNavPage } from '../../../src/pages/ecommerce/nav-page';
 import type { EcommercePLPPage } from '../../../src/pages/ecommerce/plp-page';
 import type { EcommercePDPPage } from '../../../src/pages/ecommerce/pdp-page';
 import type { EcommerceCartOverlayPage } from '../../../src/pages/ecommerce/cart-overlay-page';
-import type { EcommerceCheckoutPage } from '../../../src/pages/ecommerce/checkout-page';
+import type {
+  EcommerceCheckoutPage,
+  GuestShippingFillResult,
+} from '../../../src/pages/ecommerce/checkout-page';
+import { createGuestCheckoutEmail, createGuestShippingAddress } from '@data/ecommerce/test-accounts';
 import type { APIRequestContext } from '@playwright/test';
 import {
   navigateToPlp,
@@ -29,6 +33,17 @@ export interface CheckoutCtaSkippedResult {
 }
 
 export type CheckoutCtaResult = CheckoutCtaOkResult | CheckoutCtaSkippedResult;
+
+// `contactFieldsSettled` is surfaced rather than gated on internally — every caller hard-fails
+// on it as a likely app regression in the shipping form's remount behaviour, distinct from the
+// address-autocomplete skip above (which stays a skip: that one's plausibly environment/data
+// flakiness, not an app defect).
+export interface GuestShippingOkResult {
+  status: 'ok';
+  contactFieldsSettled: boolean;
+}
+
+export type GuestShippingResult = GuestShippingOkResult | CheckoutCtaSkippedResult;
 
 // Matches the same digit/decimal-point extraction strategy as
 // EcommerceCheckoutPage.getOrderSummaryTotals()'s internal parsePrice().
@@ -160,4 +175,62 @@ export async function addToCartAndReachCheckoutCta(params: {
   });
 
   return { status: 'ok', productName, productPrice, size: targetSize };
+}
+
+// Steps 15-17 of the guest checkout flow — submit a guest email, confirm the shipping form is
+// active, then fill the contact fields and commit an address suggestion. Shared by every spec
+// that needs a guest past the auth modal (E2E-CHKOUT-004, E2E-CHKOUT-006, E2E-PLAORD-001), the
+// same way addToCartAndReachCheckoutCta() owns Steps 0-14 for those same three call sites.
+// `addressSkipContext` supplies the caller-specific tail of the address skip reason (what the
+// caller can no longer verify without a committed address).
+// On `{ status: 'skipped' }` the caller must `return` immediately — test.skip() has already
+// been called internally. On `{ status: 'ok' }`, `contactFieldsSettled` is surfaced rather than
+// gated on here — the caller decides whether an unsettled contact field is a skip or a hard
+// failure (see GuestShippingOkResult).
+export async function fillGuestDetailsAndCommitAddress(params: {
+  site: Storefront;
+  ecommerceCheckoutPage: EcommerceCheckoutPage;
+  logger: TestLogger;
+  addressSkipContext: string;
+}): Promise<GuestShippingResult> {
+  const { site, ecommerceCheckoutPage, logger, addressSkipContext } = params;
+
+  await logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST', async () => {
+    const { email: guestEmail } = createGuestCheckoutEmail();
+    await ecommerceCheckoutPage.fillGuestEmailAndContinue(guestEmail);
+  });
+
+  await logger.step('Step 16 - Assert the auth modal has closed and the shipping form is active', async () => {
+    // Precondition gate — must be hard: every step below operates against the shipping form.
+    const onShippingStep = await ecommerceCheckoutPage.isOnShippingStep();
+    logger.verify('Shipping form is active after guest email submit', 'true', String(onShippingStep));
+    expect(
+      onShippingStep,
+      `${site.name}: Submitting a valid guest email should close the auth modal and advance to the shipping address form`,
+    ).toBeTruthy();
+  });
+
+  const shippingAddress = createGuestShippingAddress(site.storeHeader === 'nz');
+  let fillResult: GuestShippingFillResult = {
+    addressSelected: false,
+    contactFieldsSettled: false,
+    addressStillFilled: false,
+  };
+  await logger.step('Step 17 - Fill guest shipping contact fields and address, selecting an address suggestion', async () => {
+    fillResult = await ecommerceCheckoutPage.fillGuestShippingAddress(shippingAddress);
+    logger.verify('Address suggestion committed', 'true', String(fillResult.addressSelected));
+    logger.verify('Contact fields hold their intended values', 'true', String(fillResult.contactFieldsSettled));
+    // Diagnostic only — deliberately not gated on. See GuestShippingFillResult.addressStillFilled.
+    logger.verify('Address field still filled after the contact re-fill', 'true', String(fillResult.addressStillFilled));
+  });
+
+  if (!fillResult.addressSelected) {
+    test.skip(
+      true,
+      `${site.name}: no address suggestion could be selected for "${shippingAddress.addressQuery}" — ${addressSkipContext}`,
+    );
+    return { status: 'skipped' };
+  }
+
+  return { status: 'ok', contactFieldsSettled: fillResult.contactFieldsSettled };
 }
