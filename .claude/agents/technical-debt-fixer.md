@@ -9,7 +9,7 @@ description: >
   for sanctioned patterns instead of removing them). Runs npm run lint after every
   batch and produces a structured Fix Report.
   Examples: "fix DEBT-004", "fix critical issues", "fix phase 1".
-tools: Read, Grep, Glob, LS, Edit, MultiEdit, Write, Bash
+tools: Read, Grep, Glob, LS, Edit, MultiEdit, Write, Bash, advisor
 model: sonnet
 color: azure
 ---
@@ -329,13 +329,18 @@ After all edits in the scope are complete:
 npm run lint
 ```
 
-If lint fails:
+If lint fails, iterate under a bound — up to 3 fix-then-lint cycles:
 - Read the TypeScript error messages
-- Fix each error (this is within scope — do not stop at a lint failure)
-- Re-run lint until it passes
+- Track, per cycle: the set of error codes + `file:line` still failing, and what was changed
+- Fix each error (this is within scope — do not stop at a lint failure) and re-run lint
+- **Convergence check**: compare the failing error set to the previous cycle's. The same set
+  unchanged twice in a row means the fix isn't working — stop there, don't spend the remaining cycles
+- **Stop action**: once the cap is reached or the error set stops changing, call `advisor()`, then
+  report the per-cycle log (error set + change made, per cycle)
 
-If lint cannot be made to pass (e.g. a pre-existing error unrelated to this fix), document
-clearly in the report which pre-existing errors exist and which were introduced by this fix.
+If lint cannot be made to pass (e.g. a pre-existing error unrelated to this fix, or the bound
+above was hit), document clearly in the report which pre-existing errors exist and which were
+introduced by this fix.
 
 ---
 

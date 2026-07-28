@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loop Engineering: Bounded Iteration in This Framework</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 250px; min-width: 250px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: 8px 12px 4px; }
+    .nav-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 6px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); margin-top: 6px; }
+    .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .nav-en { font-size: 13px; }
+    .nav-vi { font-size: 10.5px; color: var(--muted); opacity: .7; }
+
+    .hero {
+      padding: 64px 56px 48px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 36px; font-weight: 900; line-height: 1.18; margin-bottom: 18px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 16px; color: var(--muted); max-width: 720px; margin-bottom: 28px; }
+
+    .hero-meta { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 32px; }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .hero-meta-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .hero-meta-value { font-size: 13.5px; font-weight: 700; }
+
+    .topic-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
+    }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .content-section { padding: 52px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
+    }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .sub-heading { font-size: 16px; font-weight: 700; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .sub-heading .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+    .content-section > .sub-heading:first-of-type { margin-top: 0; }
+
+    .lang-pair { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 18px; }
+    .lang-col { padding-right: 26px; }
+    .lang-col + .lang-col { padding-right: 0; padding-left: 26px; border-left: 1px solid var(--border); }
+    .lang-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); background: var(--surface2);
+      padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .lang-col p { color: var(--muted); font-size: 14.5px; }
+    .lang-col code { white-space: normal; overflow-wrap: break-word; }
+
+    .breakdown {
+      margin: 6px 0 30px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 10px;
+    }
+    .breakdown-row .lang-pair { margin-bottom: 0; }
+    .breakdown-row .lang-col p { font-size: 13.5px; }
+    .breakdown-row ul { margin: 0; padding-left: 18px; }
+    .breakdown-row li { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .breakdown-row li:last-child { margin-bottom: 0; }
+    .breakdown-row li code { color: var(--text); }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 18px 0 28px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout .lang-pair { flex: 1; margin-bottom: 0; }
+    .callout .lang-tag { background: color-mix(in srgb, var(--cb) 22%, var(--surface2)); }
+    .callout .lang-col p { color: var(--text); font-size: 13.5px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+    .callout.solo .lang-pair { display: block; }
+    .callout.solo .lang-col + .lang-col { padding-left: 0; border-left: none; }
+
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin: 6px 0 30px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    thead th {
+      padding: 11px 16px; text-align: left;
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); font-weight: 700; white-space: nowrap;
+    }
+    tbody tr { border-top: 1px solid var(--border); }
+    tbody td { padding: 12px 16px; font-size: 12.8px; vertical-align: top; color: var(--text); }
+    tbody td.muted { color: var(--muted); }
+    tbody td code { white-space: normal; }
+    .tag { display: inline-block; border-radius: 4px; padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tag-high, .tag-reject { background: rgba(255,82,82,.15); color: #ff8a80; }
+    .tag-medium, .tag-partial { background: rgba(255,179,0,.15); color: #ffcc66; }
+    .tag-low, .tag-confirmed, .tag-adopt { background: rgba(61,220,132,.15); color: #6ee7a0; }
+    .tag-neutral { background: rgba(136,146,176,.15); color: var(--muted); }
+
+    .ordered { padding-left: 22px; margin: 0 0 26px; }
+    .ordered li { font-size: 13.8px; color: var(--text); margin-bottom: 10px; padding-left: 4px; }
+    .ordered li:last-child { margin-bottom: 0; }
+    .ordered li code { font-size: 12px; }
+
+    code:not(pre code) {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    .approval-banner {
+      margin: 0 56px 40px; padding: 18px 22px; border-radius: 10px;
+      background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.35);
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .approval-banner .icon { font-size: 18px; color: var(--amber); }
+    .approval-banner p { font-size: 13.5px; color: var(--text); }
+    .approval-banner strong { color: var(--amber); }
+
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+    .footer a { color: var(--muted); }
+
+    @media (max-width: 1000px) { .hero, .content-section, .footer, .approval-banner { margin-left: 0; margin-right: 0; padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+      .lang-pair { grid-template-columns: 1fr; }
+      .lang-col + .lang-col {
+        padding-left: 0; border-left: none;
+        border-top: 1px solid var(--border); padding-top: 14px; margin-top: 12px;
+      }
+      .callout { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Loop Engineering</h2>
+      <p>Technical Research Report &middot; 2026-07-28</p>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Report</div>
+      <a href="#summary" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span><span class="nav-text"><span class="nav-en">Summary</span><span class="nav-vi">Tóm tắt</span></span></a>
+      <a href="#facts" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Confirmed facts</span><span class="nav-vi">Sự thật đã xác minh</span></span></a>
+      <a href="#scope" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Scope</span><span class="nav-vi">Phạm vi</span></span></a>
+      <a href="#options" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Options</span><span class="nav-vi">Các phương án</span></span></a>
+      <a href="#recommendation" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span><span class="nav-text"><span class="nav-en">Recommendation</span><span class="nav-vi">Đề xuất</span></span></a>
+      <a href="#benefits" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span><span class="nav-text"><span class="nav-en">Benefits</span><span class="nav-vi">Lợi ích</span></span></a>
+      <a href="#risks" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span><span class="nav-text"><span class="nav-en">Risk assessment</span><span class="nav-vi">Đánh giá rủi ro</span></span></a>
+      <a href="#steps" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span><span class="nav-text"><span class="nav-en">Implementation steps</span><span class="nav-vi">Các bước triển khai</span></span></a>
+      <a href="#validation" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span><span class="nav-text"><span class="nav-en">Validation</span><span class="nav-vi">Xác minh</span></span></a>
+      <a href="#open-questions" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span><span class="nav-text"><span class="nav-en">Open questions</span><span class="nav-vi">Câu hỏi còn mở</span></span></a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">Technical research report &middot; research only, no code changed</div>
+      <h1>Loop Engineering: Bounded Iteration in This Framework</h1>
+      <p class="hero-sub">
+        "Loop engineering" isn't a term this repo uses today. Applied to it, the idea is simple: give any
+        process that repeats until a condition is met (an agent retrying a fix, a test rerunning on failure, a
+        CI report feeding the next one) an explicit bound, a check for whether it's actually converging, and a
+        defined stop action. Three such loops already exist in this codebase, in three very different states of
+        health.
+      </p>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Repo</span>
+          <span class="hero-meta-value">playwright-typescript</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Verified against</span>
+          <span class="hero-meta-value">Playwright 1.61.1 &middot; monocart 2.11.2 &middot; 8 CI workflows</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Verdict</span>
+          <span class="tag tag-adopt">Adopt A + B, in that order</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Deferred</span>
+          <span class="tag tag-partial">C deferred, D out of scope</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Status</span>
+          <span class="tag tag-medium">Awaiting user approval</span>
+        </div>
+      </div>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Summary</div></div>
+        <div class="topic-chip" style="--c: var(--purple)"><div class="num">03</div><div class="label">Scope</div></div>
+        <div class="topic-chip" style="--c: var(--cyan)"><div class="num">04</div><div class="label">Options</div></div>
+        <div class="topic-chip" style="--c: var(--accent2)"><div class="num">06</div><div class="label">Benefits</div></div>
+      </div>
+    </section>
+
+    <!-- 01 Summary -->
+    <section class="content-section" id="summary" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Summary</h2>
+          <div class="section-desc">Three loop families, three different states of health</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Agentic iteration loops.</strong> <code>qa-orchestrator.md</code> correctly caps every
+          loop-back at one iteration with a defined stop action. But two of the agents it dispatches,
+          <code>playwright-test-healer</code> and <code>technical-debt-fixer</code>, are told to "repeat until
+          the test passes" or "re-run lint until it passes" with no cap and no check for whether the fix is
+          actually converging.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Vòng lặp của agent AI.</strong> <code>qa-orchestrator.md</code> đã giới hạn đúng mỗi lần
+          lặp lại chỉ một vòng, kèm hành động dừng rõ ràng. Nhưng hai agent mà nó gọi đến,
+          <code>playwright-test-healer</code> và <code>technical-debt-fixer</code>, được hướng dẫn "lặp lại đến
+          khi test pass" hay "chạy lại lint đến khi pass" mà không có giới hạn số lần, cũng không kiểm tra xem
+          việc sửa có đang tiến triển thật hay không.</p>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Test-execution retry loops.</strong> The UI suite's retry count is correctly wired to an
+          env variable. The API suite's is hardcoded, ignoring a config value that already exists for exactly
+          this purpose. A separate in-flight research doc already owns flaky-test retry strategy, so this report
+          does not re-decide that.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Vòng lặp retry khi chạy test.</strong> Số lần retry của UI suite được nối đúng vào một biến
+          môi trường. Của API suite thì hardcode cứng, bỏ qua một giá trị config vốn đã tồn tại đúng cho việc
+          này. Một tài liệu nghiên cứu khác đang chờ duyệt đã phụ trách chiến lược retry cho flaky test, nên báo
+          cáo này không quyết định lại phần đó.</p>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p><strong>Feedback/monitoring loops.</strong> The monocart trend chart is supposed to feed each CI
+          run's report into the next one, building a history. Its cache key is static per branch, so after the
+          first successful run on a branch, the loop stops advancing: every later run restores the same old
+          snapshot instead of adding to it.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p><strong>Vòng lặp phản hồi / theo dõi.</strong> Biểu đồ trend của monocart được thiết kế để mỗi lần
+          chạy CI nạp báo cáo của mình vào lần sau, tạo thành lịch sử. Nhưng cache key của nó cố định theo từng
+          branch, nên sau lần chạy thành công đầu tiên trên một branch, vòng lặp ngừng tiến triển: mọi lần chạy
+          sau chỉ khôi phục lại đúng snapshot cũ thay vì cộng thêm vào.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Loop family</th><th>Where it lives</th><th>Bounded?</th><th>Verdict</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Agentic iteration</td>
+              <td class="muted"><code>.claude/agents/*.md</code>, <code>advisor-nudge.js</code></td>
+              <td>Orchestrator: yes &middot; workers: no</td>
+              <td><span class="tag tag-medium">Real, cheap, unowned gap</span></td>
+            </tr>
+            <tr>
+              <td>Test-execution retry</td>
+              <td class="muted"><code>playwright.config.ts:46</code>, <code>api.config.ts:46</code></td>
+              <td>UI wired &middot; API dead knob</td>
+              <td><span class="tag tag-low">Small, isolated fix</span></td>
+            </tr>
+            <tr>
+              <td>Feedback / monitoring</td>
+              <td class="muted">monocart trend cache in two CI workflows</td>
+              <td>No. The loop runs once, then freezes</td>
+              <td><span class="tag tag-high">Live defect, not a proposal</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><strong>Bottom line:</strong> the cheapest fix here touches no test code at all. It's two
+            markdown agent-definition files and a handful of CI workflow lines.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><strong>Kết luận chính:</strong> phần sửa rẻ nhất ở đây không động đến dòng code test nào cả. Đó
+            là hai file markdown định nghĩa agent và một vài dòng trong workflow CI.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Confirmed facts -->
+    <section class="content-section" id="facts" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Confirmed facts</h2>
+          <div class="section-desc">Verified against the actual files this session, not general familiarity with the repo</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Claim</th><th>Verdict</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="muted">The orchestrator bounds every loop-back to one iteration with a defined stop action</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>qa-orchestrator.md:218-219</code>: &ldquo;If still failing after this second loop: surface the remaining failures to the user and stop &mdash; do not loop again&rdquo;</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>playwright-test-healer</code> has no iteration cap or convergence check</td>
+              <td><span class="tag tag-reject">Confirmed gap</span></td>
+              <td class="muted"><code>playwright-test-healer.md:239</code>: &ldquo;Repeat until the test passes cleanly&rdquo;, with no cap anywhere in the 284-line file</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>technical-debt-fixer</code> has the same gap</td>
+              <td><span class="tag tag-reject">Confirmed gap</span></td>
+              <td class="muted"><code>technical-debt-fixer.md:335</code>: &ldquo;Re-run lint until it passes&rdquo;</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>advisor-nudge.js</code> is the repo's only loop-detection mechanism, with explicit, tuned parameters</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted">Threshold 3 repeated actions, 90s time floor, 10min expiry, one nudge per episode, resets on an <code>advisor()</code> call</td>
+            </tr>
+            <tr>
+              <td class="muted">API retries are a dead config knob</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>api.config.ts:46</code> hardcodes <code>retries: process.env.CI ? 2 : 0</code> despite already importing <code>env</code> at <code>:9</code>; nothing in <code>src/</code> reads the parsed <code>env.retries</code> field</td>
+            </tr>
+            <tr>
+              <td class="muted">No <code>schedule:</code> (cron) trigger exists in any workflow today</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted">All 8 workflows trigger only on <code>push</code> / <code>pull_request</code> / <code>workflow_dispatch</code></td>
+            </tr>
+            <tr>
+              <td class="muted">The monocart trend cache key is static per branch</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>playwright-with-slack.yml:152</code>: <code>key: monocart-trend-ui-${{ runner.os }}-${{ github.ref_name }}</code>, no run-specific component</td>
+            </tr>
+            <tr>
+              <td class="muted"><code>actions/cache</code> skips the save step on an exact key match</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted">Official <code>actions/cache</code> docs: a cache is not re-created once its key already exists</td>
+            </tr>
+            <tr>
+              <td class="muted">Therefore the trend loop advances exactly once per branch, then freezes</td>
+              <td><span class="tag tag-partial">Derived, high confidence</span></td>
+              <td class="muted">Static key + skip-on-match &rarr; first run saves, every later run restores the same snapshot</td>
+            </tr>
+            <tr>
+              <td class="muted">The UI workflow's real CI cost is substantial</td>
+              <td><span class="tag tag-confirmed">Confirmed</span></td>
+              <td class="muted"><code>gh run list</code>: 55&ndash;142 minutes wall clock across a 9-way OS/shard matrix, with Windows at 2&times; and macOS at 10&times; GitHub's billing multiplier</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 03 Scope -->
+    <section class="content-section" id="scope" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Scope</h2>
+          <div class="section-desc">Which files change, and which stay untouched</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>No option here touches <code>BasePage</code>, any of its 11 helper classes, any page object, any
+          spec file, or any fixture. This is a documentation and CI-configuration concern, entirely outside the
+          composition-based POM.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Không phương án nào ở đây động đến <code>BasePage</code>, 11 class helper của nó, page object nào,
+          spec file nào, hay fixture nào. Đây là vấn đề tài liệu và cấu hình CI, nằm hoàn toàn ngoài
+          composition-based POM.</p>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Option A &middot; bound the agent loops</div>
+          <ul>
+            <li><code>CLAUDE.md</code> &sect;4: add a short "loop contract" definition (bound, convergence check, stop action, carried state)</li>
+            <li><code>.claude/agents/playwright-test-healer.md:239</code>: rewrite the iteration step</li>
+            <li><code>.claude/agents/technical-debt-fixer.md:335</code>: same</li>
+            <li><code>.claude/agents/qa-orchestrator.md</code>: one cross-reference line</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Option B &middot; repair the trend feedback loop</div>
+          <ul>
+            <li><code>.github/workflows/playwright-with-slack.yml:152,156,225-229</code>: cache key, hit check, save-source job</li>
+            <li><code>.github/workflows/api-restful-tests-with-slack.yml:54-63,96-100</code>: same pattern</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Option B&prime; &middot; the dead retry knob (independent one-liner)</div>
+          <ul>
+            <li><code>api.config.ts:46</code>: read <code>env.retries</code> instead of the hardcoded literal</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Deferred / out of scope</div>
+          <ul>
+            <li>Option C: a new <code>schedule:</code>-triggered nightly/soak CI loop</li>
+            <li>Option D: flaky-test retry and quarantine strategy, already owned by <code>flaky-test-detection-isolation.html</code>, awaiting its own approval</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Options -->
+    <section class="content-section" id="options" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Options</h2>
+          <div class="section-desc">Two increments to adopt, one to defer, one already owned elsewhere</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option A: bound the agent loops (docs-only)</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Replace "repeat until it passes" with an explicit contract: a cap (e.g. 3 fix&rarr;verify cycles per spec file), a convergence check (the failure signature must change between attempts; the same signature twice means the fix isn't working), and a stop action (call <code>advisor()</code>, then report and stop, never silently <code>test.fixme()</code> to exit the loop).</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Thay "lặp lại đến khi pass" bằng một hợp đồng rõ ràng: giới hạn số lần (ví dụ 3 vòng sửa&rarr;kiểm tra mỗi spec file), kiểm tra hội tụ (dấu hiệu lỗi phải thay đổi giữa các lần thử; cùng một dấu hiệu hai lần nghĩa là cách sửa không hiệu quả), và hành động dừng (gọi <code>advisor()</code>, rồi báo cáo và dừng lại, không bao giờ âm thầm dùng <code>test.fixme()</code> để thoát vòng lặp).</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Zero CI cost, zero runtime risk: markdown edits only, no <code>.ts</code> file touched</td><td>Advisory only; an agent can still ignore prose, same limitation as CLAUDE.md &sect;16</td></tr>
+            <tr><td>Fixes a verified, unowned asymmetry: the orchestrator already does this correctly</td><td>A hard cap could truncate a legitimately long healing run on a spec with many failures</td></tr>
+            <tr><td>Fully reversible with a single <code>git revert</code></td><td>Value is hard to measure; no metric today counts healer iterations</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option B: repair the monocart trend loop</div>
+      <div class="lang-pair">
+        <div class="lang-col"><span class="lang-tag">EN</span><p>Add a per-run component to the cache key so each run writes a fresh cache entry instead of exact-matching the branch-scoped one; use <code>restore-keys</code> for the branch-level fallback; set the trend env var on file presence rather than requiring an exact cache hit; save from the merged, whole-suite report rather than a single shard's.</p></div>
+        <div class="lang-col"><span class="lang-tag">VI</span><p>Thêm một thành phần theo từng lần chạy vào cache key để mỗi lần chạy ghi một cache entry mới, thay vì trùng khớp chính xác với key theo branch; dùng <code>restore-keys</code> làm fallback ở cấp branch; đặt biến môi trường trend khi file tồn tại thay vì yêu cầu trùng khớp cache tuyệt đối; lưu từ báo cáo đã gộp toàn bộ suite thay vì từ một shard riêng lẻ.</p></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Fixes a confirmed live defect, not a speculative feature</td><td>Cache growth: one entry per run instead of one per branch, needing a retention plan</td></tr>
+            <tr><td>Unlocks a chart the config and reporter were already built for</td><td>Touches the primary, 900+ line CI workflow, so a mistake there affects every build</td></tr>
+            <tr><td>No dependency change, no test code touched</td><td>The flaky-test doc separately flags the same cache key as needing a shard-scope fix, so this needs one owner, not two</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option C: scheduled CI loop (nightly soak) &middot; deferred</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>The only mechanism that catches low-frequency flakes a single push-triggered run misses</td><td>Real cost: 55&ndash;142 min per run across 9 matrix jobs, with a 10&times; macOS billing multiplier</td></tr>
+            <tr><td>Would give the (fixed) trend chart a regular cadence independent of commit frequency</td><td>Pointless before Option B lands: a nightly run feeding a frozen cache produces nothing new</td></tr>
+            <tr><td class="muted">None</td><td>Hammers shared staging environments off-hours and risks alert fatigue with nobody on call</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>Option D: flaky-test retry / quarantine loop &middot; not decided here</div>
+      <div class="callout solo" style="--cb: var(--purple)">
+        <span class="callout-icon">&#9432;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>A separate, more thorough research document (<code>flaky-test-detection-isolation.html</code>,
+            2026-07-26) already covers this exact loop family in depth and is awaiting its own approval. This
+            report deliberately does not re-decide it, to avoid two conflicting recommendations on the same
+            question.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Một tài liệu nghiên cứu riêng, chi tiết hơn (<code>flaky-test-detection-isolation.html</code>,
+            ngày 2026-07-26) đã bao quát đúng nhóm vòng lặp này và đang chờ được duyệt riêng. Báo cáo này chủ ý
+            không quyết định lại phần đó, để tránh có hai đề xuất mâu thuẫn cho cùng một vấn đề.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 Recommendation -->
+    <section class="content-section" id="recommendation" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Recommended approach</h2>
+          <div class="section-desc">A first, B second, C deferred, D left to its own approval gate</div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Adopt A and B as two independent, separately reviewable increments, in that order. Defer C until
+            B is verified working. Leave D to the flaky-test doc's own approval process. Fix the dead
+            <code>api.config.ts</code> retry knob (B&prime;) as a one-line cleanup whenever convenient, after
+            confirming <code>API_RETRIES</code> is unset in CI.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Áp dụng A và B thành hai bước độc lập, xét duyệt riêng, theo đúng thứ tự đó. Hoãn C lại đến khi B
+            đã được xác nhận hoạt động. Để D cho quy trình duyệt riêng của tài liệu flaky-test. Sửa knob retry
+            đã chết trong <code>api.config.ts</code> (B&prime;) như một dọn dẹp một dòng, làm bất cứ lúc nào tiện,
+            sau khi xác nhận <code>API_RETRIES</code> không được set trên CI.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why A first</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>It's the only interpretation with a verified, unowned gap. It costs nothing, risks nothing, and applies a decision this repo has already made elsewhere: the orchestrator's own one-iteration cap proves unbounded loops are already treated as a hazard here.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Đây là hướng duy nhất có một lỗ hổng đã xác minh và chưa ai phụ trách. Nó không tốn gì, không rủi ro gì, và áp dụng một quyết định mà repo này đã đưa ra ở chỗ khác: giới hạn một vòng lặp của chính orchestrator đã chứng minh vòng lặp không giới hạn đã được xem là rủi ro ở đây.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why B second, not first</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>B fixes a genuine defect, but it edits the primary CI workflow, and the flaky-test doc separately proposes touching the same cache key. Landing B before that document's approval risks two changes colliding on the same lines.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>B sửa một lỗi có thật, nhưng nó sửa vào workflow CI chính, và tài liệu flaky-test cũng đề xuất động vào đúng cache key đó. Triển khai B trước khi tài liệu kia được duyệt có nguy cơ hai thay đổi đụng nhau trên cùng dòng.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Why C stays deferred</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A scheduled loop feeding a frozen cache accomplishes nothing, so it's strictly downstream of B. The runner-minute cost is real and measured, and a rerun mechanism from the flaky-test doc would duplicate its purpose if built first.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Một vòng lặp theo lịch nạp vào một cache đã đóng băng thì không đạt được gì, nên nó phụ thuộc chặt vào B. Chi phí runner-minute là có thật và đã đo được, và một cơ chế rerun từ tài liệu flaky-test sẽ trùng mục đích nếu được xây trước.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p>Do not lower <code>advisor-nudge.js</code>'s threshold or time floor as part of this work. Both
+            values are deliberately tuned to avoid firing on ordinary TDD cycles; tightening them is the
+            highest false-positive-risk change this report considered, and it isn't necessary to close either
+            gap above.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p>Không hạ ngưỡng hay mốc thời gian của <code>advisor-nudge.js</code> trong lần này. Cả hai giá trị
+            đều được chỉnh có chủ đích để không kích hoạt trong các chu kỳ TDD bình thường; siết chặt chúng là
+            thay đổi có rủi ro báo-động-giả cao nhất mà báo cáo này xem xét, và không cần thiết để đóng bất kỳ
+            lỗ hổng nào ở trên.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 Benefits -->
+    <section class="content-section" id="benefits" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Benefit to this framework</h2>
+          <div class="section-desc">What adopting A and B actually buys, concretely, not in the abstract</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <p>The value of bounding these two loops isn't theoretical. Each maps to a specific cost this repo is
+          paying today, whether or not anyone has noticed it yet.</p>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <p>Giá trị của việc giới hạn hai vòng lặp này không phải là lý thuyết suông. Mỗi vòng lặp tương ứng
+          với một chi phí cụ thể mà repo này đang phải trả hôm nay, dù có ai để ý đến hay chưa.</p>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Predictable worst-case cost per healing task &middot; Increment A</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Today, <code>playwright-test-healer</code> can iterate indefinitely on a stubborn test with no signal to a human that it's stuck. A cap plus a convergence check turns an open-ended debugging session into a bounded one: it stops and asks after N non-converging attempts instead of burning time and tokens on the same failure signature.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Hiện tại, <code>playwright-test-healer</code> có thể lặp vô hạn trên một test khó sửa mà không có tín hiệu nào báo cho con người biết nó đang bị kẹt. Giới hạn số lần cộng với kiểm tra hội tụ biến một phiên debug không có điểm dừng thành một phiên có giới hạn rõ ràng: nó dừng lại và hỏi sau N lần thử không tiến triển, thay vì tốn thời gian và token cho cùng một dấu hiệu lỗi.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Faster escalation instead of silent thrashing &middot; Increment A</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The convergence check (same failure signature twice &rarr; stop) catches the exact failure mode <code>advisor-nudge.js</code> is designed to catch at the session level, but one layer earlier, inside a single subagent dispatch the parent session may not even observe.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Kiểm tra hội tụ (cùng một dấu hiệu lỗi xuất hiện hai lần &rarr; dừng) bắt đúng kiểu lỗi mà <code>advisor-nudge.js</code> được thiết kế để bắt ở cấp session, nhưng sớm hơn một tầng, ngay bên trong một lần gọi subagent mà session cha có thể không quan sát được.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">One shared definition instead of three prose conventions &middot; Increment A</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A reviewer auditing "can this agent loop forever" today has to read each agent file's own wording. A shared loop contract in <code>CLAUDE.md</code> &sect;4 makes that a one-line check against a single definition, for every current and future agent.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Một reviewer muốn kiểm tra "agent này có thể lặp vô hạn không" hiện phải đọc riêng cách diễn đạt của từng file agent. Một hợp đồng vòng lặp dùng chung trong <code>CLAUDE.md</code> &sect;4 biến việc đó thành một lần kiểm tra đối chiếu với đúng một định nghĩa, áp dụng cho mọi agent hiện tại lẫn tương lai.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">The trend chart starts doing what it was already built for &middot; Increment B</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p><code>playwright.config.ts:59-67</code> and <code>api.config.ts:60-68</code> already read and render a trend file. Fixing the cache key means that code starts receiving real multi-run history instead of the same frozen snapshot: no new reporter, no new dependency, the plumbing already exists.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p><code>playwright.config.ts:59-67</code> và <code>api.config.ts:60-68</code> đã sẵn sàng đọc và hiển thị file trend. Sửa cache key nghĩa là đoạn code đó bắt đầu nhận được lịch sử thật qua nhiều lần chạy thay vì cùng một snapshot đã đóng băng: không cần reporter mới, không cần dependency mới, hạ tầng đã có sẵn.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Real regression-over-time visibility, for free &middot; Increment B</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>Once the loop advances, duration and pass-rate trends become visible run over run, on both the UI and API monocart reports, without adding a single new tool to the stack.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Khi vòng lặp bắt đầu tiến triển, xu hướng về thời gian chạy và tỷ lệ pass sẽ hiện rõ qua từng lần chạy, trên cả báo cáo monocart của UI lẫn API, mà không cần thêm bất kỳ công cụ mới nào vào stack.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">De-risks two pieces of work already planned &middot; Increment B</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>The lighthouse trend-monitoring design (commit <code>6e97f49</code>) and the flaky-test doc's cross-run flaky-rate option both assume a trend mechanism that actually accumulates history. Fixing B now means neither has to rediscover or re-fix this same cache-key bug later.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>Thiết kế theo dõi trend của lighthouse (commit <code>6e97f49</code>) và phương án tính tỷ lệ flaky qua nhiều lần chạy trong tài liệu flaky-test đều giả định có sẵn một cơ chế trend thực sự tích lũy lịch sử. Sửa B ngay bây giờ nghĩa là cả hai việc đó không phải phát hiện lại hay sửa lại đúng lỗi cache key này về sau.</p></div>
+          </div>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Unusually good benefit-to-risk ratio &middot; Increment A + B</div>
+          <div class="lang-pair">
+            <div class="lang-col"><span class="lang-tag">EN</span><p>A is documentation-only with zero blast radius. B is CI-only, with no test-code risk and a reporter that already degrades gracefully (existing <code>try/catch</code> around trend-file parsing) if anything goes wrong. Few changes in this framework offer this much value for this little exposure.</p></div>
+            <div class="lang-col"><span class="lang-tag">VI</span><p>A chỉ sửa tài liệu, không ảnh hưởng gì ra ngoài. B chỉ động vào CI, không có rủi ro cho code test, và reporter đã có sẵn cơ chế xử lý lỗi nhẹ nhàng (try/catch quanh việc đọc file trend) nếu có gì trục trặc. Rất ít thay đổi trong framework này mang lại nhiều giá trị đến vậy với rủi ro nhỏ đến vậy.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout solo" style="--cb: var(--accent2)">
+        <span class="callout-icon">&#9733;</span>
+        <div class="lang-pair">
+          <div class="lang-col">
+            <span class="lang-tag">EN</span>
+            <p><strong>In one sentence:</strong> Option A stops AI agents from silently wasting time on a fix
+            that isn't working, and Option B turns on a monitoring feature that was already built and paid for,
+            but has been switched off by a one-line cache bug since the day it shipped.</p>
+          </div>
+          <div class="lang-col">
+            <span class="lang-tag">VI</span>
+            <p><strong>Tóm gọn trong một câu:</strong> Option A ngăn agent AI âm thầm tốn thời gian cho một cách
+            sửa không hiệu quả, còn Option B bật lại một tính năng theo dõi vốn đã được xây và đã "trả tiền"
+            xong, nhưng bị tắt bởi một lỗi cache một dòng ngay từ ngày đầu ra mắt.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 Risks -->
+    <section class="content-section" id="risks" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Risk assessment</h2>
+          <div class="section-desc">What could go wrong, and how each increment is mitigated or rolled back</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Severity</th><th>Applies to</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Iteration cap truncates a legitimately long, but ultimately fixable, healing run</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Option A</td>
+              <td class="muted">Cap on non-convergence (same failure signature twice), not on raw attempt count alone; require an <code>advisor()</code> call before giving up</td>
+            </tr>
+            <tr>
+              <td>Agents ignore the new prose convention entirely</td>
+              <td><span class="tag tag-low">Low</span></td>
+              <td class="muted">Option A</td>
+              <td class="muted">Accepted as advisory, same as the existing CLAUDE.md &sect;16 comment checklist; value is in giving reviewers a citable rule</td>
+            </tr>
+            <tr>
+              <td>Cache-key change breaks trend rendering entirely</td>
+              <td><span class="tag tag-low">Low</span></td>
+              <td class="muted">Option B</td>
+              <td class="muted">The reporter already wraps trend-file parsing in try/catch and falls back to no chart; worst case is a missing chart, never a failed test run</td>
+            </tr>
+            <tr>
+              <td>Per-run cache entries grow unbounded and evict other caches (e.g. browser binaries)</td>
+              <td><span class="tag tag-high">High</span></td>
+              <td class="muted">Option B</td>
+              <td class="muted">Add explicit retention/rotation for trend cache entries before shipping; measure typical <code>index.json</code> size first</td>
+            </tr>
+            <tr>
+              <td>Editing the 900+ line primary CI workflow destabilises every build</td>
+              <td><span class="tag tag-high">High</span></td>
+              <td class="muted">Option B</td>
+              <td class="muted">Validate the change via manual <code>workflow_dispatch</code> on a branch before merging to <code>main</code></td>
+            </tr>
+            <tr>
+              <td>This report's Option B and the flaky-test doc's cache-key proposal collide on the same lines</td>
+              <td><span class="tag tag-medium">Medium</span></td>
+              <td class="muted">Option B</td>
+              <td class="muted">Assign one owner for the cache-key fix before either lands; do not implement both independently</td>
+            </tr>
+            <tr>
+              <td>Scheduled CI cost if Option C is adopted prematurely</td>
+              <td><span class="tag tag-high">High if adopted</span></td>
+              <td class="muted">Option C (deferred)</td>
+              <td class="muted">Do not adopt until B is verified; if adopted later, scope to ubuntu-only, weekly, well under the current 120-minute job timeout</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 08 Implementation steps -->
+    <section class="content-section" id="steps" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Implementation steps</h2>
+          <div class="section-desc">Ordered, per increment, for a future implementation agent</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Step 0 &middot; resolve one open assumption first</div>
+      <ol class="ordered">
+        <li>Confirm whether a dispatched subagent's tool calls reach <code>advisor-nudge.js</code> under the parent session's <code>session_id</code>, a distinct one, or not at all. This determines whether Option A's prose bound is a backup layer or the <em>only</em> real protection against an unbounded healer loop</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Increment A &middot; bound the agent loops</div>
+      <ol class="ordered">
+        <li>Add a short "loop contract" block to <code>CLAUDE.md</code> &sect;4: bound, convergence check, stop action, carried state. Four bullets, no more</li>
+        <li>Rewrite <code>playwright-test-healer.md:239</code> with a cap (e.g. 3 iterations), a convergence check on failure signature, and a stop action calling <code>advisor()</code> before giving up; keep the existing <code>test.fixme()</code> guidance but subordinate it to the stop action</li>
+        <li>Apply the same rewrite to <code>technical-debt-fixer.md:335</code></li>
+        <li>Add one cross-reference line in <code>qa-orchestrator.md</code> noting that dispatched agents now carry their own inner bound</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Increment B &middot; repair the trend feedback loop</div>
+      <ol class="ordered">
+        <li>Verify the freeze empirically first: compare cache entry <code>created_at</code> timestamps against recent run dates via the GitHub Actions API</li>
+        <li>In <code>playwright-with-slack.yml:152</code>, add a per-run component to the cache key (e.g. <code>github.run_id</code>), keeping the branch prefix as a <code>restore-keys</code> fallback</li>
+        <li>Change the <code>:156</code> gate from an exact <code>cache-hit == 'true'</code> check to a file-existence check</li>
+        <li>Move the trend-save step to run against the merged, whole-suite report rather than a single shard's</li>
+        <li>Mirror all of the above in <code>api-restful-tests-with-slack.yml:54-63,96-100</code></li>
+        <li>Add cache retention so per-run entries can't evict the Playwright browser-binary cache</li>
+      </ol>
+
+      <div class="sub-heading" style="--c: var(--amber)"><span class="dot"></span>Increment B&prime; &middot; the dead retry knob</div>
+      <ol class="ordered">
+        <li>Confirm <code>API_RETRIES</code> is unset in CI secrets/vars</li>
+        <li>Change <code>api.config.ts:46</code> to read <code>env.retries</code> instead of the hardcoded literal</li>
+        <li>Reconcile the conflicting default between <code>src/api/config/environment.ts:41</code> (2) and <code>src/config/environment.ts:106</code> (3), or remove the unused second field</li>
+      </ol>
+    </section>
+
+    <!-- 09 Validation -->
+    <section class="content-section" id="validation" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>Validation</h2>
+          <div class="section-desc">How to prove each fix actually behaves as intended</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to verify</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td>V1</td><td>Increment A does not touch test code</td><td class="muted"><code>git diff --stat</code> shows only <code>.md</code> files; <code>npm run lint</code> still passes</td></tr>
+            <tr><td>V2</td><td>The healer actually stops at its cap</td><td class="muted">Dispatch <code>playwright-test-healer</code> at a deliberately unfixable test; confirm it stops after the defined cap with a per-iteration log and an <code>advisor()</code> call, instead of looping indefinitely</td></tr>
+            <tr><td>V3</td><td>The trend loop actually advances</td><td class="muted">Trigger the UI workflow via <code>workflow_dispatch</code> three times on a branch: run 1 shows no chart (cache miss), run 2 shows one datapoint, run 3 must show two. Today it would still show one</td></tr>
+            <tr><td>V4</td><td>A new cache entry is created per run</td><td class="muted">Confirm via the GitHub Actions API that each triggered run produces a distinct cache entry, not a restore-only hit</td></tr>
+            <tr><td>V5</td><td>Slack payloads still populate correctly after the workflow edit</td><td class="muted">Confirm both UI and API Slack notification jobs still render their existing fields with no Block Kit validation error</td></tr>
+            <tr><td>V6</td><td>The dead retry knob fix changes behaviour only where intended</td><td class="muted"><code>API_RETRIES=0 npm run test:api</code> on a deliberately failing spec confirms zero retries; unset the var and confirm the configured default applies</td></tr>
+            <tr><td>V7</td><td>No regression in the standard smoke gate</td><td class="muted"><code>npm run test:simple</code> (chromium, 1 worker) passes after both increments land</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10 Open questions -->
+    <section class="content-section" id="open-questions" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div>
+          <h2>Open questions</h2>
+          <div class="section-desc">Decisions that belong to the user, not to an implementation agent</div>
+        </div>
+      </div>
+
+      <div class="lang-pair">
+        <div class="lang-col">
+          <span class="lang-tag">EN</span>
+          <ul style="padding-left: 18px; color: var(--muted); font-size: 13.5px;">
+            <li style="margin-bottom: 10px;">Should the healer's iteration cap be per-spec-file or per-test? A spec with many failing tests would exhaust a per-spec cap of 3 almost immediately.</li>
+            <li style="margin-bottom: 10px;">Who owns the trend-cache-key fix: this report's Option B, or the flaky-test doc's already-noted proposal to touch the same lines?</li>
+            <li style="margin-bottom: 10px;">Is there an appetite to also fix the reconciled retry default in Increment B&prime;, or should that field be removed outright as dead code?</li>
+            <li>Once B is verified working, is Option C (a scheduled CI loop) wanted at all, or does push-triggered CI already give enough signal?</li>
+          </ul>
+        </div>
+        <div class="lang-col">
+          <span class="lang-tag">VI</span>
+          <ul style="padding-left: 18px; color: var(--muted); font-size: 13.5px;">
+            <li style="margin-bottom: 10px;">Giới hạn số lần lặp của healer nên tính theo spec file hay theo từng test? Một spec có nhiều test fail sẽ dùng hết giới hạn 3 gần như ngay lập tức.</li>
+            <li style="margin-bottom: 10px;">Ai phụ trách việc sửa cache key trend: Option B của báo cáo này, hay đề xuất đã ghi nhận trong tài liệu flaky-test cũng động vào đúng những dòng đó?</li>
+            <li style="margin-bottom: 10px;">Có muốn sửa luôn giá trị retry mặc định đang lệch nhau trong Increment B&prime;, hay nên xóa hẳn field không dùng đó như dead code?</li>
+            <li>Sau khi B được xác nhận hoạt động, Option C (vòng lặp CI theo lịch) có còn cần thiết không, hay CI kích hoạt theo push đã đủ tín hiệu?</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="approval-banner">
+  <span class="icon">&#9888;</span>
+  <p><strong>Awaiting user approval.</strong> This report is research only; no files were modified. Per CLAUDE.md's technical-research &rarr; approval-gate &rarr; implementation workflow, any implementation must be explicitly approved and routed through <code>qa-orchestrator</code>.</p>
+</div>
+
+<div class="footer">
+  <p>Playwright TypeScript Automation Framework &middot; Technical Research Report &middot; generated 2026-07-28</p>
+</div>
+
+</body>
+</html>

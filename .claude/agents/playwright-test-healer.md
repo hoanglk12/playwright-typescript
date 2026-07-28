@@ -4,7 +4,7 @@ description: >
   SUB-AGENT — dispatched by qa-orchestrator. Also invoke directly when you need to
   debug and fix failing Playwright tests. For CI batch-failure investigation
   (DevOps analysis → healer → reviewer), prefer invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, Edit, MultiEdit, Write, Bash, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__trace_path, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__search_code
+tools: Glob, Grep, Read, LS, Edit, MultiEdit, Write, Bash, advisor, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for, mcp__codebase-memory-mcp__index_status, mcp__codebase-memory-mcp__search_graph, mcp__codebase-memory-mcp__trace_path, mcp__codebase-memory-mcp__get_code_snippet, mcp__codebase-memory-mcp__search_code
 model: sonnet
 color: crimson
 ---
@@ -236,7 +236,19 @@ Skip to step 3 if failures are already classified from the JSON.
    ```bash
    PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --project=chromium
    ```
-7. **Iteration**: Repeat until the test passes cleanly
+7. **Iteration — bounded, per failing test**:
+   - **Cap**: up to 3 fix-then-verify cycles per failing test (not per spec file — a spec with
+     several failing tests gets 3 cycles each).
+   - **Convergence check**: after each verify run, compare the new failure signature (Step 0b
+     type + failing step + locator/assertion) against the prior iteration's. If unchanged twice
+     in a row, the fix isn't converging — stop iterating on that test.
+   - **Carried state**: track, per failing test, the iteration count so far, the failure
+     signature from the previous attempt, and what was changed in this attempt. This is what
+     the convergence check compares against and what the per-iteration log (see stop action
+     below) reports.
+   - **Stop action**: once the cap is reached or the signature stops changing, call `advisor()`,
+     then report the per-iteration log (signature + change made, per attempt) and leave the test
+     failing rather than looping again.
 
 ---
 
@@ -249,9 +261,11 @@ Skip to step 3 if failures are already classified from the JSON.
 - Never introduce `@playwright/test` imports — always `@config/base-test`
 - Never introduce magic timeout numbers — always `TIMEOUTS.*` constants
 - If multiple errors exist, fix them one at a time and retest between each fix
-- If the error persists and you have high confidence the test logic is correct, mark the test
-  as `test.fixme()` and add a comment before the failing step explaining the observed vs.
-  expected behavior
+- If the error persists and you have high confidence the test logic is correct, `test.fixme()`
+  is only available after the stop action in step 7 has run (cap reached or signature
+  non-converging) — never use it to exit the iteration loop early. Once the stop action has
+  run, mark the test as `test.fixme()` and add a comment before the failing step explaining the
+  observed vs. expected behavior
 - Do not ask user questions — make the most reasonable fix possible
 - Never use `networkidle` or other deprecated Playwright APIs
 - **Never auto-commit.** You may edit files, but never run `git commit`, `git push`, or open a

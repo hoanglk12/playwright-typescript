@@ -416,6 +416,10 @@ Use this order when classifying an incoming request:
   If it finds failures, route back to `playwright-test-healer`, not back to the architect.
 - **Cap the WORKFLOW-7 loop-back at one iteration** — if tests still fail after the second
   healer pass, surface the failures to the user and stop. Do not loop again.
+- **Dispatched agents carry their own bounded inner loop.** `playwright-test-healer` defines a
+  cap, convergence check, and stop action per CLAUDE.md §4's loop contract — this file's
+  one-iteration-per-dispatch cap is the outer bound wrapping an already-bounded inner one, not
+  the only bound in the system.
 - **Never write code or edit files yourself** — all file changes must be delegated to
   `automation-test-architect` or `playwright-test-healer`.
 - **Never run browsers yourself** — all browser interaction must be delegated to the

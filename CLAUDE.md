@@ -668,6 +668,12 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+**Loop contract.** Any agent loop that repeats a fix-then-verify cycle (not just this session — any dispatched sub-agent) must define all four of:
+- **Bound** — a hard cap on iterations, stated up front (e.g. N fix-then-verify cycles per unit of work). Never open-ended ("repeat until it passes").
+- **Convergence check** — compare the failure signature between iterations (error class + failing step/locator, or the domain-equivalent). The same signature twice means the fix isn't working — stop, don't retry a third time.
+- **Stop action** — when the bound is hit or convergence fails: call `advisor()` if available, then report and stop. Never silently suppress the failure (e.g. `test.fixme()`) to exit the loop without going through the stop action first.
+- **Carried state** — track iteration count, prior failure signature, and what changed, so the convergence check has something to compare against.
+
 ### 5. When to Call `advisor()` Immediately
 
 **Consult the advisor early — not after 5 minutes of iteration.**
