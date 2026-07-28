@@ -78,6 +78,7 @@ export default defineConfig({
                 `| ✅ Passed | ${s.passed?.value ?? s.passed} |`,
                 `| ❌ Failed | ${s.failed?.value ?? s.failed} |`,
                 `| ⏭ Skipped | ${s.skipped?.value ?? s.skipped} |`,
+                `| 🔁 Flaky | ${s.flaky?.value ?? s.flaky ?? 0} |`,
                 `| Duration | ${reportData.durationH} |`,
               ];
               fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');

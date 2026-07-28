@@ -411,11 +411,13 @@ jobs:
       api_passed:      ${{ steps.monocart-api.outputs.passed }}
       api_failed:      ${{ steps.monocart-api.outputs.failed }}
       api_skipped:     ${{ steps.monocart-api.outputs.skipped }}
+      api_flaky:       ${{ steps.monocart-api.outputs.flaky }}
       api_duration:    ${{ steps.monocart-api.outputs.duration }}
       misc_tests:      ${{ steps.monocart-misc.outputs.tests }}
       misc_passed:     ${{ steps.monocart-misc.outputs.passed }}
       misc_failed:     ${{ steps.monocart-misc.outputs.failed }}
       misc_skipped:    ${{ steps.monocart-misc.outputs.skipped }}
+      misc_flaky:      ${{ steps.monocart-misc.outputs.flaky }}
       misc_duration:   ${{ steps.monocart-misc.outputs.duration }}
       ui_artifact_url: ${{ steps.ui-artifact-url.outputs.url }}
       api_artifact_url: ${{ steps.api-artifact-url.outputs.url }}
@@ -584,6 +586,7 @@ jobs:
               console.log('passed=' + v(s.passed));
               console.log('failed=' + v(s.failed));
               console.log('skipped=' + v(s.skipped));
+              console.log('flaky=' + v(s.flaky));
               console.log('duration=' + (d.durationH || 'N/A'));
             " >> $GITHUB_OUTPUT
           else
@@ -591,6 +594,7 @@ jobs:
             echo "passed=N/A" >> $GITHUB_OUTPUT
             echo "failed=N/A" >> $GITHUB_OUTPUT
             echo "skipped=N/A" >> $GITHUB_OUTPUT
+            echo "flaky=N/A" >> $GITHUB_OUTPUT
             echo "duration=N/A" >> $GITHUB_OUTPUT
           fi
         env:
@@ -609,6 +613,7 @@ jobs:
               console.log('passed=' + v(s.passed));
               console.log('failed=' + v(s.failed));
               console.log('skipped=' + v(s.skipped));
+              console.log('flaky=' + v(s.flaky));
               console.log('duration=' + (d.durationH || 'N/A'));
             " >> $GITHUB_OUTPUT
           else
@@ -616,6 +621,7 @@ jobs:
             echo "passed=N/A" >> $GITHUB_OUTPUT
             echo "failed=N/A" >> $GITHUB_OUTPUT
             echo "skipped=N/A" >> $GITHUB_OUTPUT
+            echo "flaky=N/A" >> $GITHUB_OUTPUT
             echo "duration=N/A" >> $GITHUB_OUTPUT
           fi
         env:
@@ -925,6 +931,10 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
+                      "text": "*🔁 Flaky:*\n${{ needs.test-report.outputs.api_flaky }}"
+                    },
+                    {
+                      "type": "mrkdwn",
                       "text": "*Duration:*\n${{ needs.test-report.outputs.api_duration }}"
                     }
                   ]
@@ -954,6 +964,10 @@ jobs:
                     {
                       "type": "mrkdwn",
                       "text": "*⏭ Skipped:*\n${{ needs.test-report.outputs.misc_skipped }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*🔁 Flaky:*\n${{ needs.test-report.outputs.misc_flaky }}"
                     },
                     {
                       "type": "mrkdwn",

@@ -36,6 +36,7 @@ jobs:
       gra_passed:         ${{ steps.monocart.outputs.passed }}
       gra_failed:         ${{ steps.monocart.outputs.failed }}
       gra_skipped:        ${{ steps.monocart.outputs.skipped }}
+      gra_flaky:          ${{ steps.monocart.outputs.flaky }}
       gra_deploy_url:     ${{ steps.cf-api.outputs.url }}
 
     steps:
@@ -107,16 +108,19 @@ jobs:
           node -e "
             const d = require('./monocart-api-report/index.json');
             const s = d.summary || {};
-            console.log('tests=' + (s.tests || 0));
-            console.log('passed=' + (s.passed || 0));
-            console.log('failed=' + (s.failed || 0));
-            console.log('skipped=' + (s.skipped || 0));
+            const v = (x) => x?.value ?? x ?? 0;
+            console.log('tests=' + v(s.tests));
+            console.log('passed=' + v(s.passed));
+            console.log('failed=' + v(s.failed));
+            console.log('skipped=' + v(s.skipped));
+            console.log('flaky=' + v(s.flaky));
           " >> $GITHUB_OUTPUT
         else
           echo "tests=N/A" >> $GITHUB_OUTPUT
           echo "passed=N/A" >> $GITHUB_OUTPUT
           echo "failed=N/A" >> $GITHUB_OUTPUT
           echo "skipped=N/A" >> $GITHUB_OUTPUT
+          echo "flaky=N/A" >> $GITHUB_OUTPUT
         fi
 
     - name: Upload monocart API report
@@ -148,6 +152,7 @@ jobs:
       misc_passed:  ${{ steps.monocart-misc.outputs.passed }}
       misc_failed:  ${{ steps.monocart-misc.outputs.failed }}
       misc_skipped: ${{ steps.monocart-misc.outputs.skipped }}
+      misc_flaky:   ${{ steps.monocart-misc.outputs.flaky }}
       misc_deploy_url: ${{ steps.cf-misc.outputs.url }}
 
     steps:
@@ -192,16 +197,19 @@ jobs:
           node -e "
             const d = require('./monocart-api-report/index.json');
             const s = d.summary || {};
-            console.log('tests=' + (s.tests || 0));
-            console.log('passed=' + (s.passed || 0));
-            console.log('failed=' + (s.failed || 0));
-            console.log('skipped=' + (s.skipped || 0));
+            const v = (x) => x?.value ?? x ?? 0;
+            console.log('tests=' + v(s.tests));
+            console.log('passed=' + v(s.passed));
+            console.log('failed=' + v(s.failed));
+            console.log('skipped=' + v(s.skipped));
+            console.log('flaky=' + v(s.flaky));
           " >> $GITHUB_OUTPUT
         else
           echo "tests=N/A" >> $GITHUB_OUTPUT
           echo "passed=N/A" >> $GITHUB_OUTPUT
           echo "failed=N/A" >> $GITHUB_OUTPUT
           echo "skipped=N/A" >> $GITHUB_OUTPUT
+          echo "flaky=N/A" >> $GITHUB_OUTPUT
         fi
 
     - name: Upload monocart Misc API report
@@ -343,6 +351,10 @@ jobs:
                     {
                       "type": "mrkdwn",
                       "text": "*⏭ Skipped:*\n${{ needs.api-tests-gra.outputs.gra_skipped }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*🔁 Flaky:*\n${{ needs.api-tests-gra.outputs.gra_flaky }}"
                     }
                   ]
                 },
@@ -371,6 +383,10 @@ jobs:
                     {
                       "type": "mrkdwn",
                       "text": "*⏭ Skipped:*\n${{ needs.api-tests-misc.outputs.misc_skipped }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*🔁 Flaky:*\n${{ needs.api-tests-misc.outputs.misc_flaky }}"
                     }
                   ]
                 },
