@@ -144,19 +144,6 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Restore monocart trend data
-        uses: actions/cache@v5
-        id: monocart-trend
-        with:
-          path: monocart-trend/index.json
-          key: monocart-trend-ui-${{ runner.os }}-${{ github.ref_name }}
-          restore-keys: monocart-trend-ui-${{ runner.os }}-
-
-      - name: Set monocart trend env
-        if: steps.monocart-trend.outputs.cache-hit == 'true'
-        shell: bash
-        run: echo "MONOCART_TREND_FILE=${{ github.workspace }}/monocart-trend/index.json" >> $GITHUB_ENV
-
       - name: Make UI test scripts executable (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -220,13 +207,6 @@ jobs:
           ADMIN_URL: ${{ secrets.ADMIN_URL }}
           FRONTSITE_URL: ${{ secrets.FRONTSITE_URL }}
           HEADLESS: 'true'
-
-      - name: Save monocart trend data
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p monocart-trend
-          cp monocart-report/index.json monocart-trend/index.json 2>/dev/null || true
 
       - name: Copy test-results into monocart shard
         if: always()
@@ -495,14 +475,50 @@ jobs:
           pattern: monocart-shard-*-${{ github.run_id }}
           path: ./monocart-shards/
 
+      # Per-run key (run_id + run_attempt) so every run — including a re-run of the same
+      # run_id — creates a fresh cache entry instead of exact-matching an existing one and
+      # being skipped by actions/cache's save-on-new-key-only behaviour. restore-keys still
+      # falls back to the latest entry for this branch. Per-run entries accumulate under the
+      # repo's 10GB cache limit and age out via GitHub's own LRU eviction — that's expected;
+      # the browser-binary cache uses an unrelated key prefix so it's unaffected.
+      - name: Restore monocart trend data
+        if: needs.ui-test.result != 'skipped'
+        uses: actions/cache@v5
+        id: monocart-trend
+        with:
+          path: monocart-trend/index.json
+          key: monocart-trend-ui-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            monocart-trend-ui-${{ github.ref_name }}-
+
+      # actions/cache only exposes cache-hit on an exact key match; a restore-keys fallback
+      # restores the file but reports cache-hit: false, so the env var must be gated on the
+      # file's presence instead.
+      - name: Set monocart trend env
+        shell: bash
+        run: |
+          if [ -f monocart-trend/index.json ]; then
+            echo "MONOCART_TREND_FILE=${{ github.workspace }}/monocart-trend/index.json" >> $GITHUB_ENV
+          fi
+
       - name: Merge UI monocart shard reports
         if: needs.ui-test.result != 'skipped'
+        shell: bash
         run: |
-          npx monocart merge \
-            'monocart-shards/*/index.json' \
-            --name "Playwright UI Tests — ${{ env.TEST_ENV }}" \
-            --outputFile monocart-merged-ui/index.html
+          MERGE_ARGS=(--name "Playwright UI Tests — ${{ env.TEST_ENV }}" --outputFile monocart-merged-ui/index.html)
+          if [ -n "$MONOCART_TREND_FILE" ] && [ -f "$MONOCART_TREND_FILE" ]; then
+            printf '{"trend":"%s"}' "$MONOCART_TREND_FILE" > monocart-merge-config.json
+            MERGE_ARGS+=(-c monocart-merge-config.json)
+          fi
+          npx monocart merge 'monocart-shards/*/index.json' "${MERGE_ARGS[@]}"
         continue-on-error: true
+
+      - name: Save monocart trend data
+        if: always() && needs.ui-test.result != 'skipped'
+        shell: bash
+        run: |
+          mkdir -p monocart-trend
+          cp monocart-merged-ui/index.json monocart-trend/index.json 2>/dev/null || true
 
       - name: Generate macOS monocart report
         if: needs.ui-test.result != 'skipped'

@@ -51,17 +51,26 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # Per-run key (run_id + run_attempt) so every run — including a re-run of the same
+    # run_id — creates a fresh cache entry instead of exact-matching an existing one and
+    # being skipped by actions/cache's save-on-new-key-only behaviour. restore-keys still
+    # falls back to the latest entry for this branch.
     - name: Restore monocart API trend data
       uses: actions/cache@v5
       id: monocart-api-trend
       with:
         path: monocart-api-trend/index.json
-        key: monocart-trend-api-gra-${{ github.ref_name }}
-        restore-keys: monocart-trend-api-gra-
+        key: monocart-trend-api-gra-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          monocart-trend-api-gra-${{ github.ref_name }}-
 
+    # actions/cache only exposes cache-hit on an exact key match; a restore-keys fallback
+    # restores the file but reports cache-hit: false, so gate on the file's presence instead.
     - name: Set monocart API trend env
-      if: steps.monocart-api-trend.outputs.cache-hit == 'true'
-      run: echo "MONOCART_API_TREND_FILE=${{ github.workspace }}/monocart-api-trend/index.json" >> $GITHUB_ENV
+      run: |
+        if [ -f monocart-api-trend/index.json ]; then
+          echo "MONOCART_API_TREND_FILE=${{ github.workspace }}/monocart-api-trend/index.json" >> $GITHUB_ENV
+        fi
 
     - name: Run GRA API tests
       id: tests
