@@ -46,7 +46,7 @@ export class EcommerceNavPage extends BasePage {
     // (same strategy as swatch navigation — gotcha #4 in ecommerce-pdp-page-gotchas).
     // Fallback: click for links with no href or anchor-only hrefs (e.g. dropdown triggers).
     const href = await this.getNavLinkHref(label);
-    if (href && href !== '#' && !href.startsWith('#') && !href.startsWith('javascript:')) {
+    if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
       const current = new URL(this.page.url());
       const target = new URL(href, current);
       if (target.origin === current.origin) {

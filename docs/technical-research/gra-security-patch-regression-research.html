@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technical Research Report: GRA Security-Patch Regression Pack</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #5b8af5;
+      --accent2: #7c4dff;
+      --green: #3ddc84;
+      --amber: #ffb300;
+      --red: #ff5252;
+      --cyan: #00bcd4;
+      --purple: #ce93d8;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 260px; min-width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      padding: 24px 0;
+    }
+    .main { flex: 1; max-width: 1180px; }
+
+    .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .sidebar-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    .sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .nav-section { padding: 0 12px; margin-bottom: 8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 12px; border-radius: 6px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--c); }
+
+    .hero {
+      padding: 56px 56px 40px;
+      background: linear-gradient(160deg, rgba(91,138,245,.07) 0%, rgba(124,77,255,.05) 50%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -80px; right: -80px;
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(91,138,245,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .hero-eyebrow::before { content: ''; display: block; width: 28px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .hero h1 {
+      font-size: 32px; font-weight: 900; line-height: 1.22; margin-bottom: 16px;
+      background: linear-gradient(135deg, #5b8af5 0%, #ce93d8 50%, #3ddc84 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub { font-size: 15.5px; color: var(--muted); max-width: 780px; margin-bottom: 26px; }
+
+    .hero-meta { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 28px; }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 3px; }
+    .hero-meta-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .hero-meta-value { font-size: 13.5px; font-weight: 700; }
+
+    .topic-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .topic-chip {
+      padding: 12px 14px; border-radius: 10px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-top: 3px solid var(--c);
+    }
+    .topic-chip .num { font-size: 11px; font-weight: 800; color: var(--c); letter-spacing: .05em; }
+    .topic-chip .label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    .content-section { padding: 48px 56px; border-bottom: 1px solid var(--border); }
+    .content-section:last-of-type { border-bottom: none; }
+
+    .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .section-num {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, white));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; flex-shrink: 0; color: #10121a;
+    }
+    .section-header h2 { font-size: 21px; font-weight: 700; }
+    .section-desc { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .sub-heading { font-size: 16px; font-weight: 700; margin: 30px 0 12px; display: flex; align-items: center; gap: 10px; }
+    .sub-heading .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
+    .content-section > .sub-heading:first-of-type { margin-top: 0; }
+
+    p.body-text { color: var(--text); font-size: 14.3px; margin-bottom: 14px; }
+    p.body-text:last-child { margin-bottom: 0; }
+    .content-section ul.plain, .content-section ol.plain { padding-left: 20px; margin: 0 0 16px; }
+    .content-section ul.plain li, .content-section ol.plain li { font-size: 14px; color: var(--text); margin-bottom: 8px; }
+
+    .breakdown {
+      margin: 6px 0 26px; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; background: var(--surface);
+    }
+    .breakdown-row { padding: 16px 22px; border-bottom: 1px solid var(--border); }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label {
+      font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--c); margin-bottom: 8px;
+    }
+    .breakdown-row p { font-size: 13.5px; color: var(--text); }
+    .breakdown-row ul { margin: 6px 0 0; padding-left: 18px; }
+    .breakdown-row li { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .breakdown-row li:last-child { margin-bottom: 0; }
+    .breakdown-row li code { color: var(--text); }
+
+    .callout {
+      border-radius: 8px; padding: 16px 20px; font-size: 13.5px;
+      display: flex; gap: 14px; align-items: flex-start; margin: 14px 0 26px;
+      border: 1px solid var(--cb); background: color-mix(in srgb, var(--cb) 12%, transparent);
+    }
+    .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; color: var(--cb); }
+    .callout p { color: var(--text); font-size: 13.8px; margin: 0; }
+    .callout code { color: var(--text); background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px 5px; }
+
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); margin: 6px 0 28px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    thead th {
+      padding: 11px 16px; text-align: left;
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); font-weight: 700; white-space: nowrap;
+    }
+    tbody tr { border-top: 1px solid var(--border); }
+    tbody td { padding: 12px 16px; font-size: 12.8px; vertical-align: top; color: var(--text); }
+    tbody td.muted { color: var(--muted); }
+    tbody td code { white-space: normal; }
+    .tag { display: inline-block; border-radius: 4px; padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tag-high, .tag-reject, .tag-no { background: rgba(255,82,82,.15); color: #ff8a80; }
+    .tag-medium, .tag-partial { background: rgba(255,179,0,.15); color: #ffcc66; }
+    .tag-low, .tag-confirmed, .tag-adopt, .tag-yes { background: rgba(61,220,132,.15); color: #6ee7a0; }
+    .tag-neutral, .tag-certain { background: rgba(136,146,176,.15); color: var(--muted); }
+    .tag-p0 { background: rgba(255,82,82,.18); color: #ff8a80; }
+    .tag-p1 { background: rgba(255,179,0,.15); color: #ffcc66; }
+    .tag-p2 { background: rgba(136,146,176,.15); color: var(--muted); }
+
+    .ordered { padding-left: 22px; margin: 0 0 26px; }
+    .ordered li { font-size: 13.8px; color: var(--text); margin-bottom: 12px; padding-left: 4px; }
+    .ordered li:last-child { margin-bottom: 0; }
+    .ordered li code { font-size: 12px; }
+    .ordered li p.substep { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+    code:not(pre code) {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; font-size: 12px; font-family: 'Fira Code', Consolas, monospace; color: #82aaff;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      font-family: 'Fira Code', Consolas, monospace;
+      font-size: 12.3px;
+      line-height: 1.6;
+      color: #c9d1d9;
+      margin: 6px 0 22px;
+    }
+    pre code { background: none; padding: 0; color: inherit; border: none; font-size: inherit; }
+    .code-label {
+      font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .04em;
+      margin: 0 0 6px; font-family: 'Fira Code', Consolas, monospace;
+    }
+
+    .approval-banner {
+      margin: 0 56px 40px; padding: 18px 22px; border-radius: 10px;
+      background: rgba(255,179,0,.08); border: 1px solid rgba(255,179,0,.35);
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .approval-banner .icon { font-size: 18px; color: var(--amber); }
+    .approval-banner p { font-size: 13.5px; color: var(--text); }
+    .approval-banner strong { color: var(--amber); }
+
+    .footer {
+      text-align: center; padding: 36px 56px 56px;
+      color: var(--muted); font-size: 12px; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 1000px) { .hero, .content-section, .footer, .approval-banner { margin-left: 0; margin-right: 0; padding-left: 28px; padding-right: 28px; } }
+    @media (max-width: 760px) {
+      .sidebar { display: none; }
+      .topic-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h2>GRA Security Patch Pack</h2>
+      <p>Technical Research Report &middot; 2026-07-30</p>
+    </div>
+    <div class="nav-section">
+      <a href="#summary" class="nav-item"><span class="nav-dot" style="--c: var(--accent)"></span>Summary</a>
+      <a href="#scope" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span>Scope</a>
+      <a href="#evidence" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span>Evidence</a>
+      <a href="#coverage" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span>Coverage map</a>
+      <a href="#scenarios" class="nav-item"><span class="nav-dot" style="--c: var(--accent2)"></span>Scenario catalogue</a>
+      <a href="#options" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span>Options</a>
+      <a href="#recommendation" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span>Recommendation</a>
+      <a href="#scripts" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span>Proposed scripts</a>
+      <a href="#risks" class="nav-item"><span class="nav-dot" style="--c: var(--red)"></span>Risk assessment</a>
+      <a href="#steps" class="nav-item"><span class="nav-dot" style="--c: var(--amber)"></span>Implementation steps</a>
+      <a href="#validation" class="nav-item"><span class="nav-dot" style="--c: var(--cyan)"></span>Validation</a>
+      <a href="#open-questions" class="nav-item"><span class="nav-dot" style="--c: var(--purple)"></span>Open questions</a>
+      <a href="#sources" class="nav-item"><span class="nav-dot" style="--c: var(--green)"></span>Research sources</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">Technical research report &middot; research only, no code changed</div>
+      <h1>GRA Security-Patch Regression Pack</h1>
+      <p class="hero-sub">
+        Post-patch functional regression scenarios for all 8 GRA storefronts, sized for the quarterly Adobe
+        Commerce security-patch cycle. Reference cycle: GRA-5939 / APSB26-73 (Adobe Commerce 2.4.6-p15 &rarr;
+        isolated patch <code>2-4-6-p15-jul-2026</code>).
+      </p>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Reference cycle</span>
+          <span class="hero-meta-value">GRA-5939 / APSB26-73</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Date</span>
+          <span class="hero-meta-value">2026-07-30</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Deliverable</span>
+          <span class="tag tag-adopt">Selection + tiering + gap-fills, not 40 new tests</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Status</span>
+          <span class="tag tag-medium">Research only &middot; awaiting approval</span>
+        </div>
+      </div>
+
+      <div class="topic-row">
+        <div class="topic-chip" style="--c: var(--accent)"><div class="num">01</div><div class="label">Summary</div></div>
+        <div class="topic-chip" style="--c: var(--accent2)"><div class="num">05</div><div class="label">Scenario catalogue</div></div>
+        <div class="topic-chip" style="--c: var(--amber)"><div class="num">07</div><div class="label">Recommendation</div></div>
+        <div class="topic-chip" style="--c: var(--red)"><div class="num">09</div><div class="label">Risk assessment</div></div>
+      </div>
+    </section>
+
+    <!-- 01 Summary -->
+    <section class="content-section" id="summary" style="--c: var(--accent)">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div>
+          <h2>Summary</h2>
+          <div class="section-desc">One working day to regress four brands, then a same-day production push</div>
+        </div>
+      </div>
+
+      <p class="body-text">Adobe ships Adobe Commerce security bulletins on a roughly quarterly cadence. GRA consumes them as <strong>isolated patches</strong> rather than full version upgrades. The July 2026 cycle (GRA-5939, APSB26-73) had this shape:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>When</th><th>What</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">15 Jul 16:44</td><td>Patch released to staging</td></tr>
+            <tr><td class="muted">17 Jul 01:08</td><td>QA reports staging regression complete</td></tr>
+            <tr><td class="muted">17 Jul 09:48</td><td>UAT passed &mdash; &ldquo;found bugs are either prod bugs or not show stoppers&rdquo;</td></tr>
+            <tr><td class="muted">17 Jul 13:32</td><td>Production release</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="body-text">That is roughly <strong>one working day to regress four brands</strong>, then a same-day production push. Iris Duong's instruction to QA was to have the regression pack built <em>before</em> the patch landed so testing could start immediately.</p>
+
+      <div class="sub-heading" style="--c: var(--accent)"><span class="dot"></span>What the pack must do</div>
+      <ol class="ordered">
+        <li>Start within minutes of the staging deploy, with no per-cycle authoring work.</li>
+        <li>Cover the areas where defects actually surfaced last cycle, not a generic checklist.</li>
+        <li>Cover all 8 storefronts, not 4 brands (see section 3, Evidence &sect;3.3).</li>
+        <li>Produce a go/no-go signal fast enough to leave time for manual UAT on whatever it cannot cover.</li>
+        <li>Include a small <strong>non-invasive</strong> security-posture check so header, version-disclosure, and CORS-policy regressions introduced by a patch are caught without any exploitation.</li>
+      </ol>
+
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&#9888;</span>
+        <p><strong>Headline finding:</strong> the largest defect cluster (My Orders, 5 of 12 bugs) maps to a spec that is <em>structurally incapable of failing</em> on it. <code>tests/api/gra-order-history.spec.ts:242-253</code> and <code>:369-386</code> explicitly early-return when <code>customer.orders.total_count === 0</code>, treating it as a known staging limitation. GRA-5967 is literally &ldquo;newly placed order does not appear in My Orders list.&rdquo; The test is written to tolerate the exact symptom of the bug.</p>
+      </div>
+
+      <p class="body-text">The deliverable is therefore <strong>selection + tiering + a small number of assertion and field gap-fills inside existing specs</strong>, plus one genuinely new security-posture spec. It is not forty new tests.</p>
+    </section>
+
+    <!-- 02 Scope -->
+    <section class="content-section" id="scope" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div>
+          <h2>Scope</h2>
+          <div class="section-desc">Non-invasive, read-only observation only &mdash; no pentest authorization exists</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>2.1 In scope</div>
+      <ul class="plain">
+        <li>HTTP response header posture: CSP, HSTS, <code>X-Frame-Options</code>, <code>X-Content-Type-Options</code>, <code>Referrer-Policy</code>, <code>Permissions-Policy</code></li>
+        <li>Version and technology disclosure: <code>X-Magento-*</code> headers, <code>/magento_version</code>, verbose error bodies</li>
+        <li>GraphQL introspection <strong>state check</strong> (informational on staging, since enabled introspection is legitimate in developer mode)</li>
+        <li>Admin-path reachability (<code>/admin</code>, <code>/setup</code>): one GET, one status assertion</li>
+        <li><code>Set-Cookie</code> flag inspection: <code>Secure</code>, <code>HttpOnly</code>, <code>SameSite</code></li>
+        <li>CORS policy on the GraphQL endpoint: whether <code>Access-Control-Allow-Origin</code> reflects an arbitrary test <code>Origin</code> header, and whether that is combined with <code>Access-Control-Allow-Credentials: true</code>. One request per storefront, with no exploitation PoC page and no attempt to exfiltrate data</li>
+        <li>Ordinary authenticated functional flows through the existing API and UI framework</li>
+      </ul>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>2.2 Out of scope: explicitly not proposed anywhere in this report</div>
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&#9940;</span>
+        <p>SQLi, XSS payload injection, SSRF, XXE, deserialization attacks, auth bypass / IDOR / BOLA probing, sqlmap / Burp / Metasploit / Nikto / ZAP active scan, fuzzing, brute force, GraphQL depth or complexity DoS probes, and anything that writes, mutates, or stresses <code>*.accentgra.com</code> beyond normal user behaviour. These are Adobe-hosted commercial storefronts with no written pentest authorization in evidence. Any scenario that would require exploitation to validate is marked <strong>&ldquo;requires separate authorized engagement&rdquo;</strong> and dropped.</p>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>2.3 Files, configs, and workflows this work would touch (if approved for implementation)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th>Change type</th></tr></thead>
+          <tbody>
+            <tr><td><code>tests/api/gra-order-history.spec.ts</code></td><td class="muted">New test cases plus a second, richer query const</td></tr>
+            <tr><td><code>tests/api/security-posture.spec.ts</code></td><td class="muted">New spec &mdash; <strong>deliberately not named <code>gra-*</code></strong>, see note below</td></tr>
+            <tr><td><code>src/data/api/gra-order-history-data.ts</code></td><td class="muted">New interfaces and constants</td></tr>
+            <tr><td><code>src/data/api/gra-security-posture-data.ts</code></td><td class="muted">New file</td></tr>
+            <tr><td><code>src/pages/helpers/console-helper.ts</code></td><td class="muted">New read accessor (<code>getPageFailures()</code>) &mdash; section 8.5</td></tr>
+            <tr><td><code>tests/ecommerce/smoke/third-party-assets-smoke.spec.ts</code></td><td class="muted">New spec</td></tr>
+            <tr><td><code>api.config.ts</code> / <code>playwright.config.ts</code></td><td><span class="tag tag-low">No change required</span> under the recommended option (section 7)</td></tr>
+            <tr><td><code>.github/workflows/</code></td><td class="muted">New <code>workflow_dispatch</code> workflow (optional, section 10)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9432;</span>
+        <p><strong>Why the security-posture spec is not named <code>gra-*</code>.</strong> Every GRA project in <code>api.config.ts</code> matches <code>**/tests/api/gra-*.spec.ts</code> (<code>:125, :132, :140, :150, :157, :165, :172, :180</code>). A file named <code>gra-security-posture.spec.ts</code> would be picked up by <strong>all 8 projects on every <code>npm run test:api</code></strong>, including the existing 30-minute CI job, with no config change at all. Given that section 9 rates SPR-SEC-001 as <strong>High</strong> likelihood of false-failing before a baseline exists, and <code>softExpect</code> still fails the test at teardown, that would turn the everyday API suite red on 8 projects before the baseline-recording step had ever run. Naming it <code>security-posture.spec.ts</code> keeps it out of the daily suite; it is added explicitly to <code>security-patch.config.ts</code> <code>testMatch</code> instead.</p>
+      </div>
+    </section>
+
+    <!-- 03 Evidence -->
+    <section class="content-section" id="evidence" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div>
+          <h2>Evidence: the July cycle defect profile</h2>
+          <div class="section-desc">11 of 12 defects fall into five clusters; none is confirmed as patch-caused</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--purple)"><span class="dot"></span>3.1 Cluster table</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cluster</th><th>Bugs</th><th>Keys</th><th>Status mix</th></tr></thead>
+          <tbody>
+            <tr><td><strong>My Orders / order history</strong></td><td>5</td><td class="muted">GRA-5963, 5964, 5965, 5967, 5968</td><td class="muted">3 Under Investigation, 1 Ready for Test Env, 1 Code Review</td></tr>
+            <tr><td><strong>Loyalty points</strong></td><td>2</td><td class="muted">GRA-5962 (QFF burn), GRA-5965 (Insider Points)</td><td class="muted">1 In Development, 1 Under Investigation</td></tr>
+            <tr><td><strong>Price rules / thresholds</strong></td><td>2</td><td class="muted">GRA-5963 (cart price rule), GRA-5966 (free shipping below $200)</td><td class="muted">1 Ready for Test Env, 1 Rejected</td></tr>
+            <tr><td><strong>Third-party asset / script render</strong></td><td>2</td><td class="muted">GRA-5961 (Google Maps), GRA-5953 (C&amp;C logo)</td><td class="muted">1 Rejected, 1 Under Investigation</td></tr>
+            <tr><td><strong>Staging-vs-prod render divergence</strong></td><td>2</td><td class="muted">GRA-5951, GRA-5954</td><td class="muted">1 Under Investigation, 1 Rejected</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="body-text">11 of the 12 keys fall into these clusters, with 13 cluster memberships (GRA-5965 and GRA-5963 each appear twice). <strong>GRA-5959</strong> (mobile newsletter placeholder truncation) belongs to no cluster; it is addressed on its own in section 11 (Validation &sect;11.2).</p>
+
+      <div class="sub-heading" style="--c: var(--purple)"><span class="dot"></span>3.2 Blast-radius reasoning, stated as inference rather than established causality</div>
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <p><strong>Caveat that matters.</strong> Four of the twelve are Rejected, five are Under Investigation, and <strong>none is confirmed and closed as a patch-caused regression</strong>. UAT signed off saying the bugs were &ldquo;either prod bugs or not show stoppers.&rdquo; This report does <strong>not</strong> claim the patch caused these defects.</p>
+      </div>
+      <p class="body-text">The defensible claim is weaker and sufficient: <em>these are the areas where defects were actually found by humans under time pressure, so they are the highest-yield places to point automation.</em> The mechanism table below explains why those same areas are also the ones a Magento security patch is most likely to disturb. Treat it as inference.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Patch change class</th><th>Plausible storefront effect</th><th>Cluster it would explain</th></tr></thead>
+          <tbody>
+            <tr><td>Output escaping and encoding changes (<strong>CWE-116</strong>, confirmed for CVE-2026-48358 &mdash; &sect;3.4)</td><td class="muted">Templates and blocks re-render; duplicated or malformed markup; badges rendered twice; markup emitted where a helper previously suppressed it</td><td class="muted">Staging-vs-prod divergence (5951, 5954); &ldquo;Free Express Shipping&rdquo; badge duplication (5954)</td></tr>
+            <tr><td>Header or CSP tightening shipped with a patch, or a changed <code>nginx.sample.conf</code></td><td class="muted">Third-party scripts and images blocked at the browser: Google Maps JS, CDN-hosted logos</td><td class="muted">Third-party asset and script render (5961, 5953)</td></tr>
+            <tr><td>Authorization and ACL changes (<strong>incorrect authorization</strong> class, CVE-2026-47988 / 47984 per secondary source)</td><td class="muted">Customer-scoped resolvers become stricter; customer-scoped data intermittently withheld or returned wrong</td><td class="muted">My Orders (5964, 5967); Insider Points showing 0 (5965)</td></tr>
+            <tr><td>Cache-tag / full-page-cache and session handling changes</td><td class="muted">Order history serving stale or wrong-session data; promotions computed but not reflected on stored order views; list sort computed from a stale index</td><td class="muted">My Orders (5963, 5967, 5968)</td></tr>
+            <tr><td>Price-rule or totals-collector code touched by a security fix</td><td class="muted">Cart price rule missing on order detail; free-shipping threshold not enforced</td><td class="muted">Price rules and thresholds (5963, 5966)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="body-text"><strong>Why the biggest cluster is order history:</strong> every mechanism above (authorization scope, cache tags, session, price rules) converges on the <em>stored order view</em>, the only place in the storefront where customer-scoped data, promotions, loyalty accruals, and cached list rendering all intersect. That structural convergence, not the CVE list, is the argument for making My Orders the pack's P0 centre of gravity.</p>
+
+      <div class="sub-heading" style="--c: var(--purple)"><span class="dot"></span>3.3 The 4-vs-8 storefront finding</div>
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Fact (framework side)</div>
+          <ul>
+            <li><code>src/data/ecommerce/storefronts.ts:54-225</code> defines <strong>8</strong> storefronts (Platypus, Skechers, Vans, Dr. Martens, each in AU and NZ).</li>
+            <li><code>api.config.ts:120-184</code> defines <strong>8</strong> GRA brand projects; <code>:154-184</code> are the four NZ projects (<code>pla-nz</code>, <code>skx-nz</code>, <code>drm-nz</code>, <code>van-nz</code>).</li>
+            <li><code>src/data/api/sites.ts:63-110</code> defines the four NZ site contexts with <code>storeHeader: 'nz'</code>.</li>
+          </ul>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Fact (Jira side)</div>
+          <p>The sub-task breakdown is per <strong>brand</strong>: GRA-5940 [VAN], GRA-5941 [DRM], GRA-5942 [PLA], GRA-5943 [SKX]. Brand-level sub-tasks do not state a region.</p>
+        </div>
+      </div>
+      <p class="body-text"><strong>What can and cannot be concluded.</strong> The sub-task structure alone does <em>not</em> prove NZ was untested. A <code>[VAN]</code> sub-task could in principle have covered both Vans AU and Vans NZ. The actual evidence is that <strong>no linked defect carries an NZ tag</strong>: defect titles are AU-tagged (<code>[SKX][AU]</code>, <code>[SKX][AU][Mobile]</code>) or brand-only. That is equally consistent with &ldquo;NZ was not regression-tested&rdquo; and &ldquo;NZ was tested and was clean.&rdquo;</p>
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <p><strong>The defensible finding:</strong> the framework already covers 8 storefronts at near-zero marginal cost (section 6.1), while the cycle's paper trail covers 4 brands and <strong>cannot be shown to cover NZ at all</strong>. Any pack built from this report should run all 8 projects by default and state NZ coverage explicitly in the report artifact, so the ambiguity does not recur next cycle. This is a cheap fix to a real observability gap, regardless of what actually happened in July.</p>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--purple)"><span class="dot"></span>3.4 APSB26-73 content: sourcing caveat</div>
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <p><strong>The primary source could not be retrieved from this environment.</strong> <code>https://helpx.adobe.com/security/products/magento/apsb26-73.html</code> was attempted four times: three 60-second timeouts and one <code>ECONNRESET</code>. Its contents were not invented.</p>
+      </div>
+      <p class="body-text">What was retrieved, and at what confidence:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Claim</th><th>Source</th><th>Confidence</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">Published 14 Jul 2026; addresses critical, important and moderate vulnerabilities; exploits could result in arbitrary code execution, security feature bypass, and privilege escalation</td><td class="muted">Adobe Experience League KB ka-37421 (first-tier, retrieved)</td><td><span class="tag tag-low">High</span></td></tr>
+            <tr><td class="muted">Affected: 2.4.9, 2.4.8-p5 and earlier, 2.4.7-p10 and earlier, <strong>2.4.6-p15 and earlier</strong>, 2.4.5-p17 and earlier, 2.4.4-p18 and earlier</td><td class="muted">ka-37421 (retrieved)</td><td><span class="tag tag-low">High</span></td></tr>
+            <tr><td class="muted">Isolated patch file for the GRA line is <code>2-4-6-p15-jul-2026.zip</code></td><td class="muted">ka-37421 (retrieved)</td><td><span class="tag tag-low">High</span></td></tr>
+            <tr><td class="muted">CVE-2026-48358 &mdash; CWE-116 Improper Encoding or Escaping of Output; <strong>CVSS 9.1</strong>, vector <code>AV:N/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:H</code>; affects Adobe Commerce, B2B, Magento Open Source, and <strong>Adobe Commerce Webhooks Plugin 1.20.0 and earlier</strong></td><td class="muted">NVD (first-tier, retrieved)</td><td><span class="tag tag-low">High</span></td></tr>
+            <tr><td class="muted">CVE-2026-48356 &mdash; CWE-434 Unrestricted Upload of File with Dangerous Type; <strong>CVSS 9.3</strong>, vector <code>AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:H/A:N</code></td><td class="muted">NVD (retrieved)</td><td><span class="tag tag-low">High</span></td></tr>
+            <tr><td class="muted">CVE-2026-47994 stored XSS; CVE-2026-47988 and CVE-2026-47984 incorrect authorization</td><td class="muted">everyhost.co.uk (secondary blog)</td><td><span class="tag tag-high">Low &mdash; unverified</span></td></tr>
+            <tr><td class="muted">Total vulnerability count</td><td><span class="tag tag-high">Disputed</span></td><td><span class="tag tag-high">Do not rely on</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="body-text"><strong>Two corrections to widely-repeated secondary claims</strong>, based on the retrieved NVD records:</p>
+      <ol class="ordered">
+        <li>Secondary sources describe CVE-2026-48358 as &ldquo;unauthenticated, no user interaction&rdquo; at CVSS <strong>10.0</strong>. NVD gives <strong>9.1</strong> with <strong><code>PR:H</code></strong>, meaning high privileges are required. This is an admin / high-privilege path in the Webhooks plugin, not an anonymous storefront RCE. That materially narrows the blast radius toward admin-side and webhook-integration code rather than the customer-facing storefront.</li>
+        <li>Secondary sources give a vulnerability count of &ldquo;five&rdquo; in one sentence and &ldquo;13, eight critical&rdquo; in the next, an internal contradiction inside a single summary. <strong>This report has 5 CVE identifiers out of an unconfirmed total.</strong> All blast-radius reasoning in &sect;3.2 is therefore built on vulnerability <em>classes</em> that can be named (CWE-116 output escaping, confirmed; CWE-434 file upload, confirmed; incorrect authorization, secondary), never on a claimed complete list.</li>
+      </ol>
+
+      <p class="body-text"><strong>What ka-37421 establishes about isolated patches</strong>, which is what bounds the blast radius: isolated patches are &ldquo;a fast, lightweight way to apply critical security fixes&rdquo; without a full Composer-based upgrade, letting merchants address vulnerabilities &ldquo;with fewer risks of delay due to potential integration issues.&rdquo; They are <strong>not cumulative</strong> and are tested only against the exact base version. Practical consequence for QA: the changed surface is <em>narrower</em> than a version upgrade, with no feature changes and no schema migrations expected, so the pack should be <strong>deep on the touched functional areas and shallow on everything else</strong>. That is exactly the tiering recommended in section 7.</p>
+    </section>
+
+    <!-- 04 Coverage map -->
+    <section class="content-section" id="coverage" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div>
+          <h2>Coverage map</h2>
+          <div class="section-desc">Every claim cites a file and line that was read</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Bug cluster</th><th>Representative bug</th><th>Existing spec that would have caught it</th><th>Gap</th></tr></thead>
+          <tbody>
+            <tr><td>My Orders &mdash; order missing from list</td><td class="muted">GRA-5967</td><td class="muted"><code>tests/api/gra-order-history.spec.ts</code> TC_01</td><td class="muted"><strong>None &mdash; anti-coverage.</strong> <code>:242-253</code> (Step 7) detects <code>total_count === 0</code> after a successful <code>placeOrder</code>, logs it as a &ldquo;known PLA staging limitation&rdquo;, sets <code>ordersEmpty = true</code>, and <code>:253</code> returns before the Step 8 presence assertion at <code>:255-263</code>. The test cannot fail on this symptom. <code>:369-386</code> in TC_03 does the same thing.</td></tr>
+            <tr><td>My Orders &mdash; list not sorted most-recent-first</td><td class="muted">GRA-5968</td><td class="muted">none</td><td class="muted"><strong>No sort assertion exists.</strong> <code>GET_CUSTOMER_ORDERS_QUERY</code> (<code>:58-79</code>) does not select any order date field, so sort order is not even observable. TC_03 (<code>:339-414</code>) asserts only page-1 / page-2 non-overlap.</td></tr>
+            <tr><td>My Orders &mdash; cart price rule promotion missing on order detail</td><td class="muted">GRA-5963</td><td class="muted">none</td><td class="muted"><strong>Field not selected.</strong> <code>:58-79</code> selects <code>number</code>, <code>status</code>, <code>grand_total</code>, and <code>items { product_name, product_sku, quantity_ordered }</code> only. No <code>total { discounts }</code>, no <code>subtotal</code>, no shipping. There is nothing to compare against.</td></tr>
+            <tr><td>My Orders &mdash; order shows incorrect info</td><td class="muted">GRA-5964</td><td class="muted">partial</td><td class="muted">TC_01 Step 8 (<code>:255-263</code>) soft-asserts <code>status</code> truthy and <code>grand_total</code> numeric &mdash; but is only reached when <code>total_count &gt; 0</code>, which <code>:243</code> shows never happens on staging. No comparison of order contents against the cart that produced them.</td></tr>
+            <tr><td>Loyalty &mdash; Insider Points earned displays as 0</td><td class="muted">GRA-5965</td><td class="muted">none</td><td class="muted"><strong>Vacuous precondition.</strong> <code>tests/api/gra-loyalty-rewards.spec.ts:180</code> &mdash; TC_01's title is &ldquo;&hellip;<code>applied_multiple_rewards</code> null for zero-balance account&rdquo;. A test that asserts <em>zero</em> cannot detect a bug whose symptom is <em>zero</em>. No order-level earned-points field is queried anywhere in the repo.</td></tr>
+            <tr><td>Loyalty &mdash; QFF points burned not applied on tracking order page</td><td class="muted">GRA-5962</td><td class="muted">partial, wrong level</td><td class="muted"><code>gra-loyalty-rewards.spec.ts:246</code> TC_03 and <code>:295</code> TC_04 cover <code>applyQantasPointsToCart</code> and the <strong>cart-level</strong> <code>applied_qantas_points</code> side effect; <code>:389</code> TC_07 covers removal. The bug is at the <strong>order / tracking-page</strong> level, after <code>placeOrder</code>. Nothing asserts QFF carry-through from cart to placed order. On the UI side, <code>tests/ecommerce/smoke/utilities-smoke.spec.ts:10</code> (E2E-UTIL-001) asserts only that the Track Order page loads and a form is present &mdash; it never submits.</td></tr>
+            <tr><td>Price rules &mdash; free shipping still applicable below $200</td><td class="muted">GRA-5966</td><td class="muted">none</td><td class="muted"><code>gra-checkout-shipping.spec.ts:274</code> TC_05 and <code>:338</code> TC_06 assert that a shipping method can be <em>selected</em>, never that the correct method or price applies at a given cart subtotal. No cart-subtotal-conditional shipping-cost assertion exists in the repo.</td></tr>
+            <tr><td>Price rules &mdash; cart price rule / coupon</td><td class="muted">GRA-5963</td><td class="muted">none</td><td class="muted"><code>gra-cart-minicart.spec.ts:783</code> TC_11 and <code>:810</code> TC_12 cover an <strong>invalid</strong> coupon and an <strong>unauthenticated</strong> request only. No test applies a valid coupon, so no discount is ever observed propagating into cart totals or into an order.</td></tr>
+            <tr><td>Third-party asset &mdash; Google Map fails to render (Store Locator)</td><td class="muted">GRA-5961</td><td class="muted">none</td><td class="muted">There is <strong>no Store Locator spec or page object</strong>. <code>tests/ecommerce/smoke/utilities-smoke.spec.ts</code> covers Track Order (<code>:10</code>), Help/Support (<code>:57</code>), and Wishlist (<code>:96</code>) only.</td></tr>
+            <tr><td>Third-party asset &mdash; C&amp;C logo fails in &ldquo;Find Product in Store&rdquo; modal</td><td class="muted">GRA-5953</td><td class="muted">none</td><td class="muted">No spec opens that modal. <code>src/pages/helpers/console-helper.ts:62-72</code> <em>captures</em> <code>requestfailed</code> events, but <code>:87-95</code> only renders them into an attachment, and the auto-fixture attaches <strong>only on failure</strong> &mdash; nothing ever asserts on them, so a dead third-party asset never turns a test red. Note also <code>:79</code>: <code>getErrors()</code> returns console messages only; <code>pageFailures</code> has no public accessor.</td></tr>
+            <tr><td>Staging-vs-prod render divergence</td><td class="muted">GRA-5951, GRA-5954</td><td class="muted">none, and <strong>not automatable as configured</strong></td><td class="muted">Percy compares against a <strong>stored baseline</strong>, not one environment against another. Every URL in <code>src/data/ecommerce/storefronts.ts</code> (<code>:57, :78, :100, :123, :146, :166, :185, :205</code>) and <code>src/data/api/sites.ts</code> (<code>:22, :33, :44, :55, :66, :78, :90, :102</code>) is hardcoded <code>stag-*</code>. There is no production parameterization anywhere in the framework.</td></tr>
+            <tr><td>Security posture (headers, version disclosure, cookie flags)</td><td class="muted">no July bug &mdash; preventive</td><td class="muted">none</td><td class="muted"><strong>Zero coverage.</strong> A repo-wide search for <code>strict-transport</code>, <code>content-security</code>, <code>x-frame-options</code>, <code>x-content-type</code>, <code>referrer-policy</code>, <code>permissions-policy</code>, <code>magento_version</code>, <code>httponly</code>, and <code>samesite</code> across <code>tests/</code> and <code>src/</code> returns no assertion &mdash; only <code>GraphQLClient.ts</code> introspection-option matches. <code>src/api/ApiResponse.ts:21-27</code> (<code>headers()</code>, <code>header()</code>) and <code>:103-113</code> (<code>assertHeader</code>, <code>assertHasHeader</code>) already provide everything needed to build it.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="body-text"><strong>What the evidence supports:</strong> 8 of 12 gaps are <strong>missing assertions or missing field selections inside specs that already exist and already run across all 8 projects</strong>. Two (Store Locator, C&amp;C modal) need new UI coverage. Two (staging-vs-prod divergence) are not automatable in this framework as configured. The brief's prediction is confirmed: this is a selection-and-gap-fill job, not a forty-test build.</p>
+    </section>
+
+    <!-- 05 Scenario catalogue -->
+    <section class="content-section" id="scenarios" style="--c: var(--accent2)">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div>
+          <h2>Scenario catalogue</h2>
+          <div class="section-desc">Prefix SPR- (Security-Patch Regression). &ldquo;Storefronts&rdquo; is which of the 8 the scenario applies to</div>
+        </div>
+      </div>
+
+      <p class="body-text">Runtime figures are <strong>estimates derived from CI job ceilings</strong>, not stopwatch measurements: <code>.github/workflows/playwright.yml:200</code> shows the API job completing inside a 30-minute cap today with the full 15-spec suite, and <code>:62</code> shows the UI job inside 45 minutes. Estimates are <strong>per project</strong>; because API projects run one-per-worker in parallel (section 6.1), the pack's wall clock is the slowest single project, not the sum.</p>
+
+      <div class="sub-heading" style="--c: var(--accent2)"><span class="dot"></span>Group A: Order history (defends the 5-bug cluster)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Defends</th><th>Storefronts</th><th>API/UI</th><th>Tier</th><th>Est.</th><th>Pass/fail</th></tr></thead>
+          <tbody>
+            <tr><td><code>SPR-ORD-001</code></td><td>Placed order appears in <code>customer.orders</code> within a bounded poll window</td><td class="muted">GRA-5967</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~60s</td><td class="muted">Poll <code>customer.orders</code> up to N x <code>POLL_INTERVAL_NORMAL</code>. <strong>Fail</strong> if the just-placed <code>order_number</code> never appears. Must <strong>not</strong> early-return on <code>total_count === 0</code> &mdash; that is the bug signature.</td></tr>
+            <tr><td><code>SPR-ORD-002</code></td><td>Order totals reconcile: subtotal minus discounts plus shipping equals <code>grand_total</code></td><td class="muted">GRA-5963, 5964</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~10s</td><td class="muted">Extend the query with <code>total { subtotal { value } discounts { amount { value } label } grand_total { value } }</code>. <strong>Fail</strong> on arithmetic mismatch beyond a 0.01 tolerance.</td></tr>
+            <tr><td><code>SPR-ORD-003</code></td><td>Applied cart discount survives into the placed order</td><td class="muted">GRA-5963</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~30s</td><td class="muted">Apply a known-valid coupon before <code>placeOrder</code>; assert the same discount label and amount appear in the order's <code>total.discounts</code>. <strong>Skip with an explicit reason</strong> if no valid coupon exists for the brand &mdash; never a silent pass.</td></tr>
+            <tr><td><code>SPR-ORD-004</code></td><td><code>customer.orders</code> returns most-recent-first</td><td class="muted">GRA-5968</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~10s</td><td class="muted">Select <code>order_date</code>; assert the returned array is non-increasing by date. Requires 2 or more orders; <strong>skip with reason</strong> below that.</td></tr>
+            <tr><td><code>SPR-ORD-005</code></td><td>Ordered items match cart contents (SKU, qty, name)</td><td class="muted">GRA-5964</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~15s</td><td class="muted">Compare the placed order's <code>items[]</code> against the cart snapshot taken immediately before <code>placeOrder</code>.</td></tr>
+            <tr><td><code>SPR-ORD-006</code></td><td>Unauthenticated <code>customer.orders</code> returns <code>graphql-authorization</code></td><td class="muted">authorization-class regressions</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~3s</td><td class="muted"><strong>Already covered</strong> &mdash; <code>gra-order-history.spec.ts:420-438</code> TC_04. Select into the pack; no new code.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent2)"><span class="dot"></span>Group B: Loyalty (defends the 2-bug cluster)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Defends</th><th>Storefronts</th><th>API/UI</th><th>Tier</th><th>Est.</th><th>Pass/fail</th></tr></thead>
+          <tbody>
+            <tr><td><code>SPR-LOY-001</code></td><td>QFF points applied to cart carry through to the placed order</td><td class="muted">GRA-5962</td><td class="muted">4 AU only (<code>hasQantasPoints</code>, <code>storefronts.ts:63,102,148,188</code>)</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~45s</td><td class="muted">Apply QFF before ordering; assert the order exposes the burned points. <strong>Schema risk:</strong> the order-level QFF field is unverified &mdash; implement with the <code>productSearch</code> schema-gap guard pattern (<code>gra-order-history.spec.ts:456-471</code>): detect <code>Cannot query field</code>, log, return early.</td></tr>
+            <tr><td><code>SPR-LOY-002</code></td><td>Loyalty points earned on a placed order are greater than zero</td><td class="muted">GRA-5965</td><td class="muted">brands with <code>hasLoyalty: true</code> (<code>sites.ts:27,38,72,84</code>) &mdash; pla-au, skx-au, pla-nz, skx-nz</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~20s</td><td class="muted">Assert earned points <strong>&gt; 0</strong>, not &ldquo;is null&rdquo;. Directly replaces the vacuous zero-balance precondition at <code>gra-loyalty-rewards.spec.ts:180</code>. Schema-gap guard as above.</td></tr>
+            <tr><td><code>SPR-LOY-003</code></td><td><code>applyQantasPointsToCart</code> side effect visible on cart</td><td class="muted">regression guard</td><td class="muted">4 AU</td><td class="muted">API</td><td><span class="tag tag-p2">P2</span></td><td class="muted">~15s</td><td class="muted"><strong>Already covered</strong> &mdash; <code>gra-loyalty-rewards.spec.ts:295</code> TC_04. Select into P2 only.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent2)"><span class="dot"></span>Group C: Price rules and thresholds</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Defends</th><th>Storefronts</th><th>API/UI</th><th>Tier</th><th>Est.</th><th>Pass/fail</th></tr></thead>
+          <tbody>
+            <tr><td><code>SPR-PRC-001</code></td><td>Below the free-shipping threshold, no zero-cost shipping method is offered</td><td class="muted">GRA-5966</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~30s</td><td class="muted">Build a cart below the brand's threshold; assert every <code>available_shipping_methods[].amount.value &gt; 0</code>, or that the free-shipping method code is absent. Threshold is per-brand data.</td></tr>
+            <tr><td><code>SPR-PRC-002</code></td><td>Above the threshold, free shipping <em>is</em> offered</td><td class="muted">GRA-5966 (inverse)</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~30s</td><td class="muted">The mirror assertion. Stock-dependent &mdash; needs a resilient cart-value strategy (quantity ramp on one in-stock SKU).</td></tr>
+            <tr><td><code>SPR-PRC-003</code></td><td>A valid coupon reduces the cart total by the stated amount</td><td class="muted">GRA-5963</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~20s</td><td class="muted">Fills the <code>gra-cart-minicart.spec.ts:783/810</code> gap (invalid-only today). Skip with reason if no valid coupon is provisioned.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent2)"><span class="dot"></span>Group D: Third-party asset and script health</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Defends</th><th>Storefronts</th><th>API/UI</th><th>Tier</th><th>Est.</th><th>Pass/fail</th></tr></thead>
+          <tbody>
+            <tr><td><code>SPR-3PA-001</code></td><td>No failed third-party asset requests on homepage and PDP</td><td class="muted">GRA-5953, 5961, and the CSP-tightening mechanism</td><td class="muted">all 8</td><td class="muted">UI (chromium)</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~40s/site</td><td class="muted">Assert <code>consoleHelper</code> recorded <strong>zero</strong> <code>requestfailed</code> events matching an allow-listed third-party host set. Requires a new <code>getPageFailures()</code> accessor &mdash; <code>console-helper.ts:79</code> exposes console messages only.</td></tr>
+            <tr><td><code>SPR-3PA-002</code></td><td>No CSP violation console errors on homepage and PDP</td><td class="muted">CSP-tightening mechanism</td><td class="muted">all 8</td><td class="muted">UI</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~0s (same page load)</td><td class="muted">Assert no console error matches <code>/Content Security Policy|Refused to (load|execute|connect)/</code>. Folds into SPR-3PA-001's navigation &mdash; near-zero marginal cost.</td></tr>
+            <tr><td><code>SPR-3PA-003</code></td><td>Store Locator map container renders</td><td class="muted">GRA-5961</td><td class="muted">all 8</td><td class="muted">UI</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~45s/site</td><td class="muted">Needs a new <code>EcommerceStoreLocatorPage</code>. Assert the map container is visible and no maps-host request failed.</td></tr>
+            <tr><td><code>SPR-3PA-004</code></td><td>&ldquo;Find Product in Store&rdquo; modal opens with all images loaded</td><td class="muted">GRA-5953</td><td class="muted">Platypus AU/NZ initially</td><td class="muted">UI</td><td><span class="tag tag-p2">P2</span></td><td class="muted">~60s/site</td><td class="muted">Needs a new page object plus a confirmed PDP entry point. Assert each image in the modal has <code>naturalWidth &gt; 0</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent2)"><span class="dot"></span>Group E: Security posture (non-invasive)</div>
+      <p class="body-text">Every scenario here is a single request plus an assertion on response metadata. No payloads, no mutation, no repetition beyond a single request per storefront.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Defends</th><th>Storefronts</th><th>API/UI</th><th>Tier</th><th>Est.</th><th>Pass/fail</th></tr></thead>
+          <tbody>
+            <tr><td><code>SPR-SEC-001</code></td><td>Baseline security headers present on the storefront HTML root</td><td class="muted">header regressions from a patch or an <code>nginx.sample.conf</code> change</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~3s</td><td class="muted"><strong>Cycle 1: record only, no assertion.</strong> From cycle 2, soft-assert presence of <code>strict-transport-security</code>, <code>x-content-type-options: nosniff</code>, <code>x-frame-options</code> or a CSP <code>frame-ancestors</code>, and <code>referrer-policy</code>; promote to hard once the observed baseline is confirmed stable. See section 9 and section 10 step 3.</td></tr>
+            <tr><td><code>SPR-SEC-002</code></td><td>No Magento version or technology disclosure in headers</td><td class="muted">version-disclosure regression</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~2s</td><td class="muted">Hard-fail if any <code>x-magento-*</code> response header exposes a version string.</td></tr>
+            <tr><td><code>SPR-SEC-003</code></td><td><code>/magento_version</code> does not disclose a version</td><td class="muted">version-disclosure regression</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~2s</td><td class="muted">Hard-fail if the response body matches <code>/2\.4\.\d+/</code>. A non-200 or empty response is a pass.</td></tr>
+            <tr><td><code>SPR-SEC-004</code></td><td>Session cookies carry <code>Secure</code> and <code>HttpOnly</code>; <code>SameSite</code> recorded</td><td class="muted">cookie-flag regression</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~2s</td><td class="muted">Read <code>Set-Cookie</code> via <code>headersArray()</code>; hard-fail if a session-shaped cookie lacks <code>Secure</code> or <code>HttpOnly</code>. <code>SameSite</code> is recorded informationally &mdash; it varies legitimately by cookie purpose.</td></tr>
+            <tr><td><code>SPR-SEC-005</code></td><td>GraphQL introspection state recorded</td><td class="muted">posture drift</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~5s</td><td class="muted"><strong>Informational on staging</strong> &mdash; enabled introspection is legitimate in developer mode. Hard-fail only when an explicit production-target flag is set. Section 9 explains why that flag cannot be exercised today.</td></tr>
+            <tr><td><code>SPR-SEC-006</code></td><td>Admin paths do not serve an unauthenticated dashboard</td><td class="muted">admin-exposure regression</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~4s</td><td class="muted">One GET each to <code>/admin</code> and <code>/setup</code>. Playwright's request context follows redirects and the wrapper exposes no <code>maxRedirects</code>, so assert on the <strong>final</strong> status and on the body not containing authenticated-dashboard markers. Status is recorded informationally; hard-fail only on the dashboard-marker condition.</td></tr>
+            <tr><td><code>SPR-SEC-007</code></td><td>Error responses do not leak stack traces or filesystem paths</td><td class="muted">verbose-error regression</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p1">P1</span></td><td class="muted">~4s</td><td class="muted">Send a known-invalid GraphQL operation; assert the error body contains no <code>/vendor/</code>, <code>/app/code/</code>, <code>Stack trace</code>, or absolute filesystem paths.</td></tr>
+            <tr style="background: rgba(61,220,132,.05);"><td><code>SPR-SEC-008</code></td><td>GraphQL endpoint does not reflect an arbitrary <code>Origin</code> combined with <code>Access-Control-Allow-Credentials: true</code></td><td class="muted">CORS misconfiguration (OWASP API Security Top 10, API8: Security Misconfiguration)</td><td class="muted">all 8</td><td class="muted">API</td><td><span class="tag tag-p0">P0</span></td><td class="muted">~3s</td><td class="muted">Send one GraphQL request with a test <code>Origin</code> header. Unlike SPR-SEC-001, no baseline-recording phase is needed: reflecting an arbitrary origin while also returning <code>Access-Control-Allow-Credentials: true</code> is never a legitimate configuration, so this hard-fails from the first run. See section 9 for why the <em>severity</em> of a positive finding is still capped lower than a typical CORS finding.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&#10003;</span>
+        <p><strong>Added during this review:</strong> SPR-SEC-008 (CORS) was cross-checked against the <code>cybersecurity-skills</code> catalogue's <code>testing-cors-misconfiguration</code> and <code>testing-api-security-with-owasp-top-10</code> (OWASP API8) references and added because it was the one non-invasive, in-scope gap the original Group E draft missed.</p>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--accent2)"><span class="dot"></span>Group F: Core commerce path (selection only, no new code)</div>
+      <p class="body-text">Existing tests selected into the pack to prove the patch did not break the fundamentals. All already run across all 8 projects.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Existing test</th><th>Tier</th></tr></thead>
+          <tbody>
+            <tr><td><code>SPR-CORE-001</code></td><td>Sign-in issues a customer token</td><td class="muted"><code>gra-order-history.spec.ts:102</code> via <code>signInAndStoreToken</code>; also <code>gra-authentication.spec.ts</code></td><td><span class="tag tag-p0">P0</span></td></tr>
+            <tr><td><code>SPR-CORE-002</code></td><td>Add to cart succeeds</td><td class="muted"><code>gra-cart-minicart.spec.ts:420</code> TC_01</td><td><span class="tag tag-p0">P0</span></td></tr>
+            <tr><td><code>SPR-CORE-003</code></td><td>Full checkout to <code>placeOrder</code> returns an order number</td><td class="muted"><code>gra-place-order.spec.ts:140</code> TC_01</td><td><span class="tag tag-p0">P0</span></td></tr>
+            <tr><td><code>SPR-CORE-004</code></td><td>Catalog PLP and PDP queries return valid structure</td><td class="muted"><code>gra-catalog.spec.ts:295</code> TC_01, <code>:531</code> TC_07</td><td><span class="tag tag-p0">P0</span></td></tr>
+            <tr><td><code>SPR-CORE-005</code></td><td>Homepage loads on all 8 storefronts</td><td class="muted"><code>tests/ecommerce/smoke/homepage-smoke.spec.ts:10</code> E2E-HOME-001</td><td><span class="tag tag-p0">P0</span></td></tr>
+            <tr><td><code>SPR-CORE-006</code></td><td>Login through the UI succeeds</td><td class="muted"><code>tests/ecommerce/smoke/auth.spec.ts:62</code></td><td><span class="tag tag-p1">P1</span></td></tr>
+            <tr><td><code>SPR-CORE-007</code></td><td>Remaining GRA API suite (15 specs)</td><td class="muted">all <code>tests/api/gra-*.spec.ts</code></td><td><span class="tag tag-p1">P1</span></td></tr>
+            <tr><td><code>SPR-CORE-008</code></td><td>Full ecommerce UI smoke</td><td class="muted"><code>tests/ecommerce/smoke/**</code></td><td><span class="tag tag-p2">P2</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout" style="--cb: var(--red)">
+        <span class="callout-icon">&#9940;</span>
+        <p><strong>Not automatable, requiring either a separate authorized engagement or a framework prerequisite:</strong></p>
+      </div>
+      <ul class="plain">
+        <li>Validating that CVE-2026-48358 (CWE-116) and CVE-2026-48356 (CWE-434) are actually fixed. Confirming a fix requires exploitation, which is out of scope by section 2.2 (&sect;2.2). Verify via Adobe's patch-applied version reporting instead.</li>
+        <li>Staging-vs-prod render divergence (GRA-5951, GRA-5954): no production target exists in the framework (section 4, last-but-one row).</li>
+      </ul>
+    </section>
+
+    <!-- 06 Options -->
+    <section class="content-section" id="options" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div>
+          <h2>Options</h2>
+          <div class="section-desc">The runtime model discriminates the choice: one worker per API project means breadth is free</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--red)"><span class="dot"></span>6.1 The runtime model that discriminates them</div>
+      <p class="body-text">These are structural facts from the config, and they are what decide the choice:</p>
+      <ul class="plain">
+        <li><code>api.config.ts:48</code> sets <code>workers: 8</code>; <code>:42</code> sets <code>fullyParallel: false</code>; <code>:120-194</code> defines 8 GRA projects plus <code>misc-api</code>. One worker per project means <strong>wall clock is approximately the slowest single project's serial run</strong>. Adding brands is nearly free; adding tests <em>within</em> a spec is linear.</li>
+        <li><code>.github/workflows/playwright.yml:200</code> shows the API job carries a 30-minute cap and passes today with the full 15-spec suite. That bounds the full API suite at <strong>under 30 minutes wall clock</strong>.</li>
+        <li>At <code>playwright.config.ts:143-145</code>, Firefox <code>testIgnore</code>s all of <code>tests/ecommerce/**</code> in CI. Ecommerce UI is <strong>chromium-only</strong> in CI; do not double-count browsers.</li>
+        <li>At <code>playwright.config.ts:28,37-41</code>, UI is <code>fullyParallel: true</code> at 50% workers; <code>.github/workflows/playwright.yml:62</code> caps the UI job at 45 minutes.</li>
+      </ul>
+
+      <div class="sub-heading" style="--c: var(--red)"><span class="dot"></span>Option A: API-first tagged pack reusing existing specs</div>
+      <p class="body-text">Add <code>@patch-p0</code> / <code>@patch-p1</code> tags to <code>test.describe()</code> names and run <code>npx playwright test --config=api.config.ts --grep "@patch-p0"</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Zero new specs for Group F. Uses the existing 8-project fan-out. Fastest to stand up.</td><td class="muted"><strong>Editing <code>test.describe()</code> name strings changes the full test title.</strong> monocart keys trend and history off the title path (<code>api.config.ts:60-68</code>), so every retagged test would read as new &mdash; losing history exactly when trend comparison is most valuable. Root <code>CLAUDE.md</code> also flags renaming as breaking CI tag filtering. More importantly, the Group A/B/C gaps are <strong>not covered by any existing test</strong>, so tagging alone leaves the 5-bug cluster uncovered.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="--cb: var(--red)"><span class="callout-icon">&#10007;</span><p><strong>Against the 1-day window:</strong> runs in minutes, but ships the July defect profile's blind spots forward unchanged. <strong>Fails the purpose test.</strong></p></div>
+
+      <div class="sub-heading" style="--c: var(--red)"><span class="dot"></span>Option B: New dedicated <code>tests/security-patch/</code> suite</div>
+      <p class="body-text">A self-contained suite duplicating the flows it needs.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Zero blast radius on existing specs and their monocart history. Self-documenting. Easy to delete.</td><td class="muted">Duplicates the entire GRA fixture, auth, cart and checkout scaffolding &mdash; <code>signInAndStoreToken</code>, <code>createFreshCart</code>, <code>discoverInStockSkus</code>, <code>addFirstAddableProduct</code>, <code>setShippingAddressOnCart</code>, <code>selectShippingMethod</code>, <code>setBillingAddress</code>, and the Braintree tokenize chain (<code>tests/api/api-test-helpers.ts</code>, imported at <code>gra-order-history.spec.ts:22-34</code>). Needs its own config or project wiring to supply the <code>siteCode</code> metadata the <code>site</code> fixture reads (<code>gra-test.ts:14</code>). Worst of all, two copies of the same staging-quirk knowledge to maintain &mdash; <code>tests/api/CLAUDE.md:96-118</code> documents 18 distinct staging quirks that would drift between copies.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="--cb: var(--red)"><span class="callout-icon">&#10007;</span><p><strong>Against the 1-day window:</strong> highest authoring and maintenance cost per cycle for no runtime benefit. The duplication is the disqualifier.</p></div>
+
+      <div class="sub-heading" style="--c: var(--red)"><span class="dot"></span>Option C: Hybrid tiered packs (recommended)</div>
+      <p class="body-text">Gap-fill assertions land <strong>inside the existing specs</strong> that already own each domain. One genuinely new spec (<code>security-posture.spec.ts</code>) for Group E, which has no existing home. Tiering is achieved with a <strong>new <code>security-patch.config.ts</code> that reuses <code>./tests/api</code> with an explicit <code>testMatch</code> list and a per-tier <code>grep</code></strong>, with no edits to any existing <code>test.describe()</code> string, so monocart history survives.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pros</th><th>Cons</th></tr></thead>
+          <tbody>
+            <tr><td>Gap-fills inherit fixtures, staging quirks, brand exclusions (<code>api.config.ts:127,142,159,174</code>), and the 8-project fan-out for free. New tests also improve the everyday suite, not just the patch pack. No title churn.</td><td class="muted">Touches existing specs, so review burden &mdash; and <code>gra-order-history.spec.ts</code> is already 490 lines. Needs one new config file. Tier selection via <code>grep</code> on TC IDs is somewhat brittle to renames, mitigated by the repo's existing no-rename rule.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="--cb: var(--green)"><span class="callout-icon">&#10003;</span><p><strong>Against the 1-day window:</strong> the P0 gate is a 3-spec API subset plus one UI spec across 8 chromium-parallel storefronts. Given the full 15-spec API suite fits inside the 30-minute CI cap, a 3-spec P0 subset should land <strong>well inside 15 minutes</strong>, and P1 (full API plus selected UI) inside roughly 60. That leaves the bulk of the day for manual UAT.</p></div>
+    </section>
+
+    <!-- 07 Recommendation -->
+    <section class="content-section" id="recommendation" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div>
+          <h2>Recommended approach</h2>
+          <div class="section-desc">Option C, with two tiers</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tier</th><th>Contents</th><th>Trigger</th><th>Target wall clock</th></tr></thead>
+          <tbody>
+            <tr><td><strong>P0 gate</strong></td><td class="muted">Groups A(P0) + C(P0) + E(P0) + D(P0) + F(P0) &mdash; <code>gra-order-history.spec.ts</code>, <code>gra-place-order.spec.ts</code>, <code>security-posture.spec.ts</code>, <code>gra-cart-minicart.spec.ts</code> on all 8 API projects, plus <code>third-party-assets-smoke.spec.ts</code> and <code>homepage-smoke.spec.ts</code> on 8 chromium storefronts</td><td class="muted">Immediately on staging deploy</td><td><strong>~15 min</strong> (estimate; basis in section 6.1)</td></tr>
+            <tr><td><strong>P1 full</strong></td><td class="muted">All 15 <code>gra-*.spec.ts</code> on all 8 projects, plus <code>tests/ecommerce/smoke/**</code> on chromium</td><td class="muted">Once P0 is green</td><td><strong>~60 min</strong> (estimate)</td></tr>
+            <tr><td><strong>P2</strong></td><td class="muted">Everything else &mdash; regression checkout, PayPal, accessibility, Percy</td><td class="muted">Opportunistic / overnight</td><td class="muted">unbounded</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <div class="breakdown-label">Justification tied to the window</div>
+          <p>The binding constraint is not total test count. It is <em>time to first trustworthy signal</em>. With one worker per API project (section 6.1), all 8 storefronts cost the same wall clock as one, so breadth is free and only depth is expensive. That inverts the usual trade-off: the right move is a <strong>narrow, deep P0 across all 8</strong> rather than a broad shallow sweep across 4. A single monolith would force QA to wait for the slowest UI tests before learning whether order history is broken, which by section 4 is the single most likely thing to be broken.</p>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Two tiers, not three or more</div>
+          <p>The evidence does not support finer tiering: the P0 set is exactly the four domains where the July cycle produced defects that automation could have caught, and everything else is either already-passing regression or not automatable.</p>
+        </div>
+        <div class="breakdown-row">
+          <div class="breakdown-label">Recommendation on NZ</div>
+          <p>Run all 8 projects in both tiers. The marginal cost is near zero (section 6.1) and it closes the section 3.3 ambiguity permanently.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 Proposed scripts -->
+    <section class="content-section" id="scripts" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div>
+          <h2>Proposed Playwright scripts</h2>
+          <div class="section-desc">Proposals only &mdash; nothing here has been written to tests/ or src/</div>
+        </div>
+      </div>
+
+      <p class="body-text">All follow this framework's conventions: <code>graTest</code> import for GRA API specs, <code>createTestLogger</code> with <code>logger.step</code>, named interfaces for all test data under <code>src/data/</code>, timeout constants from <code>src/constants/timeouts.ts</code>, GraphQL operations as module-level consts with variables passed as the second argument, tags in the <code>test.describe()</code> name string, and <code>private readonly</code> class fields for all page-object locators.</p>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>8.1 <code>src/data/api/gra-security-posture-data.ts</code> (new)</div>
+      <pre><code>export interface SecurityHeaderBaseline {
+  name: string;
+  required: boolean;
+}
+
+export interface SecurityPostureDataShape {
+  baselineHeaders: readonly SecurityHeaderBaseline[];
+  versionDisclosureHeaderPrefix: string;
+  versionProbePaths: readonly string[];
+  adminProbePaths: readonly string[];
+  versionPattern: RegExp;
+  dashboardMarkers: readonly string[];
+  stackTraceMarkers: readonly string[];
+  sessionCookiePattern: RegExp;
+  invalidOperation: string;
+  corsTestOrigin: string;
+}
+
+export const SecurityPostureData: SecurityPostureDataShape = {
+  baselineHeaders: [
+    { name: 'strict-transport-security', required: true },
+    { name: 'x-content-type-options', required: true },
+    { name: 'x-frame-options', required: false },
+    { name: 'content-security-policy', required: false },
+    { name: 'referrer-policy', required: false },
+    { name: 'permissions-policy', required: false },
+  ],
+  versionDisclosureHeaderPrefix: 'x-magento-',
+  versionProbePaths: ['/magento_version'],
+  adminProbePaths: ['/admin', '/setup'],
+  versionPattern: /2\.4\.\d+/,
+  dashboardMarkers: ['Dashboard', 'adminhtml', 'Advanced Reporting'],
+  stackTraceMarkers: ['/vendor/', '/app/code/', 'Stack trace', '#0 /'],
+  sessionCookiePattern: /^(PHPSESSID|.*_session|mage-cache-sessid)/i,
+  invalidOperation: 'query InvalidProbe { __thisFieldDoesNotExist }',
+  corsTestOrigin: 'https://cors-probe.invalid.example',
+};</code></pre>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>8.2 <code>tests/api/security-posture.spec.ts</code> (new, Group E)</div>
+      <p class="body-text">Three design decisions here are load-bearing:</p>
+      <ul class="plain">
+        <li>The filename is <strong>not</strong> <code>gra-security-posture.spec.ts</code>. See the note in section 2.3: the <code>gra-*</code> glob would silently enlist it into the daily 8-project API suite.</li>
+        <li>The spec uses <code>createClient</code> (plain <code>ApiClient</code>), <strong>not</strong> <code>createClientExt</code>. <code>ApiClientExt.attachVerboseLog</code> reads the whole response body (<code>src/api/ApiClientExt.ts:86-87</code>) into the verbose-log buffer; against an HTML storefront root that would buffer the entire page into a CI artifact on failure. <code>ApiClient</code> avoids it.</li>
+        <li><code>site.baseURL</code> is the <code>/graphql</code> endpoint (<code>src/data/api/sites.ts:22</code>), not the site origin. The storefront origin is derived with <code>new URL('/', site.baseURL)</code>.</li>
+      </ul>
+
+      <pre><code>import { graTest as test, expect, softExpect } from './gra-test';
+import { createTestLogger } from '../../src/utils/test-logger';
+import { TIMEOUTS } from '../../src/constants/timeouts';
+import { SecurityPostureData } from '../../src/data/api/gra-security-posture-data';
+
+const HARD_FAIL_ON_INTROSPECTION = process.env.SECURITY_POSTURE_TARGET === 'production';
+
+function storefrontOrigin(graphqlBaseUrl: string): string {
+  return new URL('/', graphqlBaseUrl).toString();
+}
+
+test.describe('GRA Security Posture @api @security-posture', () => {
+
+  test('TC_01 - storefront root returns baseline security headers', async ({ createClient, site }) => {
+    const logger = createTestLogger('TC_01 baseline security headers');
+    const client = await createClient({ baseURL: storefrontOrigin(site.baseURL), timeout: TIMEOUTS.API_RESPONSE });
+
+    let headers: Record&lt;string, string&gt; = {};
+    await logger.step('Step 1 - GET storefront root', async () =&gt; {
+      const response = await client.get('/');
+      expect(response.status(), 'storefront root must respond').toBeLessThan(500);
+      headers = response.headers();
+    });
+
+    await logger.step('Step 2 - Assert baseline headers', async () =&gt; {
+      for (const baseline of SecurityPostureData.baselineHeaders) {
+        const present = headers[baseline.name] !== undefined;
+        if (baseline.required) {
+          softExpect(present, `${baseline.name} must be present`).toBe(true);
+        }
+        logger.verify(`${baseline.name} present`, baseline.required, present);
+      }
+    });
+  });
+
+  test('TC_02 - no Magento version disclosed in response headers', async ({ createClient, site }) => {
+    const logger = createTestLogger('TC_02 version disclosure in headers');
+    const client = await createClient({ baseURL: storefrontOrigin(site.baseURL), timeout: TIMEOUTS.API_RESPONSE });
+
+    await logger.step('Step 1 - GET storefront root and scan headers', async () =&gt; {
+      const response = await client.get('/');
+      const disclosing = Object.entries(response.headers()).filter(
+        ([name, value]) =&gt;
+          name.startsWith(SecurityPostureData.versionDisclosureHeaderPrefix) &amp;&amp;
+          SecurityPostureData.versionPattern.test(value),
+      );
+      logger.verify('version-disclosing headers', 0, disclosing.length);
+      expect(disclosing, `version disclosed via: ${disclosing.map(([n]) =&gt; n).join(', ')}`).toHaveLength(0);
+    });
+  });
+
+  test('TC_03 - /magento_version does not disclose a version', async ({ createClient, site }) => {
+    const logger = createTestLogger('TC_03 magento_version disclosure');
+    const client = await createClient({ baseURL: storefrontOrigin(site.baseURL), timeout: TIMEOUTS.API_RESPONSE });
+
+    for (const path of SecurityPostureData.versionProbePaths) {
+      await logger.step(`Step 1 - GET ${path}`, async () =&gt; {
+        const response = await client.get(path);
+        const body = response.status() === 200 ? await response.text() : '';
+        const discloses = SecurityPostureData.versionPattern.test(body);
+        logger.verify(`${path} discloses version`, false, discloses);
+        expect(discloses, `${path} returned a version string`).toBe(false);
+      });
+    }
+  });
+
+  test('TC_04 - session cookies carry Secure and HttpOnly', async ({ createClient, site }) => {
+    const logger = createTestLogger('TC_04 session cookie flags');
+    const client = await createClient({ baseURL: storefrontOrigin(site.baseURL), timeout: TIMEOUTS.API_RESPONSE });
+
+    await logger.step('Step 1 - GET storefront root and inspect Set-Cookie', async () =&gt; {
+      const response = await client.get('/');
+      // headers() collapses repeated Set-Cookie into one value; headersArray() preserves each.
+      const setCookies = response
+        .headersArray()
+        .filter((h) =&gt; h.name.toLowerCase() === 'set-cookie')
+        .map((h) =&gt; h.value);
+
+      const sessionCookies = setCookies.filter((c) =&gt;
+        SecurityPostureData.sessionCookiePattern.test(c.split('=')[0] ?? ''),
+      );
+
+      if (sessionCookies.length === 0) {
+        logger.action('No session cookie issued on root GET', 'nothing to assert');
+        return;
+      }
+
+      for (const cookie of sessionCookies) {
+        const name = cookie.split('=')[0] ?? '';
+        softExpect(/;\s*Secure/i.test(cookie), `${name} must be Secure`).toBe(true);
+        softExpect(/;\s*HttpOnly/i.test(cookie), `${name} must be HttpOnly`).toBe(true);
+        logger.verify(`${name} SameSite`, 'recorded', /;\s*SameSite=(\w+)/i.exec(cookie)?.[1] ?? 'absent');
+      }
+    });
+  });
+
+  test('TC_05 - GraphQL introspection state recorded', async ({ createGraphQLClient }) => {
+    const logger = createTestLogger('TC_05 GraphQL introspection state');
+    const client = await createGraphQLClient();
+
+    await logger.step('Step 1 - Attempt introspection query', async () =&gt; {
+      const response = await client.introspect();
+      const body = await response.json().catch(() =&gt; ({}));
+      const enabled = !!(body as { data?: { __schema?: unknown } }).data?.__schema;
+
+      logger.verify('introspection enabled', HARD_FAIL_ON_INTROSPECTION ? false : 'informational', enabled);
+
+      if (HARD_FAIL_ON_INTROSPECTION) {
+        expect(enabled, 'introspection must be disabled on production').toBe(false);
+      }
+    });
+  });
+
+  test('TC_06 - admin paths do not serve an unauthenticated dashboard', async ({ createClient, site }) => {
+    const logger = createTestLogger('TC_06 admin path reachability');
+    const client = await createClient({ baseURL: storefrontOrigin(site.baseURL), timeout: TIMEOUTS.API_RESPONSE });
+
+    for (const path of SecurityPostureData.adminProbePaths) {
+      await logger.step(`Step 1 - GET ${path}`, async () =&gt; {
+        const response = await client.get(path);
+        const body = response.status() === 200 ? await response.text() : '';
+        const looksLikeDashboard = SecurityPostureData.dashboardMarkers.every((m) =&gt; body.includes(m));
+
+        logger.verify(`${path} final status`, 'recorded', response.status());
+        expect(looksLikeDashboard, `${path} served an authenticated dashboard`).toBe(false);
+      });
+    }
+  });
+
+  test('TC_07 - invalid GraphQL operation does not leak stack traces or paths', async ({ createGraphQLClient }) => {
+    const logger = createTestLogger('TC_07 verbose error disclosure');
+    const client = await createGraphQLClient();
+
+    await logger.step('Step 1 - Send an invalid operation and inspect the error body', async () =&gt; {
+      const response = await client.queryWrapped(SecurityPostureData.invalidOperation);
+      const body = await response.text();
+      const leaks = SecurityPostureData.stackTraceMarkers.filter((m) =&gt; body.includes(m));
+
+      logger.verify('stack-trace markers in error body', 0, leaks.length);
+      expect(leaks, `error body leaked: ${leaks.join(', ')}`).toHaveLength(0);
+    });
+  });
+
+  test('TC_08 - GraphQL endpoint does not reflect an arbitrary Origin with credentials enabled', async ({ createGraphQLClient }) => {
+    const logger = createTestLogger('TC_08 CORS origin reflection');
+    // customHeaders merges with auth headers in ApiClient.init() (src/api/ApiClient.ts:56-59); same mechanism used to set Store: nz.
+    const client = await createGraphQLClient({ customHeaders: { Origin: SecurityPostureData.corsTestOrigin } });
+
+    await logger.step('Step 1 - Send a minimal query with a test Origin header', async () =&gt; {
+      const response = await client.queryWrapped('query CorsProbe { __typename }');
+      const headers = response.headers();
+      const allowOrigin = headers['access-control-allow-origin'];
+      const allowCredentials = headers['access-control-allow-credentials'];
+      const reflectsArbitraryOrigin = allowOrigin === SecurityPostureData.corsTestOrigin;
+      const credentialsEnabled = allowCredentials === 'true';
+
+      logger.verify('access-control-allow-origin', 'recorded', allowOrigin ?? 'absent');
+      logger.verify('access-control-allow-credentials', 'recorded', allowCredentials ?? 'absent');
+
+      expect(
+        reflectsArbitraryOrigin &amp;&amp; credentialsEnabled,
+        'GraphQL endpoint must not combine arbitrary-origin reflection with Access-Control-Allow-Credentials: true',
+      ).toBe(false);
+    });
+  });
+});</code></pre>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>8.3 Additions to <code>src/data/api/gra-order-history-data.ts</code> (Group A)</div>
+      <pre><code>import { TIMEOUTS } from '../../constants/timeouts';
+
+export interface OrderPresencePollConfig {
+  attempts: number;
+  intervalMs: number;
+}
+
+export interface OrderTotalShape {
+  subtotal: { value: number };
+  grand_total: { value: number };
+  total_shipping: { value: number };
+  discounts?: Array&lt;{ amount: { value: number }; label: string }&gt;;
+}
+
+export interface OrderTotalsToleranceShape {
+  currency: number;
+}
+
+export const OrderPresencePoll: OrderPresencePollConfig = {
+  attempts: 6,
+  intervalMs: TIMEOUTS.POLL_INTERVAL_NORMAL,
+};
+
+export const OrderTotalsTolerance: OrderTotalsToleranceShape = {
+  currency: 0.01,
+};</code></pre>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>8.4 Additions to <code>tests/api/gra-order-history.spec.ts</code> (Group A gap-fills)</div>
+      <p class="body-text">The existing <code>GET_CUSTOMER_ORDERS_QUERY</code> (<code>:58-79</code>) is left untouched so TC_01 through TC_05 keep their current behaviour and their monocart history. A second, richer operation is added as a module-level const alongside it, and the new tests are appended.</p>
+      <pre><code>const GET_CUSTOMER_ORDERS_WITH_TOTALS_QUERY = `
+  query GetCustomerOrdersWithTotals($pageSize: Int, $currentPage: Int) {
+    customer {
+      orders(pageSize: $pageSize, currentPage: $currentPage) {
+        items {
+          number
+          order_date
+          status
+          items {
+            product_sku
+            quantity_ordered
+          }
+          total {
+            subtotal { value }
+            grand_total { value }
+            total_shipping { value }
+            discounts { amount { value } label }
+          }
+        }
+        total_count
+      }
+    }
+  }
+`;</code></pre>
+
+      <pre><code>  test('TC_07 - placed order appears in customer.orders within the poll window', async ({ createGraphQLClient }) => {
+    const logger = createTestLogger('TC_07 placed order presence in order history');
+    test.setTimeout(TIMEOUTS.API_SUITE_SETUP);
+
+    if (!placedOrderNumber) {
+      test.skip(true, 'No order was placed in TC_01 — nothing to look for');
+      return;
+    }
+
+    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+
+    let found = false;
+    await logger.step(`Step 1 - Poll customer.orders for ${placedOrderNumber}`, async () =&gt; {
+      for (let attempt = 1; attempt &lt;= OrderPresencePoll.attempts; attempt++) {
+        const data = await (await authClient.queryWrapped(GET_CUSTOMER_ORDERS_WITH_TOTALS_QUERY, {
+          pageSize: 10,
+          currentPage: 1,
+        })).getData();
+
+        const items = data?.customer?.orders?.items ?? [];
+        if (items.some((item: { number?: string }) =&gt; item.number === placedOrderNumber)) {
+          found = true;
+          logger.action('Order found', `attempt ${attempt}`);
+          return;
+        }
+        await new Promise((resolve) =&gt; setTimeout(resolve, OrderPresencePoll.intervalMs));
+      }
+    });
+
+    await logger.step('Step 2 - Assert the order is present', async () =&gt; {
+      logger.verify('placed order present in customer.orders', true, found);
+      expect(found, `order ${placedOrderNumber} never appeared (GRA-5967 signature)`).toBe(true);
+    });
+  });
+
+  test('TC_08 - order totals reconcile with subtotal, discounts and shipping', async ({ createGraphQLClient }) => {
+    const logger = createTestLogger('TC_08 order totals reconciliation');
+
+    if (!placedOrderNumber) {
+      test.skip(true, 'No order was placed in TC_01 — nothing to reconcile');
+      return;
+    }
+
+    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+
+    let order: { total?: OrderTotalShape } | undefined;
+    await logger.step('Step 1 - Fetch the placed order with totals', async () =&gt; {
+      const data = await (await authClient.queryWrapped(GET_CUSTOMER_ORDERS_WITH_TOTALS_QUERY, {
+        pageSize: 10,
+        currentPage: 1,
+      })).getData();
+
+      order = (data?.customer?.orders?.items ?? []).find(
+        (item: { number?: string }) =&gt; item.number === placedOrderNumber,
+      );
+    });
+
+    if (!order?.total) {
+      test.skip(true, `order ${placedOrderNumber} not retrievable with totals — covered by TC_07`);
+      return;
+    }
+
+    await logger.step('Step 2 - Assert subtotal minus discounts plus shipping equals grand_total', async () =&gt; {
+      const total = order!.total!;
+      const discountTotal = (total.discounts ?? []).reduce((sum, d) =&gt; sum + Math.abs(d.amount.value), 0);
+      const expected = total.subtotal.value - discountTotal + total.total_shipping.value;
+
+      logger.verify('grand_total reconciles', expected, total.grand_total.value);
+      expect(Math.abs(expected - total.grand_total.value)).toBeLessThanOrEqual(OrderTotalsTolerance.currency);
+    });
+  });
+
+  test('TC_09 - customer.orders is sorted most-recent-first', async ({ createGraphQLClient }) => {
+    const logger = createTestLogger('TC_09 order history sort order');
+
+    const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
+
+    let dates: number[] = [];
+    await logger.step('Step 1 - Fetch order history with dates', async () =&gt; {
+      const data = await (await authClient.queryWrapped(GET_CUSTOMER_ORDERS_WITH_TOTALS_QUERY, {
+        pageSize: 10,
+        currentPage: 1,
+      })).getData();
+
+      dates = (data?.customer?.orders?.items ?? [])
+        .map((item: { order_date?: string }) =&gt; Date.parse(item.order_date ?? ''))
+        .filter((value: number) =&gt; !Number.isNaN(value));
+    });
+
+    if (dates.length &lt; 2) {
+      test.skip(true, `only ${dates.length} dated order(s) available — sort order not observable`);
+      return;
+    }
+
+    await logger.step('Step 2 - Assert dates are non-increasing', async () =&gt; {
+      const sorted = dates.every((value, index) =&gt; index === 0 || dates[index - 1]! &gt;= value);
+      logger.verify('orders sorted most-recent-first', true, sorted);
+      expect(sorted, 'customer.orders must be sorted most-recent-first (GRA-5968 signature)').toBe(true);
+    });
+  });</code></pre>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>8.5 <code>src/pages/helpers/console-helper.ts</code>: required accessor (Group D prerequisite)</div>
+      <p class="body-text"><code>getErrors()</code> at <code>:79</code> returns console messages only; <code>pageFailures</code>, populated at <code>:58-72</code>, has no public reader. Group D needs one. Minimal addition:</p>
+      <pre><code>  getPageFailures(type?: PageFailureEvent['type']): PageFailureEvent[] {
+    return type ? this.pageFailures.filter((f) =&gt; f.type === type) : [...this.pageFailures];
+  }</code></pre>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>8.6 <code>tests/ecommerce/smoke/third-party-assets-smoke.spec.ts</code> (new, Group D P0)</div>
+      <p class="body-text">Follows the ecommerce <code>E2E-{DOMAIN}-{NNN}</code> convention and the <code>for (const site of storefronts)</code> pattern used by every spec under <code>tests/ecommerce/smoke/</code>.</p>
+      <pre><code>import { test, expect, softExpect } from '@config/base-test';
+import { storefronts } from '../../../src/data/ecommerce/storefronts';
+import { ThirdPartyAssetData } from '../../../src/data/ecommerce/third-party-assets';
+import { createTestLogger } from '../../../src/utils/test-logger';
+
+test.describe('Ecommerce Third-Party Asset Health @ecommerce @smoke @third-party', () => {
+  for (const site of storefronts) {
+    test(`E2E-3PA-001 - ${site.name} homepage loads with no failed third-party asset requests`, async ({
+      ecommerceHomePage,
+      consoleHelper,
+    }) => {
+      const logger = createTestLogger(`E2E-3PA-001 - ${site.name} third-party asset health`);
+
+      await logger.step('Step 1 - Navigate to homepage', async () =&gt; {
+        await ecommerceHomePage.navigate(site.url);
+      });
+
+      await logger.step('Step 2 - Assert no third-party request failures', async () =&gt; {
+        const failures = consoleHelper
+          .getPageFailures('requestfailed')
+          .filter((f) =&gt; ThirdPartyAssetData.monitoredHosts.some((host) =&gt; f.text.includes(host)));
+
+        logger.verify('failed third-party requests', 0, failures.length);
+        softExpect(failures.map((f) =&gt; f.text), 'no third-party asset request may fail').toHaveLength(0);
+      });
+
+      await logger.step('Step 3 - Assert no CSP violation console errors', async () =&gt; {
+        const cspErrors = consoleHelper
+          .getErrors()
+          .filter((m) =&gt; ThirdPartyAssetData.cspViolationPattern.test(m.text));
+
+        logger.verify('CSP violation console errors', 0, cspErrors.length);
+        expect(cspErrors.map((m) =&gt; m.text), 'CSP must not block first-load assets').toHaveLength(0);
+      });
+    });
+  }
+});</code></pre>
+
+      <p class="body-text">With <code>src/data/ecommerce/third-party-assets.ts</code>:</p>
+      <pre><code>export interface ThirdPartyAssetDataShape {
+  monitoredHosts: readonly string[];
+  cspViolationPattern: RegExp;
+}
+
+export const ThirdPartyAssetData: ThirdPartyAssetDataShape = {
+  monitoredHosts: [
+    'maps.googleapis.com',
+    'maps.gstatic.com',
+    'googletagmanager.com',
+    'bloomreach.com',
+    'exponea.com',
+    'accentgra.com',
+  ],
+  cspViolationPattern: /Content Security Policy|Refused to (load|execute|connect|apply)/i,
+};</code></pre>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>8.7 API surface verification</div>
+      <p class="body-text">The snippets above depend on framework methods checked against source after the report was drafted. Most were already correct; one was wrong and has been corrected in place.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Used in</th><th>Symbol</th><th>Verdict</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">8.2 TC_04</td><td><code>response.headersArray()</code></td><td><span class="tag tag-low">Valid</span></td><td class="muted">TC_04 uses <code>createClient</code> (plain <code>ApiClient</code>), and <code>ApiClient.get()</code> returns a raw Playwright <code>APIResponse</code> (<code>src/api/ApiClient.ts:101</code>), which provides <code>headersArray()</code>. Note this is a different type from <code>ApiResponseWrapper</code>, which does not expose it.</td></tr>
+            <tr><td class="muted">8.2 TC_05</td><td><code>client.introspect()</code> then <code>.json()</code></td><td><span class="tag tag-low">Valid</span></td><td class="muted"><code>introspect()</code> returns <code>Promise&lt;APIResponse&gt;</code> (<code>src/api/GraphQLClient.ts:93</code>), so <code>.json()</code> is available.</td></tr>
+            <tr><td class="muted">8.2 TC_07</td><td><code>response.text()</code> on a GraphQL wrapper</td><td><span class="tag tag-low">Valid</span></td><td class="muted"><code>GraphQLResponseWrapper extends ApiResponseWrapper</code> (<code>src/api/GraphQLResponse.ts:7</code>), and <code>text()</code> is defined at <code>src/api/ApiResponse.ts:59</code>.</td></tr>
+            <tr><td class="muted">8.3</td><td><code>TIMEOUTS.POLL_INTERVAL_NORMAL</code></td><td><span class="tag tag-low">Valid</span></td><td class="muted">Defined as <code>1000</code> at <code>src/constants/timeouts.ts:39</code>.</td></tr>
+            <tr><td class="muted">8.6</td><td><code>ecommerceHomePage.navigateTo(...)</code></td><td><span class="tag tag-high">Wrong, corrected</span></td><td class="muted">The method is <code>navigate(url)</code>, not <code>navigateTo(url)</code>. Every existing smoke spec calls <code>ecommerceHomePage.navigate(site.url)</code> (<code>tests/ecommerce/smoke/homepage-smoke.spec.ts:14,38,54</code>). The snippet in 8.6 has been corrected.</td></tr>
+            <tr style="background: rgba(61,220,132,.05);"><td class="muted">8.2 TC_08</td><td><code>createGraphQLClient({ customHeaders: { Origin: ... } })</code></td><td><span class="tag tag-low">Valid</span></td><td class="muted"><code>GraphQLClientOptions extends ApiClientOptions</code> (<code>src/api/GraphQLClient.ts:23</code>), and <code>ApiClient.init()</code> additively merges <code>customHeaders</code> with any auth headers (<code>src/api/ApiClient.ts:56-59</code>); the existing comment there cites this exact pattern for setting <code>Store: nz</code>. <code>queryWrapped()</code> returns a <code>GraphQLResponseWrapper</code>, and <code>.headers()</code> is defined on the base <code>ApiResponseWrapper</code> (<code>src/api/ApiResponse.ts:21-22</code>), returning lowercase header names as Playwright's <code>response.headers()</code> does.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="--cb: var(--amber)">
+        <span class="callout-icon">&#9888;</span>
+        <p><strong>Two items remain unverified.</strong> In 8.6, <code>ThirdPartyAssetData.monitoredHosts</code> is a first guess at the third-party hosts these storefronts actually load; it should be replaced with an observed list captured from a real page load before the assertion is trusted. In 8.2 TC_08, whether Playwright's <code>APIRequestContext</code> sends a caller-supplied <code>Origin</code> header unmodified via <code>extraHTTPHeaders</code> was not confirmed against a live server from this environment. If it were silently stripped or overridden, <code>access-control-allow-origin</code> would never match <code>corsTestOrigin</code>: TC_08 would pass vacuously, reproducing exactly the anti-coverage pattern section 4 documents elsewhere in this report. Confirm this on the first real run (section 10, step 3) before trusting a pass.</p>
+      </div>
+    </section>
+
+    <!-- 09 Risk assessment -->
+    <section class="content-section" id="risks" style="--c: var(--red)">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div>
+          <h2>Risk assessment</h2>
+          <div class="section-desc">What could go wrong, per scenario or increment, and how it is mitigated</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Impact</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+          <tbody>
+            <tr><td><strong>SPR-SEC-001 false-fails on the first run</strong> &mdash; the real staging header baseline is unknown, and <code>strict-transport-security</code> may legitimately be absent behind a CDN</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-high">High</span></td><td class="muted">Ship TC_01 <strong>recording-only</strong> (no assertion) on the first run, write the observed per-storefront baseline into <code>gra-security-posture-data.ts</code>, then add <code>softExpect</code>, then promote to hard once the baseline proves stable. A three-step rollout &mdash; note that <code>softExpect</code> still fails the test at teardown, so it is not a safe first landing.</td></tr>
+            <tr><td><strong>Introspection hard-fail is untestable today</strong> &mdash; <code>SECURITY_POSTURE_TARGET=production</code> has no production target to point at; all URLs are <code>stag-*</code> (<code>sites.ts:22-110</code>, <code>storefronts.ts:57-205</code>)</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-certain">Certain</span></td><td class="muted">Ship SPR-SEC-005 informational-only. Adding production targeting is a <strong>separate prerequisite</strong> (env-driven base URLs) with its own approval &mdash; do not bundle it into this work.</td></tr>
+            <tr><td><strong>Staging-vs-prod divergence (GRA-5951, 5954) cannot be automated</strong>, and may be wrongly assumed covered</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">State it in the pack's report header. Percy compares to a stored baseline, not environment-to-environment. Keep these two as explicit manual UAT items each cycle.</td></tr>
+            <tr><td><strong>SPR-ORD-001 turns the known staging <code>total_count: 0</code> behaviour into a red build</strong> &mdash; the current code calls this a &ldquo;known PLA staging limitation&rdquo; (<code>gra-order-history.spec.ts:243-249</code>)</td><td><span class="tag tag-high">High</span></td><td><span class="tag tag-high">High</span></td><td class="muted">This is the point of the scenario, but it must be triaged <strong>before</strong> the first patch cycle, not during it. Run SPR-ORD-001 against current staging as a pre-flight (section 10, step 1). If it fails today, the staging behaviour is a standing defect and the scenario must be quarantined &mdash; documented, not deleted &mdash; until fixed. Otherwise the pack cries wolf inside the one-day window.</td></tr>
+            <tr><td><strong>SPR-PRC-001 needs per-brand free-shipping thresholds</strong> that exist in no data file today</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-high">High</span></td><td class="muted">Threshold values must be sourced from business config before implementation. Until then the scenario must <strong>skip with an explicit reason</strong>, never silently pass.</td></tr>
+            <tr style="background: rgba(61,220,132,.05);"><td><strong>SPR-SEC-008 finding severity is capped lower than a typical CORS misconfiguration</strong> &mdash; GRA customer auth is Bearer-token via <code>Authorization</code> header (<code>AuthType.BEARER</code>, <code>ApiClient.ts:42-46</code>), not cookie/session-based, so a browser cannot auto-attach a stolen customer token the way it auto-attaches cookies; a permissive finding here would expose whatever guest-cart/session-cookie state SPR-SEC-004 already covers, not full account takeover</td><td><span class="tag tag-partial">Low&ndash;Medium</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">The assertion itself ships as a hard fail from the first run (section 5) &mdash; this row is about how the finding is <em>reported</em>, not how it is <em>gated</em>. State the bounded severity explicitly in the pack's report so a positive finding is not overstated as customer-data exfiltration.</td></tr>
+            <tr><td><strong>Group B schema risk</strong> &mdash; order-level QFF and loyalty-earned fields are unverified against the staging schema</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">Implement with the established schema-gap guard (<code>gra-order-history.spec.ts:456-471</code>): detect <code>Cannot query field</code>, log, return early. Never call <code>assertNoErrors()</code> blindly.</td></tr>
+            <tr><td><strong>Flakiness from staging quirks</strong> &mdash; <code>tests/api/CLAUDE.md:96-118</code> documents 18 distinct staging behaviours (limited stock, out-of-stock blocking at add-to-cart, token revocation lag, broken <code>price_range</code> data)</td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-high">High</span></td><td class="muted">Gap-fills live inside existing specs precisely so they inherit these mitigations. Any new <code>expect</code> must use the file's existing guard patterns (<code>assertNoCriticalErrors</code>, candidate-SKU retry) rather than inventing new ones.</td></tr>
+            <tr><td><strong>Braintree external dependency inside P0</strong> &mdash; <code>gra-order-history.spec.ts:191-199</code> calls Braintree's own gateway and skips on <code>transport_error</code></td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-low">Low</span></td><td class="muted">Already handled with <code>test.skip</code> on transport error. Accept the residual: a skipped P0 order-placement test must be reported as <em>not run</em>, never as passed. The pack's report must surface skip counts prominently.</td></tr>
+            <tr><td><strong>Runtime overrun on the P0 gate</strong></td><td><span class="tag tag-medium">Medium</span></td><td><span class="tag tag-low">Low</span></td><td class="muted">Estimates are derived from CI job caps, not measured. Measure on the pre-flight run (section 10, step 1) and re-tier if P0 exceeds 20 minutes.</td></tr>
+            <tr><td><strong>Per-cycle maintenance burden</strong></td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">Option C adds one new API spec, one new UI spec, three new tests inside an existing spec, and two data files. No per-cycle authoring &mdash; only data refresh (coupon codes, thresholds, header baseline).</td></tr>
+            <tr><td><strong>UI tier behaves differently on Firefox locally</strong> &mdash; <code>playwright.config.ts:143-145</code> testIgnores ecommerce for Firefox <strong>only in CI</strong>, so a local run executes <code>tests/ecommerce/smoke/**</code> on Firefox too. <code>console-helper.ts:25</code> exists because Firefox reports aborts as <code>NS_BINDING_ABORTED</code> where Chromium says <code>ERR_ABORTED</code>; SPR-3PA-002 uses a hard <code>expect</code></td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-medium">Medium</span></td><td class="muted">Always invoke the UI tiers with <code>--project=chromium</code>, matching the CI configuration the runtime estimates were sized against.</td></tr>
+            <tr><td><strong>Rollback</strong></td><td><span class="tag tag-low">Low</span></td><td><span class="tag tag-low">Low</span></td><td class="muted">All additions are new tests, new files, or a new config. Reverting is a single revert; no existing test behaviour changes, because the existing <code>GET_CUSTOMER_ORDERS_QUERY</code> is deliberately left untouched.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10 Implementation steps -->
+    <section class="content-section" id="steps" style="--c: var(--amber)">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div>
+          <h2>Implementation steps</h2>
+          <div class="section-desc">For a later implementation agent, after user approval. Ordered</div>
+        </div>
+      </div>
+
+      <ol class="ordered">
+        <li><strong>Pre-flight, before writing anything.</strong> Run the existing <code>gra-order-history.spec.ts</code> TC_01 against current staging on all 8 projects. Record whether <code>customer.orders.total_count</code> is still 0 after a successful <code>placeOrder</code>. This determines whether SPR-ORD-001 is a viable gate or must ship quarantined. <strong>Do not proceed to step 5 without this answer.</strong></li>
+        <li>Create <code>src/data/api/gra-security-posture-data.ts</code> (section 8.1).</li>
+        <li>Create <code>tests/api/security-posture.spec.ts</code> (section 8.2) with <strong>TC_01 recording only</strong>: <code>logger.verify</code> on each baseline header, no <code>softExpect</code> yet. Run it on all 8 projects via <code>security-patch.config.ts</code> and write the observed baseline back into the data file. Only then add the <code>softExpect</code> assertions. Landing the assertions before the baseline exists is what section 9 rates High-likelihood false-fail. TC_08 (CORS, section 8.2) has no equivalent baseline phase. Land its hard <code>expect</code> immediately, and confirm on this same run that the test <code>Origin</code> header actually reaches the server unmodified (section 8.7's open verification item) before trusting a pass.</li>
+        <li>Add <code>getPageFailures()</code> to <code>src/pages/helpers/console-helper.ts</code> (section 8.5).</li>
+        <li>Add <code>OrderPresencePoll</code>, <code>OrderTotalsTolerance</code>, and <code>OrderTotalShape</code> to <code>src/data/api/gra-order-history-data.ts</code> (section 8.3).</li>
+        <li>Add <code>GET_CUSTOMER_ORDERS_WITH_TOTALS_QUERY</code> plus TC_07, TC_08, TC_09 to <code>tests/api/gra-order-history.spec.ts</code> (section 8.4). Leave <code>GET_CUSTOMER_ORDERS_QUERY</code> and TC_01 through TC_05 untouched.</li>
+        <li>Create <code>src/data/ecommerce/third-party-assets.ts</code> and <code>tests/ecommerce/smoke/third-party-assets-smoke.spec.ts</code> (section 8.6). The navigation call is <code>ecommerceHomePage.navigate(site.url)</code>, verified in section 8.7. Capture a real page load first and replace the guessed <code>monitoredHosts</code> list with the hosts these storefronts actually request.</li>
+        <li>Source per-brand free-shipping thresholds from business config; add <code>src/data/api/gra-shipping-threshold-data.ts</code>; implement SPR-PRC-001 and SPR-PRC-002 in <code>tests/api/gra-checkout-shipping.spec.ts</code>.</li>
+        <li>Implement Group B (SPR-LOY-001, SPR-LOY-002) in <code>gra-loyalty-rewards.spec.ts</code> and <code>gra-loyalty-rewards-nz.spec.ts</code> with the schema-gap guard.</li>
+        <li>Create <code>security-patch.config.ts</code>, reusing <code>./tests/api</code> with the P0 <code>testMatch</code> list and the 8 GRA projects copied from <code>api.config.ts:120-184</code>, including the per-brand <code>testIgnore</code> exclusions. Add <code>test:patch:p0</code> and <code>test:patch:p1</code> scripts to <code>package.json</code>.
+          <p class="substep"><strong>This is the step most likely to be got wrong.</strong> <code>security-posture.spec.ts</code> is deliberately named to fall outside the <code>gra-*</code> glob (section 2.3), but it imports <code>graTest</code> and reads the <code>site</code> fixture, so it still has to run under a project that supplies <code>siteCode</code>. Copying the 8 GRA projects verbatim also copies their <code>testMatch</code>, which excludes the file. The new <code>testMatch</code> must name <code>security-posture.spec.ts</code> explicitly. Get this wrong and the result is a silent zero-test run, not an error, so assert the expected test count on the first execution.</p>
+        </li>
+        <li>Add a <code>workflow_dispatch</code> GitHub Actions workflow that runs P0 then P1, reusing the monocart and Slack reporting already wired in <code>api-restful-tests-with-slack.yml</code>.</li>
+        <li>Run the full P0 and P1 packs on all 8 projects. Measure actual wall clock. Re-tier if P0 exceeds 20 minutes.</li>
+        <li>Hand to <code>qa-code-reviewer</code> and <code>devops-cicd-specialist</code>.</li>
+      </ol>
+    </section>
+
+    <!-- 11 Validation -->
+    <section class="content-section" id="validation" style="--c: var(--cyan)">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div>
+          <h2>Validation</h2>
+          <div class="section-desc">How to prove the pack works, and whether it would have caught the July defects</div>
+        </div>
+      </div>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>11.1 How to verify the pack works</div>
+      <ul class="plain">
+        <li><strong>Structural:</strong> <code>npm run lint</code> (tsc <code>--noEmit</code>) passes; every new test runs on all 8 API projects and all 8 storefronts, with skip reasons visible in the monocart report.</li>
+        <li><strong>Negative control:</strong> temporarily point one storefront's shipping-threshold data at a wrong value and confirm SPR-PRC-001 goes red. A gate that has never been observed failing is not a gate.</li>
+        <li><strong>The anti-coverage check:</strong> confirm SPR-ORD-001 fails when <code>total_count</code> is 0. If it passes against a staging endpoint returning 0, the implementation has reproduced the original blind spot.</li>
+        <li><strong>Runtime:</strong> measure P0 wall clock on a real run. The ~15-minute figure in section 7 is an estimate from CI caps, not a measurement.</li>
+      </ul>
+
+      <div class="sub-heading" style="--c: var(--cyan)"><span class="dot"></span>11.2 Would the pack have caught each of the twelve July defects?</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Key</th><th>Defect</th><th>Caught?</th><th>By what</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">GRA-5967</td><td class="muted">[PLA][My Orders] Newly placed order does not appear in My Orders list</td><td><span class="tag tag-yes">Yes</span></td><td class="muted">SPR-ORD-001. The pack's flagship scenario, and the exact bug the current spec is written to tolerate.</td></tr>
+            <tr><td class="muted">GRA-5968</td><td class="muted">[PLA][My Orders] Order list not sorted most-recent-first</td><td><span class="tag tag-yes">Yes</span></td><td class="muted">SPR-ORD-004 / TC_09. Requires 2 or more orders on the account; skips with a reason below that.</td></tr>
+            <tr><td class="muted">GRA-5963</td><td class="muted">[GRA][BE][My Order] Promotion from cart price rule missed on Order Detail Page</td><td><span class="tag tag-partial">Yes, conditionally</span></td><td class="muted">SPR-ORD-002 (totals reconciliation) catches it whenever the discount is missing from <code>total.discounts</code> but reflected in <code>grand_total</code>, or the reverse. SPR-ORD-003 catches it directly, but only once a valid coupon is provisioned per brand.</td></tr>
+            <tr><td class="muted">GRA-5964</td><td class="muted">[GRA][BE][My Orders] Order shows incorrect info</td><td><span class="tag tag-partial">Partially</span></td><td class="muted">SPR-ORD-005 catches SKU, quantity, and product-name mismatches against the cart. &ldquo;Incorrect info&rdquo; is under-specified in the ticket; fields outside the compared set would be missed.</td></tr>
+            <tr><td class="muted">GRA-5965</td><td class="muted">[SKX][AU][BE][My Orders] Skechers Insider Points earned displays as 0</td><td><span class="tag tag-partial">Yes, if schema exposes it</span></td><td class="muted">SPR-LOY-002 asserts earned points greater than zero, replacing the vacuous &ldquo;null for zero-balance account&rdquo; precondition at <code>gra-loyalty-rewards.spec.ts:180</code>. Falls back to a schema-gap skip if the field is absent &mdash; in which case, <strong>no</strong>.</td></tr>
+            <tr><td class="muted">GRA-5962</td><td class="muted">[GRA][FE+BE][Qantas] QFF Points burned not applied on tracking order page</td><td><span class="tag tag-medium">Uncertain</span></td><td class="muted">SPR-LOY-001 covers the API-level carry-through of burned points into the order. The ticket names the <em>tracking order page</em> (UI). If the API carries the value correctly and only the page fails to render it, the API scenario passes and the bug escapes. Closing that would need UI coverage of the tracking page &mdash; not proposed, because <code>E2E-UTIL-001</code> never submits the form and building the flow needs a real order number per storefront.</td></tr>
+            <tr><td class="muted">GRA-5966</td><td class="muted">[BE+FE][Minicart/Cart][Checkout] Free shipping still applicable when cart total below $200</td><td><span class="tag tag-yes">Yes</span></td><td class="muted">SPR-PRC-001. Blocked on sourcing per-brand thresholds (section 10, step 8); until then it skips rather than passes.</td></tr>
+            <tr><td class="muted">GRA-5961</td><td class="muted">[SKX][Store Locator] Google Map fails to render</td><td><span class="tag tag-yes">Yes</span></td><td class="muted">SPR-3PA-003 (map container renders) plus SPR-3PA-001 (<code>maps.googleapis.com</code> request failure). Requires the new Store Locator page object. SPR-3PA-001 alone catches it only if the failure manifests as a failed request rather than a silent JS error &mdash; SPR-3PA-002's CSP and console check widens that net.</td></tr>
+            <tr><td class="muted">GRA-5953</td><td class="muted">[PLA][PDP] Click &amp; Collect logo fails to load in &ldquo;Find Product in Store&rdquo; modal</td><td><span class="tag tag-partial">Yes, at P2</span></td><td class="muted">SPR-3PA-004. Requires a new page object and a confirmed modal entry point; it is P2 precisely because that build cost is not justified by a single Under-Investigation defect.</td></tr>
+            <tr><td class="muted">GRA-5951</td><td class="muted">[SKX][AU][Mobile][PLP][Wishlist] Product card renders differently between Staging and PROD</td><td><span class="tag tag-no">No</span></td><td class="muted">Not automatable in this framework as configured &mdash; no production target exists, and Percy compares to a stored baseline rather than environment-to-environment. Remains manual UAT.</td></tr>
+            <tr><td class="muted">GRA-5954</td><td class="muted">[PLA][PDP] &ldquo;Free Express Shipping&rdquo; badge duplicated after submitting a review</td><td><span class="tag tag-no">No</span></td><td class="muted">Two blockers: no review-submission flow exists in the suite, and duplication after an interaction is a visual-diff problem. Percy could catch it only with a baseline snapshot taken after review submission &mdash; a scenario that does not exist. Remains manual UAT.</td></tr>
+            <tr><td class="muted">GRA-5959</td><td class="muted">[SKX][Mobile][Newsletter] Newsletter sign-up placeholder truncated</td><td><span class="tag tag-no">No</span></td><td class="muted">Mobile-viewport text truncation. <code>playwright.config.ts:188-204</code> shows the mobile projects are commented out; the framework runs desktop viewports only. Would need mobile-viewport Percy coverage. Rejected as a defect, so low value.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout" style="--cb: var(--green)">
+        <span class="callout-icon">&#128202;</span>
+        <p><strong>Score: 6 of 12 caught outright, 2 partially or conditionally, 1 uncertain, 3 not caught.</strong> That is an honest result and worth stating plainly to stakeholders: the pack's value is concentrated in the largest cluster, with 4 of 5 My Orders bugs caught outright and the fifth partially. That is also the cluster where automation is cheapest, because the specs already exist. The three clean misses are all render-divergence or mobile-visual problems needing a production target and mobile viewports. Both are framework prerequisites outside this pack's scope, and both are worth raising separately.</p>
+      </div>
+    </section>
+
+    <!-- 12 Open questions -->
+    <section class="content-section" id="open-questions" style="--c: var(--purple)">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div>
+          <h2>Open questions</h2>
+          <div class="section-desc">Decisions and confirmations that belong to the user or the business, not to an implementation agent</div>
+        </div>
+      </div>
+
+      <ol class="ordered">
+        <li><strong>Does <code>customer.orders</code> still return <code>total_count: 0</code> after a successful <code>placeOrder</code> on GRA staging?</strong> The code comment at <code>gra-order-history.spec.ts:243-249</code> says yes and calls it a known limitation. If still true, SPR-ORD-001 cannot be a gate until it is fixed, and that staging behaviour is itself worth a ticket, because it blinds QA to the exact defect class that dominated the July cycle. <strong>The single highest-value question to answer first.</strong></li>
+        <li><strong>Were the NZ storefronts regression-tested in the July cycle?</strong> The Jira sub-tasks are brand-scoped and cannot answer it. Confirming with Iris Duong or Ricardo Caceda would settle section 3.3 definitively rather than by inference.</li>
+        <li><strong>What are the per-brand free-shipping thresholds?</strong> $200 is named in GRA-5966, but the brand and region it applies to are not stated. SPR-PRC-001 is blocked on this.</li>
+        <li><strong>Does the staging GraphQL schema expose order-level QFF burned points and loyalty earned points?</strong> Determines whether SPR-LOY-001 and SPR-LOY-002 are real coverage or permanent schema-gap skips. Note that the comment at <code>tests/api/api-test-helpers.ts:327</code> (&ldquo;introspection is disabled on staging&rdquo;) sits in a Braintree-API context and is ambiguous as to whether it refers to the GRA storefront schema. SPR-SEC-005 would settle that as a side effect.</li>
+        <li><strong>Is there a valid, non-expiring coupon code per brand on staging?</strong> SPR-ORD-003 and SPR-PRC-003 both depend on it.</li>
+        <li><strong>Is production targeting wanted at all?</strong> Several scenarios (introspection hard-fail, staging-vs-prod divergence) become possible only with env-driven base URLs. That is a framework change with its own risk profile and should be decided separately, not smuggled in with this pack.</li>
+        <li><strong>Could the Adobe bulletin be retrieved from a network with access to <code>helpx.adobe.com</code>?</strong> Section 3.4's CVE table is 2 of 5 first-tier-verified and the total count is disputed. Someone with access should confirm the affected-component list before the next cycle, since it is the only input that could shift the blast-radius argument.</li>
+      </ol>
+    </section>
+
+    <!-- 13 Research sources -->
+    <section class="content-section" id="sources" style="--c: var(--green)">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div>
+          <h2>Research sources</h2>
+          <div class="section-desc">Every code claim in this report carries a file:line citation</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Source</th><th>Type</th><th>URL</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td class="muted">Adobe Security Bulletin APSB26-73</td><td class="muted">Primary</td><td class="muted">helpx.adobe.com/security/products/magento/apsb26-73.html</td><td><span class="tag tag-high">Unreachable</span> &mdash; 4 attempts: 3 timeouts at 60s, 1 <code>ECONNRESET</code></td></tr>
+            <tr><td class="muted">Adobe Experience League KB ka-37421</td><td class="muted">Primary</td><td class="muted">experienceleague.adobe.com/&hellip;/ka-37421</td><td class="muted">Retrieved &mdash; affected versions, isolated-patch filenames, isolated-vs-upgrade semantics</td></tr>
+            <tr><td class="muted">NVD CVE-2026-48358</td><td class="muted">Primary</td><td class="muted">nvd.nist.gov/vuln/detail/CVE-2026-48358</td><td class="muted">Retrieved &mdash; CWE-116, CVSS 9.1, <code>PR:H</code>, Webhooks Plugin 1.20.0 and earlier</td></tr>
+            <tr><td class="muted">NVD CVE-2026-48356</td><td class="muted">Primary</td><td class="muted">nvd.nist.gov/vuln/detail/CVE-2026-48356</td><td class="muted">Retrieved &mdash; CWE-434, CVSS 9.3, <code>UI:R</code></td></tr>
+            <tr><td class="muted">EveryHost APSB26-73 write-up</td><td><span class="tag tag-high">Secondary blog &mdash; unverified</span></td><td class="muted">everyhost.co.uk/insights/adobe-commerce-security-update-apsb26-73</td><td class="muted">Retrieved &mdash; source of the three unverified CVEs in section 3.4; <strong>contradicts NVD on CVSS and on privileges required</strong></td></tr>
+            <tr><td class="muted">Sam James, isolated-patch guide</td><td class="muted">Secondary blog</td><td class="muted">samdjames.uk/blog/magento-isolated-security-patch-apsb26-73</td><td class="muted">Retrieved &mdash; no CVE list; confirms isolated patches are non-cumulative, flags an <code>nginx.sample.conf</code> gotcha</td></tr>
+            <tr><td class="muted">ioVista APSB26-73 write-up</td><td class="muted">Secondary blog</td><td class="muted">iovista.com/blog/adobe-commerce-security-update-apsb26-73</td><td><span class="tag tag-high">HTTP 403</span></td></tr>
+            <tr><td class="muted">GRA codebase</td><td class="muted">Primary</td><td class="muted">this repository</td><td class="muted">20+ files read; every code claim in this report carries a <code>file:line</code> citation</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="approval-banner">
+  <span class="icon">&#9888;</span>
+  <p><strong>Awaiting user approval.</strong> This report is research only &mdash; no file under <code>tests/</code>, <code>src/</code>, <code>.github/</code>, or any config was modified. Per this project's technical-research &rarr; approval-gate &rarr; implementation workflow, any implementation must be explicitly approved and routed through <code>qa-orchestrator</code> (which dispatches <code>technical-implementation-agent</code>, then <code>qa-code-reviewer</code> and <code>devops-cicd-specialist</code> to verify).</p>
+</div>
+
+<div class="footer">
+  <p>Playwright TypeScript Automation Framework &middot; Technical Research Report &middot; GRA-5939 / APSB26-73 &middot; generated 2026-07-30</p>
+</div>
+
+</body>
+</html>
