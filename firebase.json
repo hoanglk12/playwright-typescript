@@ -1,0 +1,6 @@
+{
+  "hosting": {
+    "public": "lighthouse-reports",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  }
+}

@@ -535,6 +535,17 @@ monocart-reporter supplements the built-in reporters (keep all existing reporter
 
 **Local view:** `npm run report:monocart` or `npm run report:monocart:api`
 
+## Bitbucket Lighthouse Pipeline
+
+`bitbucket-pipelines.yml` is a separate, Platypus-only Lighthouse audit for the `hp95/playwright-typescript` Bitbucket mirror, not a replacement for `.github/workflows/lighthouse-ci.yml`, which audits all 8 storefronts and deploys to Cloudflare Pages. **GitHub Actions remains the source of truth** for the full 8-storefront audit; this pipeline exists to add two capabilities that workflow doesn't have: a Microsoft Teams notification and a Firebase Hosting deploy.
+
+- **Scope:** `lighthouserc.bitbucket.js` / `lighthouserc.mobile.bitbucket.js` audit Platypus AU/NZ only (not all 8 GRA storefronts), to fit the Bitbucket workspace's confirmed Free-tier budget of 50 build minutes/month. Keep these as full copies, not `require()` wrappers of `lighthouserc.js` — the pipeline patches `numberOfRuns` by regex on the literal file, so a wrapper would silently no-op that patch. Any threshold change to `lighthouserc.js` / `lighthouserc.mobile.js` must be mirrored into these two files by hand. `scripts/generate-lhci-index.bitbucket.js` is the same kind of full copy of `scripts/generate-lhci-index.js`, reading `BITBUCKET_COMMIT` / `BITBUCKET_BRANCH` directly instead of GitHub's env vars — any HTML/layout change to the landing page must be mirrored into both.
+- **Trigger:** `custom:` only, no `push: branches:`. Bitbucket has no `cancel-in-progress` equivalent, so an automatic trigger would queue (not cancel) rapid successive pushes and could exhaust the monthly budget in one burst.
+- **Propagation:** `bitbucket-mirror.yml` force-pushes the whole repo `HEAD` to the mirror on every push to `main`, so all pipeline files (`bitbucket-pipelines.yml`, both `lighthouserc.*.bitbucket.js`, `scripts/generate-lhci-index.bitbucket.js`, `firebase.json`, `teams-payload-template.json`) propagate with no extra step.
+- **Credentials:** add as Bitbucket repository variables before first run — `FIREBASE_SERVICE_ACCOUNT_BASE64` (secured), `FIREBASE_PROJECT_ID`, `TEAMS_WEBHOOK_URL` (secured).
+- **Teams payload:** `teams-payload-template.json` is an Adaptive Card rendered by shell `envsubst`. Two constraints: Teams Workflows webhooks don't render `Action.OpenUrl`, so the report link must stay a markdown link inside a `TextBlock`; and `envsubst` is called with an explicit five-name allowlist, so any new `${VAR}` must be added there or it posts as literal text — the allowlist also protects the card's literal `$schema` key from being expanded as an undefined variable.
+- **Non-comparable baseline:** Bitbucket cloud runners are always Docker containers; GitHub's `ubuntu-latest` is a VM with host Chrome. Lighthouse performance scores from the two platforms must never be compared against each other. The deterministic accessibility gates (`image-alt`, `document-title`, `html-has-lang`, `categories:accessibility`) are unaffected by containerization either way.
+
 ## Global Lifecycle
 
 - **Setup** (`src/config/global-setup.ts`): clears logs, loads env, cleans/creates output dirs, validates browser installations, tests connectivity to target apps

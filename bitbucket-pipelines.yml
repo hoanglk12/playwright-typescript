@@ -1,0 +1,133 @@
+# Bitbucket Pipelines port of .github/workflows/lighthouse-ci.yml, scoped to Platypus
+# storefronts only (lighthouserc.bitbucket.js / lighthouserc.mobile.bitbucket.js) to fit
+# the confirmed Bitbucket Free-tier build-minute budget (50 min/month, workspace hp95).
+#
+# GitHub Actions remains the source of truth for the full 8-storefront audit; this
+# pipeline is a separate, Platypus-only addition with its own Firebase Hosting deploy and
+# Microsoft Teams notification, neither of which exists on the GitHub workflow.
+#
+# custom: trigger only, deliberately no `push: branches: [main]` trigger. Bitbucket has no
+# cancel-in-progress equivalent (Concurrency Groups queue rather than cancel), so rapid
+# pushes would queue full runs and could exhaust the monthly build-minute budget in one
+# burst. Add an automatic trigger only after real build-minute usage has been measured.
+#
+# No pull-requests: trigger either: bitbucket-mirror.yml force-pushes `main` only (no
+# tags, no PRs), so a pull-requests: section here would silently never fire.
+#
+# Bitbucket-run Lighthouse scores must never be compared against the GitHub-run baseline:
+# Bitbucket cloud runners are always Docker containers, GitHub's ubuntu-latest is a VM with
+# host Chrome, and the official Lighthouse CI docs flag containerized Chrome as producing
+# non-comparable performance numbers. The deterministic accessibility gates (image-alt,
+# document-title, html-has-lang, categories:accessibility) are unaffected either way.
+#
+# Manual setup required before this pipeline can run (see chat/implementation report for
+# the full checklist): a Firebase project with Hosting enabled and a release-retention
+# limit set, a Firebase service-account key (Hosting-deploy-only role), and a Teams
+# Workflows webhook, each wired in as the repository variables referenced below.
+
+image: node:22
+
+pipelines:
+  custom:
+    lighthouse-audit-platypus:
+      - variables:
+          - name: LHCI_RUNS
+            default: '3'
+            allowed-values:
+              - '1'
+              - '3'
+              - '5'
+      - step:
+          name: Lighthouse Audit (Platypus AU/NZ) + Firebase deploy + Teams notify
+          size: 1x
+          max-time: 30
+          caches:
+            - node
+          script:
+            # Chrome via Google's official apt repo. --cap-add=SYS_ADMIN / --shm-size are
+            # docker-run flags Bitbucket does not expose on a step's image:; the
+            # --no-sandbox --disable-dev-shm-usage chromeFlags already set in
+            # lighthouserc.bitbucket.js / lighthouserc.mobile.bitbucket.js are the
+            # in-process substitute.
+            - apt-get update && apt-get install -y wget gnupg curl gettext-base
+            - wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+            - echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list
+            - apt-get update && apt-get install -y google-chrome-stable
+            - google-chrome --version
+
+            - npm ci
+
+            - |
+              node -e "
+              const fs = require('fs');
+              const patch = (file) => {
+                const patched = fs.readFileSync(file, 'utf8').replace(/numberOfRuns:\s*\d+/, 'numberOfRuns: ${LHCI_RUNS}');
+                fs.writeFileSync(file, patched);
+              };
+              patch('lighthouserc.bitbucket.js');
+              patch('lighthouserc.mobile.bitbucket.js');
+              console.log('numberOfRuns patched to ${LHCI_RUNS} in both Bitbucket configs');
+              "
+
+            # Desktop (Platypus only). ASSERT_DESKTOP is captured via `|| VAR=$?` rather than
+            # a trailing `; VAR=$?`, because Bitbucket steps run as `set -e`: a bare `;` would
+            # let a failing assert abort the whole step before the exit code is captured.
+            - ASSERT_DESKTOP=0
+            - LHCI_NO_ANONYMOUS_USAGE_STATISTICS=true npx lhci collect --config=lighthouserc.bitbucket.js || true
+            - LHCI_NO_ANONYMOUS_USAGE_STATISTICS=true npx lhci upload --config=lighthouserc.bitbucket.js || true
+            - npx lhci assert --config=lighthouserc.bitbucket.js || ASSERT_DESKTOP=$?
+
+            # Mobile (Platypus only)
+            - ASSERT_MOBILE=0
+            - LHCI_NO_ANONYMOUS_USAGE_STATISTICS=true npx lhci collect --config=lighthouserc.mobile.bitbucket.js || true
+            - LHCI_NO_ANONYMOUS_USAGE_STATISTICS=true npx lhci upload --config=lighthouserc.mobile.bitbucket.js || true
+            - npx lhci assert --config=lighthouserc.mobile.bitbucket.js || ASSERT_MOBILE=$?
+
+            # Merge mobile into the desktop dir for a single deploy bundle
+            - mkdir -p lighthouse-reports/mobile || true
+            - cp -r lighthouse-reports-mobile/. lighthouse-reports/mobile/ || true
+
+            # Landing page. generate-lhci-index.bitbucket.js is a full copy of the
+            # GitHub-only scripts/generate-lhci-index.js, reading BITBUCKET_COMMIT /
+            # BITBUCKET_BRANCH (Bitbucket's built-in pipeline variables) directly.
+            - node scripts/generate-lhci-index.bitbucket.js || true
+
+            # Kept to reduce Firebase storage pressure even though Firebase's per-file cap
+            # (2 GB) is far looser than Cloudflare's (25 MiB), which this originally guarded.
+            - find lighthouse-reports -type f -size +25M -delete || true
+
+            # Firebase Hosting deploy. GOOGLE_APPLICATION_CREDENTIALS is firebase-tools'
+            # recommended CI auth path but has open bugs as of the source research report
+            # (firebase-tools #8505, #10726). If this fails in practice, the documented
+            # fallback is the deprecated FIREBASE_TOKEN flag; that must be a deliberate,
+            # reviewed decision, not something silently wired in here.
+            #
+            # Guarded the same way the GitHub workflow guards its Cloudflare deploy
+            # (hashFiles('lighthouse-reports/index.html') != ''): lhci assert exits 0 on
+            # zero collected results, so a total collect failure must not be allowed to
+            # republish an empty bundle over a previously-good live site.
+            - echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 -d > /tmp/firebase-sa.json || true
+            - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json
+            - '[ -f lighthouse-reports/index.html ] && npx firebase-tools@13 deploy --only hosting --project "$FIREBASE_PROJECT_ID" --non-interactive || true'
+            - rm -f /tmp/firebase-sa.json
+
+            # Microsoft Teams notification via a Workflows webhook. Action.OpenUrl buttons
+            # do not render through Workflows, so the report link is a markdown link inside
+            # a TextBlock instead. envsubst is restricted to these five names so the
+            # unrelated literal "$schema" key in teams-payload-template.json is left alone.
+            - |
+              if [ "${ASSERT_DESKTOP:-0}" -eq 0 ] && [ "${ASSERT_MOBILE:-0}" -eq 0 ]; then export STATUS="Passed"; else export STATUS="Failed"; fi
+              export FIREBASE_URL="https://${FIREBASE_PROJECT_ID}.web.app"
+              envsubst '${STATUS} ${BITBUCKET_BRANCH} ${BITBUCKET_BUILD_NUMBER} ${LHCI_RUNS} ${FIREBASE_URL}' < teams-payload-template.json > /tmp/teams-payload.json || true
+              curl -sS -X POST -H 'Content-type: application/json' --data @/tmp/teams-payload.json "$TEAMS_WEBHOOK_URL" || true
+
+            # Pipeline status reflects both assert results even though reports already
+            # deployed and Teams was already notified above (the `if: always()` dividend
+            # from the source research report). Defaulted to 0 defensively: both are always
+            # initialized earlier in this script, but the pipeline runner is untested live.
+            - '[ "${ASSERT_DESKTOP:-0}" -eq 0 ] && [ "${ASSERT_MOBILE:-0}" -eq 0 ]'
+          artifacts:
+            # 14-day retention / 1 GB per-artifact cap (Bitbucket platform defaults, not
+            # configurable here) vs GitHub's 30-day actions/upload-artifact retention.
+            - lighthouse-reports/**
+            - lighthouse-reports-mobile/**
