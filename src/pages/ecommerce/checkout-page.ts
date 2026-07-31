@@ -148,7 +148,7 @@ export class EcommerceCheckoutPage extends BasePage {
   private readonly emailFieldPattern = /e-?mail/i;
 
   // E2E-CHKOUT-002 — Text pattern that identifies a login-section signal (a visible
-  // login-submit button, e.g. "LOG IN & CONTINUE"). Used by isGuestEmailFieldVisible() as
+  // login-submit button, e.g. "LOG IN & CONTINUE"). Used by findGuestEmailInput() as
   // a boundary marker: the ancestor-widening scan stops once it reaches a container that
   // also contains this signal (or a visible password input), so the guest-email search
   // never widens past the point where the login section's own email input could shadow it.
@@ -193,7 +193,7 @@ export class EcommerceCheckoutPage extends BasePage {
   private readonly shippingFieldAttrPattern =
     /first-?name|last-?name|full-?address|address|post-?code|zip|suburb|city|phone/i;
 
-  // Attribute name used to tag the guest-section email input (see tagGuestEmailInput())
+  // Attribute name used to tag the guest-section email input (see findGuestEmailInput())
   // so a genuine Playwright locator can .fill() it — CDP-level fill correctly triggers
   // React's onChange handler; a raw DOM `.value =` assignment does not.
   private readonly guestEmailTargetAttr = 'data-qa-guest-email-target';
@@ -220,7 +220,7 @@ export class EcommerceCheckoutPage extends BasePage {
 
   // E2E-CHKOUT-004 — Attribute patterns identifying each individual shipping-form field by
   // name/id/placeholder/aria-label, used one at a time with tagFieldByAttrPattern() so each
-  // field can be filled through a genuine Playwright locator (mirrors tagGuestEmailInput()'s
+  // field can be filled through a genuine Playwright locator (mirrors findGuestEmailInput()'s
   // fill-via-real-locator rationale — a raw DOM value assignment does not update React state).
   private readonly shippingFirstNameFieldPattern = /first-?name/i;
   private readonly shippingLastNameFieldPattern = /last-?name/i;
@@ -377,12 +377,18 @@ export class EcommerceCheckoutPage extends BasePage {
     }, this.guestSubmitPattern.source);
   }
 
-  // E2E-CHKOUT-002 — Returns true if a visible, enabled email input is present in the guest
-  // section of the checkout auth modal (i.e. near the "CONTINUE AS GUEST" button). The scan
-  // widens outward from the guest CTA one ancestor level at a time but stops as soon as it
-  // reaches a container that also carries a login-section signal (a visible password input,
-  // or a visible button/submit matching loginSubmitPattern) — that container is treated as
-  // the outer boundary between the guest and login sections, so the search never widens far
+  // E2E-CHKOUT-002 / E2E-CHKOUT-003 — Locates the guest-section email input in the checkout
+  // auth modal (i.e. near the "CONTINUE AS GUEST" button), optionally tagging it with
+  // `targetAttr` so a caller can then fill it through a genuine Playwright locator. Pass ''
+  // to probe without mutating the DOM. Tagging exists because a raw DOM `.value =` assignment
+  // does not update React's controlled-input state — only a real CDP-level fill (dispatched
+  // via this.elements.enterText) reliably triggers the onChange handler that CONTINUE AS GUEST
+  // validation depends on.
+  //
+  // The scan widens outward from the guest CTA one ancestor level at a time but stops as soon
+  // as it reaches a container that also carries a login-section signal (a visible password
+  // input, or a visible button/submit matching loginSubmitPattern) — that container is treated
+  // as the outer boundary between the guest and login sections, so the search never widens far
   // enough to pick up the login section's own email input. This is not an absolute DOM
   // boundary marker (Magento PWA storefronts nest the guest/login sections at varying
   // depths inside a shared modal wrapper), but the login-signal check is what enforces
@@ -399,17 +405,19 @@ export class EcommerceCheckoutPage extends BasePage {
   //      arbitrary depth cap is used, since the login-boundary check is the real scoping
   //      mechanism.
   // Never throws — returns false on any detection failure.
-  async isGuestEmailFieldVisible(): Promise<boolean> {
+  private async findGuestEmailInput(targetAttr: string): Promise<boolean> {
     return this.page
       .evaluate(
         ({
           guestPattern,
           emailPattern,
           loginPattern,
+          targetAttr,
         }: {
           guestPattern: string;
           emailPattern: string;
           loginPattern: string;
+          targetAttr: string;
         }) => {
           const guestRe = new RegExp(guestPattern, 'i');
           const emailRe = new RegExp(emailPattern, 'i');
@@ -474,7 +482,10 @@ export class EcommerceCheckoutPage extends BasePage {
                   container.querySelectorAll<HTMLInputElement>('input'),
                 );
                 const match = inputs.find((input) => isVisible(input) && isEmailInput(input));
-                if (match) return true;
+                if (match) {
+                  if (targetAttr) match.setAttribute(targetAttr, 'true');
+                  return true;
+                }
               }
 
               // Stop widening once this container carries a login-section signal — it is the
@@ -495,121 +506,33 @@ export class EcommerceCheckoutPage extends BasePage {
           guestPattern: this.guestSubmitPattern.source,
           emailPattern: this.emailFieldPattern.source,
           loginPattern: this.loginSubmitPattern.source,
+          targetAttr,
         },
       )
       .catch(() => false);
   }
 
-  // E2E-CHKOUT-003 — Locates the guest-section email input using the SAME ancestor-widening
-  // scan as isGuestEmailFieldVisible() (guest CTA -> widen until a login-signal boundary) and
-  // tags it with a temporary marker attribute so fillGuestEmailAndContinue() can interact with
-  // it through a genuine Playwright locator. A raw DOM `.value =` assignment does not update
-  // React's controlled-input state — only a real CDP-level fill (dispatched via
-  // this.elements.enterText) reliably triggers the onChange handler that CONTINUE AS GUEST
-  // validation depends on. Returns true if an input was found and tagged. Never throws.
-  private async tagGuestEmailInput(): Promise<boolean> {
-    return this.page
-      .evaluate(
-        ({
-          guestPattern,
-          emailPattern,
-          loginPattern,
-          targetAttr,
-        }: {
-          guestPattern: string;
-          emailPattern: string;
-          loginPattern: string;
-          targetAttr: string;
-        }) => {
-          const guestRe = new RegExp(guestPattern, 'i');
-          const emailRe = new RegExp(emailPattern, 'i');
-          const loginRe = new RegExp(loginPattern, 'i');
-
-          const isVisible = (el: Element): boolean => {
-            const r = el.getBoundingClientRect();
-            if (r.width === 0 || r.height === 0) return false;
-            const style = getComputedStyle(el);
-            if (style.visibility === 'hidden' || style.display === 'none') return false;
-            if (parseFloat(style.opacity || '1') === 0) return false;
-            return true;
-          };
-
-          const isEmailInput = (input: HTMLInputElement): boolean => {
-            if (input.disabled) return false;
-            if (input.type === 'email') return true;
-            const attrs = ['name', 'id', 'placeholder', 'aria-label'];
-            return attrs.some((a) => {
-              const v = input.getAttribute(a) ?? '';
-              return v !== '' && emailRe.test(v);
-            });
-          };
-
-          const hasLoginSignal = (container: Element): boolean => {
-            const hasPasswordInput = Array.from(
-              container.querySelectorAll<HTMLInputElement>('input[type="password"]'),
-            ).some(isVisible);
-            if (hasPasswordInput) return true;
-
-            const loginBtns = Array.from(
-              container.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
-            );
-            return loginBtns.some((b) => {
-              const text = (b.innerText ?? b.textContent ?? '').trim();
-              return loginRe.test(text) && isVisible(b);
-            });
-          };
-
-          const guestBtns = Array.from(
-            document.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
-          ).filter((btn) => {
-            const text = (btn.innerText ?? btn.textContent ?? '').trim();
-            return guestRe.test(text) && isVisible(btn);
-          });
-
-          for (const btn of guestBtns) {
-            let container: Element | null = btn.parentElement;
-            let isTightestAncestor = true;
-            while (container) {
-              const loginBoundary = hasLoginSignal(container);
-              if (!loginBoundary || isTightestAncestor) {
-                const inputs = Array.from(
-                  container.querySelectorAll<HTMLInputElement>('input'),
-                );
-                const match = inputs.find((input) => isVisible(input) && isEmailInput(input));
-                if (match) {
-                  match.setAttribute(targetAttr, 'true');
-                  return true;
-                }
-              }
-
-              if (loginBoundary) break;
-              if (container === document.body || !container.parentElement) break;
-              container = container.parentElement;
-              isTightestAncestor = false;
-            }
-          }
-          return false;
-        },
-        {
-          guestPattern: this.guestSubmitPattern.source,
-          emailPattern: this.emailFieldPattern.source,
-          loginPattern: this.loginSubmitPattern.source,
-          targetAttr: this.guestEmailTargetAttr,
-        },
-      )
-      .catch(() => false);
+  // E2E-CHKOUT-002 — Returns true if a visible, enabled email input is present in the guest
+  // section of the checkout auth modal (i.e. near the "CONTINUE AS GUEST" button). Probe only:
+  // passes an empty target attribute so the scan never mutates the DOM.
+  async isGuestEmailFieldVisible(): Promise<boolean> {
+    return this.findGuestEmailInput('');
   }
 
   // E2E-CHKOUT-003 — Fills the guest-section email input in the checkout auth modal with a
   // valid email and submits it via CONTINUE AS GUEST, advancing the flow from the auth modal
   // into the shipping address form. Callers must confirm the transition with
   // isOnShippingStep() before treating the shipping form as active (see that method's doc).
-  async fillGuestEmailAndContinue(email: string): Promise<void> {
-    const tagged = await this.tagGuestEmailInput();
+  // Returns whether the email input was found and filled — a false result means CONTINUE AS
+  // GUEST was clicked against an empty field, per the file's fill-success policy (see
+  // fillGuestShippingContactFields() below).
+  async fillGuestEmailAndContinue(email: string): Promise<boolean> {
+    const tagged = await this.findGuestEmailInput(this.guestEmailTargetAttr);
     if (tagged) {
       await this.elements.enterText(this.guestEmailTargetSelector, email);
     }
     await this.submitCurrentStep();
+    return tagged;
   }
 
   // Waits until the checkout state is active — either:
@@ -649,8 +572,6 @@ export class EcommerceCheckoutPage extends BasePage {
   // Never throws — returns false on any detection failure (fails safe, since callers hard-
   // assert this as a precondition gate).
   async isOnShippingStep(): Promise<boolean> {
-    const headingPattern = this.shippingStepHeadingPattern.source;
-    const fieldPattern = this.shippingFieldAttrPattern.source;
     let found = false;
     await this.waits
       .waitForCustomCondition(
@@ -687,7 +608,10 @@ export class EcommerceCheckoutPage extends BasePage {
                 },
               );
             },
-            { headingSrc: headingPattern, fieldSrc: fieldPattern },
+            {
+              headingSrc: this.shippingStepHeadingPattern.source,
+              fieldSrc: this.shippingFieldAttrPattern.source,
+            },
           );
           return found;
         },
@@ -705,9 +629,6 @@ export class EcommerceCheckoutPage extends BasePage {
   // Clicking the CHECKOUT button opens the checkout auth modal on the same page (no navigation).
   // Call waitForCheckoutLoad() after this method to confirm the modal is active.
   async clickCheckoutCtaFromOverlay(): Promise<void> {
-    const overlaySelector = this.overlayPanelSelector;
-    const ctaPattern = this.checkoutCtaTextPattern.source;
-    const ctaFlags = this.checkoutCtaTextPattern.flags;
     await this.page.evaluate(
       ({ selector, pattern, flags }: { selector: string; pattern: string; flags: string }) => {
         const ctaRe = new RegExp(pattern, flags);
@@ -732,7 +653,11 @@ export class EcommerceCheckoutPage extends BasePage {
           }
         }
       },
-      { selector: overlaySelector, pattern: ctaPattern, flags: ctaFlags },
+      {
+        selector: this.overlayPanelSelector,
+        pattern: this.checkoutCtaTextPattern.source,
+        flags: this.checkoutCtaTextPattern.flags,
+      },
     );
   }
 
@@ -771,8 +696,6 @@ export class EcommerceCheckoutPage extends BasePage {
     if (guestClicked) return;
 
     // Pass 2: generic checkout submit button (shipping/payment/review steps)
-    const submitPattern = this.checkoutSubmitPattern.source;
-    const submitFlags = this.checkoutSubmitPattern.flags;
     await this.page.evaluate(
       ({ pattern, flags }: { pattern: string; flags: string }) => {
         const re = new RegExp(pattern, flags);
@@ -789,7 +712,7 @@ export class EcommerceCheckoutPage extends BasePage {
           return;
         }
       },
-      { pattern: submitPattern, flags: submitFlags },
+      { pattern: this.checkoutSubmitPattern.source, flags: this.checkoutSubmitPattern.flags },
     );
   }
 
@@ -805,14 +728,12 @@ export class EcommerceCheckoutPage extends BasePage {
   //
   // Polls for DIALOG_APPEAR timeout to allow React state updates to commit before returning.
   async hasRequiredFieldValidation(): Promise<boolean> {
-    const ariaSelector = this.ariaValidationSelector;
-    const textPattern = this.validationTextPattern.source;
     let found = false;
     await this.waits
       .waitForCustomCondition(
         async () => {
           found = await this.page.evaluate(
-            ({ ariasel, textpat }: { ariasel: string; textpat: string }) => {
+            ({ ariaSelector, textPattern }: { ariaSelector: string; textPattern: string }) => {
               const isVisibleWithText = (el: Element): boolean => {
                 const text =
                   (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
@@ -822,9 +743,7 @@ export class EcommerceCheckoutPage extends BasePage {
               };
 
               // 1. ARIA-based signals (preferred — semantic and hash-safe)
-              if (
-                Array.from(document.querySelectorAll(ariasel)).some(isVisibleWithText)
-              ) {
+              if (Array.from(document.querySelectorAll(ariaSelector)).some(isVisibleWithText)) {
                 return true;
               }
 
@@ -832,21 +751,20 @@ export class EcommerceCheckoutPage extends BasePage {
               //    address." rendered in a plain div by Magento PWA checkout components).
               //    Pre-filter to elements whose text includes a validation keyword before
               //    applying the full regex, to avoid scanning thousands of DOM nodes.
-              const re = new RegExp(textpat, 'i');
+              const re = new RegExp(textPattern, 'i');
               return Array.from(document.querySelectorAll('*')).some((el) => {
-                if ((el as Element).children.length > 0) return false;
+                if (el.children.length > 0) return false;
                 const text =
                   (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
                 if (!text) return false;
-                if (
-                  !/(please|required|must|invalid|cannot|blank)/i.test(text)
-                ) {
-                  return false;
-                }
+                if (!/(please|required|must|invalid|cannot|blank)/i.test(text)) return false;
                 return isVisibleWithText(el) && re.test(text);
               });
             },
-            { ariasel: ariaSelector, textpat: textPattern },
+            {
+              ariaSelector: this.ariaValidationSelector,
+              textPattern: this.validationTextPattern.source,
+            },
           );
           return found;
         },
@@ -859,10 +777,8 @@ export class EcommerceCheckoutPage extends BasePage {
   // Returns the text content of all visible validation error messages on the current step.
   // Returns an empty array if none are found. Never throws.
   async getValidationMessages(): Promise<string[]> {
-    const ariaSelector = this.ariaValidationSelector;
-    const textPattern = this.validationTextPattern.source;
     return this.page.evaluate(
-      ({ ariasel, textpat }: { ariasel: string; textpat: string }) => {
+      ({ ariaSelector, textPattern }: { ariaSelector: string; textPattern: string }) => {
         const messages: string[] = [];
         const seen = new Set<string>();
 
@@ -876,11 +792,11 @@ export class EcommerceCheckoutPage extends BasePage {
           messages.push(text);
         };
 
-        Array.from(document.querySelectorAll(ariasel)).forEach(addIfVisible);
+        Array.from(document.querySelectorAll(ariaSelector)).forEach(addIfVisible);
 
-        const re = new RegExp(textpat, 'i');
+        const re = new RegExp(textPattern, 'i');
         Array.from(document.querySelectorAll('*')).forEach((el) => {
-          if ((el as Element).children.length > 0) return;
+          if (el.children.length > 0) return;
           const text =
             (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
           if (!text || !/(please|required|must|invalid|cannot|blank)/i.test(text)) return;
@@ -895,15 +811,15 @@ export class EcommerceCheckoutPage extends BasePage {
 
         return messages;
       },
-      { ariasel: ariaSelector, textpat: textPattern },
+      { ariaSelector: this.ariaValidationSelector, textPattern: this.validationTextPattern.source },
     );
   }
 
   // E2E-CART-010 — Navigates directly to the /cart page. Used so callers can guarantee the
   // promo/discount field scan happens against /cart specifically, rather than relying on
   // isPromoCodeFieldVisible()'s Pass-1 scan of whatever surface (PDP, mini-cart overlay) is
-  // currently loaded. Uses a relative URL to preserve the current storefront origin and
-  // SPA session, same pattern as the Pass-2 navigation inside isPromoCodeFieldVisible().
+  // currently loaded. Uses a relative URL to preserve the current storefront origin and SPA
+  // session; isPromoCodeFieldVisible()'s Pass 2 reuses this method.
   async navigateToCart(): Promise<void> {
     await this.gotoWithOptions(new URL('/cart', this.page.url()).toString(), {
       waitUntil: 'domcontentloaded',
@@ -917,22 +833,15 @@ export class EcommerceCheckoutPage extends BasePage {
   // the mini-cart overlay, or — most commonly — the /cart page. This method scans ALL
   // surfaces by first probing the current DOM, then navigating to /cart and re-scanning.
   async isPromoCodeFieldVisible(): Promise<boolean> {
-    const promoKeyword = this.promoKeywordPattern.source;
-    const promoApply = this.promoApplyButtonPattern.source;
-
     // Pass 1: scan current page DOM (checkout step + any visible overlays).
-    if (await this.scanForPromoField(promoKeyword, promoApply)) {
+    if (await this.scanForPromoField()) {
       return true;
     }
 
     // Pass 2: navigate to /cart and re-scan. Most Magento PWAs expose the promo field here
-    // (typically an expandable "Have a promo code?" link). Uses relative URL to preserve
-    // the current storefront origin and SPA session.
+    // (typically an expandable "Have a promo code?" link).
     try {
-      await this.gotoWithOptions(new URL('/cart', this.page.url()).toString(), {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUTS.NETWORK_IDLE_SLOW,
-      });
+      await this.navigateToCart();
       await this.waits
         .waitForCustomCondition(
           async () =>
@@ -942,7 +851,7 @@ export class EcommerceCheckoutPage extends BasePage {
           { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
         )
         .catch(() => {});
-      return await this.scanForPromoField(promoKeyword, promoApply);
+      return await this.scanForPromoField();
     } catch {
       return false;
     }
@@ -951,14 +860,15 @@ export class EcommerceCheckoutPage extends BasePage {
   // Internal helper: scans the current page DOM for a promo/discount code field. Pattern-
   // based scan (no CSS) — matches any visible text-input whose name/id/placeholder/aria-label
   // or associated label text matches the promo keyword pattern (promo|discount|coupon|voucher).
-  // Returns true as soon as ANY signal is found. Never throws.
-  private async scanForPromoField(keywordSource: string, applySource: string): Promise<boolean> {
+  // The Apply-button signal is a separate check — see hasApplyPromoButton().
+  // Returns true as soon as either the attribute or the nearby-label signal matches. Never throws.
+  private async scanForPromoField(): Promise<boolean> {
     let found = false;
     await this.waits
       .waitForCustomCondition(
         async () => {
           found = await this.page.evaluate(
-            ({ keywordSource, applySource }: { keywordSource: string; applySource: string }) => {
+            (keywordSource: string) => {
               const keywordRe = new RegExp(keywordSource, 'i');
               const isVisible = (el: Element): boolean => {
                 const r = el.getBoundingClientRect();
@@ -1027,7 +937,7 @@ export class EcommerceCheckoutPage extends BasePage {
               }
               return false;
             },
-            { keywordSource, applySource },
+            this.promoKeywordPattern.source,
           );
           return found;
         },
@@ -1038,11 +948,10 @@ export class EcommerceCheckoutPage extends BasePage {
   }
 
   // E2E-CART-010 (recommended secondary check) — Returns true if an "Apply promo/discount/
-  // coupon/voucher code" button is visible at the current checkout entry point. Mirrors the
-  // Apply-button branch of isPromoCodeFieldVisible() but exposed as a standalone helper for
-  // callers that want to split the promo-input and apply-button assertions.
+  // coupon/voucher code" button is visible at the current checkout entry point. Kept separate
+  // from isPromoCodeFieldVisible() (which scans only for the input) so callers can split the
+  // promo-input and apply-button assertions.
   async hasApplyPromoButton(): Promise<boolean> {
-    const applyPattern = this.promoApplyButtonPattern.source;
     return this.page.evaluate((pattern: string) => {
       const re = new RegExp(pattern, 'i');
       const btns = Array.from(
@@ -1058,13 +967,13 @@ export class EcommerceCheckoutPage extends BasePage {
         if (style.visibility === 'hidden' || style.display === 'none') return false;
         return true;
       });
-    }, applyPattern);
+    }, this.promoApplyButtonPattern.source);
   }
 
-  // E2E-CHKOUT-004 — Generic version of tagGuestEmailInput(): tags the first visible, enabled
+  // E2E-CHKOUT-004 — Generic version of findGuestEmailInput(): tags the first visible, enabled
   // input whose name/id/placeholder/aria-label matches `pattern` with `targetAttr`, so callers
   // can fill it through a genuine Playwright locator (a raw DOM value assignment does not
-  // update React's controlled-input state). Unlike tagGuestEmailInput(), no login-boundary
+  // update React's controlled-input state). Unlike findGuestEmailInput(), no login-boundary
   // scoping is needed — the shipping form has no competing sibling field of the same type.
   // Returns false (never throws) if no matching field is found.
   private async tagFieldByAttrPattern(pattern: RegExp, targetAttr: string): Promise<boolean> {
@@ -1206,8 +1115,6 @@ export class EcommerceCheckoutPage extends BasePage {
   // and NOT the "Hang tight, we are finding the best option" loading placeholder (which also
   // contains a comma and would otherwise false-match). Returns false if no candidate is found.
   private async clickFirstAddressSuggestion(): Promise<boolean> {
-    const inputSelector = this.shippingAddressTargetSelector;
-    const loadingPattern = this.shippingMethodsLoadingTextPattern.source;
     return this.page
       .evaluate(
         ({ selector, loadingSrc }: { selector: string; loadingSrc: string }) => {
@@ -1232,7 +1139,10 @@ export class EcommerceCheckoutPage extends BasePage {
           (candidates[0] as HTMLElement).click();
           return true;
         },
-        { selector: inputSelector, loadingSrc: loadingPattern },
+        {
+          selector: this.shippingAddressTargetSelector,
+          loadingSrc: this.shippingMethodsLoadingTextPattern.source,
+        },
       )
       .catch(() => false);
   }
@@ -1287,7 +1197,6 @@ export class EcommerceCheckoutPage extends BasePage {
   // visible before starting to fill anything closes this race. Best-effort — falls through on
   // timeout so the caller's own precondition checks remain the source of truth.
   async waitForShippingFormReady(): Promise<void> {
-    const fieldPattern = this.shippingAddressFieldPattern.source;
     await this.waits
       .waitForCustomCondition(
         async () =>
@@ -1306,7 +1215,7 @@ export class EcommerceCheckoutPage extends BasePage {
                   return v !== '' && re.test(v);
                 });
               });
-            }, fieldPattern)
+            }, this.shippingAddressFieldPattern.source)
             .catch(() => false),
         { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
       )
@@ -1371,17 +1280,7 @@ export class EcommerceCheckoutPage extends BasePage {
     await this.waits
       .waitForCustomCondition(
         async () => {
-          const count = await this.page
-            .evaluate(() => {
-              const isVisible = (el: Element): boolean => {
-                const r = el.getBoundingClientRect();
-                return r.width > 0 && r.height > 0;
-              };
-              return Array.from(document.querySelectorAll<HTMLInputElement>('input[type="radio"]')).filter(
-                (el) => isVisible(el) && !el.disabled,
-              ).length;
-            })
-            .catch(() => 0);
+          const count = await this.getSelectableShippingMethodCount();
           if (count > 0 && count === lastCount) {
             stableReads++;
           } else {
@@ -1422,7 +1321,6 @@ export class EcommerceCheckoutPage extends BasePage {
   // re-render rather than the shipping-rate call ever failing. `pageText` is capped to keep the
   // attachment readable; it is a debugging aid, not something any assertion parses.
   async captureShippingMethodDiagnostics(): Promise<ShippingMethodDiagnostics> {
-    const loadingPattern = this.shippingMethodsLoadingTextPattern.source;
     const domSnapshot = await this.page
       .evaluate((loadingSrc: string) => {
         const isVisible = (el: Element): boolean => {
@@ -1438,7 +1336,7 @@ export class EcommerceCheckoutPage extends BasePage {
           loadingTextVisible: loadingRe.test(document.body.innerText),
           pageText: document.body.innerText.slice(0, 4000),
         };
-      }, loadingPattern)
+      }, this.shippingMethodsLoadingTextPattern.source)
       .catch(() => ({
         totalRadioCount: -1,
         enabledRadioCount: -1,
@@ -1943,7 +1841,6 @@ export class EcommerceCheckoutPage extends BasePage {
   // order had genuinely succeeded. Polls the same read for DIALOG_APPEAR before giving up, the
   // same settle pattern used elsewhere in this class (e.g. hasRequiredFieldValidation()).
   async getOrderConfirmationNumber(): Promise<string | null> {
-    const pattern = this.orderNumberTextPattern.source;
     let orderNumber: string | null = null;
     await this.waits
       .waitForCustomCondition(
@@ -1953,7 +1850,7 @@ export class EcommerceCheckoutPage extends BasePage {
               const re = new RegExp(patternSrc, 'i');
               const match = document.body.innerText.match(re);
               return match ? match[1] : null;
-            }, pattern)
+            }, this.orderNumberTextPattern.source)
             .catch(() => null);
           return orderNumber !== null;
         },
