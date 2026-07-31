@@ -39,7 +39,7 @@ export const MODEL_FAMILIES = {
   'claude-haiku-4-5-20251001': 'Anthropic (US)',
   'claude-sonnet-5': 'Anthropic (US)',
   'grok-4': 'xAI (US)',
-  'deepseek-v4-pro': 'DeepSeek (China)',
+  'kimi-k3': 'Moonshot AI (China)',
   'glm-4-flash': 'Z.ai / Zhipu (China)',
 };
 
@@ -60,7 +60,7 @@ export const PANELS = {
       'gemini-3.1-flash-lite',
       'claude-haiku-4-5-20251001',
       'grok-4',
-      'deepseek-v4-pro',
+      'kimi-k3',
     ],
     chairman: 'gpt-5.6-sol',
     maxTokens: { ...DEFAULT_MAX_TOKENS },

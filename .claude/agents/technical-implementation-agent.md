@@ -274,6 +274,16 @@ If validation cannot be completed, report the reason.
 
 ---
 
+## Step 7: List Files for Simplification
+
+If any `.ts`/`.tsx` files were changed, list those exact paths in the Validation Performed table
+(Output Format, §7) below. You do not have the `Skill` or `Agent` tool, so you cannot invoke
+`/code-simplifier` yourself — whoever dispatched you does that afterward, on this file list (see
+CLAUDE.md §7). Skip this step if no `.ts`/`.tsx` files were changed (e.g. a dependency-only or
+config-only implementation).
+
+---
+
 # Implementation Standards
 
 ## For This Framework (CRITICAL)
@@ -434,6 +444,7 @@ If no tests were added, explain why.
 | npm run lint | PASS/FAIL/NOT RUN |  |
 | npm run test:simple | PASS/FAIL/NOT RUN |  |
 | npm run test:api | PASS/FAIL/NOT RUN |  |
+| /code-simplifier | files listed below for caller to run post-report, per CLAUDE.md §7 / N-A |  |
 
 ## 8. Risks / Limitations
 

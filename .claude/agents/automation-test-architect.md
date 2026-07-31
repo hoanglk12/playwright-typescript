@@ -481,6 +481,7 @@ export const MyApiData: MyApiDataShape = {
 5. **Create or update test data** in `src/data/`
 6. **Write the spec file** under `tests/{area}/`
 7. **Verify the output** — use `Bash` to run `PLAYWRIGHT_HTML_OPEN=never npx playwright test <spec-file> --project=chromium` and confirm it passes. If you need to inspect the live app first, open a browser session with `playwright-cli open <url>`, explore via `playwright-cli snapshot` / `playwright-cli click` / etc., then `playwright-cli close`.
+8. **Report the exact `.ts`/`.tsx` files you created or modified** in your final response. You do not have the `Skill` or `Agent` tool, so you cannot invoke `/code-simplifier` yourself — whoever dispatched you does that afterward, using this file list (see CLAUDE.md §7).
 
 ---
 

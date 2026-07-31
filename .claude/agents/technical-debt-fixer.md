@@ -344,6 +344,15 @@ introduced by this fix.
 
 ---
 
+### Step 4.5 — List Files for Simplification
+
+List every `.ts` file fixed in scope for the Validation table below (Step 5). You do not have
+the `Skill` or `Agent` tool, so you cannot invoke `/code-simplifier` yourself — whoever
+dispatched you does that afterward, on this file list (see CLAUDE.md §7). Skip this step
+entirely if the scope touched only non-`.ts` files (e.g. a DEBT-011 YAML-only fix).
+
+---
+
 ### Step 5 — Output Fix Report
 
 Write a concise fix report to the conversation (do NOT write it to a file unless the user asks).
@@ -375,6 +384,7 @@ Use this structure:
 | Command | Result |
 |---|---|
 | npm run lint | ✅ PASS (0 errors) |
+| /code-simplifier | files listed below for caller to run post-report, per CLAUDE.md §7 / N-A |
 
 ## Remaining in Scope (not fixed this run)
 

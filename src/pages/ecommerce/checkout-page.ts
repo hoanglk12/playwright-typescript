@@ -215,8 +215,53 @@ export class EcommerceCheckoutPage extends BasePage {
 
   // Pattern that an Apply button label would match — used for the secondary
   // "Apply promo button visible" check recommended by the discovery report.
-  private readonly promoApplyButtonPattern =
-    /apply.*(promo|discount|coupon|voucher|code)|(promo|discount|coupon|voucher).*code/i;
+  //
+  // E2E-CHKOUT-008 — RECON FINDING (confirmed live, Platypus AU staging, via a fixture-based
+  // throwaway recon spec that reused the real page-object methods): the real submit control
+  // for the promo form renders with the bare text "Apply" (`<button type="submit"><span>Apply
+  // </span></button>`), with no "promo/discount/coupon/voucher/code" word in its own text. The
+  // form's accordion trigger, however, renders as `<button type="button">Enter promo code</button>`
+  // — its text contains both "promo" and "code", so the original pattern's second alternative
+  // `(promo|discount|coupon|voucher).*code` matched the ACCORDION TOGGLE instead of the real
+  // Apply button, and — since scanApplyPromoButton() takes the first DOM match — always clicked
+  // the toggle. Because the promo section was already expanded (scanForPromoField() had already
+  // found and filled the input), clicking the toggle again collapsed the section without ever
+  // submitting the code, so no rejection message ever appeared. Anchoring on the word "apply"
+  // itself (present in every variant the discovery report documented — "Apply", "Apply code",
+  // "Apply discount", "Apply coupon") avoids matching the toggle, whose label never contains it.
+  private readonly promoApplyButtonPattern = /\bapply\b/i;
+
+  // E2E-CHKOUT-008 — Attribute used to tag the promo/discount input located by
+  // scanForPromoField() so applyPromoCode() can fill it through a genuine Playwright locator
+  // (mirrors guestEmailTargetAttr/shippingAddressTargetAttr — a raw DOM value assignment does
+  // not update React's controlled-input state).
+  private readonly promoCodeTargetAttr = 'data-qa-promo-code-target';
+  private readonly promoCodeTargetSelector = '[data-qa-promo-code-target="true"]';
+
+  // E2E-CHKOUT-008 — Rejection vocabulary for an invalid/expired promo code. Kept distinct
+  // from validationTextPattern: that pattern targets required-field messages ("please enter",
+  // "is required") and its "invalid" alternative does not match Magento's actual coupon-rejection
+  // string ("The coupon code isn't valid...") — n['']?t\s*valid covers the contracted form that
+  // a bare "not\s*valid" alternative would miss.
+  private readonly promoCodeErrorTextPattern =
+    /invalid|expired|n['’]?t\s*valid|no longer valid|cannot be applied|does not exist|not found/i;
+
+  // E2E-CHKOUT-008 — Co-occurrence check paired with promoCodeErrorTextPattern in
+  // scanForPromoCodeError(): rejection vocabulary alone ("invalid", "expired", "not found") is
+  // common in unrelated cart/payment copy, so a candidate element's text must ALSO reference the
+  // promo/coupon context.
+  //
+  // RECON FINDING (confirmed live, all 8 GRA storefronts, 2026-08-01): Magento's actual
+  // coupon-rejection copy is `"<code>" is invalid. Please check spelling & try again.` — it
+  // echoes the submitted code back but never uses the words "promo", "discount", "coupon", or
+  // "voucher", so this pattern's own "code" alternative was the only one that could ever match
+  // it, and "code" alone is too loose for its stated purpose (it also matches "postcode" in
+  // unrelated shipping-form copy elsewhere on /cart). scanForPromoCodeError() therefore treats
+  // the submitted code being echoed back in the candidate text as an equally valid, and
+  // strictly tighter, context signal — see the code-echo check there. This pattern remains the
+  // fallback for storefronts/messages that reference promo context by name instead of echoing
+  // the code.
+  private readonly promoErrorContextPattern = /promo|discount|coupon|voucher/i;
 
   // E2E-CHKOUT-004 — Attribute patterns identifying each individual shipping-form field by
   // name/id/placeholder/aria-label, used one at a time with tagFieldByAttrPattern() so each
@@ -862,13 +907,19 @@ export class EcommerceCheckoutPage extends BasePage {
   // or associated label text matches the promo keyword pattern (promo|discount|coupon|voucher).
   // The Apply-button signal is a separate check — see hasApplyPromoButton().
   // Returns true as soon as either the attribute or the nearby-label signal matches. Never throws.
-  private async scanForPromoField(): Promise<boolean> {
+  //
+  // E2E-CHKOUT-008 — `targetAttr`, when supplied, tags the matched input so applyPromoCode()
+  // can fill it through a genuine Playwright locator, reusing the exact same attr+label
+  // detection isPromoCodeFieldVisible() already relies on rather than a separate attr-only tag
+  // (tagFieldByAttrPattern() alone would miss any storefront where the field is matched only by
+  // its nearby label — see the class-level promo recon docblock's dual-signal strategy).
+  private async scanForPromoField(targetAttr?: string): Promise<boolean> {
     let found = false;
     await this.waits
       .waitForCustomCondition(
         async () => {
           found = await this.page.evaluate(
-            (keywordSource: string) => {
+            ({ keywordSource, targetAttr }: { keywordSource: string; targetAttr: string | null }) => {
               const keywordRe = new RegExp(keywordSource, 'i');
               const isVisible = (el: Element): boolean => {
                 const r = el.getBoundingClientRect();
@@ -932,12 +983,13 @@ export class EcommerceCheckoutPage extends BasePage {
               for (const input of textInputs) {
                 if (!isVisible(input)) continue;
                 if (input.disabled || input.readOnly) continue;
-                if (fieldAttrMatches(input)) return true;
-                if (nearbyLabelMatches(input)) return true;
+                if (!fieldAttrMatches(input) && !nearbyLabelMatches(input)) continue;
+                if (targetAttr) input.setAttribute(targetAttr, 'true');
+                return true;
               }
               return false;
             },
-            this.promoKeywordPattern.source,
+            { keywordSource: this.promoKeywordPattern.source, targetAttr: targetAttr ?? null },
           );
           return found;
         },
@@ -947,27 +999,171 @@ export class EcommerceCheckoutPage extends BasePage {
     return found;
   }
 
+  // E2E-CHKOUT-008 — Shared predicate for the promo Apply button, parameterised on whether to
+  // click the match: hasApplyPromoButton() calls it with click=false (pure visibility check),
+  // applyPromoCode() calls it with click=true. Kept as one evaluate() so the button-matching
+  // predicate is defined once rather than duplicated across a visibility check and a click scan.
+  private async scanApplyPromoButton(click: boolean): Promise<boolean> {
+    return this.page
+      .evaluate(
+        ({
+          pattern,
+          click,
+          targetSelector,
+        }: {
+          pattern: string;
+          click: boolean;
+          targetSelector: string;
+        }) => {
+          const re = new RegExp(pattern, 'i');
+          // Scope to the tagged promo input's own form/container so this scan cannot match an
+          // unrelated "Apply" button elsewhere on the page (gift-card apply, filter apply, etc).
+          // Falls back to document when the input isn't currently tagged (e.g. hasApplyPromoButton()
+          // called standalone, without applyPromoCode()'s prior tagAndFillPromoField() call).
+          const tagged = document.querySelector<HTMLElement>(targetSelector);
+          const scope: ParentNode =
+            tagged?.closest('form') ?? tagged?.parentElement?.parentElement ?? document;
+          const btns = Array.from(
+            scope.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
+          );
+          const target = btns.find((btn) => {
+            if (btn.disabled) return false;
+            const text = ((btn as HTMLElement).innerText ?? btn.value ?? btn.textContent ?? '').trim();
+            if (!re.test(text)) return false;
+            const r = btn.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) return false;
+            const style = getComputedStyle(btn);
+            if (style.visibility === 'hidden' || style.display === 'none') return false;
+            return true;
+          });
+          if (!target) return false;
+          if (click) target.click();
+          return true;
+        },
+        {
+          pattern: this.promoApplyButtonPattern.source,
+          click,
+          targetSelector: this.promoCodeTargetSelector,
+        },
+      )
+      .catch(() => false);
+  }
+
   // E2E-CART-010 (recommended secondary check) — Returns true if an "Apply promo/discount/
   // coupon/voucher code" button is visible at the current checkout entry point. Kept separate
   // from isPromoCodeFieldVisible() (which scans only for the input) so callers can split the
   // promo-input and apply-button assertions.
   async hasApplyPromoButton(): Promise<boolean> {
-    return this.page.evaluate((pattern: string) => {
-      const re = new RegExp(pattern, 'i');
-      const btns = Array.from(
-        document.querySelectorAll<HTMLButtonElement>('button, input[type="submit"]'),
-      );
-      return btns.some((btn) => {
-        if (btn.disabled) return false;
-        const text = ((btn as HTMLElement).innerText ?? btn.value ?? btn.textContent ?? '').trim();
-        if (!re.test(text)) return false;
-        const r = btn.getBoundingClientRect();
-        if (r.width === 0 || r.height === 0) return false;
-        const style = getComputedStyle(btn);
-        if (style.visibility === 'hidden' || style.display === 'none') return false;
+    return this.scanApplyPromoButton(false);
+  }
+
+  // E2E-CHKOUT-008 / E2E-ERR-004 — Tags the promo/discount input (same dual attr+label signal
+  // as isPromoCodeFieldVisible()) then fills it with `code` through a genuine Playwright
+  // locator. Retries the tag->fill sequence up to `maxAttempts` times: /cart's totals refresh
+  // can trigger a re-render between tag and fill, the same race tagAndFillField() recovers from
+  // elsewhere in this file (a raw DOM value assignment does not update React's controlled-input
+  // state, so a genuine locator fill is required either way). tagAndFillField() itself is
+  // attr-only and cannot be reused directly without losing the nearby-label match signal.
+  private async tagAndFillPromoField(code: string, maxAttempts = 2): Promise<boolean> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const tagged = await this.scanForPromoField(this.promoCodeTargetAttr);
+      if (!tagged) return false;
+      try {
+        await this.elements.enterText(this.promoCodeTargetSelector, code);
         return true;
-      });
-    }, this.promoApplyButtonPattern.source);
+      } catch {
+        // Field vanished between tag and fill (re-render race) — loop retags fresh DOM state.
+      }
+    }
+    return false;
+  }
+
+  // E2E-CHKOUT-008 / E2E-ERR-004 — Fills the promo/discount field with `code` and clicks Apply.
+  // Returns false (never throws) if the field could not be tagged/filled or the Apply button
+  // could not be located — distinct from "no rejection message appeared", so callers can tell
+  // "code was never actually submitted" apart from "code was submitted and accepted".
+  async applyPromoCode(code: string): Promise<boolean> {
+    const filled = await this.tagAndFillPromoField(code);
+    if (!filled) return false;
+    return this.scanApplyPromoButton(true);
+  }
+
+  // E2E-CHKOUT-008 / E2E-ERR-004 — Scans for a visible promo-code rejection message: ARIA
+  // signals first ([role="alert"], [aria-live]), then a text-pattern fallback — both tiers
+  // require the candidate text to match BOTH promoCodeErrorTextPattern (rejection vocabulary)
+  // AND promoErrorContextPattern (promo/coupon context). The ARIA tier is a LOCATION signal
+  // only (any live region on a /cart page can hold unrelated visible text — cart-status
+  // toasts, item-count announcements — so visible-text-alone would make this vacuously true);
+  // the content check is what actually confirms the element is a coupon rejection. Polls for
+  // DIALOG_APPEAR to allow the rejection response to render. Never throws.
+  // `code` is the exact string that was submitted (see PromoCodes.invalidCode) — Magento's
+  // actual rejection copy echoes it back verbatim (`"<code>" is invalid...`), which is a
+  // strictly tighter context signal than promoErrorContextPattern's generic vocabulary (see
+  // that field's docblock). Compared via plain substring `includes()`, never interpolated into
+  // a RegExp, so a future code containing regex metacharacters cannot change match semantics.
+  private async scanForPromoCodeError(code: string): Promise<string | null> {
+    let message: string | null = null;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          message = await this.page.evaluate(
+            ({
+              ariaSelector,
+              textPattern,
+              contextPattern,
+              code,
+            }: {
+              ariaSelector: string;
+              textPattern: string;
+              contextPattern: string;
+              code: string;
+            }) => {
+              const errorRe = new RegExp(textPattern, 'i');
+              const contextRe = new RegExp(contextPattern, 'i');
+              const codeLower = code.toLowerCase();
+              const isPromoError = (text: string): boolean =>
+                errorRe.test(text) && (text.toLowerCase().includes(codeLower) || contextRe.test(text));
+
+              const visibleText = (el: Element): string => {
+                const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
+                if (!text) return '';
+                const r = el.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 ? text : '';
+              };
+
+              for (const el of Array.from(document.querySelectorAll(ariaSelector))) {
+                const text = visibleText(el);
+                if (text && isPromoError(text)) return text;
+              }
+
+              for (const el of Array.from(document.querySelectorAll('*'))) {
+                if (el.children.length > 0) continue;
+                const text = visibleText(el);
+                if (text && isPromoError(text)) return text;
+              }
+              return null;
+            },
+            {
+              ariaSelector: this.ariaValidationSelector,
+              textPattern: this.promoCodeErrorTextPattern.source,
+              contextPattern: this.promoErrorContextPattern.source,
+              code,
+            },
+          );
+          return message !== null;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return message;
+  }
+
+  // E2E-CHKOUT-008 / E2E-ERR-004 — Returns the visible rejection message text, or null if none
+  // is found. `code` must be the exact string submitted via applyPromoCode() — required, not
+  // optional, because it is the primary context signal the scan relies on (see
+  // scanForPromoCodeError()'s docblock).
+  async getPromoCodeErrorMessage(code: string): Promise<string | null> {
+    return this.scanForPromoCodeError(code);
   }
 
   // E2E-CHKOUT-004 — Generic version of findGuestEmailInput(): tags the first visible, enabled

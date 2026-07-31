@@ -100,6 +100,7 @@ Generated spec files go in `tests/{area}/` where area is one of:
 7. When the scenario is complete: `playwright-cli close`; stop the background Bash process
 8. Assemble the collected TypeScript lines into a complete spec file applying the framework rules above
 9. Save the file using the `Write` tool at `tests/{area}/{scenario-name}.spec.ts`
+10. Report the saved spec file path in your final message. You do not have the `Skill` or `Agent` tool, so you cannot invoke `/code-simplifier` yourself — whoever dispatched you does that afterward, using this path (see CLAUDE.md §7).
 
 **Browser commands quick reference:**
 

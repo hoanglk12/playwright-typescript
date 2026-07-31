@@ -249,6 +249,9 @@ Skip to step 3 if failures are already classified from the JSON.
    - **Stop action**: once the cap is reached or the signature stops changing, call `advisor()`,
      then report the per-iteration log (signature + change made, per attempt) and leave the test
      failing rather than looping again.
+8. **Report the file(s) you edited** once the fix converges (the test passes). You do not have
+   the `Skill` or `Agent` tool, so you cannot invoke `/code-simplifier` yourself — whoever
+   dispatched you does that afterward, using this file list (see CLAUDE.md §7).
 
 ---
 

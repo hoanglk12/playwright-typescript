@@ -747,3 +747,18 @@ This applies to every agent working in this repo (main session, `automation-test
 - **Any task whose purpose is auditing or cleaning up existing comments in a file** ("review comments," "clean this up," "make this read like a human wrote it"): invoke the `code-humanizer` skill (`/code-humanizer`) instead of reapplying the checklist ad hoc — it's the canonical entry point and keeps the checklist in one place. Note this is distinct from the repo-agnostic `humanizer` skill, which targets prose/doc text, not code comments.
 - Default per this file's own convention: **write no comment at all** unless removing it would lose a non-obvious WHY (business rule, workaround, subtle invariant). The checklist exists to catch comments that violate that default, not to justify adding more.
 - This is advisory the same way §16 is advisory during review — it should shape what you write, but a stray restating comment is not itself grounds to block an otherwise-correct change.
+
+### 7. Code Simplification — Gate `/code-simplifier` to Code-Producing Agent Output
+
+**When `automation-test-architect`, `playwright-test-generator`, `playwright-test-healer`, `technical-debt-fixer`, or `technical-implementation-agent` creates or modifies `.ts`/`.tsx` files, whoever dispatched that agent (this session, or `qa-orchestrator` via its handoff) invokes `/code-simplifier` on exactly those files immediately after the agent returns.**
+
+None of these five agents carry the `Skill` or `Agent` tool in their frontmatter `tools:` — they cannot reach `/code-simplifier` themselves, so the step does not belong in their own workflow instructions. Each agent's final report must state the exact list of `.ts`/`.tsx` files it created or modified; the caller uses that list, not its own git-diff guess.
+
+This is an explicit allow-list, not a general capability. No other agent's output triggers it — `qa-orchestrator`, `qa-code-reviewer`, `security-reviewer`, `devops-cicd-specialist`, `technical-research-agent`, `technical-debt-agent`, `playwright-test-planner`, `memory-vault-curator`, and `vault-updater` are planners, routers, reviewers, researchers, or non-code-artifact writers, and their output must not trigger it.
+
+- **Pass exact paths, never `branch`/`changes`.** The caller already knows precisely which files the dispatched agent touched, from that agent's final report; the command's own git-diff auto-resolution could sweep in unrelated uncommitted changes already sitting in the working tree.
+- **The safety contract lives in one place** — `.claude/commands/code-simplifier.md` — preserve behavior and public interfaces, never touch generated files/migrations/lockfiles/config unless explicitly requested, produce a reviewable diff, and accept the result only if `npm run lint` passes.
+- **Fail open.** If the invocation errors, times out, or reports a rollback, keep the dispatched agent's original output and proceed — a plugin failure never blocks an otherwise-valid task. Note the outcome when reporting back to the user.
+- Skip this step entirely if the dispatched agent touched no `.ts`/`.tsx` files (e.g. YAML-only or docs-only changes).
+- `/code-simplifier` is this repo's canonical entry point (project-aware, guardrail-injecting). The generic built-in `/simplify` skill carries no project-specific guardrails — do not rely on it for framework code here.
+- `/humanizer` is unrelated to this gate: it is a separate, prose-only terminal stage (distinct from `/code-humanizer`, see §6) and is never chained onto code output.

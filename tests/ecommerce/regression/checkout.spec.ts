@@ -1,6 +1,7 @@
 import { test, expect, softExpect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createGuestCheckoutEmail } from '@data/ecommerce/test-accounts';
+import { PromoCodes } from '@data/ecommerce/promo-codes';
 import { createTestLogger } from '@utils/test-logger';
 import type {
   OrderSummaryTotals,
@@ -494,6 +495,64 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
         softAssert.toBeTruthy(
           isConsistent,
           `${site.name}: Total should equal subtotal + delivery + discount (subtotal: ${totals.subtotal}, delivery: ${totals.delivery}, discount: ${totals.discount}, total: ${totals.total})`,
+        );
+      });
+    });
+  }
+
+  // Also covers E2E-ERR-004 (error-catalog angle) — same underlying behaviour, no separate spec.
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CHKOUT-008-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Invalid promo code shows error message`, async ({
+      request,
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      ecommerceCheckoutPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Invalid promo code shows error message`);
+
+      const result = await addToCartAndReachCheckoutCta({
+        site,
+        navLabel,
+        request,
+        ecommerceNavPage,
+        ecommercePLPPage,
+        ecommercePDPPage,
+        ecommerceCartOverlayPage,
+        ecommerceCheckoutPage,
+        logger,
+      });
+      if (result.status === 'skipped') return;
+
+      await logger.step('Step 15 - Locate the promo/discount code field (checkout entry, falling back to /cart)', async () => {
+        // Precondition gate — must be hard: E2E-CART-010 already proves this field is present on
+        // /cart on all 8 storefronts, so an absent field here is a regression, not environment variance.
+        const promoFieldVisible = await ecommerceCheckoutPage.isPromoCodeFieldVisible();
+        expect(
+          promoFieldVisible,
+          `${site.name}: A promo/discount code field must be reachable before an invalid code can be applied`,
+        ).toBeTruthy();
+      });
+
+      await logger.step('Step 16 - Apply an invalid promo code', async () => {
+        const applied = await ecommerceCheckoutPage.applyPromoCode(PromoCodes.invalidCode);
+        softAssert.toBeTruthy(
+          applied,
+          `${site.name}: applyPromoCode() should locate the promo field, fill "${PromoCodes.invalidCode}", and click Apply`,
+        );
+      });
+
+      await logger.step('Step 17 - Assert a rejection message is shown (independent check)', async () => {
+        const errorMessage = await ecommerceCheckoutPage.getPromoCodeErrorMessage(PromoCodes.invalidCode);
+        softAssert.toBeTruthy(
+          errorMessage,
+          `${site.name}: Applying an invalid promo code ("${PromoCodes.invalidCode}") should surface a rejection message`,
         );
       });
     });
