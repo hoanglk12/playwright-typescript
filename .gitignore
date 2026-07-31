@@ -157,6 +157,9 @@ temp_healer.md
 # Advisor-nudge hook runtime state (per-session counters, not committed)
 .claude/.state/
 
+# LLM Council multi-provider run output (local; may contain scrubbed workspace context)
+council-output/
+
 # Obsidian local state (keep app.json, core-plugins.json, graph.json)
 memory-vault/.obsidian/workspace.json
 memory-vault/.obsidian/workspace-mobile.json

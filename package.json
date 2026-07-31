@@ -82,7 +82,10 @@
     "ingest:jira:dry": "node scripts/bulk-ingest-jira.mjs --dry-run",
     "ingest:jira:probe": "node scripts/bulk-ingest-jira.mjs --dry-run --limit=5",
     "ingest:jira:force": "node scripts/bulk-ingest-jira.mjs --force",
-    "sync:vault": "node scripts/sync-vault-to-lightrag.mjs"
+    "sync:vault": "node scripts/sync-vault-to-lightrag.mjs",
+    "council": "node scripts/council/index.mjs",
+    "council:dry": "node scripts/council/index.mjs --dry-run",
+    "council:mock": "cross-env COUNCIL_MOCK=1 node scripts/council/index.mjs --yes"
   },
   "keywords": [
     "playwright",

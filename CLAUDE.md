@@ -546,6 +546,34 @@ monocart-reporter supplements the built-in reporters (keep all existing reporter
 - **Teams payload:** `teams-payload-template.json` is an Adaptive Card rendered by shell `envsubst`. Two constraints: Teams Workflows webhooks don't render `Action.OpenUrl`, so the report link must stay a markdown link inside a `TextBlock`; and `envsubst` is called with an explicit five-name allowlist, so any new `${VAR}` must be added there or it posts as literal text — the allowlist also protects the card's literal `$schema` key from being expanded as an undefined variable.
 - **Non-comparable baseline:** Bitbucket cloud runners are always Docker containers; GitHub's `ubuntu-latest` is a VM with host Chrome. Lighthouse performance scores from the two platforms must never be compared against each other. The deterministic accessibility gates (`image-alt`, `document-title`, `html-has-lang`, `categories:accessibility`) are unaffected by containerization either way.
 
+## LLM Council — Multi-Provider Mode (`scripts/council/`)
+
+A dev-time, opt-in authoring tool that runs Karpathy's "llm-council" pattern — independent opinions → anonymous peer review → chairman synthesis — across genuinely different LLM providers via [OpenRouter](https://openrouter.ai/). It is never part of the test suite, never runs in CI, and is a companion to, not a replacement for, the free all-Claude `.claude/skills/llm-council/SKILL.md` skill (which runs the same pattern using Claude sub-agents with different thinking lenses, at no marginal API cost). This tool costs real money per run — it exists for decisions where genuine cross-vendor disagreement is worth paying for.
+
+**Invocation:**
+
+```bash
+npm run council -- "Should we adopt contract testing for the GRA API suite?" --context=CLAUDE.md
+npm run council:dry -- "question"      # manifest + cost estimate only, no spend
+npm run council:mock -- "question"     # full pipeline at zero cost, mocked responses
+```
+
+Or via the `/council-providers` slash command, which handles the two-step consent flow (dry-run preview → explicit user approval → real run) since Claude Code's Bash tool is non-interactive.
+
+**Credentials:** `OPENROUTER_API_KEY` lives in your shell environment or a local, gitignored `.env.local` — create a key at [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys). It is never read by `src/config/environment.ts` and must never be placed in `.env.testing` / `.env.staging` / `.env.production` — those are the Playwright test-suite env files and this tool is unrelated to them.
+
+**No automatic context scanning.** Unlike the Claude-subagent skill, this tool never reads the workspace on its own — context only enters via `--context=<path>` (repeatable). This is also why its Outsider persona can have genuinely zero project context, something the Claude-subagent version cannot achieve (Claude Code auto-injects `CLAUDE.md`).
+
+**Default panel deliberately mixes providers across two data-residency zones** — an explicit user decision, not an oversight: `openai/gpt-5.4-mini` (OpenAI, US), `google/gemini-3.1-flash-lite` (Google, US), `anthropic/claude-haiku-4.5` (Anthropic, US), `x-ai/grok-4.3` (xAI, US), and `deepseek/deepseek-v4-flash` (DeepSeek, China). `--panel=quality` and `--panel=smoke` are named overrides (see `scripts/council/panels.mjs`).
+
+**Persona-per-panelist is the default prompt style** (`--neutral` switches to Karpathy's original neutral prompt for all models): `openai/gpt-5.4-mini` = Contrarian, `google/gemini-3.1-flash-lite` = First Principles Thinker, `anthropic/claude-haiku-4.5` = Expansionist, `x-ai/grok-4.3` = Outsider, `deepseek/deepseek-v4-flash` = Executor. Persona descriptions are copied verbatim from the Claude-subagent skill so both tools use the same thinking-style definitions.
+
+**Chairman/panelist vendor collision:** the default chairman `openai/gpt-5.6-sol` shares a vendor family with panelist `openai/gpt-5.4-mini`. This is a disclosed, accepted tradeoff — flagged in both the manifest and the HTML report footer, not a bug.
+
+**Zero new npm dependencies** — raw `fetch` / `AbortSignal.timeout()`, reusing the existing `dotenv` dependency. Secret/PII scrubbing (`scripts/council/scrub.mjs`) is a denylist independent of `src/utils/redact.ts`, which is scoped to a different threat model. Every run requires an explicit "Type SEND" confirmation (or `--yes`) after a printed consent manifest — there is no silent transmission path.
+
+**Catalog drift:** the OpenRouter model catalog changes quickly. The pinned model list above should be spot-checked periodically against `https://openrouter.ai/api/v1/models` — there is no automated check by design, since that would require CI involvement, which is explicitly out of scope for this tool.
+
 ## Global Lifecycle
 
 - **Setup** (`src/config/global-setup.ts`): clears logs, loads env, cleans/creates output dirs, validates browser installations, tests connectivity to target apps

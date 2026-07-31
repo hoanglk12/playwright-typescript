@@ -192,3 +192,7 @@ The user sees the HTML report. The transcript is there if they want to dig deepe
 - **Don't council trivial questions.** If the user asks something with one right answer, just answer it. The council is for genuine uncertainty where multiple perspectives add value.
 - **The visual report matters.** Most users will scan the report, not read the full transcript. Make the HTML output clean and scannable.
 
+## multi-provider companion tool
+
+For decisions where genuine cross-vendor disagreement (not just different Claude thinking lenses) is worth paying for, there's a standalone companion: `scripts/council/index.mjs`, invoked via `npm run council -- "question"` or the `/council-providers` slash command. It runs the same independent-opinions → anonymous-peer-review → chairman-synthesis pattern, but dispatches to genuinely different LLM providers (OpenAI, Google, Anthropic, xAI, DeepSeek) through OpenRouter instead of Claude sub-agents. Unlike this skill, it costs real money per run and requires an `OPENROUTER_API_KEY`. See CLAUDE.md's "LLM Council — Multi-Provider Mode" section for details. This skill remains the free, zero-setup default.
+
