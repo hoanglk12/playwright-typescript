@@ -574,6 +574,25 @@ await page.waitForSelector(sel, { timeout: TIMEOUTS.ELEMENT_VISIBLE });
 
 Key constants: `PAGE_LOAD`, `NETWORK_IDLE_SLOW`, `ELEMENT_VISIBLE`, `DIALOG_APPEAR`, `DRAG_DROP_OPERATION`, `API_RESPONSE`, `API_RESPONSE_SLOW`.
 
+## LLM Council (Dev-Time, Paid, Multi-Provider — `/council-review`)
+
+**Never in CI, never in the test suite.** No workflow, config, or fixture references `scripts/council/`. It is a local, human-in-the-loop dev tool invoked explicitly via `/council-review`; `.claude/settings.json`'s `defaultMode: bypassPermissions` means the two-step consent flow inside `council-review.md` (dry-run → paste manifest → wait for explicit approval → re-run with `--yes`) is the only real gate, not the permission system.
+
+**Three different things are all called "council" — do not conflate them:**
+- `.claude/skills/llm-council/SKILL.md` — free, 5 Claude sub-agents debating internally, no external API, auto-triggers on phrases like "council this".
+- The reverted `scripts/council/` OpenRouter/ShopAIKey tool (commit `c8361ce`, reverted by `257dee5`) — a 5-persona debate + chairman synthesis dispatched to external models. Deleted; not in the working tree.
+- `scripts/council/dispatch.mjs` (this tool) — a flat parallel fan-out of one grounded question to 2 external models, one round, no ranking, no chairman. Human compares. Real money.
+
+There is deliberately no cross-reference from `llm-council/SKILL.md` to this tool — that coupling is what made the three confusable before.
+
+**Endpoint is ShopAIKey, not OpenRouter.** `COUNCIL_BASE_URL` defaults to `https://direct.shopaikey.com/v1`. The two default model slugs in `scripts/council/tiers.mjs` (Kimi-K3, GPT Sol 5.6) are user-supplied and **unverified** against a live `/models` call — ShopAIKey may not expose a catalog endpoint at all. Pricing is `null` for both; the cost estimator always prints "UNKNOWN", never "$0.00". Re-check the slugs with a `--max-tokens=16` smoke call before relying on either of them. `kimi-k3` additionally rejects any `temperature` field with HTTP 400 regardless of value — `client.mjs`'s `chat()` omits it for slugs in `MODELS_WITHOUT_TEMPERATURE`; `gpt-5.6-sol`'s proxy streams SSE chunks even for non-streaming requests, parsed via a dedicated helper in `client.mjs`. Both confirmed via live curl testing, 2026-08-02.
+
+**Jurisdiction disclosure.** Kimi-K3 (Moonshot AI) is China-hosted. This is an explicit, accepted user decision (2026-08-02), not an oversight — see `docs/technical-research/ai-council-dispatch.research.md` §10 Phase 0.
+
+**`glm-5.2` was dropped from the panel (2026-08-02).** Confirmed via a live run plus curl testing: it is a reasoning-heavy model that spends its entire `max_tokens` budget on internal chain-of-thought (`reasoning_content`) before writing an answer, and could not complete a review-length (~17KB) prompt even at `max_tokens: 4000` — `finish_reason: "length"` with empty `content` both times. Not re-added without first verifying a working `max_tokens` value for prompts this size.
+
+**`scripts/council/scrub.mjs` is deliberately separate from `src/utils/redact.ts`.** Different threat models: `redact.ts` is TypeScript, scoped to test-runtime API payload keys; `scrub.mjs` is a plain-JS denylist for outbound text leaving the machine via the council tool. Keep them separate and documented as such — do not let them silently drift apart if a new secret pattern is added to one but not the other.
+
 ## Memory
 
 **Write all memory notes directly to `memory-vault/20-memory/{type}/` — NOT to `~/.claude/projects/.../memory/` (seed is deprecated).**
