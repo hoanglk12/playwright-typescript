@@ -71,19 +71,17 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async getPrice(): Promise<string> {
-    const pattern = this.priceTextPattern;
     let result = '';
     await this.waits.waitForCustomCondition(
       async () => {
         result = await this.page.evaluate((pat) => {
           const re = new RegExp(pat);
-          const all = Array.from(document.querySelectorAll('*'));
-          for (const el of all) {
+          for (const el of Array.from(document.querySelectorAll('*'))) {
             const text = el.textContent?.trim() ?? '';
-            if ((el as Element).children.length === 0 && re.test(text)) return text;
+            if (el.children.length === 0 && re.test(text)) return text;
           }
           return '';
-        }, pattern);
+        }, this.priceTextPattern);
         return result.length > 0;
       },
       { timeout: TIMEOUTS.ELEMENT_VISIBLE, interval: TIMEOUTS.POLL_INTERVAL_FAST },
@@ -92,14 +90,14 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async isImageGalleryVisible(): Promise<boolean> {
-    const selector = this.galleryImageSelector;
-    return this.page.evaluate((sel) => {
-      const imgs = Array.from(document.querySelectorAll(sel));
-      return imgs.some((img) => {
-        const r = img.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      });
-    }, selector);
+    return this.page.evaluate(
+      (sel) =>
+        Array.from(document.querySelectorAll(sel)).some((img) => {
+          const r = img.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        }),
+      this.galleryImageSelector,
+    );
   }
 
   async getColourSwatchCount(): Promise<number> {
@@ -182,18 +180,15 @@ export class EcommercePDPPage extends BasePage {
       TIMEOUTS.PAGE_LOAD_SLOW,
     );
     await this.waitForPdpLoad();
-    const selector = this.galleryImageSelector;
     // WHY: no WaitHelper equivalent for arbitrary JS polling
     await this.page
       .waitForFunction(
-        (sel) => {
-          const imgs = Array.from(document.querySelectorAll(sel));
-          return imgs.some((img) => {
+        (sel) =>
+          Array.from(document.querySelectorAll(sel)).some((img) => {
             const r = img.getBoundingClientRect();
             return r.width > 0 && r.height > 0;
-          });
-        },
-        selector,
+          }),
+        this.galleryImageSelector,
         { timeout: TIMEOUTS.ELEMENT_VISIBLE },
       )
       .catch(() => {
@@ -203,7 +198,6 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async getFirstGalleryImageSrc(): Promise<string> {
-    const selector = this.galleryImageSelector;
     return this.page.evaluate((sel) => {
       const imgs = Array.from(document.querySelectorAll(sel)) as HTMLImageElement[];
       const visible = imgs.find((img) => {
@@ -211,12 +205,11 @@ export class EcommercePDPPage extends BasePage {
         return r.width > 0 && r.height > 0;
       });
       return visible?.src ?? '';
-    }, selector);
+    }, this.galleryImageSelector);
   }
 
   async waitForGalleryImageChange(previousSrc: string): Promise<void> {
     if (!previousSrc) return;
-    const selector = this.galleryImageSelector;
     // WHY: no WaitHelper equivalent for arbitrary JS polling
     await this.page.waitForFunction(
       ({ sel, prev }) => {
@@ -227,7 +220,7 @@ export class EcommercePDPPage extends BasePage {
         });
         return visible?.src !== undefined && visible.src !== prev;
       },
-      { sel: selector, prev: previousSrc },
+      { sel: this.galleryImageSelector, prev: previousSrc },
       { timeout: TIMEOUTS.ELEMENT_VISIBLE },
     );
   }
@@ -246,21 +239,17 @@ export class EcommercePDPPage extends BasePage {
       // Detect the size selector by checking for visible buttons with numeric size labels,
       // or as a fallback, a visible leaf node containing the word "SIZE".
       const sizePattern = new RegExp(sizePatSrc, 'i');
-      const buttons = Array.from(document.querySelectorAll('button'));
-      const hasSizeButtons = buttons.some((btn) => {
-        const text = btn.textContent?.trim() ?? '';
-        if (!sizePattern.test(text)) return false;
-        const r = btn.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      });
-      if (hasSizeButtons) return true;
-      const allLeaves = Array.from(document.querySelectorAll('*'));
-      return allLeaves.some((el) => {
-        if ((el as Element).children.length > 0) return false;
-        const text = el.textContent?.trim() ?? '';
-        if (!/\bSIZE\b/i.test(text)) return false;
+      const isVisible = (el: Element): boolean => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
+      };
+      const hasSizeButtons = Array.from(document.querySelectorAll('button')).some(
+        (btn) => sizePattern.test(btn.textContent?.trim() ?? '') && isVisible(btn),
+      );
+      if (hasSizeButtons) return true;
+      return Array.from(document.querySelectorAll('*')).some((el) => {
+        if (el.children.length > 0) return false;
+        return /\bSIZE\b/i.test(el.textContent?.trim() ?? '') && isVisible(el);
       });
     }, this.sizePatternSource);
   }
@@ -269,18 +258,18 @@ export class EcommercePDPPage extends BasePage {
     return this.page.evaluate(({ sizePatSrc, genderPatSrc }) => {
       const sizePattern = new RegExp(sizePatSrc, 'i');
       const genderPattern = new RegExp(genderPatSrc, 'i');
+      const isVisible = (el: Element): boolean => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      };
 
       // Anchor search to the size section: find a visible size-like button, then
       // walk up the DOM to find a common ancestor that also contains gender toggles.
       // This prevents matching header nav links named "WOMENS"/"MENS" which would
       // navigate away from the PDP when clicked.
-      const allButtons = Array.from(document.querySelectorAll('button'));
-      const sizeButtons = allButtons.filter((btn) => {
-        const text = btn.textContent?.trim() ?? '';
-        if (!sizePattern.test(text)) return false;
-        const r = btn.getBoundingClientRect();
-        return r.width > 0 && r.height > 0;
-      });
+      const sizeButtons = Array.from(document.querySelectorAll('button')).filter(
+        (btn) => sizePattern.test(btn.textContent?.trim() ?? '') && isVisible(btn),
+      );
       if (sizeButtons.length === 0) return [];
 
       let container: Element | null = sizeButtons[0].parentElement;
@@ -288,8 +277,7 @@ export class EcommercePDPPage extends BasePage {
         const genderBtns = Array.from(container.querySelectorAll('button')).filter((btn) => {
           const text = btn.textContent?.trim() ?? '';
           if (!text || !genderPattern.test(text) || sizePattern.test(text)) return false;
-          const r = btn.getBoundingClientRect();
-          return r.width > 0 && r.height > 0;
+          return isVisible(btn);
         });
         if (genderBtns.length > 0) {
           return [...new Set(genderBtns.map((btn) => btn.textContent?.trim() ?? ''))];
@@ -313,24 +301,21 @@ export class EcommercePDPPage extends BasePage {
           `\\b${lbl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
           'i',
         );
-        const allButtons = Array.from(document.querySelectorAll('button'));
-        const sizeButtons = allButtons.filter((btn) => {
-          const text = btn.textContent?.trim() ?? '';
-          if (!sizePattern.test(text)) return false;
-          const r = btn.getBoundingClientRect();
+        const isVisible = (el: Element): boolean => {
+          const r = el.getBoundingClientRect();
           return r.width > 0 && r.height > 0;
-        });
+        };
+        const sizeButtons = Array.from(document.querySelectorAll('button')).filter(
+          (btn) => sizePattern.test(btn.textContent?.trim() ?? '') && isVisible(btn),
+        );
         if (sizeButtons.length === 0) return false;
         let container: Element | null = sizeButtons[0].parentElement;
         while (container && container !== document.body) {
-          const match = Array.from(container.querySelectorAll('button')).find((btn) => {
-            const text = btn.textContent?.trim() ?? '';
-            if (!targetPattern.test(text)) return false;
-            const r = btn.getBoundingClientRect();
-            return r.width > 0 && r.height > 0;
-          });
+          const match = Array.from(container.querySelectorAll('button')).find(
+            (btn) => targetPattern.test(btn.textContent?.trim() ?? '') && isVisible(btn),
+          );
           if (match) {
-            (match as HTMLButtonElement).click();
+            match.click();
             return true;
           }
           // Stop at the product form — breadcrumbs and nav live outside it as siblings
@@ -491,14 +476,12 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async hasSizeValidationMessage(): Promise<boolean> {
-    const ariaSelector = this.sizeValidationSelector;
-    const textPattern = this.sizeValidationTextPattern;
     let found = false;
     await this.waits
       .waitForCustomCondition(
         async () => {
           found = await this.page.evaluate(
-            ({ ariasel, textpat }: { ariasel: string; textpat: string }) => {
+            ({ ariaSelector, textPattern }) => {
               const isVisibleWithText = (el: Element): boolean => {
                 const text = el.textContent?.trim() ?? '';
                 if (!text) return false;
@@ -506,20 +489,23 @@ export class EcommercePDPPage extends BasePage {
                 return r.width > 0 && r.height > 0;
               };
               // 1. ARIA-based signals (preferred — semantic and hash-safe)
-              if (Array.from(document.querySelectorAll(ariasel)).some(isVisibleWithText)) return true;
+              if (Array.from(document.querySelectorAll(ariaSelector)).some(isVisibleWithText)) return true;
               // 2. Plain-text validation messages (storefronts that omit ARIA on validation divs,
               //    e.g. Platypus "Size was not chosen" in a generic element with no role/aria-live).
               //    Pre-filter to leaf nodes containing "size" before applying the full regex
               //    to avoid scanning thousands of DOM nodes on every poll iteration.
-              const re = new RegExp(textpat, 'i');
+              const re = new RegExp(textPattern, 'i');
               return Array.from(document.querySelectorAll('*')).some((el) => {
-                if ((el as Element).children.length > 0) return false;
+                if (el.children.length > 0) return false;
                 const text = el.textContent?.trim() ?? '';
                 if (!text || !/size/i.test(text)) return false;
                 return isVisibleWithText(el) && re.test(text);
               });
             },
-            { ariasel: ariaSelector, textpat: textPattern },
+            {
+              ariaSelector: this.sizeValidationSelector,
+              textPattern: this.sizeValidationTextPattern,
+            },
           );
           return found;
         },
@@ -542,7 +528,7 @@ export class EcommercePDPPage extends BasePage {
         document.querySelectorAll('a[href*="/cart"], [aria-label*="cart" i], [aria-label*="bag" i]'),
       );
       for (const link of cartLinks) {
-        const r = (link as Element).getBoundingClientRect();
+        const r = link.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
         // Path 1: parse count from aria-label — updates with React state on Vans/Platypus storefronts
         // Pattern: "You have 1 item in your cart" / "You have 2 items in your cart"
@@ -552,7 +538,7 @@ export class EcommercePDPPage extends BasePage {
         // Path 2: numeric leaf node added to the button subtree after ATC
         const descendants = [link, ...Array.from(link.querySelectorAll('*'))];
         for (const el of descendants) {
-          if ((el as Element).children.length > 0) continue;
+          if (el.children.length > 0) continue;
           const t = el.textContent?.trim() ?? '';
           if (/^\d+$/.test(t)) return t;
         }
@@ -594,6 +580,8 @@ export class EcommercePDPPage extends BasePage {
           );
         });
         if (activeBtn) return activeBtn.textContent?.trim() ?? '';
+        // Stop at the product form — breadcrumbs and nav live outside it as siblings
+        if (container.tagName === 'FORM') break;
         container = container.parentElement;
       }
       return '';
