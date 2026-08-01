@@ -17,11 +17,7 @@ import { test, expect } from '@config/base-test';
 
 ## Execution Mode
 
-GRA spec files (`gra-*.spec.ts`) use **default mode** (no `test.describe.configure` call needed). Sequential execution within a file is guaranteed by `fullyParallel: false` in `api.config.ts`.
-
-Do **NOT** add `test.describe.configure({ mode: 'serial' })` to GRA specs — serial mode cascades skips on failure, which hides test signal.
-
-Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain serial mode if needed for their own reasons.
+See root `CLAUDE.md` § API Tests → Execution Mode for the GRA default-mode rule (do not add `test.describe.configure({ mode: 'serial' })` to `gra-*.spec.ts`).
 
 
 ## API Test Data

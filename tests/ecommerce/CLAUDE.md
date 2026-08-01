@@ -110,6 +110,12 @@ This pattern is established in E2E-PDP-005/006/007 — reuse it for any new PDP 
 
 **Vans AU known issue:** The Bloomreach popup may intercept `clickCartIcon()` after ATC, preventing the overlay from opening. Use soft assertions for overlay visibility so a Bloomreach-blocked Vans AU test records a failure without cascading to other storefronts.
 
+## EcommerceHomePage / EcommerceErrorPage — Brand Name Detection
+
+### Vans and Dr. Martens — brand name is logo-only, not in visible text
+
+Both storefronts render the header logo as `<img alt="...">` with no text fallback — the brand name never appears in `innerText` or `textContent`. `document.title` is the only reliable source. This caused a reproducible `E2E-LOC-007` failure for Vans NZ when `assertBrandNameVisible`'s body-text fallback was switched from `textContent` to `innerText` (both exclude `alt` values equally, but the switch surfaced the same underlying gap in a different way). Any brand-name detection on these two storefronts must check `document.title` first and treat a body-text fallback as best-effort only, never as the primary signal.
+
 ## EcommerceWishlistPage — Known Storefront Gotchas
 
 ### 1. Header entry point is a real `<a href="/wishlist">` link, not a flyout trigger
