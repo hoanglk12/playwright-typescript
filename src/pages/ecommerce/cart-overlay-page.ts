@@ -9,6 +9,9 @@ export class EcommerceCartOverlayPage extends BasePage {
   // modal-role semantics and fixed/absolute positioning + actionable CTA to distinguish an
   // open mini cart panel from the persistent header cart icon (always in DOM).
 
+  private readonly cartIconSelector =
+    'a[href*="/cart"], [aria-label*="cart" i], [aria-label*="bag" i]';
+
   // Shared selector for all overlay panel detection methods. Includes aside/complementary
   // because Platypus AU renders the mini cart as an aside panel, not a dialog.
   private readonly overlayPanelSelector =
@@ -21,18 +24,16 @@ export class EcommerceCartOverlayPage extends BasePage {
   // Finds and clicks the first visible cart icon. Matches cart anchors by href pattern
   // and aria-label (consistent across all 8 storefronts, per getMiniCartCount() pattern).
   async clickCartIcon(): Promise<void> {
-    await this.page.evaluate(() => {
-      const candidates = Array.from(
-        document.querySelectorAll('a[href*="/cart"], [aria-label*="cart" i], [aria-label*="bag" i]'),
-      );
+    await this.page.evaluate((selector) => {
+      const candidates = Array.from(document.querySelectorAll(selector));
       for (const el of candidates) {
-        const r = (el as Element).getBoundingClientRect();
+        const r = el.getBoundingClientRect();
         if (r.width > 0 && r.height > 0) {
           (el as HTMLElement).click();
           return;
         }
       }
-    });
+    }, this.cartIconSelector);
   }
 
   // Detects a visible mini cart overlay panel — NOT the persistent header cart icon.
@@ -41,19 +42,18 @@ export class EcommerceCartOverlayPage extends BasePage {
   // sticky), and (3) an actionable cart CTA ("checkout", "view cart/bag", "proceed").
   // This prevents false-positives from always-present header cart elements.
   async isOverlayVisible(): Promise<boolean> {
-    const sel = this.overlayPanelSelector;
     return this.page.evaluate((selector) => {
       const panels = Array.from(document.querySelectorAll(selector));
       return panels.some((el) => {
-        const r = (el as Element).getBoundingClientRect();
+        const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return false;
-        const style = getComputedStyle(el as Element);
+        const style = getComputedStyle(el);
         const isOverlayPositioned = style.position === 'fixed' || style.position === 'absolute';
         const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
         const hasCartCta = /checkout|view (cart|bag)|proceed|go to (cart|bag)/.test(text);
         return isOverlayPositioned && (text.includes('cart') || text.includes('bag')) && hasCartCta;
       });
-    }, sel);
+    }, this.overlayPanelSelector);
   }
 
   // Strict variant of isOverlayVisible() that additionally requires non-zero opacity and
@@ -69,13 +69,12 @@ export class EcommerceCartOverlayPage extends BasePage {
   // Shopping close-overlay flow (E2E-CART-006), where distinguishing "mounted but hidden"
   // from "genuinely open" is required.
   async isOverlayGenuinelyOpen(): Promise<boolean> {
-    const sel = this.overlayPanelSelector;
     return this.page.evaluate((selector) => {
       const panels = Array.from(document.querySelectorAll(selector));
       return panels.some((el) => {
-        const r = (el as Element).getBoundingClientRect();
+        const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return false;
-        const style = getComputedStyle(el as Element);
+        const style = getComputedStyle(el);
         const isOverlayPositioned = style.position === 'fixed' || style.position === 'absolute';
         if (!isOverlayPositioned) return false;
         if (parseFloat(style.opacity) === 0 || style.visibility === 'hidden') return false;
@@ -83,7 +82,7 @@ export class EcommerceCartOverlayPage extends BasePage {
         const hasCartCta = /checkout|view (cart|bag)|proceed|go to (cart|bag)/.test(text);
         return (text.includes('cart') || text.includes('bag')) && hasCartCta;
       });
-    }, sel);
+    }, this.overlayPanelSelector);
   }
 
   // Checks whether any visible mini cart overlay panel contains the given text (case-insensitive).
@@ -94,21 +93,20 @@ export class EcommerceCartOverlayPage extends BasePage {
   // fully open. The caller has already confirmed the overlay is open via isOverlayVisible() before
   // calling this method.
   async overlayContainsText(text: string): Promise<boolean> {
-    const sel = this.overlayPanelSelector;
     return this.page.evaluate(
       ({ selector, searchText }) => {
         const panels = Array.from(document.querySelectorAll(selector));
         return panels.some((el) => {
-          const r = (el as Element).getBoundingClientRect();
+          const r = el.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) return false;
-          const style = getComputedStyle(el as Element);
+          const style = getComputedStyle(el);
           if (style.position !== 'fixed' && style.position !== 'absolute') return false;
           const elText = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
           if (!elText.includes('cart') && !elText.includes('bag')) return false;
           return elText.includes(searchText);
         });
       },
-      { selector: sel, searchText: text.toLowerCase() },
+      { selector: this.overlayPanelSelector, searchText: text.toLowerCase() },
     );
   }
 
@@ -119,14 +117,13 @@ export class EcommerceCartOverlayPage extends BasePage {
   // line containing "$" (price lines), and (c) matching the size value as a whole token
   // using a word-boundary equivalent — not part of a longer digit sequence.
   async overlayContainsSizeLabel(size: string): Promise<boolean> {
-    const sel = this.overlayPanelSelector;
     return this.page.evaluate(
       ({ selector, sizeValue }) => {
         const panels = Array.from(document.querySelectorAll(selector));
         return panels.some((el) => {
-          const r = (el as Element).getBoundingClientRect();
+          const r = el.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) return false;
-          const style = getComputedStyle(el as Element);
+          const style = getComputedStyle(el);
           if (style.position !== 'fixed' && style.position !== 'absolute') return false;
           const elText = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
           if (!elText.includes('cart') && !elText.includes('bag')) return false;
@@ -138,7 +135,7 @@ export class EcommerceCartOverlayPage extends BasePage {
             .some((line) => tokenPattern.test(line.trim()));
         });
       },
-      { selector: sel, sizeValue: size },
+      { selector: this.overlayPanelSelector, sizeValue: size },
     );
   }
 
@@ -172,7 +169,6 @@ export class EcommerceCartOverlayPage extends BasePage {
   //
   // Returns '' (empty string) if no subtotal row is found — never throws.
   async getCartTotal(): Promise<string> {
-    const sel = this.overlayPanelSelector;
     return this.page.evaluate((panelSelector) => {
       const priceRe = /[A-Z]{0,3}\$[\d,]+\.\d{2}/;
 
@@ -181,9 +177,9 @@ export class EcommerceCartOverlayPage extends BasePage {
       // `[role="complementary"]` matches an earlier non-cart element, we still reach the
       // actual mini cart panel. Mirrors removeFirstItem's multi-panel pattern.
       const panels = Array.from(document.querySelectorAll(panelSelector)).filter((el) => {
-        const r = (el as Element).getBoundingClientRect();
+        const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return false;
-        const style = getComputedStyle(el as Element);
+        const style = getComputedStyle(el);
         if (style.position !== 'fixed' && style.position !== 'absolute') return false;
         const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').toLowerCase();
         return text.includes('cart') || text.includes('bag');
@@ -256,7 +252,7 @@ export class EcommerceCartOverlayPage extends BasePage {
         }
       }
       return '';
-    }, sel);
+    }, this.overlayPanelSelector);
   }
 
   // Clicks the first remove control inside the visible mini cart overlay panel.
@@ -267,12 +263,11 @@ export class EcommerceCartOverlayPage extends BasePage {
   // Scoped to the same visible positioned overlay panel detected by isOverlayVisible(). Throws in
   // TS-land (not inside evaluate) to give the healer a clean error on unsupported storefronts.
   async removeFirstItem(): Promise<void> {
-    const sel = this.overlayPanelSelector;
     const clicked = await this.page.evaluate((panelSelector) => {
       const visiblePanels = Array.from(document.querySelectorAll(panelSelector)).filter((panel) => {
-        const r = (panel as Element).getBoundingClientRect();
+        const r = panel.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return false;
-        const style = getComputedStyle(panel as Element);
+        const style = getComputedStyle(panel);
         return style.position === 'fixed' || style.position === 'absolute';
       });
 
@@ -284,7 +279,7 @@ export class EcommerceCartOverlayPage extends BasePage {
         // Pass 1: aria-label matches "remove" or "delete" but NOT "close" or "dismiss".
         // This is the most reliable discriminator across styled-component storefronts.
         for (const btn of buttons) {
-          const br = (btn as Element).getBoundingClientRect();
+          const br = btn.getBoundingClientRect();
           if (br.width === 0 || br.height === 0) continue;
           const ariaLabel = (btn.getAttribute('aria-label') ?? '').toLowerCase();
           if (/remove|delete/.test(ariaLabel) && !/close|dismiss/.test(ariaLabel)) {
@@ -296,7 +291,7 @@ export class EcommerceCartOverlayPage extends BasePage {
         // Pass 2: visible text exactly matches "remove" or "delete" (word form only, not symbol
         // glyphs — × and ✕ are skipped because they are ambiguous with header close buttons).
         for (const btn of buttons) {
-          const br = (btn as Element).getBoundingClientRect();
+          const br = btn.getBoundingClientRect();
           if (br.width === 0 || br.height === 0) continue;
           const ariaLabel = (btn.getAttribute('aria-label') ?? '').toLowerCase();
           if (/close|dismiss/.test(ariaLabel)) continue;
@@ -309,7 +304,7 @@ export class EcommerceCartOverlayPage extends BasePage {
       }
 
       return false;
-    }, sel);
+    }, this.overlayPanelSelector);
 
     if (!clicked) {
       throw new Error(
@@ -327,12 +322,11 @@ export class EcommerceCartOverlayPage extends BasePage {
   // Returns false (never throws) when no matching control is found — this control's presence
   // varies per storefront and callers must treat "not found" as a valid skip condition.
   async clickContinueShopping(): Promise<boolean> {
-    const sel = this.overlayPanelSelector;
     return this.page.evaluate((panelSelector) => {
       const visiblePanels = Array.from(document.querySelectorAll(panelSelector)).filter((panel) => {
-        const r = (panel as Element).getBoundingClientRect();
+        const r = panel.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return false;
-        const style = getComputedStyle(panel as Element);
+        const style = getComputedStyle(panel);
         return style.position === 'fixed' || style.position === 'absolute';
       });
 
@@ -343,7 +337,7 @@ export class EcommerceCartOverlayPage extends BasePage {
       for (const panel of visiblePanels) {
         const controls = Array.from(panel.querySelectorAll('button, a[role="button"], a'));
         for (const control of controls) {
-          const r = (control as Element).getBoundingClientRect();
+          const r = control.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) continue;
           const ariaLabel = control.getAttribute('aria-label') ?? '';
           const text = ((control as HTMLElement).innerText ?? control.textContent ?? '').trim();
@@ -355,7 +349,7 @@ export class EcommerceCartOverlayPage extends BasePage {
       }
 
       return false;
-    }, sel);
+    }, this.overlayPanelSelector);
   }
 
   // Polls isOverlayGenuinelyOpen() until the mini cart overlay becomes genuinely open (non-zero
@@ -438,12 +432,10 @@ export class EcommerceCartOverlayPage extends BasePage {
   // correct source: some storefronts auto-close the mini cart when it empties, so reading from
   // the overlay would fail after removal.
   private async getCartCountFromDOM(): Promise<number> {
-    const text = await this.page.evaluate(() => {
-      const cartLinks = Array.from(
-        document.querySelectorAll('a[href*="/cart"], [aria-label*="cart" i], [aria-label*="bag" i]'),
-      );
+    const text = await this.page.evaluate((selector) => {
+      const cartLinks = Array.from(document.querySelectorAll(selector));
       for (const link of cartLinks) {
-        const r = (link as Element).getBoundingClientRect();
+        const r = link.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
         // Path 1: parse count from aria-label — updates with React state on Vans/Platypus storefronts
         // Pattern: "You have 1 item in your cart" / "You have 2 items in your cart"
@@ -453,13 +445,13 @@ export class EcommerceCartOverlayPage extends BasePage {
         // Path 2: numeric leaf node added to the button subtree after ATC
         const descendants = [link, ...Array.from(link.querySelectorAll('*'))];
         for (const el of descendants) {
-          if ((el as Element).children.length > 0) continue;
+          if (el.children.length > 0) continue;
           const t = el.textContent?.trim() ?? '';
           if (/^\d+$/.test(t)) return t;
         }
       }
       return '0';
-    });
+    }, this.cartIconSelector);
     return parseInt(text, 10) || 0;
   }
 
@@ -489,7 +481,6 @@ export class EcommerceCartOverlayPage extends BasePage {
   // Returns the matched message string (e.g. "Your Shopping Cart is empty") or '' if not found.
   // Never throws.
   async getEmptyCartMessage(): Promise<string> {
-    const sel = this.overlayPanelSelector;
     return this.page.evaluate((selector) => {
       const emptyRe =
         /your (shopping )?(cart|bag) is (currently |now )?empty|(cart|bag) is (currently |now )?empty|no items in (your )?(cart|bag)/i;
@@ -497,9 +488,9 @@ export class EcommerceCartOverlayPage extends BasePage {
       // Check overlay panels first — no CTA requirement (empty state has no checkout button)
       const panels = Array.from(document.querySelectorAll(selector));
       for (const el of panels) {
-        const r = (el as Element).getBoundingClientRect();
+        const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
-        const style = getComputedStyle(el as Element);
+        const style = getComputedStyle(el);
         if (style.position !== 'fixed' && style.position !== 'absolute') continue;
         const text = el instanceof HTMLElement ? el.innerText : (el.textContent ?? '');
         const lower = text.toLowerCase();
@@ -515,6 +506,6 @@ export class EcommerceCartOverlayPage extends BasePage {
       if (bodyMatch) return bodyMatch[0];
 
       return '';
-    }, sel);
+    }, this.overlayPanelSelector);
   }
 }

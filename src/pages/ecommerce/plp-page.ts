@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 import { BasePage } from '../base-page';
 import { TIMEOUTS } from '../../constants/timeouts';
 
@@ -18,6 +18,7 @@ export class EcommercePLPPage extends BasePage {
   // Bloomreach acquisition popup — blocks pointer events on Vans AU / other storefronts
   private readonly overlaySelector = '.overlay.visible';
   private readonly acquisitionPopupSelector = '[class*="bloomreach-acquisition-popup"][class*="state-open"]';
+  private readonly closeButtonPattern = /close/i;
 
   // Product card anchor wrapping the image — used for PDP navigation (E2E-PLP-012)
   private readonly productCardLinkSelector = '[data-product-id] a';
@@ -33,65 +34,80 @@ export class EcommercePLPPage extends BasePage {
     super(page);
   }
 
+  private async waitUntilVisible(locator: Locator): Promise<boolean> {
+    return locator
+      .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  private async waitUntilDismissed(isGone: () => Promise<boolean>): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(isGone, {
+        timeout: TIMEOUTS.DIALOG_DISMISS,
+        interval: TIMEOUTS.POLL_INTERVAL_FAST,
+      })
+      .catch(() => {});
+  }
+
   private async dismissOverlays(): Promise<void> {
     try {
       // Bloomreach acquisition popup has a <div> container (not <dialog>) — target it directly
       const bloomreachPopup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await bloomreachPopup.count()) > 0) {
-        const closeBtn = bloomreachPopup.getByRole('button').first();
-        const bloomreachBtnVisible = await closeBtn
-          .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
-          .then(() => true)
-          .catch(() => false);
-        if (bloomreachBtnVisible) {
-          await closeBtn.click({ force: true });
+        const bloomreachCloseBtn = bloomreachPopup.getByRole('button').first();
+        if (await this.waitUntilVisible(bloomreachCloseBtn)) {
+          await bloomreachCloseBtn.click({ force: true });
         } else {
           await this.page.keyboard.press('Escape');
         }
-        await this.waits
-          .waitForCustomCondition(async () => (await bloomreachPopup.count()) === 0, {
-            timeout: TIMEOUTS.DIALOG_DISMISS,
-            interval: TIMEOUTS.POLL_INTERVAL_FAST,
-          })
-          .catch(() => {});
+        await this.waitUntilDismissed(async () => (await bloomreachPopup.count()) === 0);
         return;
       }
 
       // Generic overlay fallback (non-Bloomreach modals)
       const overlay = this.elements.locator(this.overlaySelector).first();
-      const overlayVisible = await overlay
-        .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
-        .then(() => true)
-        .catch(() => false);
-      if (!overlayVisible) return;
+      if (!(await this.waitUntilVisible(overlay))) return;
 
-      const dialog = this.page.getByRole('dialog').first();
-      const closeBtn = dialog.getByRole('button', { name: /close/i });
-      const closeBtnVisible = await closeBtn
-        .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
-        .then(() => true)
-        .catch(() => false);
-      if (closeBtnVisible) {
+      const closeBtn = this.page
+        .getByRole('dialog')
+        .first()
+        .getByRole('button', { name: this.closeButtonPattern });
+      if (await this.waitUntilVisible(closeBtn)) {
         await closeBtn.click();
-        await this.waits
-          .waitForCustomCondition(
-            async () => !(await overlay.isVisible().catch(() => true)),
-            { timeout: TIMEOUTS.DIALOG_DISMISS, interval: TIMEOUTS.POLL_INTERVAL_FAST },
-          )
-          .catch(() => {});
+        await this.waitUntilDismissed(async () => !(await overlay.isVisible().catch(() => true)));
         return;
       }
 
       await this.page.keyboard.press('Escape');
-      await this.waits
-        .waitForCustomCondition(async () => !(await overlay.isVisible().catch(() => false)), {
-          timeout: TIMEOUTS.DIALOG_DISMISS,
-          interval: TIMEOUTS.POLL_INTERVAL_FAST,
-        })
-        .catch(() => {});
+      await this.waitUntilDismissed(async () => !(await overlay.isVisible().catch(() => false)));
     } catch {
       // Overlay dismissal is best-effort — proceed with Quick Add regardless
     }
+  }
+
+  /**
+   * Clicks the first of up to 6 candidates starting at `index` that is the topmost element at
+   * its own centre point, i.e. not covered by anything. Returns false when every candidate is
+   * obstructed, leaving the caller to apply its own fallback.
+   */
+  private async clickFirstUnobstructed(candidates: Locator, index: number): Promise<boolean> {
+    const count = await candidates.count();
+
+    for (let i = index; i < Math.min(count, index + 6); i++) {
+      const candidate = candidates.nth(i);
+      await candidate.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+      const isTopmost = await candidate.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return hit === el || el.contains(hit);
+      });
+      if (isTopmost) {
+        await candidate.click();
+        return true;
+      }
+    }
+    return false;
   }
 
   async waitForPlpUrl(): Promise<void> {
@@ -108,23 +124,10 @@ export class EcommercePLPPage extends BasePage {
   async clickProductCard(index: number): Promise<void> {
     await this.dismissOverlays();
 
-    // Scan up to 6 candidates from `index` — sticky header can cover the first card's midpoint
+    // Sticky header can cover the first card's midpoint
     const cards = this.elements.locator(this.productCardLinkSelector);
-    const count = await cards.count();
+    if (await this.clickFirstUnobstructed(cards, index)) return;
 
-    for (let i = index; i < Math.min(count, index + 6); i++) {
-      const card = cards.nth(i);
-      await card.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
-      const isTopmost = await card.evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return hit === el || el.contains(hit);
-      });
-      if (isTopmost) {
-        await card.click();
-        return;
-      }
-    }
     // All candidates obstructed (e.g. sticky nav dropdown left open after nav-link click) — JS
     // synthetic click fires navigation on the anchor regardless of covering elements
     await cards.nth(index).evaluate((el: HTMLElement) => el.click());
@@ -155,24 +158,21 @@ export class EcommercePLPPage extends BasePage {
     });
   }
 
+  private async waitForCountBelow(initialCount: number): Promise<void> {
+    await this.waits.waitForCustomCondition(
+      async () => {
+        const currentCount = await this.getTotalProductCount();
+        return currentCount > 0 && currentCount < initialCount;
+      },
+      { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+    );
+  }
+
   async waitForCategoryFilterApplied(
     filterLabel: string,
     initialCount: number,
   ): Promise<void> {
-    await this.waits.waitForCustomCondition(
-      async () => {
-        try {
-          const currentCount = await this.getTotalProductCount();
-          return currentCount > 0 && currentCount < initialCount;
-        } catch {
-          return false;
-        }
-      },
-      {
-        timeout: TIMEOUTS.PAGE_LOAD_SLOW,
-        interval: TIMEOUTS.POLL_INTERVAL_FAST,
-      },
-    );
+    await this.waitForCountBelow(initialCount);
   }
 
   async applySizeFilter(sizeLabel: string): Promise<void> {
@@ -186,42 +186,17 @@ export class EcommercePLPPage extends BasePage {
     sizeLabel: string,
     initialCount: number,
   ): Promise<void> {
-    await this.waits.waitForCustomCondition(
-      async () => {
-        try {
-          const currentCount = await this.getTotalProductCount();
-          return currentCount > 0 && currentCount < initialCount;
-        } catch {
-          return false;
-        }
-      },
-      { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST },
-    );
+    await this.waitForCountBelow(initialCount);
   }
 
   async quickAdd(index = 0): Promise<void> {
     await this.dismissOverlays();
 
     // Some storefronts inject a newsletter form at the same page-Y as the first row's
-    // Quick Add buttons. The form renders on top and blocks the click. We scan up to
-    // 6 candidates starting at `index`, picking the first one that is the topmost
-    // element at its own center (i.e. not covered by another element).
+    // Quick Add buttons. The form renders on top and blocks the click.
     const btns = this.elements.locator(this.quickAddBtnSelector);
-    const count = await btns.count();
+    if (await this.clickFirstUnobstructed(btns, index)) return;
 
-    for (let i = index; i < Math.min(count, index + 6); i++) {
-      const btn = btns.nth(i);
-      await btn.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
-      const isTopmost = await btn.evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return hit === el || el.contains(hit);
-      });
-      if (isTopmost) {
-        await btn.click();
-        return;
-      }
-    }
     // All candidates were obstructed — fall back to clicking the requested index
     await btns.nth(index).click();
   }
@@ -242,8 +217,6 @@ export class EcommercePLPPage extends BasePage {
    * Used by E2E-LOC-001 to assert AUD price format on PLP product grids.
    */
   async getPriceText(): Promise<string> {
-    const cardSelector = this.productCardSelector;
-    const pricePattern = this.priceTextPattern;
     let result = '';
     await this.waits
       .waitForCustomCondition(
@@ -251,20 +224,18 @@ export class EcommercePLPPage extends BasePage {
           result = await this.page.evaluate(
             ({ cardSel, pat }: { cardSel: string; pat: string }) => {
               const re = new RegExp(pat);
-              const cards = Array.from(document.querySelectorAll(cardSel));
-              for (const card of cards) {
-                const leaves = Array.from(card.querySelectorAll('*'));
-                for (const el of leaves) {
-                  if ((el as Element).children.length > 0) continue;
+              for (const card of document.querySelectorAll(cardSel)) {
+                for (const el of card.querySelectorAll('*')) {
+                  if (el.children.length > 0) continue;
                   const text = el.textContent?.trim() ?? '';
                   if (!re.test(text)) continue;
-                  const r = (el as Element).getBoundingClientRect();
-                  if (r.width > 0 && r.height > 0) return text;
+                  const rect = el.getBoundingClientRect();
+                  if (rect.width > 0 && rect.height > 0) return text;
                 }
               }
               return '';
             },
-            { cardSel: cardSelector, pat: pricePattern },
+            { cardSel: this.productCardSelector, pat: this.priceTextPattern },
           );
           return result.length > 0;
         },
