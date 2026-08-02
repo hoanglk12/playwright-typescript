@@ -11,7 +11,7 @@ export class LoginPage extends BasePage {
   private readonly loginButton: Locator;
   private readonly homeIcon: Locator;
   /** single source of truth — avoids duplicating the string in both POM and test data */
-  readonly errorPopup: Locator;
+  private readonly errorMessageLocator: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -21,8 +21,13 @@ export class LoginPage extends BasePage {
     // Semantic role locator — the ASP.NET Login control renders as <button>Sign in</button>
     this.loginButton = page.getByRole('button', { name: 'Sign in' });
     this.homeIcon = page.locator('#js-nav-breadcrumb i');
-    this.errorPopup = page.getByText(AdminTestData.expectedMessages.errorLogin);
+    this.errorMessageLocator = page.getByText(AdminTestData.expectedMessages.errorLogin);
   }
+
+  get errorPopup(): Locator {
+    return this.errorMessageLocator;
+  }
+
   /**
    * Navigate to LoginPage login page and wait for it to be fully interactive.
    * networkidle wait prevents click failures on slower browsers (e.g. Firefox)
@@ -31,7 +36,7 @@ export class LoginPage extends BasePage {
   async navigateToCMSLoginPage(): Promise<void> {
     const env = getEnvironment();
     await this.goto(env.adminUrl);
-    await this.waitForPageLoad(); // networkidle — ensures all JS has settled
+    await this.waitForPageLoad();
   }
 
   async enterUserID(userID: string): Promise<void> {
@@ -43,7 +48,7 @@ export class LoginPage extends BasePage {
   }
 
   async clickLoginButton(): Promise<void> {
-    await this.loginButton.click();
+    await this.elements.clickLocator(this.loginButton);
     await this.waitForPageLoad();
   }
 
@@ -56,15 +61,14 @@ export class LoginPage extends BasePage {
     }
   }
 
-async getErrorMessageFromPopup(): Promise<string | null> {
-  try {
-    await this.errorPopup.waitFor({ state: 'visible', timeout: TIMEOUTS.DIALOG_DISMISS });
-    const popupText = await this.errorPopup.textContent();
-    return popupText?.trim() || null;
-  } catch (error) {
-    return null;
+  async getErrorMessageFromPopup(): Promise<string | null> {
+    try {
+      await this.errorMessageLocator.waitFor({ state: 'visible', timeout: TIMEOUTS.DIALOG_APPEAR });
+      const popupText = await this.errorMessageLocator.textContent();
+      return popupText?.trim() || null;
+    } catch {
+      return null;
+    }
   }
-}
-
 }
 
