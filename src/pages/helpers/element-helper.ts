@@ -321,6 +321,16 @@ export class ElementHelper {
     return locator.isVisible();
   }
 
+  /** Best-effort wait — never throws. Returns whether the locator became visible in time. */
+  async waitForLocatorVisible(locator: Locator, timeout: number = TIMEOUTS.ELEMENT_VISIBLE): Promise<boolean> {
+    try {
+      await locator.waitFor({ state: "visible", timeout });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async getLocatorAttribute(locator: Locator, attribute: string): Promise<string | null> {
     return locator.getAttribute(attribute);
   }

@@ -6,67 +6,44 @@ import { TIMEOUTS } from '../../constants/timeouts';
  * EcommerceTrackOrderPage — page object for the Track Order utility page on
  * Magento PWA Studio GRA storefronts.
  *
- * Navigation strategy: reach Track Order by clicking the footer link rather than
- * navigating to a hardcoded URL. The exact URL path varies across storefronts and
- * is not confirmed. This approach also matches how a real user navigates and survives
- * any future URL restructuring.
+ * Reached via the footer link rather than a hardcoded URL — the URL path varies
+ * per storefront and is unconfirmed. Also matches how a real user navigates.
  *
- * Footer lazy-load: on all 8 GRA storefronts the footer is intersection-observer-gated
- * and is only injected into the DOM after the viewport reaches the bottom of the page.
- * `navigate()` explicitly scrolls to the bottom before checking for the Track Order link
- * (same pattern used by `assertLoyaltyProgramVisible` in home-page.ts).
+ * Footer lazy-load: the footer is intersection-observer-gated on all 8 GRA
+ * storefronts and only renders once the viewport reaches the bottom of the page
+ * (same pattern used by `assertLoyaltyProgramVisible` in home-page.ts) —
+ * `navigate()` scrolls to the bottom before checking for the link.
  *
- * Input label pattern (GRA Magento PWA): the Track Order form uses sibling <div> text
- * as visible labels, NOT <label> elements. The DOM looks like:
- *   <div>
- *     <input type="text" />         ← no accessible label
- *     <div>Order Number</div>       ← visual label (sibling, not a <label>)
- *   </div>
- * Playwright's getByLabel() does not match this pattern. The locators here chain
- * getByLabel → getByPlaceholder → container-scoped textbox as fallback strategies.
+ * Input label pattern (GRA Magento PWA): inputs use a sibling <div> as their
+ * visible label, not a <label> element, so `getByLabel()` alone does not match.
+ * Locators chain getByLabel → getByPlaceholder → container-scoped textbox as
+ * fallback strategies.
  *
- * StarTrack constraint (Section 3, Constraint 12): form submission triggers a third-party
- * StarTrack tracking call. Only form presence is asserted — never submission.
+ * StarTrack constraint (Section 3, Constraint 12): form submission triggers a
+ * third-party StarTrack tracking call. Only form presence is asserted — never
+ * submission.
  */
 export class EcommerceTrackOrderPage extends BasePage {
-  /**
-   * Footer/header link whose accessible name matches "Track Order" or
-   * "Track My Order" (case-insensitive). `.first()` prevents strict-mode violations
-   * if the same link appears in both the mobile and desktop nav layers.
-   */
+  /** `.filter({ visible: true })` excludes a hidden mobile/desktop nav duplicate. */
   private readonly trackOrderLink = this.page
     .getByRole('link', { name: /track (my )?order/i })
+    .filter({ visible: true })
     .first();
 
   /**
-   * Page heading on the Track Order page — best-effort only.
-   * Some storefronts may not render an explicit heading. `.first()` prevents
-   * strict-mode violations on storefronts with multiple headings.
-   */
-  private readonly pageHeading = this.page
-    .getByRole('heading', { name: /track (your |my )?order/i })
-    .first();
-
-  /**
-   * Submit button on the Track Order form.
-   * Anchored regex `/^(track|submit)$/i` matches only exact "Track" or "Submit"
-   * button labels. This deliberately excludes persistent header/footer buttons
-   * whose labels contain "check" ("Checkout") or "find" ("Find a store") as
-   * substrings — those buttons appear before the form in document order and would
-   * be incorrectly selected by a substring regex with `.first()`.
+   * Anchored regex `/^(track|submit)$/i` excludes persistent header/footer
+   * buttons whose labels contain "check" ("Checkout") or "find" ("Find a
+   * store") as substrings — those appear before the form in document order
+   * and would otherwise be picked up by `.first()`.
    */
   private readonly submitButton = this.page
     .getByRole('button', { name: /^(track|submit)$/i })
     .first();
 
   /**
-   * Container div for the order number field.
-   * Scoped to the DEEPEST div (`.last()` in document order) that:
-   *   (a) contains exactly "Order Number" as its text content (anchored regex), AND
-   *   (b) contains a textbox.
-   * The anchored regex `/^order number$/i` excludes wider ancestor divs whose
-   * text content includes additional text from sibling or nested elements.
-   * Declared before orderNumberInput so the field initializer is available.
+   * Deepest div (`.last()`) that contains exactly "Order Number" (anchored
+   * regex, excludes wider ancestor divs with extra sibling/nested text) and a
+   * textbox. Declared before orderNumberInput so the field initializer is available.
    */
   private readonly orderNumberInputContainer = this.page
     .locator('div')
@@ -74,12 +51,10 @@ export class EcommerceTrackOrderPage extends BasePage {
     .last();
 
   /**
-   * Container div for the email field.
-   * Same scoping strategy as orderNumberInputContainer. The anchored regex
+   * Same scoping as orderNumberInputContainer. The anchored regex
    * `/^email address$/i` deliberately excludes the Vans AU Bloomreach popup
    * container, whose text content is "First Name*Email Address*Date of Birth…"
-   * (a concatenation of all sibling inputs) and therefore does not match the anchor.
-   * Declared before emailInput so the field initializer is available.
+   * (a concatenation of all sibling inputs).
    */
   private readonly emailInputContainer = this.page
     .locator('div')
@@ -87,13 +62,9 @@ export class EcommerceTrackOrderPage extends BasePage {
     .last();
 
   /**
-   * Order number input.
-   * Strategy chain (tried left-to-right via .or()):
-   *   1. getByLabel — works on storefronts with proper <label> elements.
-   *   2. getByPlaceholder — works on storefronts using placeholder text.
-   *   3. Container-scoped textbox — fallback for GRA Magento PWA storefronts
-   *      that use sibling-div text as the visible label (confirmed: Platypus,
-   *      Skechers, Vans, Dr. Martens staging environments).
+   * Strategy chain (tried left-to-right via .or()): getByLabel (storefronts
+   * with a real <label>) → getByPlaceholder → container-scoped textbox
+   * (confirmed fallback on Platypus, Skechers, Vans, Dr. Martens staging).
    */
   private readonly orderNumberInput = this.page
     .getByLabel(/order (id|number)/i)
@@ -102,17 +73,24 @@ export class EcommerceTrackOrderPage extends BasePage {
     .first();
 
   /**
-   * Email input.
-   * Same strategy chain as orderNumberInput.
-   * Note: getByLabel(/email/i) may also match inputs in the Bloomreach popup
-   * (e.g. "Email Address*" on Vans AU). Because the track order form inputs
-   * appear earlier in DOM order than the popup inputs, `.first()` on the .or()
-   * result correctly returns the track order email input.
+   * getByLabel(/email/i) can also match the Bloomreach popup's email input
+   * (e.g. Vans AU); the track order form input appears earlier in DOM order,
+   * so `.first()` on the combined .or() result resolves to the correct one.
    */
   private readonly emailInput = this.page
     .getByLabel(/email/i)
     .or(this.page.getByPlaceholder(/email/i))
     .or(this.emailInputContainer.getByRole('textbox').first())
+    .first();
+
+  /**
+   * Settle target for clickTrackOrderLink() — waits on what assertFormPresent()
+   * actually checks. `.first()` is required: `.or()` is a union (up to 3
+   * elements here), and waitFor() enforces strict mode.
+   */
+  private readonly anyFormControl = this.orderNumberInput
+    .or(this.emailInput)
+    .or(this.submitButton)
     .first();
 
   constructor(page: Page) {
@@ -133,10 +111,10 @@ export class EcommerceTrackOrderPage extends BasePage {
    * "delayed by minutes" problem associated with 'load'/'networkidle'.
    */
   async navigate(baseUrl: string): Promise<void> {
-    await this.page.goto(baseUrl, { waitUntil: 'commit' });
+    await this.gotoWithOptions(baseUrl, { waitUntil: 'commit' });
     await this.waits.waitForPageLoadState('domcontentloaded');
     await this.elements.scrollToBottom();
-    await this.trackOrderLink.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD }).catch(() => {});
+    await this.elements.waitForLocatorVisible(this.trackOrderLink, TIMEOUTS.PAGE_LOAD);
   }
 
   /**
@@ -149,14 +127,13 @@ export class EcommerceTrackOrderPage extends BasePage {
   }
 
   /**
-   * Clicks the Track Order footer link and waits (best-effort) for the page
-   * heading to become visible. The heading wait is `.catch(() => {})` because
-   * some storefronts may not render a heading — `assertFormPresent` is the
-   * authoritative failure gate.
+   * Clicks the Track Order footer link and waits (best-effort) for a form
+   * control to render, settling the page transition before `assertFormPresent`
+   * — the authoritative failure gate — checks visibility with no retry of its own.
    */
   async clickTrackOrderLink(): Promise<void> {
     await this.elements.clickLocator(this.trackOrderLink);
-    await this.pageHeading.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD }).catch(() => {});
+    await this.elements.waitForLocatorVisible(this.anyFormControl, TIMEOUTS.PAGE_LOAD);
   }
 
   async isOrderNumberInputVisible(): Promise<boolean> {
