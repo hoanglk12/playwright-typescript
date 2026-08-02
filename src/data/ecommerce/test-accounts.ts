@@ -110,6 +110,38 @@ export function createGuestShippingAddress(isNz = false): GuestShippingAddress {
   };
 }
 
+// E2E-CHKOUT-009 — Data for the "Add New Address" drawer on /my-details. `firstName`/`lastName`
+// are generated independently from any account-profile identity (never derived from
+// FreshAccountCredentials) so a test can assert the checkout "DELIVER TO" block genuinely
+// sources its text from the saved address, not the account profile — see the recon notes on
+// EcommerceCheckoutPage.getDeliverToAddressText(). `region` must be a value confirmed present in
+// the storefront's Region/State combobox (AU: VIC/NSW/QLD/NT/WA/TAS/ACT/SA, confirmed live on
+// Dr. Martens AU); NZ region values are unconfirmed — callers should verify via
+// EcommerceMyDetailsPage.getRegionOptionTexts() and test.skip() if the value below is absent.
+export interface NewSavedAddressData {
+  addressName: string;
+  firstName: string;
+  lastName: string;
+  street: string;
+  city: string;
+  postcode: string;
+  region: string;
+  phoneNumber: string;
+}
+
+export function createNewSavedAddressData(isNz = false): NewSavedAddressData {
+  return {
+    addressName: 'Home',
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
+    street: isNz ? '1 Queen Street' : '42 Example Parade',
+    city: isNz ? 'Auckland' : 'Melbourne',
+    postcode: isNz ? '1010' : '3000',
+    region: isNz ? 'Auckland' : 'VIC',
+    phoneNumber: isNz ? '0212345678' : '0412345678',
+  };
+}
+
 // Uses email addresses that do not exist on any GRA storefront (E2E-AUTH-004).
 // Magento returns the same generic sign-in error for non-existent emails as for
 // wrong passwords — by design, to prevent email enumeration attacks.

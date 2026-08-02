@@ -56,6 +56,15 @@ export interface ShippingMethodDiagnostics {
   pageText: string;
 }
 
+// E2E-CHKOUT-009 — Forensic pair returned alongside getDeliverToAddressText(): the resolved
+// sibling container's own text plus its raw outerHTML, so a caller/spec can attach the HTML as
+// evidence of which element was actually read (static <p>-lines summary vs. an editable
+// input/form) without re-implementing the heading/sibling resolution logic.
+export interface DeliverToAddressDiagnostics {
+  text: string;
+  outerHTML: string;
+}
+
 // E2E-CHKOUT-006 — A single product line item as rendered in the order-review surface.
 export interface OrderReviewLineItem {
   /**
@@ -397,6 +406,17 @@ export class EcommerceCheckoutPage extends BasePage {
   private readonly paypalAgreeContinueButtonSelector = 'role=button[name="Agree & Continue"]';
   private readonly orderSuccessUrlPattern = /\/ordersuccess/i;
   private readonly orderNumberTextPattern = /order number\s*([a-z0-9-]+)/i;
+
+  // E2E-CHKOUT-009 — RECON FINDING (confirmed live, Dr. Martens AU staging): when a logged-in
+  // customer with a saved default-shipping address reaches the checkout shipping step, the
+  // "DELIVER TO" heading is followed by an "Edit" button and then a SEPARATE sibling container
+  // holding the pre-filled address lines — the address text is NOT inside the heading's own
+  // parent, it lives in that parent's NEXT SIBLING element. Styled-components class names are
+  // build-hashed, so getDeliverToAddressText() locates the block via the heading TEXT match
+  // rather than any fixed class. isOnShippingStep() is NOT a valid precondition here — it
+  // returns true purely from this heading text being present, before the address content has
+  // actually populated (see waitForDeliverToAddressPopulated()).
+  private readonly deliverToHeadingPattern = /deliver\s*to/i;
 
   constructor(page: Page) {
     super(page);
@@ -2108,5 +2128,65 @@ export class EcommerceCheckoutPage extends BasePage {
     const orderSucceeded = await this.waitForOrderSuccess();
     if (!popupPage.isClosed()) await popupPage.close().catch(() => {});
     return orderSucceeded;
+  }
+
+  // E2E-CHKOUT-009 — Resolves the "DELIVER TO" address block on the logged-in checkout shipping
+  // step (see class docblock above deliverToHeadingPattern for the DOM shape) and returns both
+  // its text and raw outerHTML. Confirmed-live DOM for the real address summary is a static
+  // block of bare <p> lines with no <input>/<form> anywhere in it — this reads ONLY
+  // `sibling.textContent`. It deliberately does NOT read `input`/`textarea` `.value`: a prior
+  // version did, which was reading a different, form-shaped element (the profile-seeded
+  // edit-address form, not the static summary) whenever one happened to also resolve as the
+  // heading's next sibling. If the resolved container is genuinely a form and not yet the
+  // static summary, that must surface as empty/non-address text, not be papered over by reading
+  // the form's values instead. Returns empty text/outerHTML if the heading, its parent, or a
+  // next-sibling container cannot be found, OR if that sibling itself is hidden (0x0 bounding
+  // rect) — an invisible sibling is never the populated summary, so treating it as a resolved
+  // result would let the "contains a digit" poll below match stale/hidden markup. Never throws.
+  async getDeliverToAddressDiagnostics(): Promise<DeliverToAddressDiagnostics> {
+    return this.page
+      .evaluate((headingSrc: string) => {
+        const re = new RegExp(headingSrc, 'i');
+        const isVisible = (el: Element): boolean => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        };
+        // RECON FINDING (confirmed live, Dr. Martens AU staging): the checkout DOM also carries
+        // a hidden edit-address drawer/form (reused from /my-details) whose own heading can also
+        // match this pattern and sits earlier in DOM order than the visible "DELIVER TO" block —
+        // an unfiltered querySelectorAll scan picked up that hidden form's labels instead of the
+        // real address text. Only a visible heading is a valid match.
+        const heading = Array.from(document.querySelectorAll('h1, h2, h3, h4')).find(
+          (el) => re.test((el.textContent ?? '').trim()) && isVisible(el),
+        );
+        const sibling = heading?.parentElement?.nextElementSibling;
+        if (!sibling || !isVisible(sibling)) return { text: '', outerHTML: '' };
+        return { text: (sibling.textContent ?? '').trim(), outerHTML: sibling.outerHTML };
+      }, this.deliverToHeadingPattern.source)
+      .catch(() => ({ text: '', outerHTML: '' }));
+  }
+
+  // E2E-CHKOUT-009 — Convenience wrapper over getDeliverToAddressDiagnostics() for callers that
+  // only need the text (e.g. waitForDeliverToAddressPopulated()'s poll condition).
+  async getDeliverToAddressText(): Promise<string> {
+    return (await this.getDeliverToAddressDiagnostics()).text;
+  }
+
+  // E2E-CHKOUT-009 — Polls (best-effort) until getDeliverToAddressText() returns text containing
+  // a digit. Deliberately does not use isOnShippingStep() as its gate — that method's
+  // heading-only match resolves before the address content itself has rendered (see class
+  // docblock). A bare non-empty check is also not sufficient: the sibling can resolve to the
+  // NEXT section's own static copy (e.g. "Delivery Method *Please enter your details to see
+  // available shipping methods" — confirmed live, Dr. Martens AU) before any address content
+  // exists, which is non-empty but never contains a digit — every real address has a street
+  // number or postcode, so requiring one distinguishes genuine content from that false-positive.
+  // Best-effort: falls through on timeout so the caller's own assertions are the source of truth.
+  async waitForDeliverToAddressPopulated(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(
+        async () => /\d/.test(await this.getDeliverToAddressText()),
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
+      )
+      .catch(() => {});
   }
 }

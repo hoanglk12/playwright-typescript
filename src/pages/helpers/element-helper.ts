@@ -331,7 +331,22 @@ export class ElementHelper {
     }
   }
 
+  /** Best-effort wait — never throws. Returns whether the locator became hidden in time. */
+  async waitForLocatorHidden(locator: Locator, timeout: number = TIMEOUTS.ELEMENT_VISIBLE): Promise<boolean> {
+    try {
+      await locator.waitFor({ state: "hidden", timeout });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async getLocatorAttribute(locator: Locator, attribute: string): Promise<string | null> {
     return locator.getAttribute(attribute);
+  }
+
+  async fillLocator(locator: Locator, text: string): Promise<void> {
+    await locator.waitFor({ state: "visible", timeout: TIMEOUTS.ELEMENT_VISIBLE });
+    await locator.fill(text);
   }
 }

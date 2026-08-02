@@ -59,6 +59,99 @@ export interface AccountCreationResult {
   skipReason?: string;
 }
 
+// E2E-CHKOUT-009 — GraphQL sign-in mutation, used to obtain a fresh bearer token for the
+// address-book read-back below. Kept separate from GraphQLClient/gra-test.ts (API-suite
+// infrastructure, not available to UI specs) — mirrors createFreshAccountViaGraphQL's own raw
+// request-fixture pattern in this file.
+const GENERATE_CUSTOMER_TOKEN_MUTATION = `
+  mutation GenerateCustomerToken($email: String!, $password: String!) {
+    generateCustomerToken(email: $email, password: $password) {
+      token
+    }
+  }
+`;
+
+const GET_CUSTOMER_ADDRESSES_QUERY = `
+  query GetCustomerAddresses {
+    customer {
+      addresses {
+        id
+        firstname
+        lastname
+        default_shipping
+      }
+    }
+  }
+`;
+
+interface CustomerAddressSummary {
+  id: number;
+  firstname: string;
+  lastname: string;
+  default_shipping: boolean;
+}
+
+export interface DefaultShippingAddressCheckResult {
+  hasDefaultShippingAddress: boolean;
+  matchedAddress: CustomerAddressSummary | null;
+}
+
+/**
+ * Signs in fresh via GraphQL (never reuses a stored token) and confirms a saved address matching
+ * `expectedFirstName`/`expectedLastName` is marked default_shipping. Used as the authoritative,
+ * non-visual confirmation that EcommerceMyDetailsPage.setAsDefaultAddress() + submitNewAddress()
+ * actually persisted the default flag server-side.
+ */
+export async function confirmDefaultShippingAddressViaGraphQL(
+  request: APIRequestContext,
+  site: Storefront,
+  creds: { email: string; password: string },
+  expectedFirstName: string,
+  expectedLastName: string,
+): Promise<DefaultShippingAddressCheckResult> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (site.storeHeader) headers['Store'] = site.storeHeader;
+
+  const tokenResponse = await request.post(site.graphqlUrl, {
+    headers,
+    data: {
+      query: GENERATE_CUSTOMER_TOKEN_MUTATION,
+      variables: { email: creds.email, password: creds.password },
+    },
+  });
+  const tokenBody = (await tokenResponse.json()) as {
+    data?: { generateCustomerToken?: { token?: string } };
+    errors?: Array<{ message?: string }>;
+  };
+  if (!tokenResponse.ok() || (tokenBody.errors?.length ?? 0) > 0) {
+    return { hasDefaultShippingAddress: false, matchedAddress: null };
+  }
+  const token = tokenBody.data?.generateCustomerToken?.token;
+  if (!token) {
+    return { hasDefaultShippingAddress: false, matchedAddress: null };
+  }
+
+  const addressResponse = await request.post(site.graphqlUrl, {
+    headers: { ...headers, Authorization: `Bearer ${token}` },
+    data: { query: GET_CUSTOMER_ADDRESSES_QUERY },
+  });
+  const addressBody = (await addressResponse.json()) as {
+    data?: { customer?: { addresses?: CustomerAddressSummary[] } };
+    errors?: Array<{ message?: string }>;
+  };
+  if (!addressResponse.ok() || (addressBody.errors?.length ?? 0) > 0) {
+    return { hasDefaultShippingAddress: false, matchedAddress: null };
+  }
+  const addresses = addressBody.data?.customer?.addresses ?? [];
+  const matchedAddress =
+    addresses.find(
+      (addr) =>
+        addr.default_shipping && addr.firstname === expectedFirstName && addr.lastname === expectedLastName,
+    ) ?? null;
+
+  return { hasDefaultShippingAddress: matchedAddress !== null, matchedAddress };
+}
+
 /**
  * When `preferMens` is true (Skechers, Vans NZ) the MENS nav is tried first
  * because the WOMENS PLP does not lead to footwear with size selectors.
