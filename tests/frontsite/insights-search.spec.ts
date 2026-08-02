@@ -20,7 +20,6 @@ test.describe('Insights Page Search @insights @frontsite', () => {
 
     await logger.step('Step 3 - Verify search results contain "Banking"', async () => {
       logger.action('Verify', 'search results contain "Banking"');
-      // toContainText retries until results load — avoids one-shot boolean on slow QA server
       await expect(insightsPage.resultsContainer).toContainText('Banking', { timeout: TIMEOUTS.API_RESPONSE });
     });
   });

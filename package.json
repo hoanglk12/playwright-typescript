@@ -85,7 +85,8 @@
     "sync:vault": "node scripts/sync-vault-to-lightrag.mjs",
     "council": "node scripts/council/dispatch.mjs",
     "council:dry": "node scripts/council/dispatch.mjs --dry-run",
-    "council:mock": "cross-env COUNCIL_MOCK=1 node scripts/council/dispatch.mjs"
+    "council:mock": "cross-env COUNCIL_MOCK=1 node scripts/council/dispatch.mjs",
+    "council:sanity": "node scripts/council/sanity-check.mjs"
   },
   "keywords": [
     "playwright",

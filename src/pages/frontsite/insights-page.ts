@@ -3,7 +3,6 @@ import { BasePage } from '../base-page';
 import { getEnvironment } from '../../config/environment';
 import { TIMEOUTS } from '../../constants/timeouts';
 
-
 export class InsightsPage extends BasePage {
   private readonly environment = getEnvironment();
 
@@ -32,32 +31,7 @@ export class InsightsPage extends BasePage {
     await this.waits.waitForUrlMatches(/searchText=/, TIMEOUTS.ELEMENT_VISIBLE).catch(() => {});
   }
 
-  get resultsContainer() {
+  get resultsContainer(): Locator {
     return this.searchResults;
-  }
-
-  async getSearchResultsText(): Promise<string[]> {
-    return this.searchResults.allTextContents();
-  }
-
-  async verifySearchResultsContainText(expectedText: string): Promise<boolean> {
-    try {
-      await this.searchResults.first().waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE });
-    } catch {
-      const currentUrl = this.page.url();
-      if (currentUrl.includes('search') || currentUrl.includes('q=') || currentUrl.includes('query=')) {
-        return true;
-      }
-      return false;
-    }
-
-    const resultsText = await this.getSearchResultsText();
-    const allText = resultsText.join(' ').toLowerCase();
-
-    // some implementations render results inline
-    const pageContent = (await this.page.textContent('body')) ?? '';
-    const pageText = pageContent.toLowerCase();
-
-    return pageText.includes(expectedText.toLowerCase()) || allText.includes(expectedText.toLowerCase());
   }
 }

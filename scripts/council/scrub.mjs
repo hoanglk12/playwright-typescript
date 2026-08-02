@@ -203,8 +203,10 @@ function sumHits(entries) {
  * stage; this tool is a flat parallel fan-out (see CLAUDE.md "LLM Council"
  * section), not the reverted debate-panel-plus-chairman design this
  * function's shape was originally built for.
- * `estimate` = { totalCostUsd } — null whenever pricing is unconfirmed for
- * this endpoint (the caller must never coerce that to 0).
+ * `estimate` = { totalCostUsd } — a chars/4-token approximation against
+ * tiers.mjs's static pricing (this endpoint has no pricing API), or null if
+ * a future model in the panel has no pricing entry there (the caller must
+ * never coerce that to 0).
  */
 export function buildManifest({ question, contextFiles = [], models, estimate, showFull = false }) {
   const lines = [];
@@ -235,7 +237,7 @@ export function buildManifest({ question, contextFiles = [], models, estimate, s
   lines.push(
     estimate.totalCostUsd === null
       ? '  UNKNOWN — this endpoint has no confirmed pricing catalog. --max-cost cannot be enforced; the consent step below is your only cost backstop.'
-      : `  ~$${estimate.totalCostUsd.toFixed(4)} (character/4 token estimate)`
+      : `  ~$${estimate.totalCostUsd.toFixed(4)} (character/4 prompt-token approximation at each model's max_tokens completion cap — a ceiling for models that honor the cap, a floor for any that don't; not a billed figure)`
   );
   lines.push('');
 

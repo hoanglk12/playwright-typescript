@@ -6,9 +6,12 @@
  *
  * Endpoint is https://direct.shopaikey.com/v1 by default (COUNCIL_BASE_URL
  * overrides it), not OpenRouter — see docs/technical-research/
- * ai-council-dispatch.research.md §8.6 / §10 Phase 0. This means /models
- * and /key are NOT confirmed to exist on this provider; both fail soft to
- * "UNKNOWN" rather than erroring or fabricating a $0 estimate.
+ * ai-council-dispatch.research.md §8.6 / §10 Phase 0. /models is confirmed
+ * to exist (GET returns 200 with a full model list, verified 2026-08-02) but
+ * its entries carry no `pricing` field — static pricing lives in
+ * tiers.mjs's PRICING_PER_MILLION_TOKENS_USD instead. /key's existence is
+ * still unconfirmed. Both fail soft to "UNKNOWN" rather than erroring or
+ * fabricating a $0 estimate.
  *
  * Mock mode: when process.env.COUNCIL_MOCK === '1', every function here
  * returns deterministic canned data and makes NO network request. This is
@@ -33,11 +36,16 @@ export function isMock() {
 }
 
 export class OpenRouterError extends Error {
-  constructor(message, { status, retryAfterMs, cause } = {}) {
+  constructor(message, { status, retryAfterMs, cause, retryable } = {}) {
     super(message);
     this.name = 'OpenRouterError';
     this.status = status;
     this.retryAfterMs = retryAfterMs ?? null;
+    /** Overrides RETRYABLE_STATUSES for this specific instance — used when
+     * the status code alone can't tell a transient failure from a
+     * deterministic one (see EMPTY_CONTENT below). Undefined means "defer to
+     * RETRYABLE_STATUSES", never treated as an explicit false. */
+    this.retryable = retryable;
     if (cause) this.cause = cause;
   }
 }
@@ -355,9 +363,31 @@ export async function chat({ apiKey, model, messages, maxTokens, temperature = 0
 
   const text = json?.choices?.[0]?.message?.content ?? '';
   if (!text.trim()) {
-    throw new OpenRouterError(`Empty completion content from ${model} (prompt cost was still incurred)`, {
-      status: 'EMPTY_CONTENT',
-    });
+    // Reasoning models (kimi-k3, and previously glm-5.2) can spend the
+    // entire max_tokens budget on hidden reasoning_content and never reach
+    // the final answer — finish_reason "length" plus non-empty
+    // reasoning_content is that signature, confirmed live 2026-08-02.
+    // Retrying at the same max_tokens would deterministically fail again
+    // and re-bill the prompt for nothing, so this case is marked
+    // non-retryable; any other empty-content shape (no reasoning_content,
+    // or a different finish_reason) is treated as a transient provider
+    // fault and stays retryable.
+    const finishReason = json?.choices?.[0]?.finish_reason ?? null;
+    const reasoningContent = json?.choices?.[0]?.message?.reasoning_content ?? '';
+    const reasoningTokens = json?.usage?.completion_tokens_details?.reasoning_tokens ?? null;
+    const budgetExhausted = finishReason === 'length' && reasoningContent.length > 0;
+    const detail = budgetExhausted
+      ? `reasoning-budget exhausted: finish_reason="length", ${reasoningTokens ?? reasoningContent.length + ' reasoning_content chars'} of ${json?.usage?.completion_tokens ?? maxTokens} completion tokens spent on reasoning, 0 on content — raise max_tokens for this model`
+      : `finish_reason="${finishReason}", no reasoning_content captured — likely a transient provider fault`;
+    const emptyContentErr = new OpenRouterError(
+      `Empty completion content from ${model} (prompt cost was still incurred): ${detail}`,
+      { status: 'EMPTY_CONTENT', retryable: !budgetExhausted }
+    );
+    // Prompt (and any reasoning completion) tokens were billed despite the
+    // empty answer — attach usage so a caller can tally the wasted spend
+    // instead of losing it the moment this throws.
+    emptyContentErr.usage = json?.usage ?? null;
+    throw emptyContentErr;
   }
 
   const usage = json?.usage ?? {};
@@ -373,7 +403,10 @@ export async function chat({ apiKey, model, messages, maxTokens, temperature = 0
   };
 }
 
-export const RETRYABLE_STATUSES = new Set(['NETWORK', 'EMPTY_CONTENT', 408, 429, 500, 502, 503]);
+// 529 added 2026-08-02: confirmed live on this endpoint as an
+// "overloaded_error" body ("服务当前过载，请稍后重试") — a Cloudflare-style
+// transient-overload status, not in the original OpenRouter status set.
+export const RETRYABLE_STATUSES = new Set(['NETWORK', 'EMPTY_CONTENT', 408, 429, 500, 502, 503, 529]);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -381,9 +414,12 @@ function sleep(ms) {
 
 /**
  * Exponential backoff with jitter. Retries only network errors, 408/429/
- * 500/502/503, and empty-completion responses. 400/403 are deterministic
+ * 500/502/503/529, and empty-completion responses. 400/403 are deterministic
  * failures and are not retried. FatalAuthError (401/402) always aborts
- * immediately — never retried, never swallowed.
+ * immediately — never retried, never swallowed. `err.retryable === false`
+ * overrides RETRYABLE_STATUSES membership — used for EMPTY_CONTENT caused by
+ * reasoning-budget exhaustion, where retrying at the same max_tokens would
+ * deterministically fail again and re-bill the prompt for nothing.
  */
 export async function withRetry(fn, { retries = 2, baseDelayMs = 1000 } = {}) {
   let lastErr;
@@ -392,7 +428,7 @@ export async function withRetry(fn, { retries = 2, baseDelayMs = 1000 } = {}) {
       return await fn();
     } catch (err) {
       if (err instanceof FatalAuthError) throw err;
-      if (!RETRYABLE_STATUSES.has(err?.status)) throw err;
+      if (!RETRYABLE_STATUSES.has(err?.status) || err?.retryable === false) throw err;
 
       lastErr = err;
       if (attempt === retries) throw err;

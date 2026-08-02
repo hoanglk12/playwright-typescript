@@ -3,7 +3,7 @@
  * scripts/council/dispatch.mjs
  *
  * Dev-time, opt-in generic dispatcher backing /council-review: fans one
- * grounded question (plus explicit --context files) out to a fixed 3-model
+ * grounded question (plus explicit --context files) out to a fixed 2-model
  * panel in parallel, one round, no ranking, no chairman — the human
  * compares the independent responses. See CLAUDE.md "LLM Council" section
  * and docs/technical-research/ai-council-dispatch.research.md for the
@@ -25,9 +25,15 @@
  *                             forward-compatible if a second tier ships later
  *   --dry-run                 manifest + estimate only, no chat calls
  *   --yes                     required for a real run outside mock mode
- *   --max-cost=<usd>          default 0.25 — unenforceable while pricing is
- *                             UNKNOWN (see tiers.mjs); a warning is printed
- *   --max-tokens=<n>          default 1200 — per-response cap
+ *   --max-cost=<usd>          default 0.25 — informational only, NOT enforced
+ *                             by design (see tiers.mjs pricing + the printed
+ *                             warning); the --yes consent step is the real
+ *                             cost backstop
+ *   --max-tokens=<n>          default 1200 — per-response cap; overridden
+ *                             per-model for kimi-k3 (see tiers.mjs
+ *                             MODEL_MAX_TOKENS_OVERRIDE) unless this flag is
+ *                             passed explicitly, in which case it wins for
+ *                             every model
  *   --timeout=<ms>            default 120000 — per-call timeout
  *   --out-dir=<path>          default ./council-output
  *
@@ -43,10 +49,38 @@
  * outside mock mode).
  */
 import { readFileSync } from 'fs';
+import { pathToFileURL } from 'url';
 import { scrub, buildManifest, assertNoApiKeyInPayload } from './scrub.mjs';
 import { resolveApiKey, chat, withRetry, FatalAuthError, maskKey, API_BASE_URL, isMock } from './client.mjs';
-import { DEFAULT_PANEL, assertPinnedSlug } from './tiers.mjs';
+import { DEFAULT_PANEL, assertPinnedSlug, MODEL_MAX_TOKENS_OVERRIDE } from './tiers.mjs';
 import { writeTranscript, writeRunJson, ts } from './output.mjs';
+
+/** Rough pre-call estimate: chars/4 for prompt tokens (no tokenizer
+ * dependency), the per-model max_tokens as the completion-side figure.
+ * This is a ceiling for models that honor max_tokens exactly (confirmed for
+ * kimi-k3) but a floor for gpt-5.6-sol — a real run returned 3289
+ * completion tokens against a 1200 cap (2026-08-02), suggesting its SSE
+ * path does not enforce max_tokens. Never presented as a billed cost. */
+export function estimateCallCostUsd(promptChars, maxTokens, pricing) {
+  if (!pricing) return 0;
+  const promptTokens = Math.ceil(promptChars / 4);
+  return (promptTokens / 1_000_000) * pricing.input + (maxTokens / 1_000_000) * pricing.completion;
+}
+
+/** Actual cost from a completed call's real usage — still an estimate in
+ * the sense that the provider never returns a billed `usage.cost`, but it
+ * uses the real token counts instead of the chars/4 approximation. */
+export function actualCallCostUsd(usage, pricing) {
+  if (!pricing || !usage) return 0;
+  const promptTokens = usage.prompt_tokens ?? 0;
+  const completionTokens = usage.completion_tokens ?? 0;
+  return (promptTokens / 1_000_000) * pricing.input + (completionTokens / 1_000_000) * pricing.completion;
+}
+
+export function maxTokensForModel(slug, explicitMaxTokens, defaultMaxTokens) {
+  if (explicitMaxTokens) return defaultMaxTokens;
+  return MODEL_MAX_TOKENS_OVERRIDE[slug] ?? defaultMaxTokens;
+}
 
 function parseArgs(argv) {
   const flags = { context: [] };
@@ -111,6 +145,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
+  const explicitMaxTokens = flags['max-tokens'] !== undefined;
 
   for (const model of DEFAULT_PANEL) assertPinnedSlug(model.slug);
 
@@ -146,11 +181,24 @@ async function main() {
   }
 
   // ── manifest ───────────────────────────────────────────────────────────
+  // Per-model max_tokens: an explicit --max-tokens always wins; otherwise
+  // kimi-k3 gets its reasoning-budget override (see tiers.mjs). The estimate
+  // below uses these same per-model values, so it reflects what will
+  // actually be sent, not the flag's raw default.
+  const perModelMaxTokens = new Map(
+    DEFAULT_PANEL.map(model => [model.slug, maxTokensForModel(model.slug, explicitMaxTokens, maxTokens)])
+  );
+  const estimatedCostUsd = DEFAULT_PANEL.reduce(
+    (sum, model) =>
+      sum + estimateCallCostUsd(framedQuestion.length, perModelMaxTokens.get(model.slug), model.pricingPerMillionUsd),
+    0
+  );
+
   const manifest = buildManifest({
     question: { ...question, framedText: framedQuestion },
     contextFiles,
     models: DEFAULT_PANEL,
-    estimate: { totalCostUsd: null },
+    estimate: { totalCostUsd: estimatedCostUsd },
     showFull: dryRun,
   });
   console.log(manifest.printable);
@@ -162,8 +210,10 @@ async function main() {
   }
 
   console.warn(
-    `⚠️  Cost estimate is UNKNOWN on ${API_BASE_URL} — --max-cost=${maxCostUsd} cannot be enforced. ` +
-      'The consent step below is your only cost backstop.'
+    `⚠️  --max-cost=${maxCostUsd} is informational only and is NOT enforced, by design — the consent step ` +
+      '(this manifest + --yes) is the actual cost backstop. The estimate above is a chars/4-token approximation, ' +
+      'a ceiling for models that honor max_tokens exactly and a floor for any that don\'t (gpt-5.6-sol has been ' +
+      'observed exceeding its cap) — never a billed figure, since this provider does not return one.'
   );
 
   // ── consent gate ───────────────────────────────────────────────────────
@@ -189,12 +239,28 @@ async function main() {
     DEFAULT_PANEL.map(async model => {
       try {
         const result = await withRetry(() =>
-          chat({ apiKey, model: model.slug, messages, maxTokens, timeoutMs, signal: abortController.signal })
+          chat({
+            apiKey,
+            model: model.slug,
+            messages,
+            maxTokens: perModelMaxTokens.get(model.slug),
+            timeoutMs,
+            signal: abortController.signal,
+          })
         );
         return { slug: model.slug, family: model.family, status: 'ok', text: result.text, usage: result.usage, latencyMs: result.latencyMs };
       } catch (err) {
         if (err instanceof FatalAuthError) abortController.abort(err);
-        return { slug: model.slug, family: model.family, status: 'failed', error: err.message, fatal: err instanceof FatalAuthError };
+        // err.usage is only set for EMPTY_CONTENT — it's the wasted spend on
+        // a prompt (and any reasoning tokens) that was billed for nothing.
+        return {
+          slug: model.slug,
+          family: model.family,
+          status: 'failed',
+          error: err.message,
+          fatal: err instanceof FatalAuthError,
+          wastedUsage: err.usage ?? null,
+        };
       }
     })
   );
@@ -221,13 +287,30 @@ async function main() {
     return;
   }
 
+  // Real cost from actual usage where available (successful calls' own
+  // usage, plus wasted spend attached to EMPTY_CONTENT failures) — the
+  // provider never returns a billed `usage.cost`, so this is still our own
+  // computation against static pricing, just from real token counts instead
+  // of the chars/4 pre-call approximation. Failures with no usage attached
+  // (network errors, HTTP errors before a body was billed) contribute $0 and
+  // are undercounted, not zero-cost — see the per-result note in the run JSON.
+  const pricingBySlug = new Map(DEFAULT_PANEL.map(m => [m.slug, m.pricingPerMillionUsd]));
+  let actualCostUsd = 0;
+  for (const r of results) {
+    const pricing = pricingBySlug.get(r.slug);
+    if (r.status === 'ok') actualCostUsd += actualCallCostUsd(r.usage, pricing);
+    else if (r.wastedUsage) actualCostUsd += actualCallCostUsd(r.wastedUsage, pricing);
+  }
+
   const run = {
     question,
     contextFiles,
     framedQuestion,
     models: DEFAULT_PANEL,
     results,
-    failures: results.filter(r => r.status === 'failed').map(r => ({ slug: r.slug, message: r.error })),
+    failures: results.filter(r => r.status === 'failed').map(r => ({ slug: r.slug, message: r.error, wastedUsage: r.wastedUsage ?? null })),
+    estimatedCostUsd,
+    actualCostUsd,
     startedAt,
     endedAt: new Date().toISOString(),
     exitCode: 0,
@@ -242,14 +325,23 @@ async function main() {
   for (const r of results) {
     console.log(`  ${r.slug.padEnd(20)} ${r.status.padEnd(8)} ${r.latencyMs ?? '-'}ms${r.status === 'failed' ? `  (${r.error})` : ''}`);
   }
-  console.log('Cost: UNKNOWN (this endpoint has no confirmed pricing catalog)');
+  console.log(
+    `Cost: ~$${actualCostUsd.toFixed(4)} (computed from real usage × static shopaikey.com/models pricing, ` +
+      'not a provider-billed figure — this endpoint never returns one; failed calls with no usage attached ' +
+      'are undercounted, not free)'
+  );
   console.log(`Transcript: ${transcriptPath}`);
   console.log(`Run JSON:   ${jsonPath}`);
 
   process.exitCode = 0;
 }
 
-main().catch(err => {
-  console.error('❌', err.message);
-  process.exitCode = 1;
-});
+// Only auto-run when executed directly (`node dispatch.mjs ...`) — guarded so
+// a sanity-check script can import the pure helpers above (estimateCallCostUsd,
+// actualCallCostUsd, maxTokensForModel) without triggering a real CLI run.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(err => {
+    console.error('❌', err.message);
+    process.exitCode = 1;
+  });
+}
