@@ -44,11 +44,11 @@ export class EcommerceHelpSupportPage extends BasePage {
   private readonly headerHelpTrigger = this.page.getByRole('figure', { name: 'Help', exact: true }).first();
 
   /**
-   * Defensive fallback: some storefronts may expose "Help" directly as a link with no
-   * flyout step. Tried by `isHelpSupportLinkPresent()`/`clickHelpSupportLink()` only
-   * when `headerHelpTrigger` is not visible.
+   * Matches "Help", "FAQs", or "Support" (case-insensitive, whole-name) — the label set
+   * confirmed live across brands for both the flyout-panel filter and the destination
+   * link inside it.
    */
-  private readonly directHelpLink = this.page.getByRole('link', { name: /^help$/i }).first();
+  private static readonly SUPPORT_LINK_NAME_PATTERN = /^(help|faqs?|support)$/i;
 
   /**
    * The flyout panel opened by `headerHelpTrigger`. Confirmed live (Platypus AU): a
@@ -61,7 +61,7 @@ export class EcommerceHelpSupportPage extends BasePage {
    */
   private readonly helpFlyoutPanel = this.page
     .locator('aside, [role="complementary"]')
-    .filter({ has: this.page.getByRole('link', { name: /^(help|faqs?|support)$/i }) })
+    .filter({ has: this.page.getByRole('link', { name: EcommerceHelpSupportPage.SUPPORT_LINK_NAME_PATTERN }) })
     .first();
 
   /**
@@ -73,7 +73,7 @@ export class EcommerceHelpSupportPage extends BasePage {
    * elsewhere in the DOM can never be clicked instead.
    */
   private readonly flyoutSupportLink = this.helpFlyoutPanel
-    .getByRole('link', { name: /^(help|faqs?|support)$/i })
+    .getByRole('link', { name: EcommerceHelpSupportPage.SUPPORT_LINK_NAME_PATTERN })
     .first();
 
   /**
@@ -100,7 +100,7 @@ export class EcommerceHelpSupportPage extends BasePage {
 
   /**
    * Navigate to the storefront homepage and wait (best-effort) for the header Help
-   * trigger (or a direct Help link, as a fallback) to become visible.
+   * trigger to become visible.
    *
    * `waitUntil: 'commit'` fires on the first byte of the HTTP response — too early
    * for the subsequent visibility check because document.body is null at that point.
@@ -110,44 +110,44 @@ export class EcommerceHelpSupportPage extends BasePage {
    * lazily-rendered footer.
    */
   async navigate(baseUrl: string): Promise<void> {
-    await this.page.goto(baseUrl, { waitUntil: 'commit' });
+    await this.gotoWithOptions(baseUrl, { waitUntil: 'commit' });
     await this.waits.waitForPageLoadState('domcontentloaded');
     this.homeUrl = this.page.url();
-    await this.headerHelpTrigger
-      .or(this.directHelpLink)
-      .first()
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD })
-      .catch(() => {});
+    await this.elements.waitForLocatorVisible(this.headerHelpTrigger, TIMEOUTS.PAGE_LOAD);
   }
 
   /**
-   * Call after `navigate()`. Returns false when neither the trigger nor a direct link
-   * is configured (or detectable) on this staging storefront — the spec should call
-   * `test.skip` in this case.
+   * Call after `navigate()` (which already waits for the trigger). Used as the
+   * hard pass/fail gate before clicking — see `assertHelpSupportLinkPresent`.
    */
-  async isHelpSupportLinkPresent(): Promise<boolean> {
-    const [triggerVisible, directVisible] = await Promise.all([
-      this.elements.isLocatorVisible(this.headerHelpTrigger),
-      this.elements.isLocatorVisible(this.directHelpLink),
-    ]);
-    return triggerVisible || directVisible;
+  private async isHelpSupportLinkPresent(): Promise<boolean> {
+    return this.elements.isLocatorVisible(this.headerHelpTrigger);
   }
 
   /**
-   * Opens the Help/Support destination. If the header trigger is present, clicks it
-   * to open the flyout, then clicks the matching link inside it. Falls back to
-   * clicking a direct Help link if the trigger is not present. Waits (best-effort)
-   * for the destination page to finish navigating — `assertNavigatedToHelpSupportPage`
-   * is the authoritative failure gate, not this wait.
+   * Hard assertion: the header Help trigger must be visible. Storefronts where
+   * Help is not expected are filtered out via `Storefront.hasHelpSupport` before
+   * this is called — absence here is always a locator regression, not a
+   * legitimately-missing feature. Fails with a descriptive message that includes
+   * the site name to aid debugging across the 8-storefront matrix.
+   */
+  async assertHelpSupportLinkPresent(siteName: string): Promise<void> {
+    expect(
+      await this.isHelpSupportLinkPresent(),
+      `Expected header Help trigger to be visible on ${siteName}`,
+    ).toBe(true);
+  }
+
+  /**
+   * Opens the Help/Support destination: clicks the header trigger to open the flyout,
+   * then clicks the matching link inside it. Waits (best-effort) for the destination
+   * page to finish navigating — `assertNavigatedToHelpSupportPage` is the authoritative
+   * failure gate, not this wait.
    */
   async clickHelpSupportLink(): Promise<void> {
-    if (await this.elements.isLocatorVisible(this.headerHelpTrigger)) {
-      await this.elements.clickLocator(this.headerHelpTrigger);
-      await this.flyoutSupportLink.waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE }).catch(() => {});
-      await this.elements.clickLocator(this.flyoutSupportLink);
-    } else {
-      await this.elements.clickLocator(this.directHelpLink);
-    }
+    await this.elements.clickLocator(this.headerHelpTrigger);
+    await this.elements.waitForLocatorVisible(this.flyoutSupportLink, TIMEOUTS.ELEMENT_VISIBLE);
+    await this.elements.clickLocator(this.flyoutSupportLink);
     await this.waits.waitForPageLoadState('domcontentloaded').catch(() => {});
   }
 

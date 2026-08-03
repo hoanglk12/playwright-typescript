@@ -62,21 +62,18 @@ test.describe('Ecommerce Utilities Smoke @ecommerce @smoke @utilities', () => {
         `E2E-UTIL-005 - ${site.name} - Help/Support page accessible via header link`,
       );
 
+      if (!site.hasHelpSupport) {
+        test.skip(true, `${site.name}: Help/Support not configured for this storefront (hasHelpSupport: false)`);
+        return;
+      }
+
       await logger.step('Step 1 - Navigate to storefront homepage', async () => {
         await ecommerceHelpSupportPage.navigate(site.url);
       });
 
-      let linkPresent = false;
       await logger.step('Step 2 - Assert Help/Support link is present in header', async () => {
-        linkPresent = await ecommerceHelpSupportPage.isHelpSupportLinkPresent();
+        await ecommerceHelpSupportPage.assertHelpSupportLinkPresent(site.name);
       });
-      if (!linkPresent) {
-        test.skip(
-          true,
-          `${site.name}: no Help/Support link found in header — link may not be configured on this staging storefront`,
-        );
-        return;
-      }
 
       await logger.step('Step 3 - Click Help/Support link', async () => {
         await ecommerceHelpSupportPage.clickHelpSupportLink();

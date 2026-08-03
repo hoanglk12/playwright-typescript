@@ -20,6 +20,7 @@ node_modules/
 .github/agents/
 .github/chatmodes/
 .playwright-cli/
+tests/seed.spec.ts
 
 
 # Test artifacts and logs
