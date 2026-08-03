@@ -168,7 +168,7 @@ fix too).
 
 If the file uses the `page` fixture (a browser-page object), it is a misplaced UI-mocking test.
 In that case, do NOT change the import — instead note in your report that the file must be
-relocated to `tests/frontsite/` or `tests/ecommerce/` and blocked from this fix.
+relocated to `tests/ecommerce/` and blocked from this fix.
 
 ---
 

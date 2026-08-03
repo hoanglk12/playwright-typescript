@@ -2,6 +2,23 @@ import fs from 'fs';
 import path from 'path';
 import { FullConfig } from '@playwright/test';
 import { getEnvironment } from './environment';
+import { storefronts } from '../data/ecommerce/storefronts';
+
+/** Groups the 8 GRA storefronts by brand, pairing each brand's AU/NZ frontsite URLs with its single shared admin URL */
+function getBrandUrlLines(): string[] {
+  const brands = new Map<string, { admin: string; au?: string; nz?: string }>();
+  for (const site of storefronts) {
+    const entry = brands.get(site.brandName) ?? { admin: site.adminUrl };
+    if (site.storeHeader === 'nz') {
+      entry.nz = site.url;
+    } else {
+      entry.au = site.url;
+    }
+    brands.set(site.brandName, entry);
+  }
+
+  return Array.from(brands, ([brandName, { admin, au, nz }]) => `${brandName}: AU ${au} | NZ ${nz} | Admin ${admin}`);
+}
 
 async function globalTeardown(config: FullConfig) {
 
@@ -57,8 +74,8 @@ Test Execution Summary
 =====================
 Timestamp: ${timestamp}
 Environment: ${process.env.NODE_ENV || 'testing'}
-Front Site URL: ${environment.frontSiteUrl}
-Admin URL: ${environment.adminUrl}
+GRA Brand Storefronts:
+${getBrandUrlLines().map(line => `  ${line}`).join('\n')}
 Browser: ${environment.defaultBrowser}
 Headless: ${environment.headless}
 Parallel Workers: ${environment.parallelWorkers}
@@ -120,8 +137,10 @@ async function showTestSummary(): Promise<void> {
   try {
     const environment = getEnvironment();
     console.log(`   🌍 Environment: ${process.env.NODE_ENV || 'testing'}`);
-    console.log(`   🌐 Front Site: ${environment.frontSiteUrl}`);
-    console.log(`   🔧 Admin Panel: ${environment.adminUrl}`);
+    console.log('   🌐 GRA Brand Storefronts:');
+    for (const line of getBrandUrlLines()) {
+      console.log(`      ${line}`);
+    }
     let browserName = process.env.BROWSER || environment.defaultBrowser;
     const projectArg = process.argv.find(arg => arg.startsWith('--project='));
     if (projectArg) {

@@ -35,12 +35,10 @@ This project's own conventions (below) always take precedence if they conflict w
 
 ## Project Context
 
-This project has four test areas — assign every scenario to one:
+This project has two test areas — assign every scenario to one:
 
 | Area | Path | Covers |
 |---|---|---|
-| `frontsite` | `tests/frontsite/` | Public-facing site, homepage, search, profiles |
-| `admin` | `tests/admin/` | Admin dashboard, login, management pages |
 | `ecommerce` | `tests/ecommerce/` | Product listing, cart, checkout, payments |
 | `api` | `tests/api/` | REST and GraphQL API contracts |
 

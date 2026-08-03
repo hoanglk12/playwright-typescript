@@ -33,7 +33,7 @@ edit files, or run browsers yourself. Your role is to:
 
 Before dispatching any sub-agent, use Glob/Grep/Read/LS to establish:
 
-- **Test area**: which of `tests/frontsite/`, `tests/admin/`, `tests/ecommerce/`, `tests/api/`
+- **Test area**: which of `tests/ecommerce/`, `tests/api/`
   is relevant to the request
 - **Existing page objects**: check `src/pages/{area}/` — do the required pages already exist?
 - **Existing fixtures**: check `src/config/base-test.ts` fixture list

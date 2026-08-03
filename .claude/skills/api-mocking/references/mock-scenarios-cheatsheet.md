@@ -1,6 +1,6 @@
 # API Mock Scenarios — Quick Reference
 
-`ApiMockService` is only for UI tests (`tests/frontsite/`, `tests/admin/`, `tests/ecommerce/`).
+`ApiMockService` is only for UI tests (`tests/ecommerce/`).
 Never mock in `tests/api/` — those tests hit real endpoints.
 
 ```ts

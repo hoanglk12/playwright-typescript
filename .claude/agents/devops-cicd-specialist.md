@@ -258,7 +258,7 @@ npm run test:simple             # chromium only, 1 worker
 npm run test:api                # all API tests (serial)
 
 # Targeted runs
-npx playwright test tests/frontsite/home-page.spec.ts
+npx playwright test tests/ecommerce/smoke/homepage-smoke.spec.ts
 npx playwright test --grep "TC_01"
 
 # Reports

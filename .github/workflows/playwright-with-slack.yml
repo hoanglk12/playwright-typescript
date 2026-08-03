@@ -181,7 +181,6 @@ jobs:
           warm_url "https://stag-vans-nz.accentgra.com/"      "Vans NZ"       &
           warm_url "https://stag-drmartens-au.accentgra.com/" "Dr. Martens AU" &
           warm_url "https://stag-drmartens-nz.accentgra.com/" "Dr. Martens NZ" &
-          warm_url "https://ff-fieldfishercom-qa-web-ekfefjdmh6dbg3f7.uksouth-01.azurewebsites.net/en" "Fieldfisher" &
           wait
           echo "Warmup complete."
 
@@ -192,8 +191,6 @@ jobs:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
           PAYPAL_SANDBOX_PASSWORD: ${{ secrets.PAYPAL_SANDBOX_PASSWORD }}
-          ADMIN_URL: ${{ secrets.ADMIN_URL }}
-          FRONTSITE_URL: ${{ secrets.FRONTSITE_URL }}
           HEADLESS: 'true'
 
       - name: Run UI tests (Windows)
@@ -204,8 +201,6 @@ jobs:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
           PAYPAL_SANDBOX_PASSWORD: ${{ secrets.PAYPAL_SANDBOX_PASSWORD }}
-          ADMIN_URL: ${{ secrets.ADMIN_URL }}
-          FRONTSITE_URL: ${{ secrets.FRONTSITE_URL }}
           HEADLESS: 'true'
 
       - name: Copy test-results into monocart shard

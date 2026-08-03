@@ -345,5 +345,4 @@ export const MyGraphQLData: MyGraphQLDataShape = {
 | Skip `assertNoErrors()` on happy-path | Always call `await response.assertNoErrors()` first |
 | String-interpolate variables | Pass typed object as second arg |
 | `const r = await graphqlClient.query(...)` without wrapping | Use `queryWrapped` for automatic assertion support |
-| Put GQL tests in `tests/frontsite/` | GQL tests belong in `tests/api/` |
 | Miss `test.describe.configure({ mode: 'serial' })` | Required at top of every API spec file |

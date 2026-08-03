@@ -203,6 +203,16 @@
     <span class="badge warn">Direction B Conditional</span>
   </div>
 
+  <div class="note" style="border-left: 4px solid #c0392b; background: #fdecea; padding: 12px 16px; margin: 0 0 20px;">
+    <strong>Superseded (2026-08-03):</strong> the legacy single-site <code>adminUrl</code>/<code>frontSiteUrl</code>
+    connectivity check this report's Direction A hardens no longer exists — the admin/frontsite test suite it
+    served was removed entirely (dead demo-site fixtures, unused env vars). <code>global-setup.ts</code>/
+    <code>global-teardown.ts</code> now log per-brand GRA storefront URLs (AU/NZ frontsite + shared admin) sourced
+    from <code>src/data/ecommerce/storefronts.ts</code>, informationally only — no connectivity check was added
+    in its place. The rest of this report (browser-validation scoping, dead-code removal) still reflects the
+    current state of those two files.
+  </div>
+
   <div class="section">
     <h2><span class="icon">📋</span> Summary</h2>
     <p>

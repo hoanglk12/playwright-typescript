@@ -11,8 +11,6 @@ Arguments: $ARGUMENTS
 | If $ARGUMENTS contains | Run |
 |---|---|
 | Empty or "all" | `npm run test:simple` (chromium, 1 worker) |
-| "frontsite" | `npm run test:simple:frontsite` |
-| "admin" or "login" | `npm run test:simple:admin` |
 | "headed" | `npm run test:simple:headed` |
 | "debug" | `npm run test:simple:debug` |
 | "all browsers" or "cross-browser" | `npm run test:parallel:all` |

@@ -13,7 +13,7 @@ This project has two distinct mocking contexts. Know which one you need before w
 
 ### Context A — UI Tests (browser-level network interception)
 
-Used in `tests/frontsite/`, `tests/admin/`, `tests/ecommerce/`. The browser makes HTTP requests; you intercept them via Playwright's `route` API through the `NetworkHelper` or `ApiMockService`.
+Used in `tests/ecommerce/`. The browser makes HTTP requests; you intercept them via Playwright's `route` API through the `NetworkHelper` or `ApiMockService`.
 
 ```ts
 import { test, expect } from '@config/base-test';

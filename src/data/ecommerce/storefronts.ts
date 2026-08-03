@@ -11,6 +11,8 @@ export interface Storefront {
   hasHelpSupport: boolean;
   /** GraphQL endpoint for this storefront — used in hybrid API+UI tests (e.g. account creation before UI login) */
   graphqlUrl: string;
+  /** Admin panel URL for this brand — shared across AU/NZ regions, not per-region */
+  adminUrl: string;
   /** Store header value; set to 'nz' for NZ storefronts to scope requests to the correct store view */
   storeHeader?: string;
   /** Expected top-nav link labels in display order (E2E-NAV-001). Empty = not yet configured for this site. */
@@ -61,6 +63,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Platypus AU',
     url: 'https://stag-platypus-au.accentgra.com/',
     graphqlUrl: 'https://stag-platypus-au.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-platypus.accentgra.com/accent-management-panel/',
     titleRegex: /platypus|home\s+page/i,
     hasQantasPoints: true,
     hasHelpSupport: true,
@@ -83,6 +86,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Platypus NZ',
     url: 'https://stag-platypus-nz.accentgra.com/',
     graphqlUrl: 'https://stag-platypus-nz.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-platypus.accentgra.com/accent-management-panel/',
     storeHeader: 'nz',
     titleRegex: /platypus|home\s*page/i,
     hasQantasPoints: false,
@@ -106,6 +110,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Skechers AU',
     url: 'https://stag-skechers-au.accentgra.com/',
     graphqlUrl: 'https://stag-skechers-au.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-skechers.accentgra.com/accent-management-panel/',
     titleRegex: /skechers/i,
     hasQantasPoints: true,
     hasHelpSupport: true,
@@ -129,6 +134,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Skechers NZ',
     url: 'https://stag-skechers-nz.accentgra.com/',
     graphqlUrl: 'https://stag-skechers-nz.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-skechers.accentgra.com/accent-management-panel/',
     storeHeader: 'nz',
     titleRegex: /skechers/i,
     hasQantasPoints: false,
@@ -153,6 +159,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Vans AU',
     url: 'https://stag-vans-au.accentgra.com/',
     graphqlUrl: 'https://stag-vans-au.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-vans.accentgra.com/accent-management-panel/',
     titleRegex: /vans|home\s+page/i,
     hasQantasPoints: true,
     hasHelpSupport: true,
@@ -174,6 +181,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Vans NZ',
     url: 'https://stag-vans-nz.accentgra.com/',
     graphqlUrl: 'https://stag-vans-nz.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-vans.accentgra.com/accent-management-panel/',
     storeHeader: 'nz',
     titleRegex: /vans|home\s+page/i,
     hasQantasPoints: false,
@@ -195,6 +203,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Dr. Martens AU',
     url: 'https://stag-drmartens-au.accentgra.com/',
     graphqlUrl: 'https://stag-drmartens-au.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-drmartens.accentgra.com/accent-management-panel/',
     titleRegex: /dr\.?\s?martens|drmartens/i,
     hasQantasPoints: true,
     hasHelpSupport: true,
@@ -216,6 +225,7 @@ export const storefronts: readonly Storefront[] = [
     name: 'Dr. Martens NZ',
     url: 'https://stag-drmartens-nz.accentgra.com/',
     graphqlUrl: 'https://stag-drmartens-nz.accentgra.com/graphql',
+    adminUrl: 'https://admin-stag-drmartens.accentgra.com/accent-management-panel/',
     storeHeader: 'nz',
     titleRegex: /dr\.?\s?martens|drmartens/i,
     hasQantasPoints: false,

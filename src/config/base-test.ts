@@ -1,12 +1,6 @@
 import { test as base, expect } from '@playwright/test';
 import { SoftAssertHelper } from '../utils/soft-assert-helper';
 import { TestLogger } from '../utils/test-logger';
-import { HomePage } from '../pages/frontsite/home-page';
-import { LoginPage } from '../pages/admin/login-page';
-import { FormDragAndDropPage } from '@pages/frontsite/form-drag-and-drop';
-import { ProfileListingPage } from '@pages/frontsite/profile-listing-page';
-import { InsightsPage } from '@pages/frontsite/insights-page';
-import { ServicesAZPage } from '@pages/frontsite/services-az-page';
 import { EcommerceHomePage } from '@pages/ecommerce/home-page';
 import { EcommerceNavPage } from '@pages/ecommerce/nav-page';
 import { EcommerceSearchPage } from '@pages/ecommerce/search-page';
@@ -25,12 +19,6 @@ import { ConsoleHelper } from '@pages/helpers/console-helper';
 import AxeBuilder from '@axe-core/playwright';
 
 type CustomFixtures = {
-  homePage: HomePage;
-  loginPage: LoginPage;
-  formDragAndDropPage: FormDragAndDropPage;
-  profileListingPage: ProfileListingPage;
-  insightsPage: InsightsPage;
-  servicesAZPage: ServicesAZPage;
   ecommerceHomePage: EcommerceHomePage;
   ecommerceNavPage: EcommerceNavPage;
   ecommerceSearchPage: EcommerceSearchPage;
@@ -52,30 +40,6 @@ type CustomFixtures = {
 };
 
 export const test = base.extend<CustomFixtures>({
-  homePage: async ({ page }, use) => {
-    await use(new HomePage(page));
-  },
-
-  loginPage: async ({ page }, use) => {
-    await use(new LoginPage(page));
-  },
-
-  formDragAndDropPage: async ({ page }, use) => {
-    await use(new FormDragAndDropPage(page));
-  },
-
-  profileListingPage: async ({ page }, use) => {
-    await use(new ProfileListingPage(page));
-  },
-
-  insightsPage: async ({ page }, use) => {
-    await use(new InsightsPage(page));
-  },
-
-  servicesAZPage: async ({ page }, use) => {
-    await use(new ServicesAZPage(page));
-  },
-
   percyHelper: async ({ page }, use) => {
     await use(new PercyHelper(page));
   },

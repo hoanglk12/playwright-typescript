@@ -28,10 +28,7 @@ export default defineConfig({
   fullyParallel: true,
 
   /* Skip API tests */
-  testIgnore: [
-    "**/api/**",
-    "**/frontsite/form-drag-and-drop.spec.ts",
-  ],
+  testIgnore: ["**/api/**"],
 
   /* Maximum number of concurrent worker processes - dynamically configured */
   workers: process.env.WORKERS

@@ -1,9 +1,5 @@
 export interface Environment {
   // Application URLs
-  frontSiteUrl: string;
-  adminUrl: string;
-  username: string;
-  password: string;
   apiBaseUrl: string;
 
   // Test Configuration
@@ -17,9 +13,6 @@ export interface Environment {
   viewportWidth: number;
   viewportHeight: number;
 
-  // Credentials
-  adminEmail: string;
-  adminPassword: string;
   // Reporting
   reportDir: string;
   htmlReportDir: string;
@@ -61,10 +54,6 @@ function loadEnvironmentFile(envName: string): void {
 function getEnvironmentFromEnvVars(): Environment {
   return {
     // Application URLs
-    adminUrl: process.env.ADMIN_URL || "http://demo.guru99.com/V4/",
-    frontSiteUrl: process.env.FRONTSITE_URL || "https://demo.nopcommerce.com/",
-    username: process.env.USER_NAME || "testuser",
-    password: process.env.PASSWORD || "testpassword",
     apiBaseUrl: process.env.API_BASE_URL || "https://api-demo.guru99.com",
     // Test Configuration
     timeout: parseInt(
@@ -91,9 +80,6 @@ function getEnvironmentFromEnvVars(): Environment {
     viewportWidth: parseInt(process.env.VIEWPORT_WIDTH || "1920"),
     viewportHeight: parseInt(process.env.VIEWPORT_HEIGHT || "1080"),
 
-    // Credentials
-    adminEmail: process.env.ADMIN_EMAIL || "admin@yourstore.com",
-    adminPassword: process.env.ADMIN_PASSWORD || "admin",
     // Reporting
     reportDir: process.env.REPORT_DIR || "test-results",
     htmlReportDir: process.env.HTML_REPORT_DIR || "playwright-report",
@@ -127,7 +113,6 @@ export function getEnvironment(): Environment {
   const env = getEnvironmentFromEnvVars();
 
   console.log(`🌍 Using environment: ${envName}`);
-  console.log(`🔗 CMS URL: ${env.adminUrl}`);
   console.log(`⚙️  Parallel Workers: ${env.parallelWorkers}`);
   console.log(`⚙️  Timeout: ${env.timeout}ms`);
   console.log(`⚙️  Retries: ${env.retries}`);

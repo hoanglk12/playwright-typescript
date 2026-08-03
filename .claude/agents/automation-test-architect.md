@@ -460,7 +460,6 @@ export const MyApiData: MyApiDataShape = {
 - Do NOT use `expect(response.status()).toBe(200)` — use `await response.assertStatus(200)`
 - Do NOT construct `ApiClient` directly in test bodies — use provided fixtures
 - Do NOT import from `@config/base-test` — import from `../../src/api/ApiTest`
-- Do NOT place API tests in `tests/frontsite/` — they belong in `tests/api/`
 - Do NOT omit `test.describe.configure({ mode: 'serial' })`
 
 ---

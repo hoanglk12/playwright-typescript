@@ -170,7 +170,7 @@ grep -rn "from '@playwright/test'" --include="*.ts" tests/ 2>/dev/null \
   | grep -v "tests/api/"
 ```
 
-Each match in `tests/frontsite/`, `tests/admin/`, or `tests/ecommerce/` is **Critical**.
+Each match in `tests/ecommerce/` is **Critical**.
 
 #### 4b. API tests importing from @config/base-test
 

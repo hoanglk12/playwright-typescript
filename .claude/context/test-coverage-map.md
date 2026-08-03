@@ -2,22 +2,6 @@
 
 ## Page Objects → Spec Files
 
-### Frontsite (`src/pages/frontsite/`)
-
-| Page Object | Fixture | Spec file |
-|---|---|---|
-| `home-page.ts` | `homePage` | `tests/frontsite/home-page.spec.ts` |
-| `form-drag-and-drop.ts` | `formDragAndDropPage` | `tests/frontsite/form-drag-and-drop.spec.ts` |
-| `profile-listing-page.ts` | `profileListingPage` | `tests/frontsite/profile-listing-page.spec.ts` |
-| `insights-page.ts` | `insightsPage` | `tests/frontsite/insights-search.spec.ts` |
-| `services-az-page.ts` | `servicesAZPage` | `tests/frontsite/services-az-list.spec.ts` |
-
-### Admin (`src/pages/admin/`)
-
-| Page Object | Fixture | Spec file |
-|---|---|---|
-| `login-page.ts` | `loginPage` | `tests/admin/login.spec.ts` |
-
 ### Ecommerce (`src/pages/ecommerce/`)
 
 | Page Object | Fixture | Spec file |

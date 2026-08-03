@@ -143,50 +143,41 @@ playwright-cli --raw snapshot e5           # scope snapshot to element for asser
 For the following plan:
 
 ```markdown file=specs/plan.md
-### 1. Login Feature
-**Area:** admin
+### 1. Homepage Feature
+**Area:** ecommerce
 
-#### 1.1 Login with valid credentials
+#### 1.1 Homepage loads with hero visible
 **Steps:**
-1. Navigate to the admin login page
-2. Fill in email and password
-3. Click the login button
-4. Verify the dashboard heading is visible
+1. Navigate to the storefront homepage
+2. Verify the page title matches the storefront
+3. Verify the hero banner is visible
 ```
 
-The generated file is `tests/admin/login-valid-credentials.spec.ts`:
+The generated file is `tests/ecommerce/smoke/homepage-valid-load.spec.ts`:
 
 ```ts
 // spec: specs/plan.md
 
-import { test, expect } from '@config/base-test';
+import { test } from '@config/base-test';
 import { createTestLogger } from '@utils/test-logger';
+import { storefronts } from '../../../src/data/ecommerce/storefronts';
 
-test.describe('Login Feature @admin @login', () => {
-  test('TC_01 - Login with valid credentials', async ({ loginPage }) => {
-    const logger = createTestLogger('TC_01 Login with valid credentials');
+test.describe('Homepage Feature @ecommerce @homepage', () => {
+  test('TC_01 - Homepage loads with hero visible', async ({ ecommerceHomePage }) => {
+    const logger = createTestLogger('TC_01 Homepage loads with hero visible');
+    const site = storefronts[0];
 
-    // 1. Navigate to the admin login page
-    logger.step('Step 1 - Navigate to admin login page');
-    await loginPage.navigateTo();
+    // 1. Navigate to the storefront homepage
+    logger.step('Step 1 - Navigate to homepage');
+    await ecommerceHomePage.navigate(site.url);
 
-    // 2. Fill in email and password
-    logger.step('Step 2 - Fill login form');
-    logger.action('Fill', 'email input');
-    await loginPage.fillEmail('admin@example.com'); // TODO: move to src/data/
+    // 2. Verify the page title matches the storefront
+    logger.step('Step 2 - Assert title');
+    await ecommerceHomePage.assertTitleMatches(site.titleRegex);
 
-    logger.action('Fill', 'password input');
-    await loginPage.fillPassword('password123'); // TODO: move to src/data/
-
-    // 3. Click the login button
-    logger.step('Step 3 - Submit form');
-    await loginPage.clickLogin();
-
-    // 4. Verify the dashboard heading is visible
-    logger.step('Step 4 - Assert dashboard visible');
-    const isVisible = await loginPage.isDashboardVisible();
-    logger.verify('Dashboard heading is visible', true, isVisible);
-    expect(isVisible).toBeTruthy();
+    // 3. Verify the hero banner is visible
+    logger.step('Step 3 - Assert hero visible');
+    await ecommerceHomePage.assertHeroVisible();
   });
 });
 ```

@@ -202,10 +202,6 @@ npm run test:ui
 # Single browser, 1 worker (fastest for debugging)
 npm run test:simple
 
-# Area-specific (chromium, 1 worker)
-npm run test:simple:admin
-npm run test:simple:frontsite
-
 # Parallel
 npm run test:parallel            # 50% workers
 npm run test:parallel:max        # 100% workers
@@ -217,7 +213,7 @@ npm run test:staging
 npm run test:production
 
 # Run by file or grep
-npx playwright test tests/frontsite/home-page.spec.ts
+npx playwright test tests/ecommerce/smoke/homepage-smoke.spec.ts
 npx playwright test --grep "TC_01"
 npx playwright test --grep "@smoke"
 ```
@@ -246,8 +242,6 @@ npm run test:api:device-booker    # objects-crud
 npm run test:percy                # Full run against testing env
 npm run test:percy:staging
 npm run test:percy:smoke          # Smoke subset only
-npm run test:percy:admin
-npm run test:percy:login
 ```
 
 Percy snapshots are silently skipped when `PERCY_TOKEN` is not set.

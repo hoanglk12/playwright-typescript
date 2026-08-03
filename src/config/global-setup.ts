@@ -3,11 +3,7 @@ import { chromium, firefox, webkit, FullConfig, BrowserType } from '@playwright/
 import { getEnvironment } from './environment';
 import type { Environment } from './environment';
 import { TestLogger } from '../utils/test-logger';
-import { TIMEOUTS } from '../constants/timeouts';
-import { redactSensitiveText } from '../utils/redact';
-
-const REQUIRED_ENV_VARS = ['ADMIN_URL', 'FRONTSITE_URL'] as const;
-const CONNECTIVITY_RETRY_ATTEMPTS = 3;
+import { storefronts } from '../data/ecommerce/storefronts';
 
 async function globalSetup(config: FullConfig) {
 
@@ -25,8 +21,7 @@ async function globalSetup(config: FullConfig) {
     retries: environment.retries,
     parallelWorkers: environment.parallelWorkers,
   });
-  console.log(`🌐 Admin URL: ${environment.adminUrl}`);
-  console.log(`🌐 FrontSite URL: ${environment.frontSiteUrl}\n`);
+  logBrandUrls();
 
   try {
     await cleanupTestResults();
@@ -35,11 +30,7 @@ async function globalSetup(config: FullConfig) {
 
     await validateEnvironment(environment);
 
-    validateRequiredEnvVars();
-
     await validateBrowsers(config);
-
-    await testConnectivity(environment);
 
     console.log('\n✅ Global Setup completed successfully!\n');
 
@@ -47,6 +38,27 @@ async function globalSetup(config: FullConfig) {
     console.error('❌ Global Setup failed:', error);
     process.exit(1);
   }
+}
+
+/** Groups the 8 GRA storefronts by brand, pairing each brand's AU/NZ frontsite URLs with its single shared admin URL */
+function logBrandUrls(): void {
+  console.log('🌐 GRA brand storefronts:');
+
+  const brands = new Map<string, { admin: string; au?: string; nz?: string }>();
+  for (const site of storefronts) {
+    const entry = brands.get(site.brandName) ?? { admin: site.adminUrl };
+    if (site.storeHeader === 'nz') {
+      entry.nz = site.url;
+    } else {
+      entry.au = site.url;
+    }
+    brands.set(site.brandName, entry);
+  }
+
+  for (const [brandName, { admin, au, nz }] of brands) {
+    console.log(`   ${brandName}: AU ${au} | NZ ${nz} | Admin ${admin}`);
+  }
+  console.log('');
 }
 
 async function cleanupTestResults(): Promise<void> {
@@ -103,19 +115,7 @@ async function initializeDirectories(): Promise<void> {
 
 async function validateEnvironment(environment: Environment): Promise<void> {
   console.log('🔍 Validating environment configuration...');
-  
-  const requiredUrls = [
-    { name: 'FrontSite', url: environment.frontSiteUrl },
-    { name: 'Admin', url: environment.adminUrl }
-  ];
-  
-  for (const { name, url } of requiredUrls) {
-    if (!url || url === '') {
-      throw new Error(`❌ ${name} URL is not configured in environment`);
-    }
-    console.log(`   ✅ ${name} URL validated: ${url}`);
-  }
-  
+
   if (environment.timeout < 5000) {
     console.warn('   ⚠️ Timeout setting is very low, this may cause test failures');
   }
@@ -123,22 +123,6 @@ async function validateEnvironment(environment: Environment): Promise<void> {
   console.log(`   ✅ Timeout configured: ${environment.timeout}ms`);
   console.log(`   ✅ Retries configured: ${environment.retries}`);
   console.log(`   ✅ Headless mode: ${environment.headless}`);
-}
-
-/**
- * Validate that required environment variables were actually set by the loaded .env file,
- * rather than silently falling back to the demo defaults baked into environment.ts
- */
-function validateRequiredEnvVars(): void {
-  console.log('🔐 Validating required environment variables...');
-
-  const missing = REQUIRED_ENV_VARS.filter(name => !process.env[name] || process.env[name] === '');
-
-  if (missing.length > 0) {
-    throw new Error(`❌ Missing required environment variable(s): ${missing.join(', ')}`);
-  }
-
-  console.log(`   ✅ All required environment variables are set (${REQUIRED_ENV_VARS.join(', ')})`);
 }
 
 const BROWSER_LAUNCHERS: Record<string, BrowserType> = { chromium, firefox, webkit };
@@ -183,59 +167,6 @@ async function validateBrowsers(config: FullConfig): Promise<void> {
     } catch (error) {
       console.warn(`   ⚠️ ${engine} validation failed: ${error}`);
     }
-  }
-}
-
-/**
- * Test connectivity to target applications. Core app URLs are a hard requirement — retry with
- * backoff to absorb Azure App Service cold starts, then abort the run on final failure.
- */
-async function testConnectivity(environment: Environment): Promise<void> {
-  console.log('🔗 Testing connectivity to target applications...');
-
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  const urlsToTest = [
-    { name: 'Admin', url: environment.adminUrl },
-    { name: 'FrontSite', url: environment.frontSiteUrl }
-  ];
-
-  try {
-    for (const { name, url } of urlsToTest) {
-      let lastError: unknown;
-
-      for (let attempt = 1; attempt <= CONNECTIVITY_RETRY_ATTEMPTS; attempt++) {
-        try {
-          const response = await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD });
-          if (response && response.ok()) {
-            console.log(`   ✅ ${name} application is accessible (${response.status()})`);
-            lastError = undefined;
-            break;
-          }
-          lastError = new Error(`returned status ${response?.status()}`);
-        } catch (error) {
-          lastError = error;
-        }
-
-        if (attempt < CONNECTIVITY_RETRY_ATTEMPTS) {
-          console.warn(`   ⚠️ ${name} attempt ${attempt}/${CONNECTIVITY_RETRY_ATTEMPTS} failed, retrying...`);
-          await new Promise(resolve => setTimeout(resolve, TIMEOUTS.POLL_INTERVAL_SLOW));
-        }
-      }
-
-      if (lastError) {
-        const envName = process.env.NODE_ENV || process.env.ENV || 'testing';
-        throw new Error(
-          redactSensitiveText(
-            `${name} application unreachable after ${CONNECTIVITY_RETRY_ATTEMPTS} attempts (env: ${envName}, url: ${url}): ${lastError}`
-          )
-        );
-      }
-    }
-  } finally {
-    await browser.close();
   }
 }
 

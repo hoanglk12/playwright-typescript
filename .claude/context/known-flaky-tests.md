@@ -4,7 +4,6 @@
 
 | Test file | Condition | Reason |
 |---|---|---|
-| `tests/frontsite/form-drag-and-drop.spec.ts` | `process.env.CI` | Target page URL unstable/deprecated in CI — runs locally only |
 | `tests/ecommerce/smoke/plp-smoke.spec.ts` | per-site `test.skip(true, ...)` | Skip fires per iteration when `womensNavLabel`/`mensNavLabel`/`saleNavLabel` is not set for a storefront |
 
 ## Conditionally skipped (data-dependent)
