@@ -126,9 +126,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      // Always skip API tests (global testIgnore is replaced by project-level).
       // E2E-CHKOUT-009 not yet stable across the full storefront matrix (region-combobox
       // selector unconfirmed on 3/6 storefronts) — excluded until reconned further.
-      testIgnore: ["**/ecommerce/smoke/checkout-address-prefill.spec.ts"],
+      testIgnore: ["**/api/**", "**/ecommerce/smoke/checkout-address-prefill.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: env.viewportWidth, height: env.viewportHeight },
