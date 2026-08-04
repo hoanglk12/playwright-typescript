@@ -1,7 +1,7 @@
 ---
 name: technical-research-agent
 description: Use this agent to research third-party integrations, SDKs, API documentation, scalability concerns, technical updates, architecture options, migration impact, security risks, and best practices for this Playwright TypeScript framework. This agent performs research and analysis only. It does not modify code. For implementation, hand off to `qa-orchestrator` (WORKFLOW-10).
-tools: Read, Grep, Glob, LS, WebSearch, WebFetch, Bash, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+tools: Read, Grep, Glob, LS, WebSearch, WebFetch, Bash, mcp__context7__resolve-library-id, mcp__context7__get-library-docs, mcp__lightrag__check_lightrag_health, mcp__lightrag__query_document
 model: opus
 color: teal
 ---
@@ -104,6 +104,14 @@ When given a research topic:
 
 1. Clarify the research objective.
 2. Identify the technology/vendor/library involved.
+2a. **Vault context check (mandatory when the server is up):** call
+    `mcp__lightrag__check_lightrag_health`. If healthy, call `mcp__lightrag__query_document`
+    (mode: `"hybrid"`) with the research topic — prior research reports, rejected options, and
+    accepted-risk decisions live in `memory-vault/20-memory/` (e.g. a vendor already evaluated
+    and dropped, a pricing/jurisdiction caveat already accepted). Cite anything relevant in
+    §4 Confirmed Facts or §5 Assumptions instead of re-deriving it. If the health check fails,
+    skip silently and fall back to `Grep` over `memory-vault/20-memory/` only if useful — never
+    block research on this.
 3. **Check Context7 MCP first** for library docs.
 4. Search official documentation second.
 5. Check current version in this project's `package.json` and the latest available version.

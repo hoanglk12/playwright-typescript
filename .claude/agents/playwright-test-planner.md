@@ -5,7 +5,7 @@ description: >
   create a comprehensive test plan for a web application or website by navigating the
   live app. Output is a structured markdown test plan saved to specs/{feature}.plan.md
   via the Write tool. For full plan-then-build pipelines, prefer invoking qa-orchestrator instead.
-tools: Glob, Grep, Read, LS, Bash, Write, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for
+tools: Glob, Grep, Read, LS, Bash, Write, mcp__playwright-test__browser_verify_element_visible, mcp__playwright-test__browser_verify_text_visible, mcp__playwright-test__browser_verify_list_visible, mcp__playwright-test__browser_verify_value, mcp__playwright-test__browser_wait_for, mcp__lightrag__check_lightrag_health, mcp__lightrag__query_document
 model: sonnet
 color: greenyellow
 ---
@@ -44,6 +44,14 @@ This project has two test areas — assign every scenario to one:
 
 Before navigating, check `src/pages/{area}/` using the Read/LS tools to identify which page
 objects already exist. Note them in the plan so the architect knows what to extend vs. build.
+
+**Vault context check (mandatory when the server is up):** call `mcp__lightrag__check_lightrag_health`.
+If healthy, call `mcp__lightrag__query_document` (mode: `"hybrid"`) with the feature/area name
+before navigating — this surfaces prior gotchas for the storefront/area (e.g. known popup
+interference, dual-h1 markup, nav-label quirks) recorded in `memory-vault/20-memory/`. Fold
+anything relevant into the plan's scenario steps or a "Known gotchas" note. If the health check
+fails, skip silently and fall back to `Grep` over `memory-vault/20-memory/` only if useful —
+never block planning on this.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: vault-updater
 description: Fetches a Jira issue or Confluence page and writes a formatted memory vault note to memory-vault/20-memory/{type}/. Invoke when the user says "update knowledge from Jira", "add this Confluence page to vault", "save this issue to memory", or gives a Jira key like PROJ-123.
-tools: Read, Glob, Grep, Write, Edit, Bash, mcp__atlassian__getJiraIssue, mcp__atlassian__getConfluencePage, mcp__atlassian__search, mcp__atlassian__getConfluenceSpaces, mcp__lightrag__get_documents, mcp__lightrag__delete_by_doc_ids, mcp__lightrag__insert_file, mcp__lightrag__check_lightrag_health, mcp__lightrag__get_pipeline_status
+tools: Read, Glob, Grep, Write, Edit, Bash, mcp__atlassian__getJiraIssue, mcp__atlassian__getConfluencePage, mcp__atlassian__search, mcp__atlassian__getConfluenceSpaces, mcp__lightrag__get_documents, mcp__lightrag__delete_by_doc_ids, mcp__lightrag__insert_file, mcp__lightrag__check_lightrag_health, mcp__lightrag__get_pipeline_status, mcp__lightrag__query_document
 ---
 
 # Vault Updater Agent
@@ -23,8 +23,13 @@ You fetch content from Jira or Confluence and convert it into a typed memory vau
 
 Before writing anything:
 1. Read `memory-vault/00-index.md` to see what notes exist.
-2. Grep `memory-vault/20-memory/` for the Jira key or Confluence page title to detect duplicates.
-3. If a note already covers this content, update the existing file instead of creating a new one.
+2. Grep `memory-vault/20-memory/` for the Jira key or Confluence page title to detect exact duplicates.
+3. **Vault context check (mandatory when the server is up):** call `mcp__lightrag__check_lightrag_health`.
+   If healthy, call `mcp__lightrag__query_document` (mode: `"hybrid"`) with the issue/page subject —
+   this catches notes covering the *same content under a different key or title* (relationship
+   reasoning), which the exact-match Grep in step 2 misses. If the health check fails, skip
+   silently and rely on step 2 only.
+4. If a note already covers this content, update the existing file instead of creating a new one.
 
 ## Step 3 — Determine note type
 

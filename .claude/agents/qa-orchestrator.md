@@ -12,7 +12,7 @@ description: >
   Do NOT use when you already know the exact single specialist you need and the task
   is self-contained ("just fix test X" → use playwright-test-healer directly;
   "just review this file" → use qa-code-reviewer directly).
-tools: Glob, Grep, Read, LS, Task
+tools: Glob, Grep, Read, LS, Task, mcp__lightrag__check_lightrag_health, mcp__lightrag__query_document
 model: sonnet
 color: khaki
 ---
@@ -44,6 +44,14 @@ Before dispatching any sub-agent, use Glob/Grep/Read/LS to establish:
   worker/retry/timeout settings
 
 Only read what is directly relevant. Do not perform exhaustive codebase tours before dispatching.
+
+**Vault context check (mandatory when the server is up):** call `mcp__lightrag__check_lightrag_health`
+first. If healthy, call `mcp__lightrag__query_document` (mode: `"hybrid"`) with the user's goal
+before selecting a workflow — this surfaces prior decisions, constraints, or gotchas recorded in
+`memory-vault/20-memory/` that should shape workflow selection or handoff context (e.g. a known
+storefront quirk, a prior incident, a standing convention). If the health check fails or the
+server is down, skip silently and fall back to `Grep` over `memory-vault/20-memory/` only if the
+request plausibly touches documented project history — do not block the workflow on this.
 
 ---
 

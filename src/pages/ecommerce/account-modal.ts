@@ -60,8 +60,7 @@ export class EcommerceAccountModalPage extends BasePage {
   // inside page.evaluate() where Playwright Locators cannot be used.
   // Deliberately restricted to aside and complementary — does NOT include
   // [role="dialog"] to avoid false-positives from the Vans AU Bloomreach popup.
-  private readonly modalContainerSelector =
-    'aside, [role="complementary"]';
+  private readonly modalContainerSelector = 'aside, [role="complementary"]';
 
   // Text pattern that positively identifies the account/login panel content.
   // Must match "LOGIN TO PLATYPUS", "Log in to your account", "Welcome Back",
@@ -136,6 +135,56 @@ export class EcommerceAccountModalPage extends BasePage {
     super(page);
   }
 
+  // One-shot check for an overlay-positioned aside whose text matches the given
+  // pattern. Shared by isModalVisible() and isLoggedIn(), which probe the same DOM
+  // shape with a different text signal. waitForModalVisible() deliberately keeps its
+  // own copy of this body: it needs page.waitForFunction() to re-evaluate on every
+  // animation frame, which a single page.evaluate() cannot do.
+  private async hasOverlayPanelWithText(textPattern: RegExp): Promise<boolean> {
+    return this.page.evaluate(
+      ({ selector, pattern }) => {
+        const textRegex = new RegExp(pattern, 'i');
+        return Array.from(document.querySelectorAll(selector)).some((el) => {
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return false;
+          const style = getComputedStyle(el);
+          // Must be overlay-positioned (fixed panel, not static page content)
+          const isPositioned =
+            style.position === 'fixed' ||
+            style.position === 'absolute' ||
+            parseInt(style.zIndex, 10) > 0;
+          if (!isPositioned) return false;
+          // Text guard rejects the empty panel rendered before the CMS block loads
+          return textRegex.test(
+            (el instanceof HTMLElement ? el.innerText : el.textContent) ?? '',
+          );
+        });
+      },
+      { selector: this.modalContainerSelector, pattern: textPattern.source },
+    );
+  }
+
+  // Clicks the link-based account entry point, if that is how this storefront
+  // renders it. Returns false when no visible link was found, so callers can fall
+  // through to their own next strategy.
+  private async clickAccountToggleLinkIfVisible(): Promise<boolean> {
+    const linkVisible = await this.accountToggleLink.isVisible().catch(() => false);
+    if (!linkVisible) return false;
+
+    await this.accountToggleLink.hover();
+    await this.elements.clickLocator(this.accountToggleLink);
+    return true;
+  }
+
+  // Uses the broadly-scoped locator (not filtered through accountPanel text) so the
+  // email input is detected as soon as it appears, regardless of panel heading.
+  private async waitForAnyAsideEmailInput(): Promise<boolean> {
+    return this.anyAsideEmailInputLocator
+      .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE })
+      .then(() => true)
+      .catch(() => false);
+  }
+
   // Navigate to a storefront URL, wait for React to hydrate, and register a
   // handler for the Vans AU Bloomreach popup.
   //
@@ -191,8 +240,6 @@ export class EcommerceAccountModalPage extends BasePage {
     const buttonVisible = await this.accountToggleButton.isVisible().catch(() => false);
 
     if (buttonVisible) {
-      const cmsBlockPattern = this.loginCmsBlockPattern;
-
       for (let attempt = 0; attempt < 3; attempt++) {
         // Register the waiter BEFORE each click to avoid missing a fast response.
         // Timeout is ELEMENT_VISIBLE (10s local / 20s CI): must be long enough
@@ -201,7 +248,8 @@ export class EcommerceAccountModalPage extends BasePage {
         // the slowest genuine request on the staging network.
         const cmsResponsePromise = this.page
           .waitForResponse(
-            (resp) => resp.url().includes('graphql') && cmsBlockPattern.test(resp.url()),
+            (resp) =>
+              resp.url().includes('graphql') && this.loginCmsBlockPattern.test(resp.url()),
             { timeout: TIMEOUTS.ELEMENT_VISIBLE },
           )
           .catch(() => null);
@@ -221,12 +269,7 @@ export class EcommerceAccountModalPage extends BasePage {
     }
 
     // Fallback for storefronts using a link element for the account entry point.
-    const linkVisible = await this.accountToggleLink.isVisible().catch(() => false);
-    if (linkVisible) {
-      await this.accountToggleLink.hover();
-      await this.elements.clickLocator(this.accountToggleLink);
-      return;
-    }
+    if (await this.clickAccountToggleLinkIfVisible()) return;
 
     // Last-resort evaluate scan — targets header elements by semantic attributes.
     // Only reached if neither Playwright locator matched.
@@ -253,36 +296,10 @@ export class EcommerceAccountModalPage extends BasePage {
 
   // Returns true when the account/login panel is visible in the DOM.
   //
-  // Detection strategy: find any aside/complementary element that is
-  // overlay-positioned (fixed or absolute with z-index > 0) and contains
-  // login-specific text. Restricted to aside and complementary selectors only
-  // (not dialog) to avoid matching the Vans AU Bloomreach email-capture popup.
+  // The probe is restricted to aside and complementary selectors only (not dialog)
+  // to avoid matching the Vans AU Bloomreach email-capture popup.
   async isModalVisible(): Promise<boolean> {
-    const sel = this.modalContainerSelector;
-    const textPattern = this.loginPanelTextPattern;
-    return this.page.evaluate(
-      ({ selector, pattern }) => {
-        const textRegex = new RegExp(pattern, 'i');
-        const candidates = Array.from(document.querySelectorAll(selector));
-        return candidates.some((el) => {
-          const r = (el as Element).getBoundingClientRect();
-          if (r.width === 0 || r.height === 0) return false;
-          const style = getComputedStyle(el as Element);
-          // Must be overlay-positioned (fixed panel, not static page content)
-          const isPositioned =
-            style.position === 'fixed' ||
-            style.position === 'absolute' ||
-            parseInt(style.zIndex, 10) > 0;
-          if (!isPositioned) return false;
-          // Must contain login-specific text (not empty panel before CMS load)
-          const text = (
-            (el instanceof HTMLElement ? el.innerText : el.textContent) ?? ''
-          ).toLowerCase();
-          return textRegex.test(text);
-        });
-      },
-      { selector: sel, pattern: textPattern.source },
-    );
+    return this.hasOverlayPanelWithText(this.loginPanelTextPattern);
   }
 
   // Waits until the login panel's text is visible in an overlay-positioned aside.
@@ -291,12 +308,10 @@ export class EcommerceAccountModalPage extends BasePage {
   // after the CMS block response is processed. Best-effort: .catch swallows timeout
   // so the hard expect() in the spec is the definitive failure point.
   async waitForModalVisible(): Promise<void> {
-    const sel = this.modalContainerSelector;
-    const pattern = this.loginPanelTextPattern.source;
     await this.page
       .waitForFunction(
-        ({ selector, pat }) => {
-          const textRegex = new RegExp(pat, 'i');
+        ({ selector, pattern }) => {
+          const textRegex = new RegExp(pattern, 'i');
           return Array.from(document.querySelectorAll(selector)).some((el) => {
             const r = el.getBoundingClientRect();
             if (r.width === 0 || r.height === 0) return false;
@@ -311,7 +326,10 @@ export class EcommerceAccountModalPage extends BasePage {
             );
           });
         },
-        { selector: sel, pat: pattern },
+        {
+          selector: this.modalContainerSelector,
+          pattern: this.loginPanelTextPattern.source,
+        },
         { timeout: TIMEOUTS.ELEMENT_VISIBLE },
       )
       .catch(() => {});
@@ -323,17 +341,17 @@ export class EcommerceAccountModalPage extends BasePage {
   // heading selectors return nothing. innerText on the scoped accountPanel locator
   // gives the full visible text; the first non-trivial line is the title.
   async getModalTitle(): Promise<string> {
-    try {
-      const panelText = await this.accountPanel.first().innerText({ timeout: 2000 });
-      return (
-        panelText
-          .split('\n')
-          .map((l) => l.trim())
-          .find((l) => l.length > 3 && l.length < 120) ?? ''
-      );
-    } catch {
-      return '';
-    }
+    const panelText = await this.accountPanel
+      .first()
+      .innerText({ timeout: 2000 })
+      .catch(() => '');
+
+    return (
+      panelText
+        .split('\n')
+        .map((line) => line.trim())
+        .find((line) => line.length > 3 && line.length < 120) ?? ''
+    );
   }
 
   // Returns the login panel Locator for web-first assertions (e.g. toContainText).
@@ -397,27 +415,7 @@ export class EcommerceAccountModalPage extends BasePage {
     if (this.page.url().includes('/customer/account')) return true;
 
     // Second signal: authenticated-only panel text visible in the account aside
-    const loggedInPattern = this.loggedInPanelTextPattern;
-    const sel = this.modalContainerSelector;
-    const foundLoggedInText = await this.page.evaluate(
-      ({ selector, pattern }) => {
-        const textRegex = new RegExp(pattern, 'i');
-        return Array.from(document.querySelectorAll(selector)).some((el) => {
-          const r = (el as Element).getBoundingClientRect();
-          if (r.width === 0 || r.height === 0) return false;
-          const style = getComputedStyle(el as Element);
-          const isPositioned =
-            style.position === 'fixed' ||
-            style.position === 'absolute' ||
-            parseInt(style.zIndex, 10) > 0;
-          if (!isPositioned) return false;
-          const text = (el instanceof HTMLElement ? el.innerText : el.textContent) ?? '';
-          return textRegex.test(text);
-        });
-      },
-      { selector: sel, pattern: loggedInPattern.source },
-    );
-    if (foundLoggedInText) return true;
+    if (await this.hasOverlayPanelWithText(this.loggedInPanelTextPattern)) return true;
 
     // Weakest fallback: panel closed after a token mutation was awaited in clickLogin()
     return !(await this.isModalVisible());
@@ -464,25 +462,11 @@ export class EcommerceAccountModalPage extends BasePage {
         }
         await this.accountToggleButton.click();
 
-        // Use the broadly-scoped locator (not filtered through accountPanel text) so
-        // we detect the email input as soon as it appears, regardless of panel heading.
-        const appeared = await this.anyAsideEmailInputLocator
-          .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE })
-          .then(() => true)
-          .catch(() => false);
-
-        if (appeared) return;
-        // appeared === false → click may have toggled the panel closed → retry.
+        if (await this.waitForAnyAsideEmailInput()) return;
+        // Input never appeared → click may have toggled the panel closed → retry.
       }
-    } else {
-      const linkVisible = await this.accountToggleLink.isVisible().catch(() => false);
-      if (linkVisible) {
-        await this.accountToggleLink.hover();
-        await this.elements.clickLocator(this.accountToggleLink);
-        await this.anyAsideEmailInputLocator
-          .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_VISIBLE })
-          .catch(() => {});
-      }
+    } else if (await this.clickAccountToggleLinkIfVisible()) {
+      await this.waitForAnyAsideEmailInput();
     }
   }
 
@@ -504,11 +488,7 @@ export class EcommerceAccountModalPage extends BasePage {
       await this.accountToggleButton.hover();
       await this.accountToggleButton.click();
     } else {
-      const linkVisible = await this.accountToggleLink.isVisible().catch(() => false);
-      if (linkVisible) {
-        await this.accountToggleLink.hover();
-        await this.elements.clickLocator(this.accountToggleLink);
-      }
+      await this.clickAccountToggleLinkIfVisible();
     }
 
     // Wait for the logout control to appear — proof that the authenticated panel opened.
