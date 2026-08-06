@@ -147,29 +147,39 @@ export class EcommercePDPPage extends BasePage {
     }
   }
 
-  async clickColourSwatch(index: number): Promise<void> {
-    await this.dismissAcquisitionPopup();
+  // Walks every colour-swatch slide and resolves its anchor href to an absolute URL against
+  // the current page URL. Shared by clickColourSwatch(), which filters to non-self hrefs and
+  // navigates. Read-only — no dismissAcquisitionPopup() needed since it only reads attributes.
+  async getColourSwatchHrefs(): Promise<string[]> {
     const currentUrl = this.page.url();
     const slides = this.elements
       .locator(this.colorScrollerContainerSelector)
       .locator('.swiper-slide');
     const count = await slides.count();
-    let alternativeIndex = 0;
+    const hrefs: string[] = [];
     for (let i = 0; i < count; i++) {
-      const slide = slides.nth(i);
-      const href = await slide.locator('a').getAttribute('href');
-      const absolute = href ? new URL(href, currentUrl).toString() : '';
-      if (absolute !== currentUrl) {
-        if (alternativeIndex === index) {
-          // WHY: React-router SPA; goto() triggers client routing that waits.waitForURL() cannot drive
-          await this.page.goto(absolute, {
-            waitUntil: 'domcontentloaded',
-            timeout: TIMEOUTS.PAGE_LOAD_SLOW,
-          });
-          return;
-        }
-        alternativeIndex++;
+      const href = await slides.nth(i).locator('a').getAttribute('href');
+      hrefs.push(href ? new URL(href, currentUrl).toString() : '');
+    }
+    return hrefs;
+  }
+
+  async clickColourSwatch(index: number): Promise<string> {
+    await this.dismissAcquisitionPopup();
+    const currentUrl = this.page.url();
+    const hrefs = await this.getColourSwatchHrefs();
+    let alternativeIndex = 0;
+    for (const absolute of hrefs) {
+      if (!absolute || absolute === currentUrl) continue;
+      if (alternativeIndex === index) {
+        // WHY: React-router SPA; goto() triggers client routing that waits.waitForURL() cannot drive
+        await this.page.goto(absolute, {
+          waitUntil: 'domcontentloaded',
+          timeout: TIMEOUTS.PAGE_LOAD_SLOW,
+        });
+        return absolute;
       }
+      alternativeIndex++;
     }
     throw new Error(`clickColourSwatch: no alternative swatch found at index ${index}`);
   }

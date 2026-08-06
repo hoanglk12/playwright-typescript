@@ -266,6 +266,30 @@ export async function findProductWithAvailableSizes(
 }
 
 /**
+ * Returns the swatch count on the last PDP visited. A result < 2 means no multi-colour
+ * product was found; caller must test.skip().
+ */
+export async function findPdpWithColourSwatches(
+  plpPage: EcommercePLPPage,
+  pdpPage: EcommercePDPPage,
+  maxProducts = 10,
+): Promise<number> {
+  let swatchCount = 0;
+  for (let i = 0; i < maxProducts; i++) {
+    await plpPage.clickProductCard(i);
+    await pdpPage.waitForPdpLoad();
+    swatchCount = await pdpPage.getColourSwatchCount();
+    if (swatchCount >= 2) break;
+    if (i < maxProducts - 1) {
+      await pdpPage.goBack();
+      await plpPage.waitForPlpUrl();
+      await plpPage.waitForProductGrid();
+    }
+  }
+  return swatchCount;
+}
+
+/**
  * Returns true when two size labels are identical or when one is a token-boundary substring
  * of the other (e.g. "8" within "8.5"). Used to guard against treating two candidates as
  * distinct sizes when a plain substring check would wrongly flag them (or wrongly pass them —

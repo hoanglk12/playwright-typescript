@@ -2,6 +2,7 @@ import { test, expect } from '@config/base-test';
 import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
 import {
+  findPdpWithColourSwatches,
   getPreferredNavLabel,
   navigateToPlp,
   shouldPreferMens,
@@ -124,6 +125,102 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         );
         const galleryVisible = await ecommercePDPPage.isImageGalleryVisible();
         softAssert.toBe(galleryVisible, true, `${site.name}: Variant PDP gallery images should be visible`);
+      });
+    });
+  }
+
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-PDP-003-${String(index + 1).padStart(3, '0')}`;
+    // preferMens: true to match PDP-002's product selection (footwear with size/colour variants).
+    const navLabel = getPreferredNavLabel(site, true);
+
+    test(`${tcId} - ${site.name} Colour swatch links navigate to correct variant URL`, async ({
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Colour swatch variant URL`);
+
+      if (!navLabel) {
+        test.skip(true, `${site.name} has no nav link configured`);
+        return;
+      }
+
+      await logger.step('Steps 1-5 - Navigate to PLP', async () => {
+        await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
+      });
+
+      const MAX_PRODUCTS_TO_TRY = 10;
+      let swatchCount = 0;
+      await logger.step(`Step 6 - Find a PDP with 2+ colour swatches (try up to ${MAX_PRODUCTS_TO_TRY} product cards)`, async () => {
+        swatchCount = await findPdpWithColourSwatches(ecommercePLPPage, ecommercePDPPage, MAX_PRODUCTS_TO_TRY);
+      });
+
+      if (swatchCount < 2) {
+        test.skip(
+          true,
+          `${site.name}: no product with 2+ colour swatches found in first ${MAX_PRODUCTS_TO_TRY} MEN PLP products`,
+        );
+        return;
+      }
+
+      let initialUrl!: string;
+      await logger.step('Step 7 - Capture initial PDP URL', async () => {
+        initialUrl = await ecommercePDPPage.getCurrentUrl();
+      });
+
+      let expectedVariantUrl!: string;
+      await logger.step('Step 8 - Click a different colour swatch', async () => {
+        expectedVariantUrl = await ecommercePDPPage.clickColourSwatch(0);
+      });
+
+      await logger.step('Step 9 - Wait for colour variant PDP to load', async () => {
+        await ecommercePDPPage.waitForVariantNavigation(initialUrl);
+      });
+
+      await logger.step('Step 10 - Assert landed variant PDP resolves to the correct product', async () => {
+        const actualUrl = await ecommercePDPPage.getCurrentUrl();
+        softAssert.toBe(
+          new URL(actualUrl).pathname,
+          new URL(expectedVariantUrl).pathname,
+          `${site.name}: Landed path should match the swatch link's href path`,
+        );
+        const variantSwatchCount = await ecommercePDPPage.getColourSwatchCount();
+        softAssert.toBeGreaterThan(
+          variantSwatchCount,
+          1,
+          `${site.name}: Variant PDP should still expose the colour swatch set`,
+        );
+        const variantProductName = await ecommercePDPPage.getProductName();
+        softAssert.toBeGreaterThan(
+          variantProductName.length,
+          0,
+          `${site.name}: Variant PDP should render a product name (not a 404/redirect-to-home)`,
+        );
+      });
+
+      await logger.step('Step 11 - Assert the landed variant PDP links back to the original product', async () => {
+        // Cross-check with the landed page's own swatch set (rather than the pre-navigation
+        // href we just goto()'d to) proves the variant PDP is a genuine colour-linked sibling
+        // of the original product, not merely that goto() reached some page without redirect.
+        const originalPathname = new URL(initialUrl).pathname;
+        const landedPathname = new URL(await ecommercePDPPage.getCurrentUrl()).pathname;
+        softAssert.toBe(
+          landedPathname !== originalPathname,
+          true,
+          `${site.name}: Landed variant PDP should be a different product path than the origin PDP`,
+        );
+
+        const landedSwatchHrefs = await ecommercePDPPage.getColourSwatchHrefs();
+        const linksBackToOriginal = landedSwatchHrefs.some(
+          (href) => href !== '' && new URL(href).pathname === originalPathname,
+        );
+        softAssert.toBe(
+          linksBackToOriginal,
+          true,
+          `${site.name}: Landed variant PDP's own swatch set should link back to the original product`,
+        );
       });
     });
   }
