@@ -168,17 +168,17 @@ jobs:
             http_code=$(curl -s -o /dev/null -w "%{http_code}" \
               --max-time 120 --retry 2 --retry-delay 10 --location "$url" 2>/dev/null || echo "000")
             if [ "$http_code" = "000" ] || [ "$http_code" -ge 500 ] 2>/dev/null; then
-              echo "⚠️  Warmup failed for $name (HTTP $http_code) — proceeding anyway"
+              echo "⚠️ Warmup failed for $name (HTTP $http_code) — proceeding anyway"
             else
               echo "✅ $name is warm (HTTP $http_code)"
             fi
           }
-          warm_url "https://stag-platypus-au.accentgra.com/"  "Platypus AU"   &
-          warm_url "https://stag-platypus-nz.accentgra.com/"  "Platypus NZ"   &
-          warm_url "https://stag-skechers-au.accentgra.com/"  "Skechers AU"   &
-          warm_url "https://stag-skechers-nz.accentgra.com/"  "Skechers NZ"   &
-          warm_url "https://stag-vans-au.accentgra.com/"      "Vans AU"       &
-          warm_url "https://stag-vans-nz.accentgra.com/"      "Vans NZ"       &
+          warm_url "https://stag-platypus-au.accentgra.com/"  "Platypus AU"    &
+          warm_url "https://stag-platypus-nz.accentgra.com/"  "Platypus NZ"    &
+          warm_url "https://stag-skechers-au.accentgra.com/"  "Skechers AU"    &
+          warm_url "https://stag-skechers-nz.accentgra.com/"  "Skechers NZ"    &
+          warm_url "https://stag-vans-au.accentgra.com/"      "Vans AU"        &
+          warm_url "https://stag-vans-nz.accentgra.com/"      "Vans NZ"        &
           warm_url "https://stag-drmartens-au.accentgra.com/" "Dr. Martens AU" &
           warm_url "https://stag-drmartens-nz.accentgra.com/" "Dr. Martens NZ" &
           wait
