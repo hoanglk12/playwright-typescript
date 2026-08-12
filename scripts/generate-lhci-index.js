@@ -15,6 +15,8 @@ const LABEL_MAP = {
   'stag-vans-nz': 'Vans NZ',
   'stag-drmartens-au': 'Dr. Martens AU',
   'stag-drmartens-nz': 'Dr. Martens NZ',
+  'theathletesfoot.com.au': 'The Athlete\'s Foot AU',
+  'theathletesfoot.co.nz': 'The Athlete\'s Foot NZ',
 };
 
 function escapeHtml(str) {

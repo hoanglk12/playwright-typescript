@@ -25,7 +25,7 @@ on:
       - '**/*.xlsx'
 
   # Uncomment to audit on every PR that touches e-commerce files.
-  # Note: 8 storefronts × 3 runs ≈ 20–30 min of execution time.
+  # Note: 10 storefronts × 3 runs ≈ 20–30 min of execution time.
   # pull_request:
   #   branches: [main, master, develop]
   #   paths:
@@ -47,7 +47,7 @@ jobs:
   lighthouse-audit:
     name: Lighthouse Audit (E-commerce Storefronts)
     runs-on: ubuntu-latest
-    # 8 URLs × 3 runs × ~60 s/run × 2 form factors ≈ 48 min; 90 min provides buffer
+    # 10 URLs × 3 runs × ~60 s/run × 2 form factors ≈ 60 min; 90 min provides buffer
     timeout-minutes: 90
 
     steps:
@@ -178,7 +178,7 @@ jobs:
           echo "## Lighthouse CI - E-commerce Audit Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storefronts audited**: 8 (Platypus AU/NZ, Skechers AU/NZ, Vans AU/NZ, Dr. Martens AU/NZ)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storefronts audited**: 10 (Platypus AU/NZ, Skechers AU/NZ, Vans AU/NZ, Dr. Martens AU/NZ, The Athlete's Foot AU/NZ)" >> $GITHUB_STEP_SUMMARY
           echo "- **Runs per URL**: ${{ env.LHCI_RUNS }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Form factors**: Desktop (1350×940, cable) + Mobile (375×667, Slow 4G)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

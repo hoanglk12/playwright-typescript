@@ -2,7 +2,7 @@
 
 /**
  * Lighthouse CI configuration — mobile form factor.
- * Same 8 URLs as lighthouserc.js; uses Slow 4G throttling and mobile screen emulation.
+ * Same URLs as lighthouserc.js; uses Slow 4G throttling and mobile screen emulation.
  * Run locally:  npx lhci collect --config=lighthouserc.mobile.js
  */
 
@@ -15,6 +15,8 @@ const ECOMMERCE_URLS = [
   'https://stag-vans-nz.accentgra.com/',
   'https://stag-drmartens-au.accentgra.com/',
   'https://stag-drmartens-nz.accentgra.com/',
+  'https://pwa-staging.theathletesfoot.com.au/',
+  'https://pwa-staging.theathletesfoot.co.nz/',
 ];
 
 module.exports = {

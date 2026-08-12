@@ -2,7 +2,8 @@
 
 /**
  * Lighthouse CI configuration for e-commerce storefronts.
- * URLs sourced from src/data/ecommerce/storefronts.ts (staging environments).
+ * GRA URLs sourced from src/data/ecommerce/storefronts.ts (staging environments);
+ * TAF URLs are staging-only additions not yet modelled in that file.
  *
  * Run locally:  npx lhci autorun
  * Collect only: npx lhci collect
@@ -20,6 +21,8 @@ const ECOMMERCE_URLS = [
   'https://stag-vans-nz.accentgra.com/',
   'https://stag-drmartens-au.accentgra.com/',
   'https://stag-drmartens-nz.accentgra.com/',
+  'https://pwa-staging.theathletesfoot.com.au/',
+  'https://pwa-staging.theathletesfoot.co.nz/',
 ];
 
 module.exports = {
