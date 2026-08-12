@@ -147,6 +147,15 @@ jobs:
           cp -r lighthouse-reports-mobile/. lighthouse-reports/mobile/
         continue-on-error: true
 
+      - name: Fetch New Relic INP data
+        # Supplementary RUM section on the dashboard — never blocks report generation.
+        # Skips itself (see fetch-newrelic-inp.js) if NEW_RELIC_API_KEY isn't configured yet.
+        if: always()
+        continue-on-error: true
+        run: node scripts/fetch-newrelic-inp.js
+        env:
+          NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
+          NR_INP_WINDOW: '5 minutes ago'
       - name: Generate Lighthouse landing page
         if: always()
         run: node scripts/generate-lhci-index.js

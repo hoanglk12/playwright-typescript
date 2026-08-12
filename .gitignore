@@ -2,6 +2,9 @@
 lighthouse-reports/
 .lighthouseci/
 
+# New Relic INP data fetched at CI build time for the Lighthouse dashboard's RUM section
+newrelic-reports/
+
 # Playwright
 node_modules/
 /test-results/
