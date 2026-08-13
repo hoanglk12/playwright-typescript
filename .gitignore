@@ -11,6 +11,9 @@ node_modules/
 /playwright-report/
 /monocart-report/
 /monocart-api-report/
+/monocart-security-patch-report/
+/security-patch-report/
+/security-patch-results/
 /blob-report/
 /playwright/.cache/
 /trace/

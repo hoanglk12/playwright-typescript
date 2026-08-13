@@ -127,8 +127,11 @@ async function queryBrand(brand) {
 
   const devices = {};
   for (const row of results) {
-    const country = countryByUrl[row.pageUrl];
-    const device = row.deviceType;
+    // A multi-dimension FACET (pageUrl, deviceType) returns the values positionally in
+    // row.facet — NerdGraph does not also flatten them into row.pageUrl/row.deviceType
+    // the way a single-dimension FACET does.
+    const [pageUrl, device] = row.facet ?? [];
+    const country = countryByUrl[pageUrl];
     if (!country || !device) continue;
     // interactionToNextPaint is stored in seconds; Google's INP thresholds are in milliseconds.
     const inpMs = row.inp?.['75'] != null ? row.inp['75'] * 1000 : null;

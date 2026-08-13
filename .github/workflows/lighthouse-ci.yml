@@ -155,7 +155,7 @@ jobs:
         run: node scripts/fetch-newrelic-inp.js
         env:
           NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
-          NR_INP_WINDOW: '5 minutes ago'
+          NR_INP_WINDOW: '30 minutes ago'
       - name: Generate Lighthouse landing page
         if: always()
         run: node scripts/generate-lhci-index.js
