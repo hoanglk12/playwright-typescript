@@ -2,6 +2,7 @@ import { graTest as test, expect, softExpect } from './gra-test';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { addressBookCountriesData, CountryItem } from '../../src/data/api/gra-address-book-countries-data';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import { CountriesQueryDataSchema } from '../../src/data/api/schemas/gra-address-book-countries-schemas';
 
 const COUNTRIES_QUERY = `
   query GetCountries {
@@ -40,6 +41,7 @@ test.describe('GRA GraphQL API - Address Book: countries @api @regression', () =
       logger.verify(`${site.countryCode} found in countries list`, site.countryCode, country?.id);
       expect(country, `${site.countryCode} must be present in countries list`).toBeDefined();
       expect(country?.full_name_locale).toBe(expectedCountryName);
+      await response.assertDataSchema(CountriesQueryDataSchema);
     });
   });
 
@@ -72,6 +74,7 @@ test.describe('GRA GraphQL API - Address Book: countries @api @regression', () =
       }
 
       logger.verify('Countries list size (all iterated for structure)', '>= 1', countries.length);
+      await response.assertDataSchema(CountriesQueryDataSchema);
     });
   });
 

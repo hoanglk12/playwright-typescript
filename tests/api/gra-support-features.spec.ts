@@ -5,6 +5,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { EWAVE_STORE_CONFIG_FRAGMENT } from '../../src/data/api/gra-graphql-operations';
+import { CurrencyQueryDataSchema, DynamicDataQueryDataSchema } from '../../src/data/api/schemas/gra-support-features-schemas';
 
 let customerToken: string = '';
 let cartId: string = '';
@@ -63,6 +64,7 @@ test.describe("GRA GraphQL API - Support Features @api @graphql @regression", ()
       softExpect(data.currency.default_display_currency_code).toMatch(/^[A-Z]{3}$/);
       softExpect(data.currency.available_currency_codes).toContain(site.currency);
       softExpect(data.currency.__typename).toBe('Currency');
+      await response.assertDataSchema(CurrencyQueryDataSchema);
     });
   });
 
@@ -98,6 +100,7 @@ test.describe("GRA GraphQL API - Support Features @api @graphql @regression", ()
       softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_discount_enable).toBe('boolean');
       softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_gift_enable).toBe('boolean');
       softExpect(typeof data.storeConfig.ewave_dynamicpromoblocks_message_enable).toBe('boolean');
+      await response.assertDataSchema(DynamicDataQueryDataSchema);
     });
   });
 });
