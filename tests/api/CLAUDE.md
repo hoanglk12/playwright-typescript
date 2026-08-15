@@ -231,3 +231,25 @@ for (const sku of candidateSkus) {
 
 New GRA tests: `TC_XX - Description` format.
 Older GRA specs (`gra-account-creation-signin`): `GRA_OperationName - description` format.
+
+## Zod Schemas: GRA
+
+Extends the dummyjson pilot's four ground rules (`z.looseObject` never `strictObject`, `safeParse` never `parse`, no `z.coerce.*`, no `z.discriminatedUnion` on `__typename`) to `gra-*.spec.ts`. Rollout is staged by risk tier — see `docs/technical-research/zod-schema-validation-gra-rollout.research.html` for the full plan and per-spec evidence. Do not add `assertDataSchema()` to a spec outside the approved phase for it.
+
+### Rule 05 — Nullable discipline
+
+Any path already listed in a spec's `assertNoCriticalErrors` ignore list, and any array a spec already null-guards today, is a **candidate** for `.nullable()` in the schema — confirmed against a real payload before marking, never on the ignore list's word alone.
+
+Counter-example: `gra-account-creation-signin.spec.ts:142` tolerates both `loyalty` and `loyalty_program_status`, but only `loyalty` ever actually nulls — `loyalty_program_status` came back `false` (not null) on all four drm/van projects, AU and NZ. Marking it `.nullable()` because it's on the ignore list would weaken the schema against the evidence.
+
+### Rule 06 — No literal `__typename`
+
+Always `z.string()`, never `z.literal(...)`, categorically, on every `__typename` field — including non-polymorphic ones like `countries`. Staging returns `ConfigurableProduct`/`ConfigurableWishlistItem` even for simple items elsewhere in the suite, so the rule doesn't carve out exceptions per-query. Type-specific assertions (e.g. the `__typename === 'Country'` check in `gra-address-book-countries.spec.ts` TC_02) stay as ordinary value assertions outside the schema, permanently.
+
+### Mechanical rule A — Never in `beforeAll`
+
+Never call `assertDataSchema()` inside `test.beforeAll()` — a failure there cascades to every test in the spec under `fullyParallel: false` (`api.config.ts`).
+
+### Mechanical rule B — Assertion order
+
+Always place `assertDataSchema()` after the error-tolerance check (`assertNoErrors()`/`assertNoCriticalErrors()`), and after any `softExpect` loop it sits beside — never before either. `assertDataSchema()` is a hard assertion (`GraphQLResponse.ts:158`); the loops are `softExpect`. Placing the schema call first throws immediately and the per-field soft-loop comparisons never register, and the failure message says "received null" instead of naming the real tolerated-error cause.
