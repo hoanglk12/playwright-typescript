@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GRA Zod Rollout</title>
+<style>
+  :root {
+    --bg: #F6F7FB;
+    --surface: #FFFFFF;
+    --surface-alt: #ECEEF7;
+    --border: #DBDFEE;
+    --ink: #1B1E2B;
+    --ink-soft: #565B72;
+    --ink-faint: #8286A0;
+    --accent: #3B4FE0;
+    --accent-soft: #E4E7FC;
+    --good: #1F8A5F;
+    --good-soft: #DDF0E7;
+    --warn: #B4700A;
+    --warn-soft: #F6E7D2;
+    --critical: #B3372A;
+    --critical-soft: #F5DFDC;
+    --tierA: #1F8A5F;
+    --tierA-soft: #DDF0E7;
+    --tierB: #B4700A;
+    --tierB-soft: #F6E7D2;
+    --tierC: #B3372A;
+    --tierC-soft: #F5DFDC;
+    --code-bg: #1B1E2B;
+    --code-ink: #E7E9F5;
+    --shadow: 0 1px 2px rgba(27,30,43,0.06), 0 6px 16px rgba(27,30,43,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12141F; --surface: #191C29; --surface-alt: #212536; --border: #2E3348;
+      --ink: #E7E9F5; --ink-soft: #A3A8C2; --ink-faint: #6D7290;
+      --accent: #8B9AFF; --accent-soft: #23264A;
+      --good: #5BC898; --good-soft: #163227;
+      --warn: #E0A438; --warn-soft: #2E2515;
+      --critical: #E2695A; --critical-soft: #2E1B17;
+      --tierA: #5BC898; --tierA-soft: #163227;
+      --tierB: #E0A438; --tierB-soft: #2E2515;
+      --tierC: #E2695A; --tierC-soft: #2E1B17;
+      --code-bg: #0C0E17; --code-ink: #DDE1F5;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141F; --surface: #191C29; --surface-alt: #212536; --border: #2E3348;
+    --ink: #E7E9F5; --ink-soft: #A3A8C2; --ink-faint: #6D7290;
+    --accent: #8B9AFF; --accent-soft: #23264A;
+    --good: #5BC898; --good-soft: #163227;
+    --warn: #E0A438; --warn-soft: #2E2515;
+    --critical: #E2695A; --critical-soft: #2E1B17;
+    --tierA: #5BC898; --tierA-soft: #163227;
+    --tierB: #E0A438; --tierB-soft: #2E2515;
+    --tierC: #E2695A; --tierC-soft: #2E1B17;
+    --code-bg: #0C0E17; --code-ink: #DDE1F5;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .page { max-width: 860px; margin: 0 auto; padding: 56px 24px 96px; }
+  .eyebrow {
+    font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+    font-size: 12px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 14px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 38px); font-weight: 680; letter-spacing: -0.01em;
+    margin: 0 0 10px; text-wrap: balance; color: var(--ink);
+  }
+  .subtitle { font-size: 16px; color: var(--ink-soft); max-width: 68ch; margin: 0 0 24px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 40px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+    padding: 5px 11px; border-radius: 100px; border: 1px solid var(--border);
+    color: var(--ink-soft); background: var(--surface);
+  }
+  .chip.hold { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin-bottom: 44px; box-shadow: var(--shadow);
+  }
+  .stat { background: var(--surface); padding: 18px 18px 16px; }
+  .stat-label {
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 8px;
+  }
+  .stat-value { font-size: 19px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  .stat-sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 4px; }
+
+  section { margin-bottom: 44px; }
+  h2 {
+    font-size: 13px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700;
+    color: var(--ink-soft); margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 15.5px; font-weight: 650; margin: 22px 0 8px; color: var(--ink); }
+  p { margin: 0 0 14px; color: var(--ink); max-width: 72ch; }
+  p.lede { color: var(--ink-soft); }
+  ul.plain, ol.plain { margin: 0 0 14px; padding-left: 20px; }
+  ul.plain li, ol.plain li { margin-bottom: 6px; }
+  code { font-family: ui-monospace, "SFMono-Regular", "Consolas", "Liberation Mono", monospace; font-size: 0.92em; }
+  p code, li code, td code { background: var(--surface-alt); padding: 1px 5px; border-radius: 4px; }
+
+  .panel {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .panel.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .panel.critical { border-left-color: var(--critical); background: var(--critical-soft); }
+  .panel-title {
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+    margin: 0 0 8px; color: var(--ink);
+  }
+  .panel-title .tag {
+    font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; background: var(--accent); color: var(--surface); font-weight: 700;
+  }
+  .panel.warn .panel-title .tag { background: var(--warn); }
+  .panel.critical .panel-title .tag { background: var(--critical); }
+  .panel p { margin: 0 0 8px; font-size: 14.5px; color: var(--ink); max-width: none; }
+  .panel p:last-child { margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 8px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+  .table-wrap table { margin-bottom: 0; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th {
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint);
+    background: var(--surface-alt); font-weight: 700;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.good-cell { color: var(--good); font-weight: 600; }
+  td.bad-cell { color: var(--critical); font-weight: 600; }
+  td.num { font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right; }
+
+  .tier-pill {
+    display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+    border-radius: 50%; font-family: ui-monospace, monospace; font-weight: 700; font-size: 12px;
+  }
+  .tier-pill.A { background: var(--tierA-soft); color: var(--tierA); }
+  .tier-pill.B { background: var(--tierB-soft); color: var(--tierB); }
+  .tier-pill.C { background: var(--tierC-soft); color: var(--tierC); }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .step {
+    counter-increment: step; position: relative; padding: 0 0 26px 44px;
+    border-left: 1px solid var(--border); margin-left: 15px;
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .step::before {
+    content: counter(step); position: absolute; left: -15px; top: 0; width: 30px; height: 30px;
+    border-radius: 50%; background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent);
+    font-family: ui-monospace, monospace; font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step.gate::before { border-color: var(--warn); color: var(--warn); }
+  .phase-label {
+    font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin: 0 0 4px;
+  }
+  .step-title { font-weight: 650; font-size: 15.5px; margin: 2px 0 6px; }
+  .step-why { font-size: 13.5px; color: var(--ink-faint); margin: 0 0 6px; }
+
+  .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .opt-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .opt-card.rec { border-color: var(--good); background: var(--good-soft); }
+  .opt-card.rej { border-color: var(--border); }
+  .opt-card .verdict {
+    font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 700; margin: 0 0 6px;
+  }
+  .opt-card.rec .verdict { color: var(--good); }
+  .opt-card.rej .verdict { color: var(--ink-faint); }
+  .opt-card p { margin: 4px 0 0; font-size: 13.5px; max-width: none; }
+  .opt-card .name { font-weight: 650; font-size: 14px; color: var(--ink); }
+
+  .checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .checklist li {
+    display: flex; gap: 12px; align-items: flex-start; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+  }
+  .checklist .box { flex-shrink: 0; width: 18px; height: 18px; border: 1.5px solid var(--ink-faint); border-radius: 4px; margin-top: 2px; }
+  .checklist .lbl { font-size: 14px; }
+  .checklist .lbl .cmd { display: block; margin-top: 3px; font-size: 12.5px; color: var(--ink-faint); }
+
+  .rollback-box {
+    border: 1px solid var(--critical); background: var(--critical-soft); border-radius: 10px; padding: 18px 20px;
+  }
+  .rollback-box p { max-width: none; }
+
+  .oq-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .oq-list li {
+    background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--ink-faint);
+    border-radius: 8px; padding: 12px 16px; font-size: 14px;
+  }
+
+  footer {
+    border-top: 1px solid var(--border); padding-top: 20px; font-size: 12.5px; color: var(--ink-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  a { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .opt-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="eyebrow">API Test Infrastructure &middot; Technical Research Report</p>
+  <h1>Extending Zod to the GRA Suite</h1>
+  <p class="subtitle">The dummyjson pilot proved the mechanism and deliberately stopped there. This report answers the question it deferred: should GRA's 8-brand GraphQL suite get schema validation, and if the staging quirks documented in <code>tests/api/CLAUDE.md</code> say no to a blanket yes, what does a scoped yes look like.</p>
+  <div class="meta-row">
+    <span class="chip hold"><span class="dot"></span>Awaiting your approval</span>
+    <span class="chip">Prior pilot: 46/46 pass, dummyjson only</span>
+    <span class="chip">zod@4.4.3, already installed</span>
+    <span class="chip">Config files touched: 0</span>
+    <span class="chip">Open questions closed 2026-08-15</span>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <p class="stat-label">GRA surface</p>
+      <p class="stat-value">119 &times; 8</p>
+      <p class="stat-sub">16 specs, 8 brand projects, ~952 executions</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Tier A: ready now</p>
+      <p class="stat-value">30 tests</p>
+      <p class="stat-sub">5 specs, zero schema hazards found</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Tier C: deferred</p>
+      <p class="stat-value">56 tests</p>
+      <p class="stat-sub">Catalog quirks, cart size, search/loyalty gaps</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Recommended Phase 1</p>
+      <p class="stat-value">4 tests</p>
+      <p class="stat-sub">2 specs, ×8 projects = 32 executions</p>
+    </div>
+  </div>
+
+  <section>
+    <h2>Where this picks up</h2>
+    <p>The approved pilot plan set four ground rules: <code>z.looseObject</code> never <code>strictObject</code>, <code>safeParse</code> never <code>parse</code>, no <code>z.coerce.*</code>, and no <code>z.discriminatedUnion</code> on GRA's <code>__typename</code>. Then it stopped, because GRA's staging environment has documented, accepted quirks that a strict schema would turn into hard failures across all 8 brands at once: broken <code>price_range</code> data, a <code>productSearch</code> field missing from the schema entirely, unreliable <code>__typename</code> discriminators, and per-brand low stock nulling fields out.</p>
+    <p class="lede">That reasoning checked out against the live spec code, and it turned up one quirk the original plan didn't name: GraphQL null-propagation on staging nulls whole <em>array elements</em>, not just fields (<code>gra-catalog.spec.ts:395</code> already guards for this). The deferral stands. What follows is a way to say yes to part of the suite without reopening that risk for the whole thing.</p>
+  </section>
+
+  <section>
+    <h2>The 16 specs, ranked by what they actually do</h2>
+    <p class="lede">Tier is a measured fingerprint (null guards, tolerated-error paths, inline fragments, "field doesn't exist yet" branches), not a guess. Full detail and per-field consequence are in the source report; this is the shape of it.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Specs</th><th>Tests</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tier-pill A">A</span></td>
+            <td>address-book-countries, support-features, customer-profile, my-details, authentication</td>
+            <td class="num">30</td>
+            <td>Zero null guards, zero tolerated-error paths, zero inline fragments. Two of these five (<code>address-book-countries</code>, <code>support-features</code>) already hand-roll <code>typeof</code> loops Zod would replace with a better error message.</td>
+          </tr>
+          <tr>
+            <td><span class="tier-pill B">B</span></td>
+            <td>account-creation-signin, checkout-billing-payment, place-order, checkout-shipping, order-history, wishlist</td>
+            <td class="num">33</td>
+            <td>Needs nullable discipline: known loyalty partial-errors on drm/van, null-guarded shipping/wishlist arrays, an order-history schema gap branch. Tractable, not free.</td>
+          </tr>
+          <tr>
+            <td><span class="tier-pill C">C</span></td>
+            <td>catalog, search, cart-minicart, loyalty-rewards (AU+NZ)</td>
+            <td class="num">56</td>
+            <td>Blocked for different reasons per spec: catalog by the <code>price_range</code>/null-array quirks, search and loyalty by early-return branches on missing staging fields, cart-minicart by sheer size (hundreds of fields across 15+ fragments). Deferred, not ruled out permanently.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>The open technical question: <span class="mono" style="font-size: 0.85em;">__typename</span></h2>
+    <p>Ground rule 04 says what not to do (<code>z.discriminatedUnion</code>) but not what to do instead. Four options, one answer:</p>
+    <div class="opt-grid">
+      <div class="opt-card rec">
+        <p class="name">One looseObject per operation</p>
+        <p class="verdict">Recommended</p>
+        <p>Base fields required, inline-fragment fields (<code>... on ConfigurableProduct</code>) <code>.optional()</code>, <code>__typename: z.string()</code> and never <code>z.literal</code>. Matches the actual wire shape and keeps path-precise error output.</p>
+      </div>
+      <div class="opt-card rej">
+        <p class="name">Non-discriminated z.union</p>
+        <p class="verdict">Rejected</p>
+        <p>On mismatch, Zod reports every branch's failures at once. That destroys the exact-path error message the whole pilot was approved for.</p>
+      </div>
+      <div class="opt-card rej">
+        <p class="name">z.discriminatedUnion</p>
+        <p class="verdict">Rejected</p>
+        <p>Barred by rule 04, and independently wrong: staging returns <code>ConfigurableProduct</code> for simple products, so the discriminator itself lies.</p>
+      </div>
+      <div class="opt-card rej">
+        <p class="name">Branch in test code on __typename</p>
+        <p class="verdict">Rejected</p>
+        <p>Requires trusting the exact field that's documented as unreliable. Pushes branching into specs instead of the schema.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Rollout strategy: three shapes considered</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Approach</th><th>Verdict</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Big-bang</strong><br><span style="color:var(--ink-faint);font-size:12.5px;">All 16 specs, one commit</span></td>
+            <td class="bad-cell">Rejected</td>
+            <td>~50 new schemas against untested staging quirks, first run red on 8 projects simultaneously if even one nullability call is wrong. Contradicts the pilot's own reasoning for deferring GRA in the first place.</td>
+          </tr>
+          <tr>
+            <td><strong>Warn-mode / log-don't-fail</strong><br><span style="color:var(--ink-faint);font-size:12.5px;">Discover drift before enforcing</span></td>
+            <td class="bad-cell">Rejected as a mode</td>
+            <td>Needs a shared-file change to <code>GraphQLResponse.ts</code>, and a warning nobody fails on is a warning nobody reads. It reintroduces the exact vacuous-schema risk the teeth-test exists to catch. The underlying idea survives as a one-off throwaway diagnostic before Phase 3 only.</td>
+          </tr>
+          <tr>
+            <td><strong>Staged by risk tier, evidence-first</strong><br><span style="color:var(--ink-faint);font-size:12.5px;">Tier A → Tier B → Tier C, each phase gated</span></td>
+            <td class="good-cell">Recommended</td>
+            <td>Phase 1 targets the two specs that already hand-roll type checks (proving Zod subsumes them with a better error), not just the lowest-risk specs. Each phase is one revertable commit; failures stay attributable to a small, named change.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Two rules this adds on top of the pilot's four</h2>
+    <div class="panel">
+      <p class="panel-title"><span class="tag">Rule 05</span> Nullable discipline</p>
+      <p>Any path already listed in an <code>assertNoCriticalErrors</code> ignore list, and any array a spec null-guards today, must be <code>.nullable()</code> in the schema. A schema that contradicts a deliberate, already-accepted tolerance isn't stricter. It's wrong.</p>
+      <p>Read the ignore list as a hint, though, not as a verdict. <code>gra-account-creation-signin.spec.ts:142</code> tolerates both <code>loyalty</code> and <code>loyalty_program_status</code>, but only the first one ever nulls: <code>loyalty_program_status</code> came back <code>false</code> on all four drm/van projects, AU and NZ. Marking it <code>.nullable()</code> on the strength of its ignore-list entry would weaken the schema against the evidence. Check each path against a real payload before applying the rule to it.</p>
+    </div>
+    <div class="panel">
+      <p class="panel-title"><span class="tag">Rule 06</span> No literal __typename</p>
+      <p><code>z.string()</code>, never <code>z.literal('SimpleProduct')</code>. Staging returns <code>ConfigurableProduct</code>/<code>ConfigurableWishlistItem</code> even for simple items. Type-specific assertions stay where they already live: as ordinary value assertions outside the schema.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phased plan</h2>
+    <ol class="steps">
+      <li class="step">
+        <p class="phase-label">Phase 0</p>
+        <p class="step-title">Write the two new rules down, touch no tests</p>
+        <p class="step-why">Why: rule 05/06 plus two mechanical rules. Never call the schema assertion inside <code>beforeAll</code> (a failure there cascades to every test in the spec under <code>fullyParallel: false</code>), and always place it after the error-tolerance check, never before (otherwise the failure says "received null" instead of naming the real cause).</p>
+        <p>Recorded in <code>tests/api/CLAUDE.md</code> under a new "Zod Schemas: GRA" heading. No code changes.</p>
+      </li>
+      <li class="step gate">
+        <p class="phase-label">Phase 1 &middot; gate</p>
+        <p class="step-title">Evidence pilot: 2 specs, 4 tests, 32 executions</p>
+        <p class="step-why">Why these two: <code>gra-address-book-countries</code> and <code>gra-support-features</code> have zero measured hazards <em>and</em> already contain hand-rolled <code>typeof</code> loops, so Phase 1 doesn't just prove "no false failures." It proves Zod is strictly better than what's there today.</p>
+        <p>New schema files under <code>src/data/api/schemas/</code>, added <code>assertDataSchema()</code> calls alongside (not replacing) the existing checks. Run on all 8 projects. Teeth-test each schema: break one required field, confirm the failure names the exact path, revert. Stop and report; do not continue automatically.</p>
+        <p>Place each schema call <em>after</em> the soft loop it sits beside, never before. <code>assertDataSchema()</code> is a hard assertion (<code>GraphQLResponse.ts:162</code>) and the loops are <code>softExpect</code>, so a schema call placed first throws and the loop's per-field failures never register &mdash; losing exactly the field-level comparison Phase 1 exists to make. That's a second ordering constraint alongside "after the error-tolerance check."</p>
+        <p>One calibration on how much this proves: <code>countries</code> returns exactly one element on all 8 brands, so TC_02's loop over "every country" walks a single three-field object. The address-book schema is thin evidence. <code>gra-support-features</code> carries the heavier half &mdash; its four <code>ewave_dynamicpromoblocks_*_enable</code> flags came back <code>boolean</code> on every endpoint, so that schema can require them and still not be vacuous.</p>
+      </li>
+      <li class="step gate">
+        <p class="phase-label">Phase 2 &middot; separate approval</p>
+        <p class="step-title">Tier A remainder + Tier B: 11 specs, 89 tests</p>
+        <p class="step-why">Why split into 2a/2b: Tier A remainder (customer-profile, my-details, authentication) is still zero-hazard. Tier B needs rule 05 applied deliberately per spec: the drm/van loyalty partial-error, null-guarded shipping/wishlist arrays, the order-history schema-gap branch.</p>
+        <p>Shared sub-shapes (<code>Money</code>, <code>UserError</code>) hoisted once to <code>gra-common-schemas.ts</code> first. Gate to Phase 3 is two consecutive clean 8-project runs, not one.</p>
+        <p>The loyalty shape is measured now rather than assumed. <code>data.customer</code> comes back fully populated on all 8 brands and only <code>loyalty</code> nulls, so the schema takes <code>loyalty: LoyaltySchema.nullable()</code>, not <code>customer: CustomerSchema.nullable()</code>. Four more payload facts worth writing in rather than rediscovering as false failures: on the loyalty brands every <code>loyalty</code> sub-field is null except <code>rewards: []</code>, so a required-field <code>LoyaltySchema</code> would fail on pla and skx too; <code>apparel21_id</code> is null everywhere except pla-nz and skx-nz, where it's a string; <code>qff_member_number</code> is null on AU and an empty string on NZ; <code>dynamic_promo_blocks.message.success_phrase</code> is null on all 8.</p>
+      </li>
+      <li class="step">
+        <p class="phase-label">Phase 3 &middot; conditional, separate approval</p>
+        <p class="step-title">Catalog only, and only if the evidence says it's worth it</p>
+        <p class="step-why">Why conditional: a throwaway local diagnostic (never committed) logs real <code>safeParse</code> failures across all 8 brands first, to derive nullability empirically instead of guessing. If <code>items</code>, <code>price_range</code>, and <code>aggregations</code> all end up nullable, the honest finding may be that a catalog schema isn't worth having. That's a valid outcome of this phase, not a failed one.</p>
+        <p><code>aggregations</code> is not one of the things this phase has to solve. It's selected only by <code>DISCOVER_PRODUCTS_QUERY</code>, which runs in <code>beforeAll</code> and is already barred from carrying a schema assertion, and by <code>gra-search.spec.ts</code>, which is out of scope. <code>PLP_QUERY</code> and <code>PDP_QUERY</code> never ask for it, so it forces nothing optional. What's left is the nullability inside <code>items[]</code>: <code>price_range</code>, and the null array elements. That is what the diagnostic is for.</p>
+        <p>Cart-minicart, search, and both loyalty specs stay out of scope indefinitely: cost, conditionality, and per-project exclusion respectively, not quirks that a phase can resolve.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Risk, watched</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Vacuous schema: an all-optional looseObject that passes forever and catches nothing. GRA's quirk tolerance pushes toward optional more than dummyjson ever did.</td><td>Mandatory per-schema teeth-test, plus a required-field count reported in every PR. A schema with zero non-optional fields cannot merge.</td></tr>
+          <tr><td>False failure across all 8 brands from a wrong nullability guess</td><td>Tiered rollout; rule 05 derived from each spec's own existing tolerance code, not assumed</td></tr>
+          <tr><td>A Phase 1 regression lands somewhere nobody can attribute it. GRA API does auto-trigger on push, through <code>playwright-with-slack.yml</code>'s "API Tests (GRA)" job, but that job runs beside six sharded UI jobs and is red at baseline: run 31667597116 came in at 6 failed, 6 flaky, 880 passed out of 892. The API-only <code>api-restful-tests-with-slack.yml</code> is the clean surface, but two of its three path filters (<code>tests/api/restful-api/**</code>, <code>src/data/restful-api-*</code>) match no files at all, leaving <code>src/api/**</code> as the only live one.</td><td>Record the pre-change failure count and diff against it, rather than reading red as a Phase 1 regression. Adding <code>tests/api/gra-*.spec.ts</code>, <code>tests/api/api-test-helpers.ts</code>, <code>tests/api/gra-test.ts</code> and <code>src/data/api/**</code> to the dedicated workflow would buy an attributable job, and the two dead filters want fixing on their own merits. Routed to devops-cicd-specialist, not bundled here.</td></tr>
+          <tr><td>New dependency in the security surface</td><td>None. Zero transitive deps, MIT, devDependency only, already installed and audited by the dummyjson pilot.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Validate</h2>
+    <ul class="checklist">
+      <li><span class="box"></span><span class="lbl">Type-check passes after each phase<span class="cmd mono">npm run lint</span></span></li>
+      <li><span class="box"></span><span class="lbl">Touched specs pass individually across all 8 brand projects, not just pla-au<span class="cmd mono">npx playwright test tests/api/gra-*.spec.ts --config=api.config.ts</span></span></li>
+      <li><span class="box"></span><span class="lbl">Per schema: a non-optional field is deliberately broken, the failure names the exact path, then reverted<span class="cmd mono">z.prettifyError(result.error)</span></span></li>
+      <li><span class="box"></span><span class="lbl">Required-field count recorded per schema; zero required fields blocks merge</span></li>
+      <li><span class="box"></span><span class="lbl">Full GRA suite green, compared against the pre-change baseline<span class="cmd mono">npm run test:api:gra</span></span></li>
+      <li><span class="box"></span><span class="lbl">No diff in api.config.ts, base-test.ts, gra-test.ts, ApiTest.ts, or any workflow file</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Rollback</h2>
+    <div class="rollback-box">
+      <p style="margin:0;">Every phase is one additive commit: new schema files plus added assertion lines, nothing existing removed or changed. <code>git revert</code> on any phase's commit restores exact prior behaviour for that phase alone; earlier phases are unaffected. <code>npm uninstall zod</code> is not part of GRA rollback, since the dummyjson pilot still depends on it.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Questions since answered</h2>
+    <p class="lede">Four questions this report originally left open, closed on 2026-08-15 by re-reading the specs and by three throwaway probes run against all eight staging endpoints. The probes created eight customer accounts and eight guest carts, which is what every <code>npm run test:api:gra</code> run already does per brand.</p>
+    <ul class="oq-list">
+      <li><strong>Keep the hand-rolled <code>typeof</code> loops.</strong> Read line by line they turn out to be mostly value assertions, not type assertions, and most of what they check a schema can't say. <code>__typename === 'Country'</code> is barred by rule 06. <code>available_currency_codes</code> containing <code>site.currency</code> is parameterised on the <code>site</code> fixture at runtime. The <code>toBeNull()</code> checks on <code>dynamic_promo_blocks.discount</code> and <code>gift</code> assert live staging state, which rule 05 would only relax to <code>.nullable()</code>. The one genuinely redundant block is the four <code>typeof &hellip; 'boolean'</code> lines at <code>gra-support-features.spec.ts:97-100</code>, and four lines don't outweigh keeping every phase revertable. The schema still earns its place beside them: a null array element gives Zod a clean path-precise failure where <code>country.id.length</code> at line 68 throws a raw TypeError.</li>
+      <li><strong>No path-scoped sibling for <code>assertDataSchema()</code>.</strong> The premise doesn't survive contact with the queries. <code>aggregations</code> appears only in <code>DISCOVER_PRODUCTS_QUERY</code> (<code>beforeAll</code>, barred from schema assertions) and in <code>gra-search.spec.ts</code> (out of scope). <code>PLP_QUERY</code> and <code>PDP_QUERY</code> don't select it, and GraphQL returns only what's selected, so it forces zero fields optional. Scoping to <code>products.items</code> would also scope <em>around</em> the real pressure rather than into it, since <code>price_range</code> and the null elements both live inside <code>items[]</code>. For those two queries <code>data</code> holds nothing but <code>products</code> anyway, so the whole-<code>data</code> schema is already one wrapper deep. The rollout still touches no shared file.</li>
+      <li><strong>The CI gap is attribution, not coverage.</strong> <code>playwright-with-slack.yml</code> carries an "API Tests (GRA)" job running <code>npm run test:api:gra</code> under <code>paths-ignore</code> filters that exclude only docs, so Phase 1's commits already trigger a full 8-project run on push, and the run history confirms the job executes rather than skipping. It is also red at baseline and buried among six UI shards. The dedicated API workflow's filters, meanwhile, are broken rather than merely narrow. Detail and the recommended filter list are in the risk table above.</li>
+      <li><strong>The loyalty partial-error nulls the field, not the object.</strong> Confirmed on all eight brands with a fresh account and token each. <code>data.customer</code> comes back fully populated, <code>loyalty</code> is <code>null</code> on drm and van, and the error carries <code>path: ["customer","loyalty"]</code> with <code>category: graphql-input</code> and the message "Loyalty Program is not available on the current website." Phase 2 writes field-level nullability. The pessimistic <code>customer: CustomerSchema.nullable()</code> isn't needed, and would be looser than the payload warrants.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Still open</h2>
+    <ul class="oq-list">
+      <li>Rule 06 bans <code>z.literal</code> on <code>__typename</code> because staging's product discriminators lie. <code>countries</code> has no polymorphism for that reasoning to bite on: <code>__typename</code> came back <code>"Country"</code> on all eight brands with no variance. So either narrow rule 06 to product types and let the countries schema assert the literal, or keep the ban categorical and leave <code>gra-address-book-countries.spec.ts:71</code> as an ordinary assertion outside the schema for good. The second option costs one line and no thinking. Either way it's a call to make out loud rather than by default.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Zod GRA rollout research &middot; follow-up to the approved dummyjson pilot &middot; open questions closed against staging 2026-08-15</span>
+    <span>Scope: research only &middot; no code, config, or test files changed &middot; awaiting approval</span>
+  </footer>
+
+</div>
+</body>
+</html>
