@@ -39,6 +39,7 @@ import {
   CREATE_ACCOUNT_MUTATION,
   PLACE_ORDER_MUTATION,
 } from '../../src/data/api/gra-graphql-operations';
+import { GetCustomerOrdersDataSchema } from '../../src/data/api/schemas/gra-order-history-schemas';
 
 // ── Module-level state ────────────────────────────────────────────────────────
 
@@ -46,7 +47,6 @@ let customerToken: string = '';
 let placedOrderNumber: string = '';
 let checkoutCartId: string = '';
 let validSku: string = '';
-let shippingMethodSet: boolean = false;
 let checkoutBillingData = createCheckoutBillingPaymentData('AU');
 // Cart is configured through billing address in beforeAll; TC_01 mints its own Braintree
 // nonce, sets payment method, and places the order itself — nonces are single-use and must
@@ -144,7 +144,6 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
         setupOk = false;
         return;
       }
-      shippingMethodSet = true;
     });
     if (!setupOk) return;
 
@@ -216,11 +215,12 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
       logger.action('Order placed', placedOrderNumber);
     });
 
+    let response!: GraphQLResponseWrapper;
     let orders: CustomerOrdersShape | undefined;
     let items: CustomerOrderShape[] = [];
-    await logger.step('Step 5 - Query customer order history after placing order ' + placedOrderNumber, async () => {
-      logger.action('GET', `customer.orders (pageSize=10, currentPage=1)`);
-      const response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 10, currentPage: 1 });
+    await logger.step(`Step 5 - Query customer order history after placing order ${placedOrderNumber}`, async () => {
+      logger.action('GET', 'customer.orders (pageSize=10, currentPage=1)');
+      response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 10, currentPage: 1 });
 
       await response.assertNoErrors();
       await response.assertHasData();
@@ -250,7 +250,10 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
         ordersEmpty = true;
       }
     });
-    if (ordersEmpty) return;
+    if (ordersEmpty) {
+      await response.assertDataSchema(GetCustomerOrdersDataSchema);
+      return;
+    }
 
     await logger.step('Step 8 - Assert placed order number appears in list', async () => {
       const placedOrder = items.find(item => item.number === placedOrderNumber);
@@ -260,6 +263,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
       softExpect(placedOrder?.status, 'Placed order status should be defined').toBeTruthy();
       softExpect(typeof placedOrder?.grand_total, 'grand_total should be a number').toBe('number');
       softExpect(PlaceOrderData.orderNumberPattern.test(placedOrderNumber), 'order_number matches /\\S+/').toBe(true);
+      await response.assertDataSchema(GetCustomerOrdersDataSchema);
     });
   });
 
@@ -312,7 +316,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     let response!: GraphQLResponseWrapper;
     await logger.step('Step 3 - Query customer.orders for fresh account', async () => {
       const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: freshToken });
-      logger.action('GET', `customer.orders for fresh account`);
+      logger.action('GET', 'customer.orders for fresh account');
       response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize: 5, currentPage: 1 });
     });
 
@@ -329,6 +333,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
       expect(orders?.total_count, 'New account should have 0 orders').toBe(0);
       expect(orders?.items, 'New account orders items must be empty').toHaveLength(0);
       softExpect(orders?.__typename, '__typename should be CustomerOrders').toBe('CustomerOrders');
+      await response.assertDataSchema(GetCustomerOrdersDataSchema);
     });
   });
 
@@ -352,12 +357,13 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
     const authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
     const pageSize = OrderHistoryData.paginationPageSize;
 
+    let page1Response!: GraphQLResponseWrapper;
     let page1Orders: CustomerOrdersShape | undefined;
     let page1Items: CustomerOrderShape[] = [];
     let totalCount = 0;
     await logger.step('Step 1 - Query page 1 with pageSize 1', async () => {
       logger.action('GET', `customer.orders (pageSize=${pageSize}, currentPage=1)`);
-      const page1Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 1 });
+      page1Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 1 });
 
       await page1Response.assertNoErrors();
       const page1Data = await page1Response.getData();
@@ -376,20 +382,23 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
           'Pagination behavior cannot be verified with empty order history on this staging endpoint');
         expect(Array.isArray(page1Items), 'orders.items must be an array even when empty').toBe(true);
         softExpect(page1Orders?.__typename, '__typename must be CustomerOrders').toBe('CustomerOrders');
+        await page1Response.assertDataSchema(GetCustomerOrdersDataSchema);
         ordersEmpty = true;
         return;
       }
 
       logger.verify('Page 1 has at least 1 item', '>= 1', page1Items.length);
       expect(page1Items.length, 'Page 1 must have at least 1 order').toBeGreaterThan(0);
+      await page1Response.assertDataSchema(GetCustomerOrdersDataSchema);
     });
     if (ordersEmpty) return;
 
+    let page2Response!: GraphQLResponseWrapper;
     let page2Orders: CustomerOrdersShape | undefined;
     let page2Items: CustomerOrderShape[] = [];
     await logger.step('Step 3 - Query page 2 with pageSize 1', async () => {
       logger.action('GET', `customer.orders (pageSize=${pageSize}, currentPage=2)`);
-      const page2Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 2 });
+      page2Response = await authClient.queryWrapped(GET_CUSTOMER_ORDERS_QUERY, { pageSize, currentPage: 2 });
 
       await page2Response.assertNoErrors();
       const page2Data = await page2Response.getData();
@@ -410,6 +419,7 @@ test.describe('GRA GraphQL API - Order History @api @graphql', () => {
         logger.verify('No overlap between page 1 and page 2 order numbers', false, hasOverlap);
         expect(hasOverlap, 'Page 1 and page 2 must have non-overlapping orders').toBe(false);
       }
+      await page2Response.assertDataSchema(GetCustomerOrdersDataSchema);
     });
   });
 

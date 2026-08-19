@@ -12,6 +12,7 @@ import {
   GET_CUSTOMER_ADDRESSES_QUERY,
   CREATE_CUSTOMER_ADDRESS_MUTATION,
 } from '../../src/data/api/gra-graphql-operations';
+import { SetShippingAddressesDataSchema, SetShippingMethodsDataSchema } from '../../src/data/api/schemas/gra-checkout-shipping-schemas';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -175,6 +176,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
       softExpect(Array.isArray(addr.street)).toBe(true);
       softExpect(addr.street[0]).toBe(street[0]);
       softExpect(Array.isArray(addr.available_shipping_methods)).toBe(true);
+      await response.assertDataSchema(SetShippingAddressesDataSchema);
     });
   });
 
@@ -211,6 +213,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
       softExpect(addr.firstname).toBeTruthy();
       softExpect(addr.postcode).toBeTruthy();
       softExpect(Array.isArray(addr.available_shipping_methods)).toBe(true);
+      await response.assertDataSchema(SetShippingAddressesDataSchema);
     });
   });
 
@@ -332,6 +335,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
       logger.verify('method_code', method_code, selectedMethod?.method_code);
       softExpect(selectedMethod?.carrier_code).toBe(carrier_code);
       softExpect(selectedMethod?.method_code).toBe(method_code);
+      await response.assertDataSchema(SetShippingMethodsDataSchema);
     });
   });
 
@@ -396,6 +400,7 @@ test.describe('GRA GraphQL API - Checkout Shipping @api @graphql', () => {
       logger.verify('method_code applied', method_code, selectedMethod?.method_code);
       softExpect(selectedMethod?.carrier_code).toBe(carrier_code);
       softExpect(selectedMethod?.method_code).toBe(method_code);
+      await response.assertDataSchema(SetShippingMethodsDataSchema);
     });
   });
 

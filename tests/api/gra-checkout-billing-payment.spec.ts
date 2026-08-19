@@ -19,6 +19,7 @@ import {
   PaymentMethod,
   SKU_DISCOVERY_DEFAULTS,
 } from '../../src/data/api/gra-graphql-operations';
+import { SetBillingAddressDataSchema, SetPaymentMethodDataSchema } from '../../src/data/api/schemas/gra-checkout-billing-payment-schemas';
 
 // ── Module-level state ────────────────────────────────────────────────────────
 let customerToken: string = '';
@@ -87,7 +88,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
       try {
         const paymentData = await (await authClient.queryWrapped(GET_AVAILABLE_PAYMENT_METHODS_QUERY, { cartId })).getData();
         const methods: PaymentMethod[] = paymentData?.cart?.available_payment_methods ?? [];
-        availablePaymentMethods = methods.map((m: PaymentMethod) => m.code);
+        availablePaymentMethods = methods.map(m => m.code);
         logger.action('Available payment methods', availablePaymentMethods.join(', ') || 'none');
       } catch {
         logger.action('Payment methods query failed', 'may be unavailable without shipping method');
@@ -130,6 +131,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
       softExpect(billingAddr?.firstname).toBe(firstname);
       softExpect(billingAddr?.postcode).toBe(postcode);
       softExpect(Array.isArray(billingAddr?.street)).toBe(true);
+      await response.assertDataSchema(SetBillingAddressDataSchema);
     });
   });
 
@@ -169,6 +171,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
       softExpect(billingAddr?.postcode).toBe(postcode);
       softExpect(Array.isArray(billingAddr?.street)).toBe(true);
       softExpect(billingAddr?.street?.[0]).toBe(street[0]);
+      await response.assertDataSchema(SetBillingAddressDataSchema);
     });
   });
 
@@ -210,6 +213,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
       logger.verify('payment code', targetCode, selectedMethod?.code);
       softExpect(selectedMethod?.code).toBe(targetCode);
       softExpect(selectedMethod?.title).toBeTruthy();
+      await response.assertDataSchema(SetPaymentMethodDataSchema);
     });
   });
 
@@ -256,6 +260,7 @@ test.describe('GRA GraphQL API - Checkout Billing & Payment @api @graphql', () =
       logger.verify('alternate payment code applied', targetCode, selectedMethod?.code);
       softExpect(selectedMethod?.code).toBe(targetCode);
       softExpect(selectedMethod?.title).toBeTruthy();
+      await response.assertDataSchema(SetPaymentMethodDataSchema);
     });
   });
 

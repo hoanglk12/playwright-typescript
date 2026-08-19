@@ -6,6 +6,7 @@ import { signInAndStoreToken } from './api-test-helpers';
 import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { SIGN_IN_MUTATION, GET_CUSTOMER_QUERY } from '../../src/data/api/gra-graphql-operations';
+import { SignInDataSchema } from '../../src/data/api/schemas/gra-authentication-schemas';
 
 let testEmail: string = '';
 
@@ -60,6 +61,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
       const signInData = await signInResponse.getData();
       disposableToken = signInData.generateCustomerToken.token;
       expect(disposableToken).toBeTruthy();
+      await signInResponse.assertDataSchema(SignInDataSchema);
     });
 
     let revokeResponse!: GraphQLResponseWrapper;
@@ -95,6 +97,7 @@ test.describe('GRA Authentication @api @graphql @regression', () => {
       const signInData = await signInResponse.getData();
       disposableToken = signInData.generateCustomerToken.token;
       expect(disposableToken).toBeTruthy();
+      await signInResponse.assertDataSchema(SignInDataSchema);
     });
 
     await logger.step('Step 2 - Revoke the token', async () => {

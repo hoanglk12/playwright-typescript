@@ -12,6 +12,14 @@ import {
   SET_LOYALTY_NEWSLETTER_MUTATION,
   ADD_CUSTOMER_ADDRESS_MUTATION,
 } from '../../src/data/api/gra-graphql-operations';
+import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
+import {
+  CreateCustomerAddressDataSchema,
+  GetCustomerAddressesForAddressBookDataSchema,
+  UpdateCustomerAddressDataSchema,
+  SetNewsletterSubscriptionDataSchema,
+  SetLoyaltyAndNewsletterSubscriptionDataSchema,
+} from '../../src/data/api/schemas/gra-my-details-schemas';
 
 let customerToken: string = '';
 let customerId: string = '';
@@ -68,6 +76,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     const logger = createTestLogger('PLA_AddNewCustomerAddressToAddressBook');
 
     let data: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Send AddNewCustomerAddress mutation with bearer token', async () => {
       const authClient = await createGraphQLClient({
         authType: AuthType.BEARER,
@@ -77,7 +86,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       const variables = site.testData.addNewCustomerAddressForAddressBook;
       logger.action('Mutation variables', JSON.stringify(redactSensitiveData(variables)));
 
-      const response = await authClient.mutateWrapped(ADD_CUSTOMER_ADDRESS_MUTATION, variables);
+      response = await authClient.mutateWrapped(ADD_CUSTOMER_ADDRESS_MUTATION, variables);
 
       await response.assertNoErrors();
       await response.assertHasData();
@@ -94,6 +103,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       expect(data.createCustomerAddress).toBeDefined();
       softExpect(data.createCustomerAddress.id.toString()).toMatch(intRegex);
       softExpect(data.createCustomerAddress.__typename).toBe('CustomerAddress');
+      await response.assertDataSchema(CreateCustomerAddressDataSchema);
     });
   });
 
@@ -104,13 +114,14 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     expect(customerId).toBeDefined();
 
     let data: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Send GetCustomerAddressesForAddressBook query with bearer token', async () => {
       const authClient = await createGraphQLClient({
         authType: AuthType.BEARER,
         token: customerToken,
       });
 
-      const response = await authClient.queryWrapped(GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY);
+      response = await authClient.queryWrapped(GET_CUSTOMER_ADDRESSES_FOR_ADDRESS_BOOK_QUERY);
 
       await response.assertNoErrors();
       await response.assertHasData();
@@ -154,6 +165,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       softExpect(data.countries![0].id).toBe(site.countryCode);
       softExpect(data.countries![0].full_name_locale).toBe(site.countryCode === 'AU' ? 'Australia' : 'New Zealand');
       softExpect(data.countries![0].__typename).toBe('Country');
+      await response.assertDataSchema(GetCustomerAddressesForAddressBookDataSchema);
     });
   });
 
@@ -181,10 +193,11 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     });
 
     let data: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 2 - Send UpdateCustomerAddress mutation', async () => {
       logger.action('Update variables', JSON.stringify(redactSensitiveData(variables)));
 
-      const response = await authClient.mutateWrapped(UPDATE_ADDRESS_MUTATION, variables);
+      response = await authClient.mutateWrapped(UPDATE_ADDRESS_MUTATION, variables);
 
       await response.assertNoErrors();
       await response.assertHasData();
@@ -197,6 +210,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       softExpect(data.updateCustomerAddress.id).toBe(parseInt(addressId));
       softExpect(data.updateCustomerAddress.default_billing).toBe(false);
       softExpect(data.updateCustomerAddress.default_shipping).toBe(false);
+      await response.assertDataSchema(UpdateCustomerAddressDataSchema);
 
       logger.action('Address updated successfully', addressId);
     });
@@ -248,6 +262,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     const logger = createTestLogger('PLA_SetNewsletterSubscription - subscribe');
 
     let data: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Send SetNewsletterSubscription mutation (subscribe)', async () => {
       const authClient = await createGraphQLClient({
         authType: AuthType.BEARER,
@@ -258,7 +273,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
         is_subscribed: site.testData.subscribeNewsletterData.isSubscribed[0]
       };
 
-      const response = await authClient.mutateWrapped(SET_NEWSLETTER_MUTATION, variables);
+      response = await authClient.mutateWrapped(SET_NEWSLETTER_MUTATION, variables);
 
       await response.assertNoErrors();
       await response.assertHasData();
@@ -271,6 +286,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       expect(data.updateCustomerV2?.customer).toBeDefined();
       softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
       softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(true);
+      await response.assertDataSchema(SetNewsletterSubscriptionDataSchema);
 
       logger.action('Newsletter subscription set', 'true');
     });
@@ -282,6 +298,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     const logger = createTestLogger('PLA_SetNewsletterSubscription - unsubscribe');
 
     let data: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Send SetNewsletterSubscription mutation (unsubscribe)', async () => {
       const authClient = await createGraphQLClient({
         authType: AuthType.BEARER,
@@ -292,7 +309,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
         is_subscribed: site.testData.subscribeNewsletterData.isSubscribed[1]
       };
 
-      const response = await authClient.mutateWrapped(SET_NEWSLETTER_MUTATION, variables);
+      response = await authClient.mutateWrapped(SET_NEWSLETTER_MUTATION, variables);
 
       await response.assertNoErrors();
       await response.assertHasData();
@@ -305,6 +322,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       expect(data.updateCustomerV2?.customer).toBeDefined();
       softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
       softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
+      await response.assertDataSchema(SetNewsletterSubscriptionDataSchema);
 
       logger.action('Newsletter subscription set', 'false');
     });
@@ -316,6 +334,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
     const logger = createTestLogger('PLA_SetLoyaltyAndNewsletterSubscription');
 
     let data: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Send SetLoyaltyAndNewsletterSubscription mutation', async () => {
       const authClient = await createGraphQLClient({
         authType: AuthType.BEARER,
@@ -329,7 +348,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
 
       logger.action('Mutation variables', JSON.stringify(variables));
 
-      const response = await authClient.mutateWrapped(SET_LOYALTY_NEWSLETTER_MUTATION, variables);
+      response = await authClient.mutateWrapped(SET_LOYALTY_NEWSLETTER_MUTATION, variables);
 
       await response.assertNoErrors();
       await response.assertHasData();
@@ -343,6 +362,7 @@ test.describe("GRA GraphQL API - My Details apis", () => {
       softExpect(data.updateCustomerV2.customer.id).toBe(customerId);
       softExpect(data.updateCustomerV2.customer.is_subscribed).toBe(false);
       softExpect(data.updateCustomerV2.customer.loyalty_program_status).toBe(false);
+      await response.assertDataSchema(SetLoyaltyAndNewsletterSubscriptionDataSchema);
 
       logger.action('Loyalty and newsletter preferences updated', 'unsubscribed, not a loyalty member');
     });

@@ -31,6 +31,7 @@ import {
   PLACE_ORDER_MUTATION,
   UserError as CartUserError,
 } from '../../src/data/api/gra-graphql-operations';
+import { PlaceOrderResultDataSchema } from '../../src/data/api/schemas/gra-place-order-schemas';
 
 // ── Module-level state ────────────────────────────────────────────────────────
 let customerToken: string = '';
@@ -201,6 +202,7 @@ test.describe('GRA GraphQL API - Place Order @api @graphql', () => {
       expect(orderNumber, 'order_number must be defined and truthy').toBeTruthy();
       softExpect(PlaceOrderData.orderNumberPattern.test(orderNumber ?? '')).toBe(true);
       softExpect(data?.placeOrder?.__typename).toBe('PlaceOrderOutput');
+      await response.assertDataSchema(PlaceOrderResultDataSchema);
     });
   });
 

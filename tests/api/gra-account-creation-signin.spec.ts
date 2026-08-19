@@ -9,6 +9,8 @@ import {
   GET_CUSTOMER_DETAILS_QUERY,
 } from '../../src/data/api/gra-graphql-operations';
 import { assertNoCriticalErrors } from './api-test-helpers';
+import { SignInDataSchema } from '../../src/data/api/schemas/gra-authentication-schemas';
+import { CreateAccountDataSchema, GetCustomerDetailsDataSchema } from '../../src/data/api/schemas/gra-account-creation-signin-schemas';
 
 let customerToken: string = '';
 let customerId: string = '';
@@ -64,6 +66,7 @@ test.describe('GRA GraphQL API - Account Management', () => {
 
       logger.verify('Customer email', testEmail, data.createCustomer.customer.email);
       logger.action('Stored', `customerId=${customerId}`);
+      await response.assertDataSchema(CreateAccountDataSchema);
     });
   });
 
@@ -116,6 +119,7 @@ test.describe('GRA GraphQL API - Account Management', () => {
 
       logger.verify('Token generated', true, customerToken.length > 0);
       logger.action('Stored', 'customerToken set in shared-state');
+      await response.assertDataSchema(SignInDataSchema);
     });
   });
 
@@ -160,6 +164,7 @@ test.describe('GRA GraphQL API - Account Management', () => {
 
       logger.verify('Customer email', testEmail, customer.email);
       logger.verify('Customer typename', 'Customer', customer.__typename);
+      await response.assertDataSchema(GetCustomerDetailsDataSchema);
     });
   });
 });

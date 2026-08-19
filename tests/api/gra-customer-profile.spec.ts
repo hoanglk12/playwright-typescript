@@ -15,6 +15,7 @@ import {
   UPDATE_PHONE_MUTATION,
   UPDATE_EMAIL_MUTATION,
 } from '../../src/data/api/gra-graphql-operations';
+import { ChangeCustomerPasswordDataSchema } from '../../src/data/api/schemas/gra-customer-profile-schemas';
 
 // ChangeCustomerPassword uses the separate changeCustomerPassword resolver (not
 // updateCustomerV2) and has no cross-spec duplicate — kept local per Phase 1 scope.
@@ -47,9 +48,10 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
 
     let authClient!: GraphQLClient;
     let changeData: any;
+    let changeResponse!: GraphQLResponseWrapper;
     await logger.step('Step 1 - Change password to temp password', async () => {
       authClient = await createGraphQLClient({ authType: AuthType.BEARER, token: customerToken });
-      const changeResponse = await authClient.mutateWrapped(
+      changeResponse = await authClient.mutateWrapped(
         CHANGE_PASSWORD_MUTATION,
         graCustomerProfileData.validPasswordChange
       );
@@ -64,6 +66,7 @@ test.describe('GRA Customer Profile @api @graphql @regression', () => {
       logger.verify('changeCustomerPassword returned customer data', true, !!changeData.changeCustomerPassword);
       softExpect(changeData.changeCustomerPassword?.email).toBe(site.testData.validCredentials.email);
       softExpect(changeData.changeCustomerPassword?.__typename).toBe('Customer');
+      await changeResponse.assertDataSchema(ChangeCustomerPasswordDataSchema);
     });
 
     await logger.step('Step 3 - Restore original password so other specs remain functional', async () => {

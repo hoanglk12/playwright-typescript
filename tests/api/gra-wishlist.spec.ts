@@ -14,6 +14,11 @@ import { TIMEOUTS } from '../../src/constants/timeouts';
 import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLResponse } from '../../src/api/GraphQLClient';
 import { GET_PRODUCTS_QUERY } from '../../src/data/api/gra-graphql-operations';
+import {
+  GetCustomerWishlistsDataSchema,
+  AddProductsToWishlistDataSchema,
+  RemoveProductsFromWishlistDataSchema,
+} from '../../src/data/api/schemas/gra-wishlist-schemas';
 
 let customerToken: string = '';
 let wishlistId: string = '';
@@ -193,6 +198,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
       expect(wishlists.length, 'Expected at least one wishlist').toBeGreaterThan(0);
       expect(items, 'Wishlist items must be empty after cleanup').toHaveLength(0);
       softExpect(wishlists[0]?.items_count, 'items_count should be 0 after cleanup').toBe(0);
+      await response.assertDataSchema(GetCustomerWishlistsDataSchema);
     });
   });
 
@@ -232,6 +238,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
 
       softExpect(addedItem?.quantity, 'Wishlist item quantity should match requested value').toBe(graWishlistData.wishlistItemQuantity);
       softExpect(addedItem?.__typename, 'Wishlist item __typename should include WishlistItem').toContain('WishlistItem');
+      await response.assertDataSchema(AddProductsToWishlistDataSchema);
     });
   });
 
@@ -314,6 +321,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
 
       softExpect(wishlists[0]?.__typename, 'Wishlist __typename should be Wishlist').toBe('Wishlist');
       softExpect(addedItem?.product?.__typename, 'Product __typename should be defined').toBeDefined();
+      await response.assertDataSchema(GetCustomerWishlistsDataSchema);
     });
   });
 
@@ -349,6 +357,7 @@ test.describe('GRA GraphQL API - Wishlist @api @regression', () => {
       const removedItem = wishlistItems.find((item) => item.id === addedItemId);
       logger.verify('Removed item no longer present in wishlist', undefined, removedItem?.id);
       expect(removedItem, 'Item must no longer appear in wishlist after removal').toBeUndefined();
+      await response.assertDataSchema(RemoveProductsFromWishlistDataSchema);
     });
   });
 
