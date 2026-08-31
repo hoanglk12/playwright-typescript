@@ -6,6 +6,7 @@ import { GraphQLResponseWrapper } from '../../src/api/GraphQLResponse';
 import { GraphQLClient } from '../../src/api/GraphQLClient';
 import { assertNoCriticalErrors as assertNoCriticalErrorsShared } from './api-test-helpers';
 import { EWAVE_STORE_CONFIG_FRAGMENT } from '../../src/data/api/gra-graphql-operations';
+import { GetProductListDataSchema, GetProductDetailDataSchema } from '../../src/data/api/schemas/gra-catalog-schemas';
 
 // ── Local types ───────────────────────────────────────────────────────────────
 
@@ -321,6 +322,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       softExpect(data.products.page_info).toBeDefined();
       softExpect(data.products.page_info.current_page).toBe(1);
       softExpect(data.products.page_info.page_size).toBe(GraCatalogData.plp.pageSize);
+      await response.assertDataSchema(GetProductListDataSchema);
     });
   });
 
@@ -354,6 +356,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       const data = tc02Gql.data;
       softExpect(data.products.total_count).toBeGreaterThan(0);
       softExpect(data.products.items.length).toBeGreaterThan(0);
+      await response.assertDataSchema(GetProductListDataSchema);
     });
   });
 
@@ -406,6 +409,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
         );
         softExpect(tc03Prices.every((p: number) => typeof p === 'number' && p >= 0)).toBe(true);
       }
+      await response.assertDataSchema(GetProductListDataSchema);
     });
   });
 
@@ -454,6 +458,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
         );
         softExpect(tc04Prices.every((p: number) => typeof p === 'number' && p >= 0)).toBe(true);
       }
+      await response.assertDataSchema(GetProductListDataSchema);
     });
   });
 
@@ -479,6 +484,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
         page1Data.products.total_count,
         'total_count must exceed pageSize to have a second page',
       ).toBeGreaterThan(GraCatalogData.plp.pageSize);
+      await page1Response.assertDataSchema(GetProductListDataSchema);
     });
 
     let page2Data: any;
@@ -493,6 +499,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       page2Data = page2Gql.data;
       logger.verify('page 2 items length > 0', '> 0', page2Data.products.items.length);
       expect(page2Data.products.items.length).toBeGreaterThan(0);
+      await page2Response.assertDataSchema(GetProductListDataSchema);
     });
 
     await logger.step('Step 3 - Verify page 2 items differ from page 1 items', async () => {
@@ -559,6 +566,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       softExpect(product.name).toBeDefined();
       softExpect(product.url_key).toBe(discoveredProductUrlKey);
       softExpect(product.stock_status).toBeDefined();
+      await response.assertDataSchema(GetProductDetailDataSchema);
     });
   });
 
@@ -570,9 +578,10 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     });
 
     let data: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 2 - Query product by url_key', async () => {
       const client = await createGraphQLClient();
-      const response = await client.queryWrapped(PDP_QUERY, { urlKey: discoveredProductUrlKey });
+      response = await client.queryWrapped(PDP_QUERY, { urlKey: discoveredProductUrlKey });
       // TC_08 intentionally validates price_range structure — hard assertNoErrors is correct here
       await response.assertNoErrors();
       data = await response.getData();
@@ -590,6 +599,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       softExpect(finalPrice?.value).toBeGreaterThanOrEqual(0);
       softExpect(typeof finalPrice?.currency).toBe('string');
       softExpect((finalPrice?.currency ?? '').length).toBeGreaterThan(0);
+      await response.assertDataSchema(GetProductDetailDataSchema);
     });
   });
 
@@ -601,9 +611,10 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
     });
 
     let product: any;
+    let response!: GraphQLResponseWrapper;
     await logger.step('Step 2 - Query product by url_key', async () => {
       const client = await createGraphQLClient();
-      const response = await client.queryWrapped(PDP_QUERY, { urlKey: discoveredProductUrlKey });
+      response = await client.queryWrapped(PDP_QUERY, { urlKey: discoveredProductUrlKey });
       const tc09Gql = await response.getGraphQLResponse();
       assertNoCriticalErrors(tc09Gql);
       expect(tc09Gql.data?.products, 'products data must be present').toBeDefined();
@@ -617,6 +628,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       if (!product.variants || product.variants.length === 0) {
         softExpect(product.stock_status).toBeDefined();
         logger.action('Note', 'TC_09 — discovered product is simple (no variants); base stock_status verified');
+        await response.assertDataSchema(GetProductDetailDataSchema);
         return;
       }
       softExpect(product.variants.length).toBeGreaterThan(0);
@@ -624,6 +636,7 @@ test.describe('GRA Catalog & Products API @api @graphql @regression', () => {
       const firstVariant = product.variants[0];
       softExpect(firstVariant.product.sku).toBeDefined();
       softExpect(firstVariant.product.stock_status).toBeDefined();
+      await response.assertDataSchema(GetProductDetailDataSchema);
     });
   });
 
