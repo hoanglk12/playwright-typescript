@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guide: Microsoft Teams Workflow Webhook for Lighthouse CI</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #f6821f;
+      --accent2: #4a9eff;
+      --text: #e2e4ed;
+      --muted: #8b8fa8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --code-bg: #12151f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 920px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12151f 100%);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent2);
+      border-radius: 8px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 2rem;
+    }
+    .header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .header .subtitle { color: var(--muted); font-size: 0.9rem; }
+    .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge-ci { background: #1e3a5f; color: var(--accent2); }
+    .badge-cf { background: #3a1e0a; color: var(--accent); }
+    .badge-lhci { background: #1e3a1e; color: var(--green); }
+
+    /* Sections */
+    h2 {
+      font-size: 1.1rem; font-weight: 700; color: var(--accent2);
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 0.95rem; font-weight: 700; color: var(--accent); margin: 1.5rem 0 0.5rem; }
+    p { margin-bottom: 0.8rem; }
+    ol, ul { margin: 0.5rem 0 1rem 1.4rem; }
+    li { margin-bottom: 0.5rem; }
+
+    /* Context box */
+    .context-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .context-box p:last-child { margin-bottom: 0; }
+
+    /* Insight box */
+    .insight-box {
+      background: #0d1a2a;
+      border: 1px solid #1a3a5a;
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+    }
+    .insight-box .label {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+      color: var(--accent2); text-transform: uppercase; margin-bottom: 0.6rem;
+    }
+    .insight-box p:last-child { margin-bottom: 0; }
+
+    /* Step block */
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .step-title { font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .step-title .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.6rem; height: 1.6rem; border-radius: 50%;
+      background: var(--accent2); color: #0f1117; font-size: 0.8rem;
+      margin-right: 0.6rem;
+    }
+    .step p, .step ul, .step ol { margin-left: 2.2rem; }
+    .step p:last-child, .step ul:last-child, .step ol:last-child { margin-bottom: 0; }
+
+    code {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      font-family: 'Cascadia Code', Consolas, monospace;
+      font-size: 0.85em;
+      color: var(--accent2);
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      margin: 0.6rem 0 1rem 2.2rem;
+    }
+    pre code {
+      background: none; border: none; padding: 0; color: var(--text); font-size: 0.85em;
+    }
+
+    /* Reference table */
+    table { width: 100%; border-collapse: collapse; margin: 0.5rem 0 1rem; }
+    th, td {
+      text-align: left; padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    td code { font-size: 0.82em; }
+
+    footer { color: var(--muted); font-size: 0.8rem; margin-top: 3rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Microsoft Teams Workflow Webhook: Lighthouse CI Notifications</h1>
+      <div class="subtitle">How to stand up the Teams channel notification used by the Bitbucket Lighthouse pipeline (Platypus AU/NZ)</div>
+      <div class="badges">
+        <span class="badge badge-ci">Bitbucket Pipelines</span>
+        <span class="badge badge-cf">Teams Workflows</span>
+        <span class="badge badge-lhci">Adaptive Card</span>
+      </div>
+    </div>
+
+    <h2>Why a Workflow, not a Connector</h2>
+    <div class="context-box">
+      <p>Microsoft retired the old Office 365 Connector-based incoming webhook in favor of <strong>Workflows</strong>, which runs on Power Automate under the hood. The payload contract also changed: a Workflow webhook expects a <code>message</code> envelope wrapping an Adaptive Card, not the legacy <code>MessageCard</code> (<code>@type: MessageCard</code>) format.</p>
+      <p><code>teams-payload-template.json</code> in this repo is already built for the Workflow format, so nothing in the payload needs to change. Only the webhook URL needs to exist and get wired into Bitbucket.</p>
+    </div>
+
+    <h2>Setup steps</h2>
+
+    <div class="step">
+      <div class="step-title"><span class="num">1</span>Open the target channel</div>
+      <p>In Microsoft Teams, go to the channel that should receive Lighthouse CI results (the existing pipeline posts to <code>lighthouse-ci-test</code>).</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="num">2</span>Add a webhook-triggered workflow</div>
+      <ol>
+        <li>Click <strong>···</strong> next to the channel name → <strong>Workflows</strong></li>
+        <li>Search for <code>webhook</code></li>
+        <li>The gallery may not list a template named exactly "Post to a channel when a webhook request is received." Microsoft has renamed this over time. Look instead for <strong>"Send webhook alerts to a channel"</strong> (description: "Get updates in Teams from tools like GitHub, Zapier, or any apps compatible..."). It's the same underlying flow type with the same payload contract.</li>
+      </ol>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="num">3</span>Configure the workflow</div>
+      <ul>
+        <li>Sign in with your Microsoft account if prompted</li>
+        <li>Confirm the <strong>Team</strong> and <strong>Channel</strong> match the one from step 1</li>
+        <li>Click <strong>Add workflow</strong></li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="num">4</span>Copy the generated webhook URL</div>
+      <p>Teams shows a unique HTTPS URL (an Azure Logic Apps trigger endpoint). Copy it now: the full URL isn't easy to retrieve again later without regenerating it. Click <strong>Done</strong>.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="num">5</span>Store it as a secured Bitbucket repository variable</div>
+      <p>Repository settings → Pipelines → Repository variables:</p>
+      <table>
+        <tr><th>Name</th><th>Value</th><th>Secured</th></tr>
+        <tr><td><code>TEAMS_WEBHOOK_URL</code></td><td>the URL from step 4</td><td>Yes</td></tr>
+      </table>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="num">6</span>Test the webhook directly</div>
+      <p>Before trusting a full pipeline run, confirm the URL actually posts:</p>
+      <pre><code>curl -sS -X POST -H 'Content-type: application/json' \
+  --data '{"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","content":{"$schema":"http://adaptivecards.io/schemas/adaptive-card.json","type":"AdaptiveCard","version":"1.2","body":[{"type":"TextBlock","text":"Test message"}]}}]}' \
+  "&lt;paste-webhook-url&gt;"</code></pre>
+      <p>A card should land in the channel within a few seconds.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="num">7</span>Run the pipeline end to end</div>
+      <p><code>bitbucket-pipelines.yml</code> only runs on a <code>custom:</code> (manual) trigger. Go to <strong>Pipelines → Run pipeline</strong> and select the custom pipeline to fire a real run.</p>
+    </div>
+
+    <h2>What happens under the hood</h2>
+    <div class="context-box">
+      <p>The pipeline step (<code>bitbucket-pipelines.yml</code>, the Lighthouse Audit stage) runs <code>envsubst</code> against <code>teams-payload-template.json</code> to fill in <code>${STATUS}</code>, <code>${BITBUCKET_BRANCH}</code>, <code>${BITBUCKET_BUILD_NUMBER}</code>, <code>${LHCI_RUNS}</code>, and <code>${FIREBASE_URL}</code>, then POSTs the result to <code>$TEAMS_WEBHOOK_URL</code>.</p>
+    </div>
+
+    <div class="insight-box">
+      <div class="label">Two constraints already baked into the template</div>
+      <p><strong>No clickable buttons.</strong> Teams Workflow webhooks silently drop <code>Action.OpenUrl</code>, which is why the Firebase report link is a plain markdown link inside a <code>TextBlock</code> instead of a button.</p>
+      <p><strong>Restricted envsubst.</strong> The pipeline calls <code>envsubst</code> with an explicit five-variable allowlist. Without it, <code>envsubst</code> would also try to expand the literal <code>$schema</code> key in the JSON, since it looks like a shell variable reference, and corrupt the payload.</p>
+    </div>
+
+    <h2>Repointing to a different channel</h2>
+    <div class="context-box">
+      <p>Repeat steps 1-5 for the new channel, then update the <code>TEAMS_WEBHOOK_URL</code> repository variable. Steps 6-7 and the payload template stay the same, since both are channel-agnostic.</p>
+    </div>
+
+    <h2>Files referenced</h2>
+    <table>
+      <tr><th>File</th><th>Role</th></tr>
+      <tr><td><code>teams-payload-template.json</code></td><td>Adaptive Card payload sent to the webhook</td></tr>
+      <tr><td><code>bitbucket-pipelines.yml</code></td><td>Runs <code>envsubst</code> + <code>curl</code> to post the notification</td></tr>
+      <tr><td><code>CLAUDE.md</code>: "Bitbucket Lighthouse Pipeline"</td><td>Repository-variable list and pipeline scope/trigger rationale</td></tr>
+    </table>
+
+    <footer>Playwright TypeScript Automation Framework: Bitbucket Lighthouse CI notification setup</footer>
+  </div>
+</body>
+</html>
