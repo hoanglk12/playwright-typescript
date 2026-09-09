@@ -139,6 +139,12 @@
             "command": "node scripts/sync-vault-to-lightrag.mjs 2>&1 || true",
             "timeout": 120,
             "statusMessage": "Syncing vault to LightRAG..."
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/vault-capture-nudge.js",
+            "timeout": 15,
+            "statusMessage": "Checking for uncaptured session lessons..."
           }
         ]
       }

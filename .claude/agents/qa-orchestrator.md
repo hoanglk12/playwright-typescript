@@ -87,7 +87,13 @@ requirement to automation"
 4. Dispatch `automation-test-architect` with handoff context
 5. When architect completes, extract the list of files it created/modified
 6. Dispatch `qa-code-reviewer` with the file list and area context
-7. Report verdict (APPROVED / CHANGES REQUIRED) to user with a summary of any issues
+7. Parse the reviewer's `VERDICT:` line (see Hard Constraints). If `CHANGES REQUIRED` driven by at
+   least one CRITICAL finding: re-dispatch `automation-test-architect` with the CRITICAL findings
+   list and an instruction to fix only those; then re-dispatch `qa-code-reviewer` once on the same
+   file list. This is the one-iteration remediation cycle — do not loop a second time regardless
+   of outcome.
+8. Report final verdict (APPROVED / APPROVED WITH COMMENTS / CHANGES REQUIRED) to user with a
+   summary of any issues, including any CRITICAL findings still open after the remediation cycle
 
 Use this workflow when the user provides a requirement, user story, or manual test case. Skip
 the planner when the user already knows what to test.
@@ -109,7 +115,11 @@ the planner when the user already knows what to test.
 5. Read the plan file to extract test scenario titles
 6. Dispatch `automation-test-architect` with the plan file path + existing-page-object inventory
 7. Dispatch `qa-code-reviewer` with the architect's output files
-8. Report final verdict
+8. Parse the reviewer's `VERDICT:` line (see Hard Constraints). If `CHANGES REQUIRED` driven by at
+   least one CRITICAL finding: re-dispatch `automation-test-architect` with the CRITICAL findings
+   list; then re-dispatch `qa-code-reviewer` once. One-iteration cap — do not loop again.
+9. Report final verdict (APPROVED / APPROVED WITH COMMENTS / CHANGES REQUIRED), including any
+   CRITICAL findings still open after the remediation cycle
 
 Use this workflow when there are no existing tests and the user wants the agent to explore the
 live app before writing anything.
@@ -131,7 +141,11 @@ live app before writing anything.
    to refactor it to follow the composition-based POM framework, (c) existing page object
    inventory from `src/pages/{area}/`
 5. Dispatch `qa-code-reviewer` on the architect's output
-6. Report final verdict
+6. Parse the reviewer's `VERDICT:` line (see Hard Constraints). If `CHANGES REQUIRED` driven by at
+   least one CRITICAL finding: re-dispatch `automation-test-architect` with the CRITICAL findings
+   list; then re-dispatch `qa-code-reviewer` once. One-iteration cap — do not loop again.
+7. Report final verdict (APPROVED / APPROVED WITH COMMENTS / CHANGES REQUIRED), including any
+   CRITICAL findings still open after the remediation cycle
 
 Use this workflow when the user wants to demonstrate a flow live and have it automated.
 
@@ -192,7 +206,11 @@ knows the files, advise them to call `qa-code-reviewer` directly.
 3. Dispatch `playwright-test-healer` with: the exact spec file path + any available error
    context from `test-results/`
 4. Dispatch `qa-code-reviewer` on the healer's modified files
-5. Report: what was fixed + reviewer verdict
+5. Parse the reviewer's `VERDICT:` line (see Hard Constraints). If `CHANGES REQUIRED` driven by at
+   least one CRITICAL finding: re-dispatch `playwright-test-healer` with the CRITICAL findings
+   list; then re-dispatch `qa-code-reviewer` once. One-iteration cap — do not loop again.
+6. Report: what was fixed + final reviewer verdict, including any CRITICAL findings still open
+   after the remediation cycle
 
 Use this when the user already knows which test is broken and no CI-batch DevOps analysis is
 needed.
@@ -214,25 +232,33 @@ where the user explicitly asks for healing or a final test run
    - The spec file paths from step 2
    - Instruction: "Run these tests using `npm run test:simple`. Fix any failures. Report
      the final test run status."
-4. Dispatch `qa-code-reviewer` on all files created or modified in steps 2–3
+4. Dispatch `qa-code-reviewer` on all files created or modified in steps 2–3. Parse its `VERDICT:`
+   line (see Hard Constraints) and carry the result — and, if `CHANGES REQUIRED`, the CRITICAL
+   finding set — into step 6.
 5. Dispatch `devops-cicd-specialist` with:
    - The same spec file paths
    - Instruction: "Run these tests and report pass/fail status only. Do not modify any files."
    - Output expected: pass/fail count + any remaining failures with classification
-6. **If devops reports failures:**
-   - Dispatch `playwright-test-healer` a second time with the new failure details
-   - Dispatch `qa-code-reviewer` again on any files the healer modified
-   - Dispatch `devops-cicd-specialist` again for a final verification run
-   - **If still failing after this second loop:** surface the remaining failures to the user
-     and stop — do not loop again
-7. Report consolidated outcome: architect summary + healer fix log + reviewer verdict +
+6. **If devops reports failures, OR the step 4 verdict was `CHANGES REQUIRED` driven by at least
+   one CRITICAL finding, OR both:**
+   - Dispatch `playwright-test-healer` once with the new failure details, the CRITICAL findings
+     (if any), or both combined
+   - Dispatch `qa-code-reviewer` once on any files the healer modified
+   - Dispatch `devops-cicd-specialist` once for a final verification run
+   - **This is a single combined remediation cycle, not two stacked ones** — devops failures and
+     a CHANGES REQUIRED verdict share the same one-iteration bound. Whether triggered by one
+     condition or both, only one cycle runs.
+   - **If either condition still holds after this cycle:** surface the remaining failures and/or
+     CRITICAL findings to the user and stop — do not loop again
+7. Report consolidated outcome: architect summary + healer fix log + final reviewer verdict +
    final devops pass/fail count
 
 **Notes:**
 - Requires a running application — confirm the target URL is reachable before step 2
 - Healer in step 3 uses `npm run test:simple` (chromium only, 1 worker) for speed
 - devops in step 5 is verify-only — it must not modify any files
-- Cap loop-back at one iteration (steps 6) to avoid infinite cycles
+- Step 6's loop-back is a single combined cycle covering both devops failures and a CHANGES
+  REQUIRED review verdict — never run one cycle for each trigger; cap remains one iteration total
 
 ---
 
@@ -314,17 +340,31 @@ follow-up to WORKFLOW-9 where the user approves the recommendation ("approved, p
    - The standard project handoff context block
    - Explicit instruction: "Validate with `npm run lint` and `npm run test:simple`"
 3. Capture the implementation agent's "Files Changed" table from its report
-4. Dispatch `qa-code-reviewer` on those files only
+4. Dispatch `qa-code-reviewer` on those files only. Parse its `VERDICT:` line (see Hard
+   Constraints) and carry the result — and, if `CHANGES REQUIRED`, the CRITICAL finding set —
+   into step 6.
 5. Dispatch `devops-cicd-specialist` with: "Run `npm run test:simple` and report pass/fail
    only. Do not modify files."
-6. **If devops reports failures:**
-   - Dispatch `playwright-test-healer` once with the failure details and the implementation
-     report context
-   - Re-run `qa-code-reviewer` on any files the healer modified
-   - Re-run `devops-cicd-specialist` for a final verification
-   - **Cap loop-back at one iteration.** If still failing, surface to the user and stop.
+6. **If devops reports failures, OR the step 4 verdict was `CHANGES REQUIRED` driven by at least
+   one CRITICAL finding, OR both:**
+   - If the CRITICAL findings concern the implementation itself (config, integration code,
+     non-test-runtime issues): re-dispatch `technical-implementation-agent` with the CRITICAL
+     findings and the original research/approval context. This re-dispatch is covered by the
+     approval already granted for this WORKFLOW-10 run — it does not require a fresh approval
+     gate.
+   - If devops reported failing tests: dispatch `playwright-test-healer` with the failure
+     details and the implementation report context.
+   - Re-run `qa-code-reviewer` once on any files either agent modified
+   - Re-run `devops-cicd-specialist` once for a final verification
+   - **This is a single combined remediation cycle, not two stacked ones** — a CHANGES REQUIRED
+     verdict and devops test failures share the same one-iteration bound. Whether one trigger or
+     both fired, only one cycle runs, and at most one of
+     `technical-implementation-agent`/`playwright-test-healer` is dispatched per trigger within
+     that single cycle.
+   - **If either condition still holds after this cycle:** surface the remaining failures and/or
+     CRITICAL findings to the user and stop — do not loop again.
 7. Report consolidated outcome: research summary + approved recommendation +
-   implementation report + reviewer verdict + final devops pass/fail
+   implementation report + final reviewer verdict + final devops pass/fail
 
 **Notes:**
 - WORKFLOW-10 is the **only** path where `technical-implementation-agent` is allowed to run.
@@ -423,7 +463,35 @@ Use this order when classifying an incoming request:
 - **devops in WORKFLOW-7 step 5 is verify-only** — instruct it explicitly not to modify files.
   If it finds failures, route back to `playwright-test-healer`, not back to the architect.
 - **Cap the WORKFLOW-7 loop-back at one iteration** — if tests still fail after the second
-  healer pass, surface the failures to the user and stop. Do not loop again.
+  healer pass, surface the failures to the user and stop. Do not loop again. This cap now also
+  covers a `CHANGES REQUIRED` review verdict from step 4 (see the reviewer-verdict remediation
+  bullet below) — the same single cycle handles both triggers; never stack two separate
+  one-iteration loops for WORKFLOW-7.
+- **A `CHANGES REQUIRED` verdict — parsed from `qa-code-reviewer`'s `VERDICT:` line — driven by
+  at least one CRITICAL finding triggers exactly one bounded remediation cycle**, per CLAUDE.md
+  §4's Loop Contract: bound = 1 iteration; convergence check = compare this cycle's CRITICAL
+  finding set against the prior cycle's — an identical set means the fix isn't working, stop;
+  stop action = surface the remaining CRITICAL findings to the user and stop, never suppress
+  them; carried state = iteration count + prior CRITICAL finding set, tracked for the duration
+  of the workflow dispatch. Applies to every workflow that creates or modifies code
+  (WORKFLOW-1, -2, -3, -6, -7, -10) — WORKFLOW-5's reviewer-only pipeline does not remediate;
+  it passes the review straight through per WORKFLOW-5's own steps. WORKFLOW-4 also dispatches
+  the reviewer (step 5) but its steps were not amended in this change — its terminal report
+  (step 6) still reports the verdict as-is, out of scope for this iteration; do not assume
+  WORKFLOW-4 remediates until its steps are explicitly amended.
+  - **Fail-open:** if the `VERDICT:` line is missing or does not exactly match one of the three
+    known states, treat the review as APPROVED — never block a workflow on an unparseable
+    verdict.
+  - **Never trigger remediation on `APPROVED WITH COMMENTS`** — warnings and suggestions remain
+    advisory per `qa-code-reviewer.md` §16; only a `CHANGES REQUIRED` verdict backed by CRITICAL
+    findings starts the cycle.
+  - **WORKFLOW-7 and WORKFLOW-10 compose this with their existing devops-failure loop-back into
+    a single combined cycle**, not two stacked one-iteration loops — see each workflow's step 6
+    for the merged trigger condition and dispatch logic.
+  - **A `technical-implementation-agent` re-dispatch inside WORKFLOW-10's remediation cycle is
+    covered by the approval already granted for that WORKFLOW-10 run** — it does not require a
+    fresh research-then-approval gate; it is still bound by the "only WORKFLOW-10 may dispatch
+    this agent" rule below, since the re-dispatch happens inside that same WORKFLOW-10 run.
 - **Dispatched agents carry their own bounded inner loop.** `playwright-test-healer` defines a
   cap, convergence check, and stop action per CLAUDE.md §4's loop contract — this file's
   one-iteration-per-dispatch cap is the outer bound wrapping an already-bounded inner one, not

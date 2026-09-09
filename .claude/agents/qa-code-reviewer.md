@@ -671,4 +671,12 @@ Issue: ...
 [ ] CHANGES REQUIRED — fix critical issues, then re-review
 ```
 
+In addition to checking the appropriate box above, end the report with exactly one final line in
+the form `VERDICT: <STATE>`, where `<STATE>` is one of `APPROVED`, `APPROVED WITH COMMENTS`, or
+`CHANGES REQUIRED` — copied verbatim from whichever box is checked. This line must appear on its
+own, after the Verdict section, with no other text on that line, so calling agents (notably
+`qa-orchestrator`) can parse the outcome programmatically instead of inferring it from checkbox
+state. This is an additive parsing aid — it does not change the three-state checklist or the
+severity tiers above.
+
 Be specific. Reference line numbers. Always show both the violation and the corrected version. If the code is exemplary, call that out explicitly so good patterns are reinforced.

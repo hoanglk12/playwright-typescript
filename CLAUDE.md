@@ -648,6 +648,8 @@ Specialised sub-agents live in `.claude/agents/` — the full catalog is injecte
 
 Use `qa-orchestrator` as the default entry point for any end-to-end QA workflow (plan → build → review → fix).
 
+**`codebase-memory-mcp`** — a per-developer knowledge-graph MCP server referenced via `tools:` frontmatter by `automation-test-architect`, `playwright-test-healer`, `qa-code-reviewer`, `technical-debt-agent`, and three `/new-*` commands, for faster code search than Grep/Glob. It is not part of this repo and is not distributed via any package registry (npm/npx/uvx) — it is configured per-machine in the user's global Claude Code settings, not in this repo's `.mcp.json`, because there is no confirmed portable install channel. Agents that reference it degrade gracefully to `Grep`/`Glob`/`search_code` fallback when it's unavailable.
+
 For framework/infra/integration changes (new SDK, Playwright upgrade, CI rework, scalability work), `qa-orchestrator` runs a two-stage pipeline: `technical-research-agent` produces a report → **user approves** → `technical-implementation-agent` applies the change → `qa-code-reviewer` + `devops-cicd-specialist` verify. Research never auto-flows into implementation; user approval is a hard gate, even if you say "just do it".
 
 ## Skills Available
