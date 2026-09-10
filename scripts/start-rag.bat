@@ -21,7 +21,7 @@ set PYTHONIOENCODING=utf-8
 
 call .lightrag-venv\Scripts\activate
 lightrag-server ^
-    --host 0.0.0.0 ^
+    --host 127.0.0.1 ^
     --port 9621 ^
     --working-dir .lightrag ^
     --input-dir memory-vault/20-memory ^
