@@ -4,6 +4,7 @@
       "command": "uvx",
       "args": [
         "--from", "lightrag-mcp",
+        "--with", "mcp<2",
         "lightrag-mcp",
         "--host", "localhost",
         "--port", "9621"
