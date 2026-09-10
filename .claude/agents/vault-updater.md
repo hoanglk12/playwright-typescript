@@ -81,7 +81,7 @@ Filename rules:
 
 ## Step 6 — Sync to LightRAG
 
-Sync happens automatically — the `PostToolUse` hook (`.claude/hooks/sync-memory.js`) runs `scripts/sync-vault-to-lightrag.mjs` whenever `Write`/`Edit`/`MultiEdit` touches a `.md` file under `memory-vault/20-memory/`. That script correctly handles both new and updated notes (delete-then-poll-then-reinsert for changed files, per its own comments), so writing or editing the note in Step 5 is enough to trigger the sync — no separate tool call is needed here.
+Sync happens automatically — the `PostToolUse` hook (`.claude/hooks/sync-memory.js`, 30s timeout) runs `scripts/sync-vault-to-lightrag.mjs` whenever `Write`/`Edit`/`MultiEdit` touches a `.md` file under `memory-vault/20-memory/`. Writing or editing the note in Step 5 is normally enough to trigger the sync — no separate tool call is needed. For an **updated** note specifically, the script deletes the stale doc then polls for up to 60s before re-inserting; if that poll runs past the hook's 30s timeout, the hook is killed between delete and re-insert, leaving the note temporarily missing from the index. The `Stop` hook (120s timeout) re-runs the same sync at session end and self-heals this — but if the update needs to be queryable immediately, run `npm run sync:vault` manually after writing.
 
 `mcp__lightrag__get_documents`, `mcp__lightrag__insert_file`, and `mcp__lightrag__delete_by_doc_ids` must not be used for this: they call `GET /documents`, `POST /documents/file`, and (for per-doc-id delete) `DELETE /documents/{doc_id}` respectively, none of which exist on the LightRAG backend — only `POST /documents/paginated`, `POST /documents/text`, and `DELETE /documents/delete_document` (body `{doc_ids: [...]}`) do.
 

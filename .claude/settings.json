@@ -26,8 +26,7 @@
       "mcp__playwright-test__browser_verify_list_visible",
       "mcp__playwright-test__browser_verify_value",
       "mcp__playwright-test__browser_wait_for",
-      "mcp__lightrag__query_document",
-      "mcp__lightrag__get_documents"
+      "mcp__lightrag__query_document"
     ],
     "defaultMode": "bypassPermissions"
   },

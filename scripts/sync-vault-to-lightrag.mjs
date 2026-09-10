@@ -77,10 +77,26 @@ async function main() {
   const docsRes = await fetch(`${LIGHTRAG_URL}/documents/paginated`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ page: 1, page_size: 200 }),
+    body: JSON.stringify({ page: 1, page_size: 200, status_filter: 'processed' }),
   });
+  if (!docsRes.ok) {
+    console.log(
+      `[sync-vault-to-lightrag] /documents/paginated returned ${docsRes.status} — aborting (would otherwise re-insert everything as new)`
+    );
+    return;
+  }
   const docsData = await docsRes.json();
+  // Keep the client-side filter even though status_filter already did this server-side —
+  // the API labels status_filter "Legacy", and status_counts.processed is scoped by status
+  // regardless of the filter param's future behavior, unlike pagination.total_count.
   const processed = (docsData.documents ?? []).filter((d) => d.status === 'processed');
+  const total = docsData.status_counts?.processed ?? processed.length;
+  if (total > processed.length) {
+    console.log(
+      `[sync-vault-to-lightrag] Only ${processed.length} of ${total} processed docs fetched — page_size cap hit, aborting`
+    );
+    return;
+  }
   const lrMap = new Map(
     processed.map((d) => [d.file_path, { id: d.id, contentLength: d.content_length }])
   );

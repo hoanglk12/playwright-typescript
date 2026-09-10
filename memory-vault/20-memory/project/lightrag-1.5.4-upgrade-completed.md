@@ -3,7 +3,7 @@ name: lightrag-1.5.4-upgrade-completed
 description: "LightRAG memory-vault backend upgraded to 1.5.4 on this machine (E:\\OLDDATA\\...\\playwright-typescript); repo-side pin/script fixes were already committed, only per-machine steps remained"
 type: project
 tags: [memory, project, lightrag]
-last_verified: 2026-07-22
+last_verified: 2026-09-10
 ---
 
 ## What happened
@@ -30,4 +30,5 @@ On **this** machine (`E:\OLDDATA\DATA\TESTING\AutomationTesting\playwright-types
 
 ## Still open / unaffected by this upgrade
 
-- **Update (2026-09-10):** the `mcp__lightrag__*` tools now do have a backing registered MCP server (`.mcp.json`, pinned to `mcp<2` — see [[lightrag-adapter-dependency-pin]]), and `query_document` / `check_lightrag_health` / `get_pipeline_status` have live routes on the backend as of 1.5.7. But the document-mutation tools do not: `get_documents` (`GET /documents`), `insert_file` (`POST /documents/file`), and `delete_by_doc_ids` (`DELETE /documents/{doc_id}`) all target routes that no longer exist on 1.5.7 — the backend replaced them with `POST /documents/paginated`, and never had a per-doc-id delete route (only `DELETE /documents/delete_document` with a `doc_ids` body). Vault sync itself is unaffected since it talks to the REST API directly via `scripts/sync-vault-to-lightrag.mjs`, which was updated for the same route change.
+- **Update (2026-09-10):** the `mcp__lightrag__*` tools now do have a backing registered MCP server (`.mcp.json`, pinned to `mcp<2` — see [[lightrag-mcp-adapter-dependency-risk]]), and `query_document` / `check_lightrag_health` / `get_pipeline_status` have live routes on the backend as of 1.5.7. But the document-mutation tools do not: `get_documents` (`GET /documents`), `insert_file` (`POST /documents/file`), and `delete_by_doc_ids` (`DELETE /documents/{doc_id}`) all target routes that no longer exist on 1.5.7 — the backend replaced them with `POST /documents/paginated`, and never had a per-doc-id delete route (only `DELETE /documents/delete_document` with a `doc_ids` body). Vault sync itself is unaffected since it talks to the REST API directly via `scripts/sync-vault-to-lightrag.mjs`, which was updated for the same route change.
+- **Also on this date:** the backend itself was upgraded again, 1.5.4 → 1.5.7 (17 published security advisories closed), and `scripts/start-rag.bat` was rebound from `--host 0.0.0.0` to `--host 127.0.0.1` — the "0.0.0.0 bind is intentional" conclusion in `docs/technical-research/lightrag-1.5.4-upgrade-runbook.html` was reversed once the exposure was actually assessed. This note's own `/health confirms core_version 1.5.4` line below and the vault-sync counts are historical, from the 2026-07-22 run — see [[lightrag-mcp-adapter-dependency-risk]] for current state.

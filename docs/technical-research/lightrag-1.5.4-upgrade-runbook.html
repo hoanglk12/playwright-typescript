@@ -375,8 +375,8 @@
     </div>
     <div class="stat">
       <p class="stat-label">Server bind</p>
-      <p class="stat-value mono" style="font-size:15px;">0.0.0.0:9621</p>
-      <p class="stat-sub">Confirmed intentional</p>
+      <p class="stat-value mono" style="font-size:15px;">127.0.0.1:9621</p>
+      <p class="stat-sub">Rebound 2026-09-10 (was 0.0.0.0)</p>
     </div>
     <div class="stat">
       <p class="stat-label">Do not install</p>
@@ -389,14 +389,14 @@
     <h2>Why upgrade</h2>
     <p>The installed backend, <code class="mono">lightrag_hku 1.5.2</code>, is two patch releases behind the latest stable <code class="mono">1.5.4</code>. Release notes for 1.5.3 and 1.5.4 document no changes to the REST or MCP surface this project depends on &mdash; <code class="mono">query_document</code>, <code class="mono">insert_file</code>, <code class="mono">get_documents</code>, <code class="mono">delete_by_doc_ids</code>, <code class="mono">check_lightrag_health</code>, <code class="mono">get_pipeline_status</code> are all unaffected. What changed is a set of security and reliability fixes: a guest-token authentication bypass was closed, X-API-Key enforcement was tightened, path-traversal in asset materialization was prevented, and a CORS wildcard-with-credentials conflict was resolved.</p>
 
-    <div class="panel">
-      <p class="panel-title"><span class="tag">Confirmed</span>0.0.0.0 bind is intentional</p>
-      <p>Since the wide bind is a deliberate choice rather than an oversight, this upgrade isn't being framed as a fix for the bind itself. It matters because <code class="mono">.lightrag.env</code> still has no <code class="mono">LIGHTRAG_API_KEY</code> or <code class="mono">AUTH_ACCOUNTS</code> set &mdash; so the server is unauthenticated on whatever network it's reachable from, and 1.5.4's fixes land squarely on that exposure class regardless of which interface it's bound to.</p>
+    <div class="panel warn">
+      <p class="panel-title"><span class="tag">Reversed 2026-09-10</span>0.0.0.0 bind was not actually intentional</p>
+      <p>This runbook originally recorded the wide bind as a deliberate, assessed choice. It wasn't &mdash; once actually assessed, <code class="mono">.lightrag.env</code> had no <code class="mono">LIGHTRAG_API_KEY</code> or <code class="mono">AUTH_ACCOUNTS</code> set, meaning the server (including a destructive <code class="mono">DELETE /documents</code> that wipes the whole doc store) was unauthenticated and reachable from the entire LAN. <code class="mono">scripts/start-rag.bat</code> was rebound to <code class="mono">--host 127.0.0.1</code>, independent of the version question. See <code class="mono">memory-vault/20-memory/project/lightrag-mcp-adapter-dependency-risk.md</code>.</p>
     </div>
 
-    <div class="panel warn">
-      <p class="panel-title"><span class="tag">Separate finding</span>mcp__lightrag__* has no backing server</p>
-      <p>The <code class="mono">mcp__lightrag__*</code> tools referenced in <code class="mono">.claude/settings.json</code> permissions, <code class="mono">CLAUDE.md</code>, the <code class="mono">vault-updater</code> agent, and the <code class="mono">sync-vault</code> skill aren't resolving to a registered MCP server &mdash; consistent with <code class="mono">ToolSearch("lightrag")</code> returning nothing. This is independent of the version bump and out of scope for this runbook, but it means the MCP-level validation step below is currently <strong>not runnable</strong> and is marked accordingly. The vault sync pipeline itself talks to the REST API directly (<code class="mono">scripts/sync-vault-to-lightrag.mjs</code>), so it isn't affected by this gap.</p>
+    <div class="panel">
+      <p class="panel-title"><span class="tag">Resolved 2026-09-10</span>mcp__lightrag__* now has a backing server</p>
+      <p>The <code class="mono">mcp__lightrag__*</code> tools referenced in <code class="mono">.claude/settings.json</code> permissions, <code class="mono">CLAUDE.md</code>, the <code class="mono">vault-updater</code> agent, and the <code class="mono">sync-vault</code> skill now resolve to a registered MCP server &mdash; <code class="mono">.mcp.json</code>'s <code class="mono">lightrag</code> entry was fixed by pinning <code class="mono">mcp&lt;2</code> for the <code class="mono">uvx</code>-launched adapter, whose unbounded <code class="mono">mcp&gt;=1.6.0</code> dependency had been resolving to an incompatible <code class="mono">mcp==2.2.0</code>. However, three of its document-mutation tools (<code class="mono">get_documents</code>, <code class="mono">insert_file</code>, <code class="mono">delete_by_doc_ids</code>) target REST routes removed in the subsequent 1.5.7 backend upgrade and no longer work. The vault sync pipeline talks to the REST API directly (<code class="mono">scripts/sync-vault-to-lightrag.mjs</code>), so it isn't affected either way.</p>
     </div>
   </section>
 

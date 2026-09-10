@@ -892,7 +892,7 @@ for /f <span class="str">"usebackq eol=# tokens=1,* delims=="</span> %%A in (<sp
 
 call .lightrag-venv\Scripts\activate
 lightrag-server ^
-    --host 0.0.0.0 ^
+    --host 127.0.0.1 ^
     --port 9621 ^
     --working-dir .lightrag ^
     --input-dir memory-vault/20-memory ^
@@ -1094,13 +1094,24 @@ curl http://localhost:9621/documents</code><span class="lang-tag">PowerShell</sp
       <tbody>
         <tr><td><code class="inline">mcp__lightrag__query</code></td><td>Semantic query — returns synthesised answer with graph context</td></tr>
         <tr><td><code class="inline">mcp__lightrag__insert_text</code></td><td>Insert raw text into the graph+vector index</td></tr>
-        <tr><td><code class="inline">mcp__lightrag__insert_file</code></td><td>Insert a file by absolute path</td></tr>
-        <tr><td><code class="inline">mcp__lightrag__get_documents</code></td><td>List all indexed documents with status</td></tr>
-        <tr><td><code class="inline">mcp__lightrag__delete_by_doc_ids</code></td><td>Delete a document by its ID</td></tr>
         <tr><td><code class="inline">mcp__lightrag__check_lightrag_health</code></td><td>Health check — use before any LightRAG operation</td></tr>
         <tr><td><code class="inline">mcp__lightrag__get_pipeline_status</code></td><td>Check if an ingest pipeline is still processing</td></tr>
       </tbody>
     </table>
+
+    <div class="callout warn">
+      <div class="icon"></div>
+      <p>
+        <code class="inline">mcp__lightrag__insert_file</code>, <code class="inline">mcp__lightrag__get_documents</code>, and
+        <code class="inline">mcp__lightrag__delete_by_doc_ids</code> targeted REST routes that were removed in LightRAG
+        1.5.7 (replaced by <code class="inline">POST /documents/paginated</code>, and a per-doc-id delete route that
+        never existed — only <code class="inline">DELETE /documents/delete_document</code> does). They no longer work.
+        Vault sync goes through <code class="inline">scripts/sync-vault-to-lightrag.mjs</code> directly instead, run
+        automatically by the <code class="inline">PostToolUse</code>/<code class="inline">Stop</code> hooks or manually
+        via <code class="inline">npm run sync:vault</code> — see
+        <code class="inline">memory-vault/20-memory/project/lightrag-mcp-adapter-dependency-risk.md</code>.
+      </p>
+    </div>
 
     <h3>Restart Claude Code to connect</h3>
     <p>
@@ -1456,19 +1467,29 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
     </div>
 
     <h3>vault-updater tool access</h3>
-    <p>The agent has direct access to the LightRAG MCP tools so it can keep the graph in sync without running shell scripts:</p>
+    <p>
+      The agent fetches source content via the Atlassian MCP tools, writes the vault note directly, and relies on the
+      <code class="inline">PostToolUse</code> hook to sync it to LightRAG — it does not drive the sync via MCP tool calls:
+    </p>
     <table>
       <thead><tr><th>Tool</th><th>Used for</th></tr></thead>
       <tbody>
         <tr><td><code class="inline">mcp__atlassian__getJiraIssue</code></td><td>Fetch Jira issue content</td></tr>
         <tr><td><code class="inline">mcp__atlassian__getConfluencePage</code></td><td>Fetch Confluence page body</td></tr>
-        <tr><td><code class="inline">mcp__lightrag__check_lightrag_health</code></td><td>Check server before syncing</td></tr>
-        <tr><td><code class="inline">mcp__lightrag__get_documents</code></td><td>Check if note already indexed</td></tr>
-        <tr><td><code class="inline">mcp__lightrag__delete_by_doc_ids</code></td><td>Remove stale version before re-insert</td></tr>
-        <tr><td><code class="inline">mcp__lightrag__insert_file</code></td><td>Insert the new/updated vault note</td></tr>
+        <tr><td><code class="inline">mcp__lightrag__check_lightrag_health</code></td><td>Check server before reporting sync status</td></tr>
         <tr><td><code class="inline">mcp__lightrag__get_pipeline_status</code></td><td>Confirm ingest is processing</td></tr>
       </tbody>
     </table>
+    <div class="callout warn">
+      <div class="icon"></div>
+      <p>
+        <code class="inline">mcp__lightrag__get_documents</code>, <code class="inline">mcp__lightrag__delete_by_doc_ids</code>,
+        and <code class="inline">mcp__lightrag__insert_file</code> are no longer part of this agent's tool access — all
+        three targeted REST routes removed in LightRAG 1.5.7. Writing or editing the note is enough to trigger sync via
+        <code class="inline">scripts/sync-vault-to-lightrag.mjs</code>; see
+        <code class="inline">.claude/agents/vault-updater.md</code> Step 6 for the current (hook-driven) sync behaviour.
+      </p>
+    </div>
 
     <h3>Invoking vault-update skill</h3>
     <pre><code><span class="cm"># From Claude Code conversation:</span>
