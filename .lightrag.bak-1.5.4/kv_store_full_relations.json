@@ -1,0 +1,7246 @@
+{
+  "doc-2d433c31438483509138f842334e6525": {
+    "relation_pairs": [
+      [
+        "Import Rules",
+        "Test Data Rule"
+      ],
+      [
+        "Import Rules",
+        "`../../src/api/ApiTest`"
+      ],
+      [
+        "Static Expected Values",
+        "Test Data Rule"
+      ],
+      [
+        "CI",
+        "Monocart"
+      ],
+      [
+        "@critical",
+        "CI"
+      ],
+      [
+        "@config/base-test",
+        "Import Rules"
+      ],
+      [
+        "Tag Placement",
+        "Test Naming Patterns"
+      ],
+      [
+        "Test Data Rule",
+        "`src/data/api/`"
+      ],
+      [
+        "FullyParallel",
+        "Serial Mode Rules"
+      ],
+      [
+        "@regression",
+        "CI"
+      ],
+      [
+        "Cascade-Skip Risk",
+        "Serial Mode Rules"
+      ],
+      [
+        "@smoke",
+        "CI"
+      ],
+      [
+        "Test Data Rule",
+        "`src/data/ecommerce/storefronts.ts`"
+      ],
+      [
+        "Dynamic Data Generator",
+        "Test Data Rule"
+      ]
+    ],
+    "count": 14,
+    "create_time": 1781448808,
+    "update_time": 1781448808,
+    "_id": "doc-2d433c31438483509138f842334e6525"
+  },
+  "doc-cc4fd56733f33ebf5767403007d22d7f": {
+    "relation_pairs": [
+      [
+        "Errors Array",
+        "Errors Array Guard"
+      ],
+      [
+        "GraphQL Hoisting",
+        "Npm Run Lint"
+      ],
+      [
+        "Named Interfaces",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "Qa-Code-Reviewer",
+        "TypeScript"
+      ],
+      [
+        "GraphQL",
+        "GraphQL Hoisting"
+      ],
+      [
+        "Explicit Return Types",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "AuthType Enum",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "CI Lint Gate",
+        "`tc --noEmit`"
+      ],
+      [
+        "GraphQL Hoisting",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "CI Lint Gate",
+        "Npm Run Lint"
+      ],
+      [
+        "Feedback Preferences",
+        "SoftExpect"
+      ],
+      [
+        "Error Array Guard",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "Explicit Initializers",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "Named Interfaces",
+        "Npm Run Lint"
+      ],
+      [
+        "TypeScript",
+        "`tc --noEmit`"
+      ],
+      [
+        "Feedback Preferences",
+        "SoftAssert"
+      ],
+      [
+        "Feedback Preferences",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "Explicit Return Types",
+        "Npm Run Lint"
+      ],
+      [
+        "Optional Chaining",
+        "Qa-Code-Reviewer"
+      ]
+    ],
+    "count": 19,
+    "create_time": 1781448812,
+    "update_time": 1781448812,
+    "_id": "doc-cc4fd56733f33ebf5767403007d22d7f"
+  },
+  "doc-89e7571edfb83032dd2861085d5e5a7c": {
+    "relation_pairs": [
+      [
+        "Advisor-Nudge-Mechanism",
+        "CLAUDE.md Section 5"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "Feedback-Preferences"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "Claude"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "Wall-Clock Time"
+      ],
+      [
+        ".claude/settings.json",
+        "Advisor-Nudge-Mechanism"
+      ],
+      [
+        "PostToolUse",
+        "Regex `/npm (run )?test|npx playwright test/i`"
+      ],
+      [
+        "File Path",
+        "PostToolUse"
+      ],
+      [
+        "Regex `/npm (run )?test|npx playwright test/i`",
+        "TDD (Test-Driven Development)"
+      ],
+      [
+        "AdditionalContext",
+        "Advisor-Nudge-Mechanism"
+      ],
+      [
+        "PostToolUse",
+        "Tool Name"
+      ],
+      [
+        ".claude/.state/advisor-nudge-{session_id}.json",
+        "Advisor-Nudge-Mechanism"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "PostToolUse"
+      ],
+      [
+        ".claude/hooks/advisor-nudge.js",
+        "Advisor-Nudge-Mechanism"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "HookSpecificOutput"
+      ]
+    ],
+    "count": 14,
+    "create_time": 1781448816,
+    "update_time": 1781448816,
+    "_id": "doc-89e7571edfb83032dd2861085d5e5a7c"
+  },
+  "doc-18c320b704b53c1b59c41f904f29e640": {
+    "relation_pairs": [
+      [
+        "Drm-Au",
+        "Pla-Loyalty-Rewards.Spec.Ts"
+      ],
+      [
+        "EcommercePdpPageGotchas",
+        "Platypus AU"
+      ],
+      [
+        "Qantas Points",
+        "Skechers AU"
+      ],
+      [
+        "Pla-Loyalty-Rewards.Spec.Ts",
+        "Van-Au"
+      ],
+      [
+        "Drm-Au",
+        "Van-Au"
+      ],
+      [
+        "Stag-Vans-Au.Accentgra.Com/Graphql",
+        "Van-Au"
+      ],
+      [
+        "GRA API Specs",
+        "Pla-Api-Testing"
+      ],
+      [
+        "EcommercePdpPageGotchas",
+        "Vans AU"
+      ],
+      [
+        "Platypus NZ",
+        "Qantas Points"
+      ],
+      [
+        "GRA API Projects",
+        "Skechers AU"
+      ],
+      [
+        "Drm-Au",
+        "Stag-Drmartens-Au.Accentgra.Com/Graphql"
+      ],
+      [
+        "Dr. Martens NZ",
+        "EcommercePdpPageGotchas"
+      ],
+      [
+        "Nav Label Spelling",
+        "Platypus AU"
+      ],
+      [
+        "PreferMens",
+        "Skechers AU"
+      ],
+      [
+        "PreferMens",
+        "Vans NZ"
+      ],
+      [
+        "Skx-Au",
+        "Stag-Skechers-Au.Accentgra.Com/Graphql"
+      ],
+      [
+        "GRA API Specs",
+        "GraTest"
+      ],
+      [
+        "Platypus AU",
+        "Qantas Points"
+      ],
+      [
+        "GRA API Projects",
+        "Platypus AU"
+      ],
+      [
+        "ApiTest",
+        "GRA API Specs"
+      ],
+      [
+        "Dr. Martens AU",
+        "EcommercePdpPageGotchas"
+      ],
+      [
+        "Dr. Martens NZ",
+        "Nav Label Spelling"
+      ]
+    ],
+    "count": 22,
+    "create_time": 1781448823,
+    "update_time": 1781448823,
+    "_id": "doc-18c320b704b53c1b59c41f904f29e640"
+  },
+  "doc-7c71bf1656505c03b6b2326090fb17ca": {
+    "relation_pairs": [
+      [
+        "2026-06-12",
+        "Pla-Api-Testing-Deprecated"
+      ],
+      [
+        "2026-06-12",
+        "Gra-Api-Testing"
+      ],
+      [
+        "Gra-Api-Testing",
+        "Pla-Api-Testing-Deprecated"
+      ]
+    ],
+    "count": 3,
+    "create_time": 1781448844,
+    "update_time": 1781448844,
+    "_id": "doc-7c71bf1656505c03b6b2326090fb17ca"
+  },
+  "doc-608145bb261a9d22b7e671804cd417ae": {
+    "relation_pairs": [
+      [
+        "Fredhopper",
+        "Intelligent Reach"
+      ],
+      [
+        "Fredhopper",
+        "Fredhopper Suggest API"
+      ],
+      [
+        "Kleber",
+        "NZ"
+      ],
+      [
+        "Delivery Address",
+        "Shippit"
+      ],
+      [
+        "AP21",
+        "Gift Card"
+      ],
+      [
+        "Intelligent Reach",
+        "Magento"
+      ],
+      [
+        "Anypoint MQ",
+        "Mulesoft"
+      ],
+      [
+        "Braintree",
+        "Forter"
+      ],
+      [
+        "Checkout Tests",
+        "Kleber"
+      ],
+      [
+        "Magento",
+        "Shippit"
+      ],
+      [
+        "AP21",
+        "Email Marketing"
+      ],
+      [
+        "Prerender",
+        "Static HTML"
+      ],
+      [
+        "Fredhopper",
+        "Magento FE"
+      ],
+      [
+        "TAF",
+        "Volumental"
+      ],
+      [
+        "DRM",
+        "GRA"
+      ],
+      [
+        "Shippit",
+        "TAF"
+      ],
+      [
+        "Playwright",
+        "Prerender"
+      ],
+      [
+        "AP21",
+        "Gift Cards"
+      ],
+      [
+        "AP21",
+        "Vii"
+      ],
+      [
+        "AP21",
+        "Returns History"
+      ],
+      [
+        "GRA",
+        "VAN"
+      ],
+      [
+        "AP21",
+        "SEKO"
+      ],
+      [
+        "Dr. Martens",
+        "Klaviyo"
+      ],
+      [
+        "GRA",
+        "SKX"
+      ],
+      [
+        "AP21",
+        "GRA Platform"
+      ],
+      [
+        "Fredhopper",
+        "TAF"
+      ],
+      [
+        "Kleber",
+        "Magento"
+      ],
+      [
+        "AP21",
+        "Mulesoft"
+      ],
+      [
+        "Adobe Campaign",
+        "Skechers"
+      ],
+      [
+        "AP21",
+        "Klaviyo"
+      ],
+      [
+        "GRA",
+        "TAF"
+      ],
+      [
+        "Enhanced Bulk Catalog Import Endpoint",
+        "Magento"
+      ],
+      [
+        "BazaarVoice",
+        "Magento"
+      ],
+      [
+        "Customer Integration API",
+        "Magento"
+      ],
+      [
+        "Klaviyo",
+        "VAN/DRM"
+      ],
+      [
+        "GRA Platform",
+        "Gift Cards"
+      ],
+      [
+        "Gift Cards",
+        "Vii"
+      ],
+      [
+        "AU",
+        "Kleber"
+      ],
+      [
+        "AP21",
+        "Loyalty Rewards Program"
+      ],
+      [
+        "Playwright",
+        "SEO Meta-Tags"
+      ],
+      [
+        "AP21",
+        "Magento"
+      ],
+      [
+        "Fredhopper",
+        "Magento"
+      ],
+      [
+        "Adobe Campaign",
+        "PLA/SKX"
+      ],
+      [
+        "Magento",
+        "SEKO"
+      ],
+      [
+        "Adobe Campaign",
+        "Platypus"
+      ],
+      [
+        "Forter",
+        "Order Completion"
+      ],
+      [
+        "Magento FE",
+        "Vii"
+      ],
+      [
+        "TrueFit",
+        "eWave Shopping Feeds"
+      ],
+      [
+        "Magento FE",
+        "TrueFit"
+      ],
+      [
+        "Magento FE",
+        "SEKO"
+      ],
+      [
+        "Adobe Commerce Cloud",
+        "Prerender"
+      ],
+      [
+        "Adobe Launch",
+        "Magento"
+      ],
+      [
+        "Fluent",
+        "TAF"
+      ],
+      [
+        "Magento BE",
+        "Vii"
+      ],
+      [
+        "BazaarVoice",
+        "Magento BE"
+      ],
+      [
+        "ERPLY",
+        "TAF"
+      ],
+      [
+        "Fredhopper",
+        "Magento BE"
+      ],
+      [
+        "Order Status",
+        "Vii"
+      ],
+      [
+        "GRA Platform",
+        "Magento"
+      ],
+      [
+        "Gift Cards",
+        "Magento"
+      ],
+      [
+        "Klaviyo",
+        "Vans"
+      ],
+      [
+        "Kleber",
+        "Magento FE"
+      ],
+      [
+        "AP21",
+        "Customer Integration API"
+      ],
+      [
+        "BazaarVoice",
+        "Intelligent Reach"
+      ],
+      [
+        "Kleber",
+        "Test Address"
+      ],
+      [
+        "GRA",
+        "PLA"
+      ],
+      [
+        "Crawler Requests",
+        "Prerender"
+      ],
+      [
+        "Gift Card",
+        "Vii"
+      ]
+    ],
+    "count": 68,
+    "create_time": 1781448863,
+    "update_time": 1781448863,
+    "_id": "doc-608145bb261a9d22b7e671804cd417ae"
+  },
+  "doc-37021337f75253d67cd5a707cd5e8893": {
+    "relation_pairs": [
+      [
+        "CLAUDE.md",
+        "E2E-{DOMAIN}-{NNN}-{SITE}"
+      ],
+      [
+        "CLAUDE.md",
+        "Context Engineering"
+      ],
+      [
+        "Context Engineering",
+        "settings.json"
+      ],
+      [
+        "Context Engineering",
+        "settings.local.json"
+      ],
+      [
+        "Ecommerce PDP Gotchas",
+        "Ecommerce Smoke Tests"
+      ],
+      [
+        "CLAUDE.md",
+        "TC_XX - Description"
+      ],
+      [
+        "CAPTCHA Research Notes",
+        "Memory"
+      ],
+      [
+        "Ecommerce PDP Gotchas",
+        "Memory"
+      ],
+      [
+        "Memory",
+        "createPlaTestData() Factory"
+      ],
+      [
+        "Firefox",
+        "settings.local.json"
+      ],
+      [
+        "Vercel MCP Read Tools",
+        "settings.json"
+      ],
+      [
+        "CLAUDE.md",
+        "Skills"
+      ],
+      [
+        "Context Engineering",
+        "Skills"
+      ],
+      [
+        "Context Engineering",
+        "Memory"
+      ],
+      [
+        "CLAUDE.md",
+        "Memory"
+      ],
+      [
+        "Skills",
+        "pull-latest"
+      ],
+      [
+        "Memory",
+        "PLA API Patterns"
+      ],
+      [
+        "Ecommerce Smoke Tests",
+        "Memory"
+      ],
+      [
+        "Memory",
+        "TestState Singleton"
+      ]
+    ],
+    "count": 19,
+    "create_time": 1781448875,
+    "update_time": 1781448875,
+    "_id": "doc-37021337f75253d67cd5a707cd5e8893"
+  },
+  "doc-df9d885798e8423f552299c4f82dd919": {
+    "relation_pairs": [
+      [
+        "DEBT-011",
+        "Phase 2"
+      ],
+      [
+        "DEBT-003",
+        "Phase 1"
+      ],
+      [
+        "DEBT-009",
+        "Phase 2"
+      ],
+      [
+        "DEBT-006",
+        "Phase 3"
+      ],
+      [
+        "DEBT-008",
+        "Phase 2"
+      ],
+      [
+        "DEBT-016",
+        "Phase 4"
+      ],
+      [
+        "TypeScript 5.x",
+        "TypeScript 6.x"
+      ],
+      [
+        "Memory",
+        "Technical Debt Phase 1"
+      ],
+      [
+        "DEBT-005",
+        "Phase 1"
+      ],
+      [
+        "Source Session",
+        "Technical Debt Phase 1"
+      ],
+      [
+        "DEBT-010",
+        "Phase 2"
+      ],
+      [
+        "DEBT-004",
+        "Phase 1"
+      ],
+      [
+        "DEBT-014",
+        "Phase 4"
+      ],
+      [
+        "DEBT-013",
+        "Phase 4"
+      ],
+      [
+        "DEBT-007",
+        "Phase 2"
+      ],
+      [
+        "DEBT-015",
+        "Phase 4"
+      ],
+      [
+        "TypeScript 5.x",
+        "`/research typescript 5 to 6 migration`"
+      ],
+      [
+        "DEBT-001",
+        "Phase 1"
+      ],
+      [
+        "TypeScript 6.x",
+        "`/tech-debt`"
+      ],
+      [
+        "DEBT-012",
+        "Phase 2"
+      ],
+      [
+        "DEBT-002",
+        "Phase 1"
+      ]
+    ],
+    "count": 21,
+    "create_time": 1781448879,
+    "update_time": 1781448879,
+    "_id": "doc-df9d885798e8423f552299c4f82dd919"
+  },
+  "doc-4f8399fbaebadbb6df183a2b737e9324": {
+    "relation_pairs": [
+      [
+        "AccentGroupDocs Automation Test Path",
+        "Lincoln Pham"
+      ],
+      [
+        "Claude Code Extension",
+        "Visual Studio Code"
+      ],
+      [
+        "Playwright TypeScript Framework",
+        "QA Engineer"
+      ],
+      [
+        "QA Engineer",
+        "Visual Studio Code"
+      ],
+      [
+        "POM Architecture",
+        "QA Engineer"
+      ],
+      [
+        "QA Engineer",
+        "Reporter Tooling"
+      ],
+      [
+        "AccentGroupDocs Automation Test Path",
+        "QA Engineer"
+      ],
+      [
+        "QA Engineer",
+        "TypeScript"
+      ],
+      [
+        "Claude Code CLI (Opus Model)",
+        "QA Engineer"
+      ],
+      [
+        "QA Engineer",
+        "Windows 11"
+      ],
+      [
+        "CI Pipeline Design",
+        "QA Engineer"
+      ],
+      [
+        "Composition Patterns",
+        "QA Engineer"
+      ],
+      [
+        "API Testing",
+        "QA Engineer"
+      ],
+      [
+        "Bash",
+        "QA Engineer"
+      ],
+      [
+        "CI/CD",
+        "QA Engineer"
+      ],
+      [
+        "GitHub Actions",
+        "QA Engineer"
+      ],
+      [
+        "PowerShell",
+        "QA Engineer"
+      ]
+    ],
+    "count": 17,
+    "create_time": 1781448883,
+    "update_time": 1781448883,
+    "_id": "doc-4f8399fbaebadbb6df183a2b737e9324"
+  },
+  "doc-28274e5d1bc00fbd5533608f4fbecab5": {
+    "relation_pairs": [
+      [
+        "Claude.md",
+        "Pattern B"
+      ],
+      [
+        "Pla-Api",
+        "Pla-Authentication.Spec.Ts"
+      ],
+      [
+        "Dm Nz Cart-005-008 Session",
+        "Playwright"
+      ],
+      [
+        "Pattern B",
+        "SoftAssert"
+      ],
+      [
+        "Error-Context.Md",
+        "Test-Results/.../"
+      ],
+      [
+        "DispatchEvent",
+        "React"
+      ],
+      [
+        "Logger.Verify()",
+        "SoftAssert.*"
+      ],
+      [
+        "Spec Suite",
+        "Tests/Ecommerce/Cart-Smoke.Spec.Ts"
+      ],
+      [
+        "Da3c13e7-E43f-48e9-8c8e-A045c7cfd24c",
+        "Feedback-Preferences"
+      ],
+      [
+        "Feedback-Preferences",
+        "Memory"
+      ],
+      [
+        "Logger.Verify()",
+        "SoftExpect"
+      ],
+      [
+        "Pla-Api",
+        "Pla-Support-Features.Spec.Ts"
+      ],
+      [
+        "Atc Button",
+        "Error-Context.Md"
+      ],
+      [
+        "ElementFromPoint",
+        "Force:True"
+      ],
+      [
+        "Pattern A",
+        "SoftExpect"
+      ],
+      [
+        "Qa-Orchestrator",
+        "User-Prompt-Submit.Js"
+      ],
+      [
+        "Api Test Files",
+        "Tests/Ecommerce/Cart-Smoke.Spec.Ts"
+      ],
+      [
+        "Logger.Verify",
+        "SoftExpect"
+      ],
+      [
+        "Api Test Files",
+        "SoftExpect"
+      ],
+      [
+        "Logger.Verify",
+        "Qa-Code-Reviewer Flags"
+      ],
+      [
+        ".Claude/Plans/",
+        "User-Prompt-Submit.Js"
+      ],
+      [
+        "Logger.Verify",
+        "SoftAssert"
+      ],
+      [
+        "Logger.Verify",
+        "Qa-Code-Reviewer"
+      ],
+      [
+        "SoftExpect",
+        "SoftExpect Import"
+      ],
+      [
+        "Qa-Code-Reviewer",
+        "Qa-Code-Reviewer Flags"
+      ],
+      [
+        "Error-Context.Md",
+        "Playwright.Config.Ts"
+      ],
+      [
+        "Dm Nz Cart-005-008 Session",
+        "Error-Context.Md"
+      ],
+      [
+        "Api Test Files",
+        "Spec Suite"
+      ],
+      [
+        "Feedback",
+        "Feedback-Preferences"
+      ]
+    ],
+    "count": 29,
+    "create_time": 1781448967,
+    "update_time": 1781448967,
+    "_id": "doc-28274e5d1bc00fbd5533608f4fbecab5"
+  },
+  "doc-c9488069466f7da02e04d0a79614e167": {
+    "relation_pairs": [
+      [
+        "PageBuilder CMS",
+        "data-cy"
+      ],
+      [
+        "Console Errors",
+        "Vans"
+      ],
+      [
+        "GRA",
+        "GraphQL"
+      ],
+      [
+        "Google Analytics (GA4)",
+        "GraphQL"
+      ],
+      [
+        "GraphQL",
+        "PayPal"
+      ],
+      [
+        "Firefox",
+        "Playwright MCP"
+      ],
+      [
+        "GRA Storefront Tech Investigation Notes",
+        "Playwright MCP"
+      ],
+      [
+        "Adobe Launch",
+        "Platypus AU"
+      ],
+      [
+        "GRA",
+        "React"
+      ],
+      [
+        "Vans",
+        "Vans NZ"
+      ],
+      [
+        "Bazaarvoice",
+        "Platypus AU"
+      ],
+      [
+        "BVBRANDSID",
+        "Bazaarvoice"
+      ],
+      [
+        "Bazaarvoice",
+        "Platypus NZ"
+      ],
+      [
+        "Console Errors",
+        "Platypus"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "Email Capture Form Panel"
+      ],
+      [
+        "Magento PWA Studio",
+        "styled-components"
+      ],
+      [
+        "Api-Accent.Bloomreach.Co/Webxp",
+        "Bloomreach"
+      ],
+      [
+        "Platypus AU",
+        "TrueFit"
+      ],
+      [
+        "Skechers AU/NZ",
+        "h1 Elements"
+      ],
+      [
+        "Cart State Persistence",
+        "customerCart"
+      ],
+      [
+        "Forter",
+        "ForterToken"
+      ],
+      [
+        "Skechers AU",
+        "Skechers NZ"
+      ],
+      [
+        "Fredhopper",
+        "GetStoreConfigData"
+      ],
+      [
+        "GetCmsPage",
+        "GraphQL"
+      ],
+      [
+        "Dr. Martens AU",
+        "ResolveURL"
+      ],
+      [
+        "Vans",
+        "VansSpecificPage"
+      ],
+      [
+        "GRA Storefront Tech Investigation Notes",
+        "Magento PWA Studio"
+      ],
+      [
+        "Adobe Launch",
+        "localStorage"
+      ],
+      [
+        "Console Errors",
+        "Skechers"
+      ],
+      [
+        "Forter",
+        "`forterToken`"
+      ],
+      [
+        "Facebook Pixel",
+        "GraphQL"
+      ],
+      [
+        "GraphQL",
+        "TrueFit"
+      ],
+      [
+        "Swiper Navigation Buttons",
+        "Swiper.js"
+      ],
+      [
+        "Fredhopper",
+        "GRA"
+      ],
+      [
+        "Console Errors",
+        "TrueFitCorp.com"
+      ],
+      [
+        "Adobe Experience Platform",
+        "Platypus AU"
+      ],
+      [
+        "Attraqt Analytics",
+        "Forter Fraud Token"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "Progress Dots"
+      ],
+      [
+        "Cart Icon Selector",
+        "Skechers AU/NZ"
+      ],
+      [
+        "Adobe Experience Platform",
+        "Platypus NZ"
+      ],
+      [
+        "Google Ad Services",
+        "GraphQL"
+      ],
+      [
+        "Dr. Martens AU",
+        "Fredhopper"
+      ],
+      [
+        "Console Errors",
+        "DRM"
+      ],
+      [
+        "PageBuilder",
+        "`cmsBlocks`"
+      ],
+      [
+        "Site Version",
+        "window.dataLayer"
+      ],
+      [
+        "Afterpay",
+        "GRA"
+      ],
+      [
+        "Cart GUID",
+        "Cart Icon"
+      ],
+      [
+        "Swiper-Button-Next",
+        "Swiper-Slide"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "`#popup`"
+      ],
+      [
+        "Bloomreach",
+        "Experience Name"
+      ],
+      [
+        "Bloomreach",
+        "TikTok Pixel"
+      ],
+      [
+        "Footer",
+        "Forter"
+      ],
+      [
+        "Bazaarvoice",
+        "GetStoreConfigData"
+      ],
+      [
+        "Dr. Martens AU",
+        "`getTotalProductCount()`"
+      ],
+      [
+        "Swiper-Button-Prev",
+        "Swiper-Slide"
+      ],
+      [
+        "Cart State Persistence",
+        "LocalStorage"
+      ],
+      [
+        "Attraqt",
+        "`attraqtsessionid`"
+      ],
+      [
+        "FullStory",
+        "Platypus AU"
+      ],
+      [
+        "Customer Cart",
+        "GraphQL"
+      ],
+      [
+        "Adobe Client Data Layer (ACDL)",
+        "Adobe Data Layer"
+      ],
+      [
+        "Skechers",
+        "Swiper-Slide-Active"
+      ],
+      [
+        "Swiper Slide",
+        "Swiper.js"
+      ],
+      [
+        "Bloomreach",
+        "Vans AU"
+      ],
+      [
+        "Adobe Launch",
+        "Dr. Martens AU"
+      ],
+      [
+        "Bazaarvoice",
+        "GRA"
+      ],
+      [
+        "Afterpay",
+        "Skechers NZ"
+      ],
+      [
+        "Fredhopper",
+        "Platypus AU"
+      ],
+      [
+        "Cart GUID",
+        "GetCmsPage"
+      ],
+      [
+        "Bazaarvoice",
+        "Dr. Martens NZ"
+      ],
+      [
+        "Dr. Martens AU/NZ",
+        "Vans AU/NZ"
+      ],
+      [
+        "BVBRANDID",
+        "Bazaarvoice"
+      ],
+      [
+        "Dr. Martens AU",
+        "`NRBA_SESSION`"
+      ],
+      [
+        "Skechers",
+        "Skechers NZ"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "`button.popup__close#popup-close`"
+      ],
+      [
+        "Cart Icon Selector",
+        "Platypus AU/NZ"
+      ],
+      [
+        "Bazaarvoice",
+        "Dr. Martens AU"
+      ],
+      [
+        "Afterpay",
+        "Skechers AU"
+      ],
+      [
+        "Attraqt",
+        "Forter"
+      ],
+      [
+        "Vans",
+        "Vans AU"
+      ],
+      [
+        "Skechers",
+        "Skechers AU"
+      ],
+      [
+        "FPID",
+        "FullStory"
+      ],
+      [
+        "AMCV_",
+        "Adobe Experience Cloud"
+      ],
+      [
+        "Skechers AU",
+        "Window.dataLayer"
+      ],
+      [
+        "EcommerceCartOverlayPage.isOverlayVisible()",
+        "Mini-Cart Overlay"
+      ],
+      [
+        "Api-Accent.Bloomreach.Co",
+        "Bloomreach"
+      ],
+      [
+        "Forter",
+        "GetStoreConfigData"
+      ],
+      [
+        "FullStory",
+        "GraphQL"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "`DIV.bloomreach-acquisition-popup-template.state-open`"
+      ],
+      [
+        "Adobe Launch",
+        "Vans AU"
+      ],
+      [
+        "Vans AU",
+        "Vans NZ"
+      ],
+      [
+        "Console Errors",
+        "PWA Studio"
+      ],
+      [
+        "Adobe Launch",
+        "Dr. Martens NZ"
+      ],
+      [
+        "Cart State Persistence",
+        "Magento"
+      ],
+      [
+        "Adobe Launch",
+        "Skechers AU"
+      ]
+    ],
+    "count": 94,
+    "create_time": 1781540846,
+    "update_time": 1781540846,
+    "_id": "doc-c9488069466f7da02e04d0a79614e167"
+  },
+  "doc-676423a7c776b523c259115b15e81a0c": {
+    "relation_pairs": [
+      [
+        "GRA Integration Test Report",
+        "`docs/gra-integration-test-scenarios.html`"
+      ],
+      [
+        "Taboola",
+        "Taboola Blocking"
+      ],
+      [
+        "GRA Integration Test Report",
+        "Skechers AU/NZ"
+      ],
+      [
+        "GraphQL",
+        "INT-009"
+      ],
+      [
+        "Google Analytics 4 (GA4)",
+        "Google Analytics 4 (GA4) Blocking"
+      ],
+      [
+        "GRA Integration Test Report",
+        "Platypus AU/NZ"
+      ],
+      [
+        "GraphQL",
+        "INT-001"
+      ],
+      [
+        "PayPal",
+        "PayPal Blocking"
+      ],
+      [
+        "FullStory",
+        "FullStory Blocking"
+      ],
+      [
+        "GraphQL",
+        "INT-002"
+      ],
+      [
+        "Facebook",
+        "Facebook Blocking"
+      ],
+      [
+        "Adobe Data Layer",
+        "INT-005"
+      ],
+      [
+        "Demdex",
+        "Demdex Blocking"
+      ],
+      [
+        "Dr. Martens AU/NZ",
+        "GRA Integration Test Report"
+      ],
+      [
+        "INT-003",
+        "Magento REST API"
+      ],
+      [
+        "TrueFit",
+        "TrueFit Blocking"
+      ],
+      [
+        "GRA Integration Test Report",
+        "Vans AU/NZ"
+      ]
+    ],
+    "count": 17,
+    "create_time": 1781542042,
+    "update_time": 1781542042,
+    "_id": "doc-676423a7c776b523c259115b15e81a0c"
+  },
+  "doc-b04fc6e551abe62bce0c9eb54f88300e": {
+    "relation_pairs": [
+      [
+        "Claude",
+        "Memory-Vault"
+      ],
+      [
+        "Seed",
+        "`sync-memory-to-vault.mjs`"
+      ],
+      [
+        "LightRAG",
+        "Memory-Vault"
+      ],
+      [
+        "Memory-Vault",
+        "Seed"
+      ],
+      [
+        "Memory-Vault",
+        "`init-memory-from-vault.mjs`"
+      ],
+      [
+        "Memory-Vault",
+        "`sync-vault-to-lightrag.mjs`"
+      ],
+      [
+        "Stop Hook",
+        "`sync-vault-to-lightrag.mjs`"
+      ],
+      [
+        "PostToolUse Hook",
+        "`sync-vault-to-lightrag.mjs`"
+      ],
+      [
+        "Memory-Vault",
+        "Sync-Memory Process"
+      ],
+      [
+        "Memory Feedback Entries",
+        "Seed"
+      ],
+      [
+        "Memory-Vault",
+        "Vault Rules"
+      ]
+    ],
+    "count": 11,
+    "create_time": 1781705239,
+    "update_time": 1781705239,
+    "_id": "doc-b04fc6e551abe62bce0c9eb54f88300e"
+  },
+  "doc-d0bad7be8975f725cb7551dbf9673c25": {
+    "relation_pairs": [
+      [
+        "Breadcrumb Button",
+        "DIV.bread-crumbs-root"
+      ],
+      [
+        "Breadcrumb Button",
+        "React Router"
+      ],
+      [
+        "Button Element",
+        "Nav WOMEN Link"
+      ],
+      [
+        "Breadcrumb Section",
+        "Product FORM"
+      ],
+      [
+        "FORM Element",
+        "getSizeGenderToggleLabels()"
+      ],
+      [
+        "Size Buttons",
+        "getSizeGenderToggleLabels()"
+      ],
+      [
+        "PDP Size Toggle Labels",
+        "Vans AU"
+      ],
+      [
+        "Actual Second Toggle",
+        "WOMENS includes MENS Substring Match"
+      ],
+      [
+        "Actual First Toggle",
+        "WOMENS includes MENS Substring Match"
+      ],
+      [
+        "DOM Walk Functions",
+        "Form-Boundary Guard"
+      ],
+      [
+        "Breadcrumb Button",
+        "clickSizeGenderToggle()"
+      ],
+      [
+        "Button Query SelectorAll",
+        "Nav WOMEN Link"
+      ],
+      [
+        "PDP Size Toggle Labels",
+        "Src/data/ecommerce/storefronts.ts"
+      ],
+      [
+        "Breadcrumb Button",
+        "Page.goto()"
+      ],
+      [
+        "Size Unit Picker",
+        "Vans AU"
+      ],
+      [
+        "Bloomreach Popup",
+        "Button Element"
+      ],
+      [
+        "E2E-PDP-004-005",
+        "Verification"
+      ],
+      [
+        "Form-Boundary Guard",
+        "Src/pages/ecommerce/pdp-page.ts"
+      ]
+    ],
+    "count": 18,
+    "create_time": 1781972543,
+    "update_time": 1781972543,
+    "_id": "doc-d0bad7be8975f725cb7551dbf9673c25"
+  },
+  "doc-4feb9b02843e96ba10a59d3bc60dce82": {
+    "relation_pairs": [
+      [
+        "TIMEOUTS.ELEMENT_CLICKABLE",
+        "waitFor method"
+      ],
+      [
+        "waitForVariantNavigation",
+        "waits.waitForUrlPredicate()"
+      ],
+      [
+        "getResultCount",
+        "search-page.ts"
+      ],
+      [
+        "dismissAcquisitionPopup",
+        "pdp-page.ts"
+      ],
+      [
+        "DomScanHelper.count()",
+        "this.dom.count()"
+      ],
+      [
+        "WaitHelper.waitForUrlPredicate()",
+        "page.waitForURL()"
+      ],
+      [
+        "closeBtn",
+        "waitFor method"
+      ],
+      [
+        "nav-page.ts",
+        "waitForNavHydration"
+      ],
+      [
+        "TIMEOUTS.POLL_INTERVAL_FAST",
+        "waitForCustomCondition"
+      ],
+      [
+        "closeBtn",
+        "locator.isVisible()"
+      ],
+      [
+        "DomScanHelper",
+        "DomScanHelper.count()"
+      ],
+      [
+        "locator.isVisible()",
+        "waitForCustomCondition"
+      ],
+      [
+        "getProductCount",
+        "plp-page.ts"
+      ],
+      [
+        "pdp-page.ts",
+        "waitForVariantNavigation"
+      ],
+      [
+        "plp-page.ts",
+        "waitForProductGrid"
+      ],
+      [
+        "DomScanHelper",
+        "size/gender proximity walks"
+      ],
+      [
+        "Playwright 1.61",
+        "locator.isVisible()"
+      ],
+      [
+        "dismissOverlays",
+        "plp-page.ts"
+      ],
+      [
+        "search-page.ts",
+        "waitForSearchResults"
+      ],
+      [
+        "WaitHelper.waitForUrlPredicate()",
+        "waits.waitForUrlPredicate()"
+      ],
+      [
+        "element-helper.ts",
+        "locator.isVisible()"
+      ],
+      [
+        "dismissBloomreachPopup",
+        "nav-page.ts"
+      ],
+      [
+        "DomScanHelper.count()",
+        "page.evaluate()"
+      ],
+      [
+        "TIMEOUTS.PAGE_LOAD_SLOW",
+        "waitForCustomCondition"
+      ],
+      [
+        "Playwright 1.61",
+        "isVisible({ timeout }) deprecation"
+      ],
+      [
+        "DomScanHelper",
+        "price-leaf walk"
+      ]
+    ],
+    "count": 26,
+    "create_time": 1782066812,
+    "update_time": 1782066812,
+    "_id": "doc-4feb9b02843e96ba10a59d3bc60dce82"
+  },
+  "doc-683a4a88832a08e0b1ee59059259caa0": {
+    "relation_pairs": [
+      [
+        "JIRA-GRA-147",
+        "PayPal Pay In 4 Updates"
+      ],
+      [
+        "Epic",
+        "JIRA-GRA-147"
+      ],
+      [
+        "JIRA-GRA-147",
+        "Supun Dissanayake"
+      ],
+      [
+        "PayPal Pay In 4 Updates",
+        "Product Detail Page"
+      ],
+      [
+        "Checkout",
+        "PayPal Pay In 4 Updates"
+      ],
+      [
+        "GRA Websites",
+        "PayPal Pay In 4 Updates"
+      ]
+    ],
+    "count": 6,
+    "create_time": 1782140010,
+    "update_time": 1782140010,
+    "_id": "doc-683a4a88832a08e0b1ee59059259caa0"
+  },
+  "doc-d216ba7446e240fa1c556c160f175887": {
+    "relation_pairs": [
+      [
+        "Jira Tag",
+        "Jira-GRA-149"
+      ],
+      [
+        "Jira-GRA-149",
+        "Memory"
+      ],
+      [
+        "Jira-GRA-149",
+        "Updated Date"
+      ],
+      [
+        "Jira-GRA-149",
+        "Supun Dissanayake"
+      ],
+      [
+        "Jira-GRA-149",
+        "Last Verified Date"
+      ],
+      [
+        "Epic Tag",
+        "Jira-GRA-149"
+      ],
+      [
+        "Jira",
+        "Jira-GRA-149"
+      ],
+      [
+        "Jira-GRA-149",
+        "Project Tag"
+      ],
+      [
+        "Accentgr Atlassian",
+        "Jira"
+      ],
+      [
+        "GRA Tag",
+        "Jira-GRA-149"
+      ],
+      [
+        "Created Date",
+        "Jira-GRA-149"
+      ],
+      [
+        "Jira-GRA-149",
+        "My Account Edit Details Flow Update"
+      ],
+      [
+        "Epic",
+        "Jira-GRA-149"
+      ],
+      [
+        "Jira-GRA-149",
+        "jira-gra-149 URL"
+      ],
+      [
+        "Done",
+        "Jira-GRA-149"
+      ],
+      [
+        "Jira-GRA-149",
+        "Normal Priority"
+      ]
+    ],
+    "count": 16,
+    "create_time": 1782140038,
+    "update_time": 1782140038,
+    "_id": "doc-d216ba7446e240fa1c556c160f175887"
+  },
+  "doc-a89515b39357d1c9baf4dd466e7b49b0": {
+    "relation_pairs": [
+      [
+        "Order",
+        "PayPal Pay in 4 Validations"
+      ],
+      [
+        "PayPal Pay in 4",
+        "PayPal Pay in 4 Radio Button"
+      ],
+      [
+        "PayPal SDK Modal",
+        "Place Order Button"
+      ],
+      [
+        "Jira-GRA-148",
+        "PayPal Logo"
+      ],
+      [
+        "GRA Sites",
+        "SKX AU"
+      ],
+      [
+        "Account Deactivation",
+        "PayPal Pay in 4 Validations"
+      ],
+      [
+        "Pay Pal",
+        "Pay Pal Pay in 4"
+      ],
+      [
+        "PayPal Pay in 4",
+        "PayPal Payments Option"
+      ],
+      [
+        "Pay Pal Button",
+        "Place Order Button"
+      ],
+      [
+        "PayPal SDK Modal",
+        "SDK Modal Messaging"
+      ],
+      [
+        "GRA Sites",
+        "PLA AU"
+      ],
+      [
+        "Jira-GRA-148",
+        "Supun Dissanayake"
+      ],
+      [
+        "PayPal Pay in 4",
+        "Paypal Pay Expandable Text Updates Screenshot"
+      ],
+      [
+        "Pay Pal Button",
+        "Pay Pal Radio Buttons"
+      ],
+      [
+        "Jira-GRA-148",
+        "Parent Request GRA-124"
+      ],
+      [
+        "Pay Pal",
+        "Pay Pal Pay"
+      ],
+      [
+        "Accent Group",
+        "PayPal Pay in 4 Validations"
+      ],
+      [
+        "DRM AU",
+        "GRA Sites"
+      ],
+      [
+        "Accent Sites",
+        "Desktop Flow of Pay Pal Pay"
+      ],
+      [
+        "Jira-GRA-148",
+        "Zhi Wang"
+      ],
+      [
+        "Adobe Commerce",
+        "BE Task"
+      ],
+      [
+        "GRA Sites",
+        "Jira-GRA-148"
+      ],
+      [
+        "PayPal Pay in 4",
+        "PayPal Pay in 4 Screenshot"
+      ],
+      [
+        "PayPal Pay in 4 Validations",
+        "displays"
+      ],
+      [
+        "Accent Sites",
+        "Mobile Flow of Pay Pal Pay"
+      ],
+      [
+        "Desktop Flow of Pay Pal Pay",
+        "Mobile Flow of Pay Pal Pay"
+      ],
+      [
+        "Checkout",
+        "PayPal Pay in 4"
+      ],
+      [
+        "Insufficient Funds",
+        "PayPal Pay in 4 Validations"
+      ],
+      [
+        "PayPal Pay in 4 Radio Button",
+        "PayPal SDK Modal"
+      ],
+      [
+        "PayPal Integration Documentation",
+        "PayPal Pay in 4"
+      ],
+      [
+        "Figma Design Files",
+        "Jira-GRA-148"
+      ],
+      [
+        "GRA Sites",
+        "VAN AU"
+      ],
+      [
+        "Customer",
+        "PayPal Pay in 4"
+      ],
+      [
+        "FE Task",
+        "Pay Pal Pay in 4"
+      ],
+      [
+        "Accent Group",
+        "Accent Group Request on 27/05/2024"
+      ],
+      [
+        "PayPal Pay in 4 Radio Button",
+        "PayPal Pay in 4 Radio Button Click Behaviour Screenshot"
+      ],
+      [
+        "Desktop and Mobile Flow Designs",
+        "PayPal Pay in 4"
+      ],
+      [
+        "PayPal Pay in 4",
+        "PayPal Pay in 4 Validations"
+      ]
+    ],
+    "count": 38,
+    "create_time": 1782140070,
+    "update_time": 1782140070,
+    "_id": "doc-a89515b39357d1c9baf4dd466e7b49b0"
+  },
+  "doc-e06ad78290d5db25f3a4f84c2e156204": {
+    "relation_pairs": [
+      [
+        "CMS Block Discriminator",
+        "React"
+      ],
+      [
+        "accountToggleButton Locator",
+        "openModal()"
+      ],
+      [
+        "E2E-AUTH-010",
+        "TestAccounts"
+      ],
+      [
+        "E2E-AUTH-011 Event",
+        "Modal Branded Title Lazy-Injection"
+      ],
+      [
+        "Modal Branded Title Lazy-Injection",
+        "getModalTitle()"
+      ],
+      [
+        "EcommerceAccountModalPage",
+        "Timeouts.Element Visible"
+      ],
+      [
+        "Tests ecommerce/smoke/auth.spec.ts",
+        "tests/ecommerce/smoke/auth.spec.ts"
+      ],
+      [
+        "openModal()",
+        "page.evaluate() Scan"
+      ],
+      [
+        "playwright.config.ts",
+        "playwright.config.ts Firefox Project"
+      ],
+      [
+        "AUTH-002",
+        "E2E-AUTH-002"
+      ],
+      [
+        "CMS Block Discriminator",
+        "waitForResponse Listener"
+      ],
+      [
+        "Modal Branded Title Lazy-Injection",
+        "getModalPanel()"
+      ],
+      [
+        "Brand Token",
+        "Site Name"
+      ],
+      [
+        "GRA Storefronts",
+        "Modal Branded Title Lazy-Injection"
+      ],
+      [
+        "Modal Branded Title Lazy-Injection",
+        "Platypus Brand Specific Heading"
+      ],
+      [
+        "Brand Token",
+        "Storefronts.ts"
+      ],
+      [
+        "E2E-AUTH-010",
+        "GraphQL"
+      ],
+      [
+        "Account Panel",
+        "CSS Attribute Selector"
+      ],
+      [
+        "Account Toggle Button Locator",
+        "Chromium"
+      ],
+      [
+        "Auth.spec.ts",
+        "E2E-AUTH-010"
+      ],
+      [
+        "Firefox",
+        "Tests ecommerce/smoke/auth.spec.ts"
+      ],
+      [
+        "Brand Token",
+        "Login Panel Heading Format"
+      ],
+      [
+        "EcommerceAccountModalPage",
+        "src/pages/ecommerce/account-modal.ts"
+      ],
+      [
+        "EcommerceAccountModalPage",
+        "EcommerceAccountModalPage Fixture"
+      ],
+      [
+        "Brand Regex",
+        "Brand Token"
+      ],
+      [
+        "Firefox",
+        "playwright.config.ts Firefox Project"
+      ],
+      [
+        "Vans AU Bloomreach Acquisition Popup",
+        "page.addLocatorHandler()"
+      ],
+      [
+        "Brand Regex",
+        "EcommerceAccountModalPage"
+      ],
+      [
+        "AUTH-002",
+        "Auth Test Skip Guard"
+      ],
+      [
+        "GraphQL CMS Block Request",
+        "waitForResponse Listener"
+      ],
+      [
+        "Account Panel",
+        "Login Panel Heading Format"
+      ],
+      [
+        "Firefox",
+        "about:blank"
+      ],
+      [
+        "CMS Block Discriminator",
+        "GRA Storefronts"
+      ],
+      [
+        "Account Panel",
+        "Vans AU Bloomreach Popup"
+      ],
+      [
+        "Account Toggle Button Locator",
+        "GRA Storefronts"
+      ],
+      [
+        "playwright.config.ts Firefox Project",
+        "testIgnore"
+      ],
+      [
+        "Bloomreach Acquisition Popup Overlay",
+        "Vans AU Bloomreach Acquisition Popup"
+      ],
+      [
+        "Account Panel",
+        "Page"
+      ],
+      [
+        "Account Toggle Button Locator",
+        "EcommerceAccountModalPage"
+      ],
+      [
+        "Vans AU Bloomreach Acquisition Popup",
+        "addLocatorHandler"
+      ],
+      [
+        "getModalTitle()",
+        "innerText() Snapshot"
+      ],
+      [
+        "Modal Branded Title Lazy-Injection",
+        "expect(locator).toContainText()"
+      ],
+      [
+        "accountToggleLink Locator",
+        "openModal()"
+      ],
+      [
+        "EcommerceAccountModalPage Fixture",
+        "src/config/base-test.ts"
+      ],
+      [
+        "Expect(locator).ToContainText()",
+        "GRA Modal"
+      ]
+    ],
+    "count": 45,
+    "create_time": 1782144685,
+    "update_time": 1782144685,
+    "_id": "doc-e06ad78290d5db25f3a4f84c2e156204"
+  },
+  "doc-92ee23296c45f454b040c61ea2ec6e86": {
+    "relation_pairs": [
+      [
+        "AddToCartFunctionality",
+        "FlavorB"
+      ],
+      [
+        "Add To Cart Enabled",
+        "Soft Assert"
+      ],
+      [
+        "PDP-005",
+        "SoftAssert"
+      ],
+      [
+        "AddToCart",
+        "FlavorB"
+      ],
+      [
+        "AtcButtonEnabledState",
+        "SelectFirstPurchasableSize"
+      ],
+      [
+        "SelectFirstPurchasableSize",
+        "SmokeHelpers.ts"
+      ],
+      [
+        "CreateFreshAccountViaGraphQL",
+        "SmokeHelpers.ts"
+      ],
+      [
+        "FindProductWithAvailableSizes",
+        "SmokeHelpers.ts"
+      ],
+      [
+        "AtcButtonEnabledState",
+        "EcommercePDPPage"
+      ],
+      [
+        "Select First Purchasable Size",
+        "Target Size"
+      ],
+      [
+        "FindProductWithAvailableSizes",
+        "PdpTestStructure"
+      ],
+      [
+        "Available Sizes",
+        "Select First Purchasable Size"
+      ],
+      [
+        "ShouldPreferMens",
+        "SmokeHelpers.ts"
+      ],
+      [
+        "Add To Cart Enabled",
+        "Ecommerce PDP Page"
+      ],
+      [
+        "Ecommerce PDP Page",
+        "Select First Purchasable Size"
+      ],
+      [
+        "AtcButtonEnabledState",
+        "SoftAssert"
+      ],
+      [
+        "NavigateToPlp",
+        "SmokeHelpers.ts"
+      ],
+      [
+        "GetPreferredNavLabel",
+        "SmokeHelpers.ts"
+      ],
+      [
+        "EnsureCartOverlayOpen",
+        "SmokeHelpers.ts"
+      ],
+      [
+        "Target Size",
+        "Test"
+      ],
+      [
+        "AccountsFor<TestSkipRule",
+        "TestSkip"
+      ]
+    ],
+    "count": 21,
+    "create_time": 1782148154,
+    "update_time": 1782148154,
+    "_id": "doc-92ee23296c45f454b040c61ea2ec6e86"
+  },
+  "doc-b925bb86b9a77a3986020e5efd7b2e99": {
+    "relation_pairs": [
+      [
+        "EcommerceCartOverlayPage",
+        "Overlay Visibility Gate"
+      ],
+      [
+        "ERR-006",
+        "Ecommerce Smoke Spec Catalog"
+      ],
+      [
+        "ERR-006",
+        "Magento PWA Guest Checkout"
+      ],
+      [
+        "E2E-CART-002",
+        "getAvailableSizes"
+      ],
+      [
+        "E2E-ERR-001 (8)",
+        "Ecommerce Smoke Spec Catalog"
+      ],
+      [
+        "E2E-CART-003",
+        "EcommerceCartOverlayPage"
+      ],
+      [
+        "ERR-006 (8)",
+        "Ecommerce Smoke Spec Catalog"
+      ],
+      [
+        "Slack Notification",
+        "playwright-with-slack.yml"
+      ],
+      [
+        "Smoke Helpers",
+        "ensureCartOverlayOpen"
+      ],
+      [
+        "Monocart Reporter",
+        "playwright-with-slack.yml"
+      ],
+      [
+        "E2E-CART-002",
+        "Product Listing Page"
+      ],
+      [
+        "GitHub Actions",
+        "playwright-with-slack.yml"
+      ],
+      [
+        "Ecommerce Smoke Spec Catalog",
+        "Smoke Helpers"
+      ],
+      [
+        "E2E Discovery Report",
+        "Ecommerce Smoke Spec Catalog"
+      ],
+      [
+        "Smoke Helpers",
+        "shouldPreferMens"
+      ],
+      [
+        "Smoke Helpers",
+        "getPreferredNavLabel"
+      ],
+      [
+        "15 Shared Spec Files",
+        "SiteContext"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "auth.spec.ts"
+      ],
+      [
+        "MONOCART_TREND_FILE",
+        "Monocart Reporter"
+      ],
+      [
+        "15 Shared Spec Files",
+        "van-au"
+      ],
+      [
+        "Cloudflare Pages",
+        "Monocart Reporter"
+      ],
+      [
+        "api.config.ts",
+        "pla-au"
+      ],
+      [
+        "Smoke Helpers",
+        "selectFirstPurchasableSize"
+      ],
+      [
+        "TestIgnore",
+        "api.config.ts"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "localization-smoke.spec.ts"
+      ],
+      [
+        "TestState",
+        "shared-state.ts"
+      ],
+      [
+        "api.config.ts",
+        "skx-au"
+      ],
+      [
+        "15 Shared Spec Files",
+        "GRA GraphQL API Tests"
+      ],
+      [
+        "E2E-CART-002",
+        "Pdp-Page.ts"
+      ],
+      [
+        "Monocart Reporter",
+        "monocart-api-report Directory"
+      ],
+      [
+        "Monocart Reporter",
+        "monocart-report Directory"
+      ],
+      [
+        "Captcha Solving Integration",
+        "Captcha Solving Research Report"
+      ],
+      [
+        "Fieldfisher",
+        "Playwright TypeScript Automation Framework"
+      ],
+      [
+        "api.config.ts",
+        "misc-api"
+      ],
+      [
+        "15 Shared Spec Files",
+        "drm-au"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "pdp-smoke.spec.ts"
+      ],
+      [
+        "E2E-CART-002",
+        "PreferMens"
+      ],
+      [
+        "E2E-CART-002",
+        "Platypus AU MENS PLP"
+      ],
+      [
+        "ERR-003",
+        "Ecommerce Smoke Spec Catalog"
+      ],
+      [
+        "Bloomreach Popup",
+        "Cart Icon Click"
+      ],
+      [
+        "Overlay Visibility Gate",
+        "Platypus AU Mini Cart"
+      ],
+      [
+        "Ecommerce Smoke Spec Catalog",
+        "Serial Mode"
+      ],
+      [
+        "Matrix",
+        "playwright-with-slack.yml"
+      ],
+      [
+        "E2E-CART-002",
+        "getMiniCartCount"
+      ],
+      [
+        "Bloomreach Popup",
+        "Vans AU"
+      ],
+      [
+        "Ecommerce Checkout Page",
+        "Playwright 1.61.0 to 1.61.1"
+      ],
+      [
+        "ERR-003 (8)",
+        "Ecommerce Smoke Spec Catalog"
+      ],
+      [
+        "ActionTimeout",
+        "api.config.ts"
+      ],
+      [
+        "Cart Icon Click",
+        "E2E-CART-003"
+      ],
+      [
+        "Ecommerce Checkout Page",
+        "Magento PWA Guest Checkout"
+      ],
+      [
+        "BasePage",
+        "Helpers"
+      ],
+      [
+        "api.config.ts",
+        "van-au"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "search-smoke.spec.ts"
+      ],
+      [
+        ".env.{NODE_ENV}",
+        "Test Environments"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "plp-smoke.spec.ts"
+      ],
+      [
+        "Slack Notification",
+        "api-restful-tests-with-slack.yml"
+      ],
+      [
+        "Monocart Reporter",
+        "api-restful-tests-with-slack.yml"
+      ],
+      [
+        "15 Shared Spec Files",
+        "pla-au"
+      ],
+      [
+        "Page Object Model",
+        "Playwright TypeScript Automation Framework"
+      ],
+      [
+        "GitHub Actions",
+        "api-restful-tests-with-slack.yml"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "homepage-smoke.spec.ts"
+      ],
+      [
+        "15 Shared Spec Files",
+        "skx-au"
+      ],
+      [
+        "EcommerceCartOverlayPage",
+        "ecommerceCartOverlayPage Fixture"
+      ],
+      [
+        "E2E-CART-003",
+        "Vans AU"
+      ],
+      [
+        "E2E-CART-002",
+        "waitForPdpLoad"
+      ],
+      [
+        "Smoke Helpers",
+        "findProductWithAvailableSizes"
+      ],
+      [
+        "E2E-ERR-001",
+        "Ecommerce Smoke Spec Catalog"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "cart-smoke.spec.ts"
+      ],
+      [
+        "api.config.ts",
+        "drm-au"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "navigation-smoke.spec.ts"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "Smoke Helpers"
+      ],
+      [
+        "Smoke Helpers",
+        "navigateToPlp"
+      ],
+      [
+        "E2E-CART-002",
+        "waitForSizeButtonsToRender"
+      ],
+      [
+        "Captcha Solving Integration",
+        "CaptchaHelper"
+      ],
+      [
+        "Test Report Job",
+        "playwright-with-slack.yml"
+      ],
+      [
+        "Ecommerce UI Smoke Tests",
+        "error-handling-smoke.spec.ts"
+      ],
+      [
+        "Workers",
+        "api.config.ts"
+      ]
+    ],
+    "count": 77,
+    "create_time": 1782831366,
+    "update_time": 1782831366,
+    "_id": "doc-b925bb86b9a77a3986020e5efd7b2e99"
+  },
+  "doc-cf017a813cd0b782aef34bc894b9789d": {
+    "relation_pairs": [
+      [
+        "E2E-LOC-001",
+        "EcommercePLPPage"
+      ],
+      [
+        "Has No WomensNavLabel",
+        "Platypus NZ"
+      ],
+      [
+        "PreferMens Logic",
+        "Site.Name"
+      ],
+      [
+        "E2E-LOC-001",
+        "Site.HasQantasPoints"
+      ],
+      [
+        "E2E-ERR-001",
+        "EcommerceErrorPage"
+      ],
+      [
+        "E2E-ERR-001",
+        "NavigateToNotFound"
+      ],
+      [
+        "E2E-ERR-003",
+        "EcommerceNavPage"
+      ],
+      [
+        "All 8 Storefronts",
+        "E2E-ERR-001"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "WaitForCheckoutLoad"
+      ],
+      [
+        "E2E-LOC-001",
+        "Localization-Smoke-Spec"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "EnsureNoOverlay"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "GetMiniCartCount"
+      ],
+      [
+        "E2E-LOC-002",
+        "Skechers NZ"
+      ],
+      [
+        "Assert priceText matches LocalizationExpectations",
+        "E2E-LOC-002"
+      ],
+      [
+        "E2E-ERR-001 Flow",
+        "NavigateToNotFound"
+      ],
+      [
+        "Retries Variable",
+        "Staging Flakes"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "FindProductWithAvailableSizes"
+      ],
+      [
+        "E2E-LOC-001",
+        "Platypus AU"
+      ],
+      [
+        "AssertBrandErrorUiVisible",
+        "E2E-ERR-001"
+      ],
+      [
+        "E2E-LOC-007",
+        "Localization-Smoke-Spec"
+      ],
+      [
+        "FindProductWithAvailableSizes",
+        "Smoke-Helpers Utilities"
+      ],
+      [
+        "React Event Delegation",
+        "SubmitCurrentStep"
+      ],
+      [
+        "Dr. Martens AU",
+        "Staging Load Flakiness"
+      ],
+      [
+        "E2E-LOC-003",
+        "Localization-Smoke-Spec"
+      ],
+      [
+        "E2E-LOC-004",
+        "Skechers AU"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "NavigateToPlp"
+      ],
+      [
+        "E2E-LOC-004",
+        "EcommerceNavPage"
+      ],
+      [
+        "SelectFirstPurchasableSize",
+        "Smoke-Helpers Utilities"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "ShouldPreferMens"
+      ],
+      [
+        "NavigateToPlp",
+        "Smoke-Helpers Utilities"
+      ],
+      [
+        "E2E-LOC-007",
+        "Site.LoyaltyProgramName"
+      ],
+      [
+        "EcommerceNavPage",
+        "Storefronts"
+      ],
+      [
+        "AssertQantasPointsVisible",
+        "E2E-LOC-003"
+      ],
+      [
+        "E2E-ERR-006",
+        "EcommercePDPPage"
+      ],
+      [
+        "E2E-LOC-002",
+        "EcommercePLPPage"
+      ],
+      [
+        "E2E-LOC-001",
+        "Skechers AU"
+      ],
+      [
+        "AssertBrandErrorUiVisible",
+        "E2E-ERR-001 Flow"
+      ],
+      [
+        "ClickCheckoutCtaFromOverlay",
+        "E2E-ERR-006 Flow"
+      ],
+      [
+        "Assert WOMEN Nav Visible",
+        "E2E-LOC-004"
+      ],
+      [
+        "All 8 Storefronts",
+        "E2E-LOC-003"
+      ],
+      [
+        "Ecommerce Cart Overlay Page",
+        "Magento PWA Guest Checkout"
+      ],
+      [
+        "E2E-ERR-006",
+        "EcommerceCheckoutPage"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "HasRequiredFieldValidation"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "EnsureCartOverlayOpen"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "HasSizeValidationMessage"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "SelectFirstPurchasableSize"
+      ],
+      [
+        "AssertBackToHomeVisible",
+        "E2E-ERR-001"
+      ],
+      [
+        "CI Environment",
+        "Retries Variable"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "EnsureNoOverlay"
+      ],
+      [
+        "E2E-LOC-002",
+        "Localization-Smoke-Spec"
+      ],
+      [
+        "AssertLoyaltyProgramVisible",
+        "E2E-LOC-007"
+      ],
+      [
+        "Full-suite Runs",
+        "Retries Variable"
+      ],
+      [
+        "Localization-Smoke-Spec",
+        "Smoke-Helpers.ts"
+      ],
+      [
+        "E2E-ERR-003",
+        "EcommercePDPPage"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "GetPreferredNavLabel"
+      ],
+      [
+        "AssertBrandNameVisible",
+        "E2E-LOC-007"
+      ],
+      [
+        "Dr. Martens AU",
+        "PLP Grid Timeout"
+      ],
+      [
+        "Assert CLOTHING Nav Visibility equals shouldHaveClothing",
+        "E2E-LOC-004"
+      ],
+      [
+        "E2E-LOC-001",
+        "PreferMens Logic"
+      ],
+      [
+        "E2E-LOC-004",
+        "Site.NavLinks"
+      ],
+      [
+        "GetPreferredNavLabel",
+        "Smoke-Helpers Utilities"
+      ],
+      [
+        "AssertBackToHomeVisible",
+        "E2E-ERR-001 Flow"
+      ],
+      [
+        "PreferMens Logic",
+        "Skechers AU"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "ShouldPreferMens"
+      ],
+      [
+        "Session Reset",
+        "Silent ATC Failure"
+      ],
+      [
+        "Nav Label",
+        "Platypus NZ"
+      ],
+      [
+        "All 8 Storefronts",
+        "E2E-ERR-003"
+      ],
+      [
+        "E2E-LOC-001",
+        "EcommerceNavPage"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "IsOnCheckoutPage"
+      ],
+      [
+        "E2E-ERR-006",
+        "EcommercePLPPage"
+      ],
+      [
+        "Skechers AU",
+        "Staging Load Flakiness"
+      ],
+      [
+        "E2E-ERR-006",
+        "EcommerceCartOverlayPage"
+      ],
+      [
+        "E2E-ERR-001",
+        "Error-Handling-Smoke-Spec"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "Page Load Timeout (PAGE_LOAD)"
+      ],
+      [
+        "NavLabel",
+        "Test.Slow()"
+      ],
+      [
+        "AddToCart",
+        "E2E-ERR-006 Flow"
+      ],
+      [
+        "E2E-LOC-004",
+        "Skechers NZ"
+      ],
+      [
+        "EnsureCartOverlayOpen",
+        "Smoke-Helpers Utilities"
+      ],
+      [
+        "E2E-LOC-004",
+        "Localization-Smoke-Spec"
+      ],
+      [
+        "ShouldPreferMens",
+        "Smoke-Helpers Utilities"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "GetPreferredNavLabel"
+      ],
+      [
+        "AddToCart",
+        "E2E-ERR-003 Flow"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "SoftExpect"
+      ],
+      [
+        "E2E-LOC-002",
+        "Platypus NZ"
+      ],
+      [
+        "E2E-ERR-003",
+        "EcommercePLPPage"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "SubmitCurrentStep"
+      ],
+      [
+        "Silent ATC Failure",
+        "Step 10"
+      ],
+      [
+        "Assert priceText matches LocalizationExpectations",
+        "E2E-LOC-001"
+      ],
+      [
+        "Retries Environment Variable",
+        "Staging Load Flakiness"
+      ],
+      [
+        "Back To Home CTA",
+        "E2E-ERR-001 Flow"
+      ],
+      [
+        "All 8 Storefronts",
+        "E2E-LOC-007"
+      ],
+      [
+        "All 8 Storefronts",
+        "E2E-ERR-006"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "FindProductWithAvailableSizes"
+      ],
+      [
+        "E2E-ERR-006",
+        "Error-Handling-Smoke-Spec"
+      ],
+      [
+        "Node.js v22.18.0",
+        "Playwright"
+      ],
+      [
+        "Localization-Smoke-Spec",
+        "Test.Slow()"
+      ],
+      [
+        "E2E-LOC-002",
+        "EcommerceNavPage"
+      ],
+      [
+        "Playwright",
+        "TypeError: Context.Conditions?.Includes Is Not A Function"
+      ],
+      [
+        "E2E-ERR-006",
+        "EcommerceNavPage"
+      ],
+      [
+        "E2E-LOC-007",
+        "EcommerceHomePage"
+      ],
+      [
+        "E2E-ERR-003 Flow",
+        "NavigateToPlp"
+      ],
+      [
+        "E2E-LOC-003",
+        "EcommerceHomePage"
+      ],
+      [
+        "Auth Modal",
+        "E2E-ERR-006 Flow"
+      ],
+      [
+        "E2E-ERR-006 Flow",
+        "WaitForMiniCartCountIncrement"
+      ],
+      [
+        "E2E-ERR-003",
+        "Error-Handling-Smoke-Spec"
+      ]
+    ],
+    "count": 105,
+    "create_time": 1782831397,
+    "update_time": 1782831397,
+    "_id": "doc-cf017a813cd0b782aef34bc894b9789d"
+  },
+  "doc-0ee91f4170b49f11110671d51881a6db": {
+    "relation_pairs": [
+      [
+        "BasePage",
+        "Composition"
+      ],
+      [
+        "Helpers",
+        "OverlayHelper"
+      ],
+      [
+        "API Test Helpers",
+        "PLA Auth Bootstrap"
+      ],
+      [
+        "DomScanHelper",
+        "DomScanHelper Methods"
+      ],
+      [
+        "Global Lifecycle",
+        "Tests"
+      ],
+      [
+        "PLA Test Data Factory",
+        "Test Data"
+      ],
+      [
+        "Ecommerce Smoke Helpers",
+        "Tests"
+      ],
+      [
+        "TestState",
+        "Tests"
+      ],
+      [
+        "BaseTest",
+        "Tests"
+      ],
+      [
+        "Composition Pattern",
+        "Playwright TypeScript Framework"
+      ],
+      [
+        "TestState",
+        "TestState Module-Level Functions"
+      ],
+      [
+        "BasePage Fields",
+        "PercyHelper Fixture"
+      ],
+      [
+        "BaseTest",
+        "Helpers"
+      ],
+      [
+        "Bloomreach Inline Dismissal Methods",
+        "OverlayHelper Limitations"
+      ],
+      [
+        "Ecommerce Fixtures",
+        "Fixtures Navigating to About:blank"
+      ],
+      [
+        "BasePage",
+        "Playwright TypeScript Framework"
+      ],
+      [
+        "OverlayHelper",
+        "OverlayHelper Limitations"
+      ],
+      [
+        "BasePage Fields",
+        "ConsoleHelper Fixture"
+      ],
+      [
+        "APIBaseUrl",
+        "Multi-app"
+      ],
+      [
+        "AdminUrl",
+        "Multi-app"
+      ],
+      [
+        "FrontSiteUrl",
+        "Multi-app"
+      ],
+      [
+        "Playwright TypeScript Framework",
+        "Project Architecture"
+      ],
+      [
+        "Shared-State Singleton",
+        "TestState"
+      ],
+      [
+        "Import Rule",
+        "Import Rule Location"
+      ],
+      [
+        "Ecommerce Fixtures",
+        "Firefox Teardown"
+      ],
+      [
+        "API Config",
+        "API Worker Configuration"
+      ],
+      [
+        "BasePage",
+        "Helpers"
+      ],
+      [
+        "DomScanHelper",
+        "Helpers"
+      ],
+      [
+        "Test Data",
+        "Test Data Types"
+      ],
+      [
+        "Fixtures Navigating to About:blank",
+        "Juggler Service-Worker Hang"
+      ],
+      [
+        "API Test Helpers",
+        "Tests"
+      ],
+      [
+        "Ecommerce Smoke Helpers",
+        "Smoke Helper Functions"
+      ]
+    ],
+    "count": 32,
+    "create_time": 1782831475,
+    "update_time": 1782831475,
+    "_id": "doc-0ee91f4170b49f11110671d51881a6db"
+  },
+  "doc-62f4f496367f45bac92c9ab98ba2b175": {
+    "relation_pairs": [
+      [
+        "Three Windows Shards",
+        "matrix.shardIndex"
+      ],
+      [
+        "Full Suite Execution Time",
+        "Job-Level Timeout-minutes"
+      ],
+      [
+        "Three Windows Shards",
+        "Timeout-Minutes 45 Setting"
+      ],
+      [
+        "Three Windows Shards",
+        "UI-Test-Results Artifacts"
+      ],
+      [
+        "Npx playwright test",
+        "ShardIndex/ShardTotal Argument"
+      ],
+      [
+        "CI Feedback",
+        "Windows Test Sharding"
+      ],
+      [
+        "Monocart Merge Step",
+        "Shard Artifacts"
+      ],
+      [
+        "Option A Raise Timeout",
+        "Option B Sharding"
+      ],
+      [
+        "45 to 60 Minute Timeout Fix",
+        "Job-Level Timeout-minutes"
+      ],
+      [
+        "IsOnCheckoutPage() Assertion",
+        "Silent Timeout Catch"
+      ],
+      [
+        "Shared Key Per OS",
+        "Windows Shards"
+      ],
+      [
+        "45 to 60 Minute Timeout Fix",
+        "Src/constants/timeouts.ts"
+      ],
+      [
+        "Execution Config",
+        "Operating System Matrix"
+      ],
+      [
+        "Monocart Merge Step",
+        "Test-Report Job"
+      ],
+      [
+        "Job 84534816449",
+        "Run #28518094451"
+      ],
+      [
+        "Three Windows Shards",
+        "Windows Test Sharding"
+      ],
+      [
+        "Main Branch",
+        "UI-Test Job"
+      ],
+      [
+        "Monocart-Trend-UI-Windows-Main Cache Key",
+        "Restore Monocart Trend Data Cache Step"
+      ],
+      [
+        "Monocart Merge Step",
+        "Monocart-Shards Directory"
+      ],
+      [
+        "Broken Cache Path",
+        "Browser Reinstall"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "CLAUDE.md §5 Pattern"
+      ],
+      [
+        "Run-UI-Tests.bat",
+        "ShardIndex/ShardTotal Argument"
+      ],
+      [
+        "Monocart-Shard Artifacts",
+        "Three Windows Shards"
+      ],
+      [
+        "Cache Warning",
+        "Windows Shards"
+      ],
+      [
+        "UI-Test Job",
+        "Windows-Latest Leg"
+      ],
+      [
+        "MacOS Shard",
+        "Matrix.shardTotal"
+      ],
+      [
+        "UI Test Matrix",
+        "Windows-Latest Leg"
+      ],
+      [
+        "MacOS-Latest Leg",
+        "UI Test Matrix"
+      ],
+      [
+        "Artifact Upload Steps",
+        "Upload-Artifact Errors"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "BasePage/base-test.ts"
+      ],
+      [
+        "Option B Sharding",
+        "Three Windows Shards"
+      ],
+      [
+        "Test Suite",
+        "Windows Throughput"
+      ],
+      [
+        "%USERPROFILE%\\AppData\\Local\\ms-playwright",
+        "Cache Playwright Browsers Step"
+      ],
+      [
+        "%USERPROFILE%\\AppData\\Local\\ms-playwright",
+        "@actions/cache Toolkit"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "Workflow-File Change"
+      ],
+      [
+        "Run-UI-Tests.sh",
+        "ShardIndex/ShardTotal Argument"
+      ],
+      [
+        "@actions/cache Toolkit",
+        "Home Directory (~) Cache Path"
+      ],
+      [
+        "Artifact Upload Steps",
+        "Three Windows Shards"
+      ],
+      [
+        "Src/pages/ecommerce/checkout-page.ts",
+        "waitForCheckoutLoad()"
+      ],
+      [
+        "MacOS Shard",
+        "matrix.shardIndex"
+      ],
+      [
+        "Advisor-Nudge-Mechanism",
+        "Fixture Change"
+      ],
+      [
+        "Broken Cache Path",
+        "Cache Playwright Browsers Step"
+      ],
+      [
+        "Silent Timeout Catch",
+        "waitForCheckoutLoad()"
+      ],
+      [
+        "Matrix.shardTotal",
+        "Three Windows Shards"
+      ],
+      [
+        "Three Windows Shards",
+        "UI Tests Job Name Format"
+      ],
+      [
+        "Monocart Trend Data Cache Step",
+        "Shared Key Per OS"
+      ],
+      [
+        "Actions/Cache v4+",
+        "Cache Warning"
+      ],
+      [
+        "Test Retries",
+        "Windows Throughput"
+      ]
+    ],
+    "count": 48,
+    "create_time": 1782914160,
+    "update_time": 1782914160,
+    "_id": "doc-62f4f496367f45bac92c9ab98ba2b175"
+  },
+  "doc-3b6ffa939ea42d6f764cbf5263f0a48f": {
+    "relation_pairs": [
+      [
+        "Module-Level Let/Const",
+        "Process-Level Isolation"
+      ],
+      [
+        "Baseline Reporters",
+        "Reporters"
+      ],
+      [
+        "Src/Data/Ecommerce/Test-Accounts.TS",
+        "Static Shared Data"
+      ],
+      [
+        "Parallel-UI-Data-Isolation",
+        "Parallelism"
+      ],
+      [
+        "Collision-Free Artifacts/Reports",
+        "JSON Reporter"
+      ],
+      [
+        "UI Tests",
+        "Worker Process"
+      ],
+      [
+        "Browser Context Isolation",
+        "Page Fixture"
+      ],
+      [
+        "Process-Level Isolation",
+        "UI Tests"
+      ],
+      [
+        "CreateFreshAccountCredentials()",
+        "CreateFreshAccountViaGraphQL()"
+      ],
+      [
+        "Collision-Free Artifacts/Reports",
+        "HTML Reporter"
+      ],
+      [
+        "Browser Context Isolation",
+        "UI Tests"
+      ],
+      [
+        "Collision-Free Artifacts/Reports",
+        "JUnit Reporter"
+      ],
+      [
+        "No Artificial Serialization",
+        "UI Tests"
+      ],
+      [
+        "Parallel-UI-Data-Isolation",
+        "UI Tests"
+      ],
+      [
+        "TargetSize",
+        "Tests/Ecommerce/Smoke/*.Spec.TS"
+      ],
+      [
+        "UI Tests",
+        "Workers Slot"
+      ],
+      [
+        "CreateFreshAccountCredentials()",
+        "E2E-AUTH-010"
+      ],
+      [
+        "CreateFreshAccountCredentials()",
+        "E2E-AUTH-002"
+      ],
+      [
+        "Collision-Free Artifacts/Reports",
+        "UI Tests"
+      ],
+      [
+        "Ecommerce-Storefronts",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "Execution-Config",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "Isolation",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "Base-Test.TS",
+        "Page Fixture"
+      ],
+      [
+        "Ecommerce",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "Fresh Test Data Per Test",
+        "UI Tests"
+      ],
+      [
+        "API Suite",
+        "TestState Singleton"
+      ],
+      [
+        "FullyParallel",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "API Suite",
+        "Checkout Flow"
+      ],
+      [
+        "Delta Assertions",
+        "UI Tests"
+      ],
+      [
+        "Fixture-Registry",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "Parallel-UI-Data-Isolation",
+        "Project"
+      ],
+      [
+        "CreateFreshAccountCredentials()",
+        "Src/Data/Ecommerce/Test-Accounts.TS"
+      ],
+      [
+        "Playwright.Config.TS",
+        "UI Tests"
+      ],
+      [
+        "CreateFreshAccountViaGraphQL()",
+        "Fresh Test Data Per Test"
+      ],
+      [
+        "Collision-Free Artifacts/Reports",
+        "Reporters"
+      ],
+      [
+        "Collision-Free Artifacts/Reports",
+        "Playwright Default Per-Test Output Path"
+      ],
+      [
+        "API Suite",
+        "API.Config.TS"
+      ],
+      [
+        "Memory",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "API Suite",
+        "Brand"
+      ],
+      [
+        "Collision-Free Artifacts/Reports",
+        "Monocart Reporter"
+      ],
+      [
+        "API Suite",
+        "Parallel-UI-Data-Isolation"
+      ],
+      [
+        "AvailableSizes",
+        "Tests/Ecommerce/Smoke/*.Spec.TS"
+      ],
+      [
+        "Cart Tests",
+        "Delta Assertions"
+      ],
+      [
+        "Delta Assertions",
+        "Tests/Ecommerce/CLAUDE.MD"
+      ],
+      [
+        "CreateFreshAccountViaGraphQL()",
+        "Src/Data/Ecommerce/Test-Accounts.TS"
+      ],
+      [
+        "Email",
+        "Fresh Test Data Per Test"
+      ]
+    ],
+    "count": 46,
+    "create_time": 1783005417,
+    "update_time": 1783005417,
+    "_id": "doc-3b6ffa939ea42d6f764cbf5263f0a48f"
+  },
+  "doc-5f6e2edfd03ecdb4008577782507d3db": {
+    "relation_pairs": [
+      [
+        "About:blank Workaround",
+        "Firefox Project (playwright.config.ts)"
+      ],
+      [
+        "Dynamic Worker Expression",
+        "Playwright.Config.Ts (UI)"
+      ],
+      [
+        "GitHub Step Summary",
+        "Test-Report Job"
+      ],
+      [
+        "CI Environment Variables",
+        "ForbidOnly Setting"
+      ],
+      [
+        "Execution-Config",
+        "Playwright.Config.Ts (UI)"
+      ],
+      [
+        "VIDEO_MODE Environment Variable",
+        "Video Setting"
+      ],
+      [
+        "Ecommerce Smoke Tests",
+        "Firefox Project (playwright.config.ts)"
+      ],
+      [
+        "Execution-Config",
+        "Retries Setting"
+      ],
+      [
+        "OS Matrix Strategy",
+        "Playwright-With-Slack.yml"
+      ],
+      [
+        "Api.Config.Ts (API)",
+        "WORKERS Environment Variable"
+      ],
+      [
+        "OS Matrix Strategy",
+        "Test-Report Job"
+      ],
+      [
+        "Dynamic Worker Expression",
+        "WORKERS Environment Variable"
+      ],
+      [
+        "CI Environment Variables",
+        "Retries Setting"
+      ],
+      [
+        "OS Matrix Strategy",
+        "Windows-Latest"
+      ],
+      [
+        "API Suite Setup Timeout",
+        "TIMEOUTS.API_SUITE_SETUP"
+      ],
+      [
+        "SCREENSHOT_MODE Environment Variable",
+        "Screenshot Setting"
+      ],
+      [
+        "Api.Config.Ts (API)",
+        "Dynamic Worker Expression"
+      ],
+      [
+        "Execution-Config",
+        "Screenshot Setting"
+      ],
+      [
+        "Execution-Config",
+        "Video Setting"
+      ],
+      [
+        "Fail-Fast Setting",
+        "OS Matrix Strategy"
+      ],
+      [
+        "MacOS-Latest",
+        "OS Matrix Strategy"
+      ],
+      [
+        "Execution-Config",
+        "Trace Setting"
+      ],
+      [
+        "Api.Config.Ts (API)",
+        "Execution-Config"
+      ],
+      [
+        "API Suite Setup Timeout",
+        "beforeAll Hook"
+      ],
+      [
+        "Playwright.Config.Ts (UI)",
+        "WORKERS Environment Variable"
+      ],
+      [
+        "Chromium Tests",
+        "Ecommerce Smoke Tests"
+      ],
+      [
+        "Slack",
+        "Test-Report Job"
+      ],
+      [
+        "Execution-Config",
+        "Firefox Project (playwright.config.ts)"
+      ],
+      [
+        "ActionTimeout Setting",
+        "Api.Config.Ts (API)"
+      ]
+    ],
+    "count": 29,
+    "create_time": 1783005490,
+    "update_time": 1783005490,
+    "_id": "doc-5f6e2edfd03ecdb4008577782507d3db"
+  },
+  "doc-2529585b3ac5a54b6bea6d144b388e95": {
+    "relation_pairs": [
+      [
+        "ApiClientExt",
+        "createClientExt"
+      ],
+      [
+        "EcommercePLPPage",
+        "Fixture-Registry"
+      ],
+      [
+        "EcommerceCheckoutPage",
+        "Fixture-Registry"
+      ],
+      [
+        "Fixture-Registry",
+        "PercyHelper"
+      ],
+      [
+        "GraphQLClient",
+        "createGraphQLClient"
+      ],
+      [
+        "EcommerceTrackOrderPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "EcommerceCheckoutPage",
+        "EcommerceCheckoutPage-Methods"
+      ],
+      [
+        "ApiBaseUrl",
+        "Fixture-Registry"
+      ],
+      [
+        "EcommerceErrorPage",
+        "Fixture-Registry"
+      ],
+      [
+        "Fixture-Registry",
+        "ServicesAZPage"
+      ],
+      [
+        "EcommerceSearchPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "BasePage",
+        "page.locator()"
+      ],
+      [
+        "EcommerceTrackOrderPage",
+        "EcommerceTrackOrderPage-Methods"
+      ],
+      [
+        "EcommerceAccountModalPage",
+        "Fixture-Registry"
+      ],
+      [
+        "ApiClient",
+        "Fixture-Registry"
+      ],
+      [
+        "EcommerceErrorPage",
+        "EcommerceErrorPage-Methods"
+      ],
+      [
+        "EcommerceCartOverlayPage",
+        "Fixture-Registry"
+      ],
+      [
+        "Fixture-Registry",
+        "RestfulApiClient"
+      ],
+      [
+        "ApiClient",
+        "createClient"
+      ],
+      [
+        "EcommerceCheckoutPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "CreateClientExt",
+        "Fixture-Registry"
+      ],
+      [
+        "Fixture-Registry",
+        "LoginPage"
+      ],
+      [
+        "logger",
+        "softExpect"
+      ],
+      [
+        "EcommercePLPPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "EcommercePDPPage",
+        "Fixture-Registry"
+      ],
+      [
+        "EcommerceHomePage",
+        "Fixture-Registry"
+      ],
+      [
+        "CreateClient",
+        "Fixture-Registry"
+      ],
+      [
+        "BasePage",
+        "this.elements"
+      ],
+      [
+        "Fixture-Registry",
+        "SoftAssertHelper-API"
+      ],
+      [
+        "EcommerceErrorPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "EcommerceHelpSupportPage",
+        "Fixture-Registry"
+      ],
+      [
+        "EcommerceNavPage",
+        "Fixture-Registry"
+      ],
+      [
+        "CustomFixtures",
+        "New Fixture Registration Process"
+      ],
+      [
+        "Firefox Teardown Workaround",
+        "New Fixture Registration Process"
+      ],
+      [
+        "BasePage",
+        "page.click()"
+      ],
+      [
+        "Fixture-Registry",
+        "GraphQLClient"
+      ],
+      [
+        "Fixture-Registry",
+        "InsightsPage"
+      ],
+      [
+        "Fixture-Registry",
+        "RestfulBookerService"
+      ],
+      [
+        "CreateGraphQLClient",
+        "Fixture-Registry"
+      ],
+      [
+        "GRA API Fixtures",
+        "graTest"
+      ],
+      [
+        "CLAUDE.md fixture table",
+        "New Fixture Registration Process"
+      ],
+      [
+        "logger",
+        "softAssert"
+      ],
+      [
+        "EcommerceCartOverlayPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "GRA API Fixtures",
+        "SiteContext"
+      ],
+      [
+        "EcommerceAccountModalPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "Fixture-Registry",
+        "ProfileListingPage"
+      ],
+      [
+        "EcommercePDPPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "EcommerceTrackOrderPage",
+        "Fixture-Registry"
+      ],
+      [
+        "BasePage",
+        "New Fixture Registration Process"
+      ],
+      [
+        "Fixture-Registry",
+        "FormDragAndDropPage"
+      ],
+      [
+        "EcommerceSearchPage",
+        "Fixture-Registry"
+      ],
+      [
+        "EcommerceHomePage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "GRA API Fixtures",
+        "TestState"
+      ],
+      [
+        "EcommerceHelpSupportPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "EcommerceHelpSupportPage",
+        "EcommerceHelpSupportPage-Methods"
+      ],
+      [
+        "EcommerceNavPage",
+        "Firefox Teardown Pattern"
+      ],
+      [
+        "BasePage",
+        "this.waits"
+      ],
+      [
+        "ApiClientExt",
+        "Fixture-Registry"
+      ],
+      [
+        "Fixture-Registry",
+        "SoftAssertHelper-UI"
+      ],
+      [
+        "Fixture-Registry",
+        "HomePage"
+      ]
+    ],
+    "count": 60,
+    "create_time": 1783011176,
+    "update_time": 1783011176,
+    "_id": "doc-2529585b3ac5a54b6bea6d144b388e95"
+  },
+  "doc-37d75b184e09a7e3125b15d7a511e315": {
+    "relation_pairs": [
+      [
+        "E2E-UTIL-001",
+        "softAssert"
+      ],
+      [
+        "Flyout",
+        "clickHelpSupportLink()"
+      ],
+      [
+        "Chromium",
+        "Ecommerce Utilities Smoke Spec"
+      ],
+      [
+        "Header Help Trigger",
+        "isHelpSupportLinkPresent()"
+      ],
+      [
+        "Ecommerce Smoke Spec Catalog",
+        "Ecommerce Utilities Smoke Spec"
+      ],
+      [
+        "Track Order Form",
+        "assertFormPresent(site.name)"
+      ],
+      [
+        "Ecommerce Header Help Gotcha",
+        "Ecommerce Utilities Smoke Spec"
+      ],
+      [
+        "Ecommerce Utilities Smoke Spec",
+        "tests/ecommerce/smoke/utilities-smoke.spec.ts"
+      ],
+      [
+        "Header Help Trigger",
+        "clickHelpSupportLink()"
+      ],
+      [
+        "E2E-UTIL-001",
+        "ecommerceTrackOrderPage"
+      ],
+      [
+        "Footer Track Order Link",
+        "isTrackOrderLinkPresent()"
+      ],
+      [
+        "E2E-UTIL-001",
+        "Storefronts"
+      ],
+      [
+        "Footer Track Order Link",
+        "clickTrackOrderLink()"
+      ],
+      [
+        "Homepage",
+        "navigate(site.url)"
+      ],
+      [
+        "E2E-UTIL-001",
+        "Track Order Form"
+      ],
+      [
+        "Flyout",
+        "Help/FAQs/Support Link"
+      ],
+      [
+        "Ecommerce Utilities Smoke Spec",
+        "Utilities-Smoke.spec.ts"
+      ],
+      [
+        "Help/FAQs/Support Link",
+        "assertNavigatedToHelpSupportPage(site.name)"
+      ],
+      [
+        "E2E-UTIL-001",
+        "Footer Track Order Link"
+      ],
+      [
+        "Flyout",
+        "Header Help Trigger"
+      ],
+      [
+        "E2E-UTIL-005",
+        "softAssert"
+      ],
+      [
+        "Ecommerce Utilities Smoke Spec",
+        "Fixture Registry"
+      ],
+      [
+        "E2E-UTIL-005",
+        "Help/FAQs/Support Link"
+      ],
+      [
+        "E2E-UTIL-005",
+        "Storefronts"
+      ],
+      [
+        "Ecommerce Storefronts",
+        "Ecommerce Utilities Smoke Spec"
+      ],
+      [
+        "E2E-UTIL-005",
+        "Header Help Trigger"
+      ],
+      [
+        "Ecommerce Utilities Smoke Spec",
+        "qa-code-reviewer"
+      ],
+      [
+        "E2E-UTIL-005",
+        "ecommerceHelpSupportPage"
+      ],
+      [
+        "Help/FAQs/Support Link",
+        "isOnHelpDestination()"
+      ]
+    ],
+    "count": 29,
+    "create_time": 1783011212,
+    "update_time": 1783011212,
+    "_id": "doc-37d75b184e09a7e3125b15d7a511e315"
+  },
+  "doc-a74540e7570b89ad3bb5cb22795ee605": {
+    "relation_pairs": [
+      [
+        "EcommerceHelpSupportPage",
+        "qa-code-reviewer"
+      ],
+      [
+        "GRA Storefront",
+        "Platypus AU"
+      ],
+      [
+        "flyout panel",
+        "page.evaluate() DOM element.click()"
+      ],
+      [
+        "GraphQL Evidence: menuItemsByCode",
+        "homepage load event"
+      ],
+      [
+        "8/8 Skip",
+        "Live-DOM Verification"
+      ],
+      [
+        "EcommerceHelpSupportPage",
+        "getByRole('link', { name: /help|support/i })"
+      ],
+      [
+        "mini-cart overlay",
+        "role=\"complementary\""
+      ],
+      [
+        "flyout panel",
+        "locator.click()"
+      ],
+      [
+        "Live-DOM Verification",
+        "User Manual Questioning"
+      ],
+      [
+        "Zendesk Help-Center Domain",
+        "platypus AU"
+      ],
+      [
+        "Help Center",
+        "Source Requirement/Coverage Matrix"
+      ],
+      [
+        "URL-pattern check",
+        "flyout link locator"
+      ],
+      [
+        "8/8 Skip",
+        "Source Requirement/Coverage Matrix"
+      ],
+      [
+        "playwright MCP",
+        "qa-orchestrator pipeline"
+      ],
+      [
+        "E2E-UTIL-005",
+        "qa-code-reviewer"
+      ],
+      [
+        "EcommerceHelpSupportPage",
+        "live Playwright MCP investigation"
+      ],
+      [
+        "GraphQL Evidence: menuItemsByCode",
+        "getByRole('link', { name: /help|support/i })"
+      ],
+      [
+        "Help Header Element",
+        "playwright MCP"
+      ],
+      [
+        "figure click-trigger",
+        "flyout panel"
+      ],
+      [
+        "flyout link locator",
+        "page-wide link locator"
+      ],
+      [
+        "8/8 Skip",
+        "Skipped Test"
+      ],
+      [
+        "flyout panel",
+        "headerHelpTrigger"
+      ],
+      [
+        "Skechers AU",
+        "Zendesk Help-Center Domain"
+      ],
+      [
+        "getByRole('figure', { name: 'Help', exact: true })",
+        "headerHelpTrigger"
+      ],
+      [
+        "Fixture-Registry",
+        "Gra-Storefront-Tech-Notes"
+      ],
+      [
+        "Help Header Element",
+        "figure click-trigger"
+      ],
+      [
+        "Ecommerce-PDP-Page-Gotchas",
+        "Gra-Storefront-Tech-Notes"
+      ],
+      [
+        "GRA Storefront",
+        "Skechers AU"
+      ],
+      [
+        "flyout link locator",
+        "flyout panel"
+      ],
+      [
+        "help center URL pattern",
+        "soft-assert isOnHelpDestination"
+      ]
+    ],
+    "count": 30,
+    "create_time": 1783011226,
+    "update_time": 1783011226,
+    "_id": "doc-a74540e7570b89ad3bb5cb22795ee605"
+  },
+  "doc-86e28457a0070a258f94860361f8b13b": {
+    "relation_pairs": [
+      [
+        "Client",
+        "P1 Signal"
+      ],
+      [
+        "Magento Cart Price Rule",
+        "Shared Staging"
+      ],
+      [
+        "Client",
+        "Magento Cart Price Rule"
+      ],
+      [
+        "BUY 2 GET 20% OFF Discount",
+        "GraphQL API Test"
+      ],
+      [
+        "E2E-CART-009",
+        "Test-Plan Agent"
+      ],
+      [
+        "Hard-Assert",
+        "P1 Signal"
+      ],
+      [
+        "E2E-CART-009",
+        "Technical Research Agent Report"
+      ],
+      [
+        "BUY 2 GET 20% OFF Discount",
+        "Magento Cart Price Rule"
+      ],
+      [
+        "Magento Admin API",
+        "Provisioning Admin Write Access"
+      ],
+      [
+        "E2E-CART-009",
+        "E2E-CART-010"
+      ],
+      [
+        "E2E Backlog",
+        "E2E-CART-009"
+      ],
+      [
+        "P1 Signal",
+        "Skip-Gated Version"
+      ],
+      [
+        "Empty-cart Baseline Discount Value",
+        "GraphQL API Test"
+      ],
+      [
+        "Qualifying SKU",
+        "Storefronts.ts"
+      ],
+      [
+        "E2E-CART-009",
+        "E2E-CHKOUT-007/008"
+      ],
+      [
+        "Guideline/E2E_DISCOVERY_REPORT.md",
+        "Technical Research Agent Report"
+      ],
+      [
+        "E2E-CART-009",
+        "E2E-PDP-019"
+      ],
+      [
+        "GraphQL API Test",
+        "Tests/api/gra-cart-minicart.spec.ts"
+      ],
+      [
+        "Magento Admin API",
+        "Sales Rules API Endpoint"
+      ],
+      [
+        "Promo-Amount Assertions",
+        "Test-Plan Agent"
+      ],
+      [
+        "BUY 2 GET 20% OFF Discount",
+        "E2E-CART-009"
+      ],
+      [
+        "E2E-CART-009",
+        "E2E-CHKOUT-010 Spend & Save"
+      ]
+    ],
+    "count": 22,
+    "create_time": 1783077046,
+    "update_time": 1783077046,
+    "_id": "doc-86e28457a0070a258f94860361f8b13b"
+  },
+  "doc-cecb0d91ce73637998acce9c5c61beac": {
+    "relation_pairs": [
+      [
+        "MAX_PRODUCTS_TO_TRY",
+        "Test.skip"
+      ],
+      [
+        "PDP Test",
+        "Vans NZ"
+      ],
+      [
+        "Cart Button DOM",
+        "Platypus AU"
+      ],
+      [
+        "WaitForFunction",
+        "WaitForVariantNavigation"
+      ],
+      [
+        "WaitForOverlayHidden()",
+        "isOverlayGenuinelyOpen()"
+      ],
+      [
+        "Cart Overlay Methods",
+        "isOverlayVisible()"
+      ],
+      [
+        "EcommerceCartOverlayPage",
+        "waitForOverlayVisible()"
+      ],
+      [
+        "Dr. Martens AU",
+        "E2E-PLP-004"
+      ],
+      [
+        "ATC",
+        "Dr. Martens NZ"
+      ],
+      [
+        "Bounding Box",
+        "Mini Cart Overlay"
+      ],
+      [
+        "TimeOuts",
+        "WaitForMiniCartCountIncrement()"
+      ],
+      [
+        "Dr. Martens AU/NZ",
+        "E2E-CART-003"
+      ],
+      [
+        "React State",
+        "WOMEN Megamenu"
+      ],
+      [
+        "E2E-AUTH-001",
+        "Vans AU"
+      ],
+      [
+        "Dr. Martens",
+        "PRESALE NAV Label"
+      ],
+      [
+        "ClickColourSwatch()",
+        "EnsureNoOverlay()"
+      ],
+      [
+        "MENS NAV Label",
+        "Socks"
+      ],
+      [
+        "TIMEOUTS.ELEMENT_VISIBLE",
+        "WaitForCustomCondition()"
+      ],
+      [
+        "Skechers",
+        "getPreferredNavLabel"
+      ],
+      [
+        "E2E-CART-006",
+        "Mini Cart Overlay"
+      ],
+      [
+        "Skechers AU",
+        "Skechers AU MENS URL"
+      ],
+      [
+        "AddLocatorHandler",
+        "Page"
+      ],
+      [
+        "EnsureCartOverlayOpen()",
+        "Smoke-helpers.ts"
+      ],
+      [
+        "Skechers AU",
+        "Skechers AU WOMEN URL"
+      ],
+      [
+        "Vans NZ",
+        "getPreferredNavLabel"
+      ],
+      [
+        "Cart Count",
+        "WaitForMiniCartCountIncrement()"
+      ],
+      [
+        "GRA/Magento PWA Studio",
+        "Mini Cart Overlay"
+      ],
+      [
+        "Dr. Martens NZ MEN PLP",
+        "MAX_PRODUCTS_TO_TRY"
+      ],
+      [
+        "Escape Key",
+        "L3L4Navigation-root container"
+      ],
+      [
+        "Dr. Martens AU",
+        "GalleryImageSelector"
+      ],
+      [
+        "MENS PLP",
+        "Vans NZ"
+      ],
+      [
+        "EcommerceCartOverlayPage",
+        "clickCartIcon()"
+      ],
+      [
+        "Dr. Martens NZ",
+        "L3L4Navigation Container"
+      ],
+      [
+        "E2E-PDP-002",
+        "Test.Slow Budget"
+      ],
+      [
+        "getPreferredNavLabel",
+        "smoke-helpers.ts"
+      ],
+      [
+        "Classics Sub-category",
+        "Vans NZ WOMENS"
+      ],
+      [
+        "Mini cart overlay",
+        "Platypus AU"
+      ],
+      [
+        "MENS NAV Label",
+        "Platypus AU"
+      ],
+      [
+        "L3L4Navigation Container",
+        "Size Button"
+      ],
+      [
+        "PDP Test",
+        "Skechers"
+      ],
+      [
+        "WaitForCustomCondition()",
+        "WaitForOverlayGenuinelyOpen()"
+      ],
+      [
+        "EnsureCartOverlayOpen()",
+        "isOverlayVisible()"
+      ],
+      [
+        "E2E-CART-003",
+        "Skechers AU"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "Class Selector `.bloomreach-acquisition-popup-template`"
+      ],
+      [
+        "Concurrent Workers",
+        "Race Condition"
+      ],
+      [
+        "ClickColourSwatch()",
+        "DismissAcquisitionPopup()"
+      ],
+      [
+        "Platypus AU",
+        "Race Condition"
+      ],
+      [
+        "Dr. Martens AU",
+        "E2E-PLP-004-007"
+      ],
+      [
+        "Cart Count",
+        "GetMiniCartCount()"
+      ],
+      [
+        "AddToCart()",
+        "TimeOuts"
+      ],
+      [
+        "Category Filter",
+        "E2E-PLP-004"
+      ],
+      [
+        "Diagnostic Process",
+        "error-context.md"
+      ],
+      [
+        "Bloomreach Popup",
+        "Vans AU"
+      ],
+      [
+        "Platypus AU WOMENS URL",
+        "Skechers"
+      ],
+      [
+        "React Event Delegation",
+        "dispatchEvent(new MouseEvent('click', ...))"
+      ],
+      [
+        "Click({ force: true })",
+        "Vans NZ"
+      ],
+      [
+        "E2E-PDP-002",
+        "MaxProductsToTry"
+      ],
+      [
+        "E2E-CART-002 Scan Strategy",
+        "MENS NAV Label"
+      ],
+      [
+        "Mini Cart Overlay",
+        "isOverlayGenuinelyOpen()"
+      ],
+      [
+        "CTA Text",
+        "isOverlayVisible()"
+      ],
+      [
+        "Mini Cart Overlay",
+        "Platypus AU"
+      ],
+      [
+        "Click({ force: true })",
+        "Swatch Click Navigation"
+      ],
+      [
+        "Non-footwear products",
+        "Skechers WOMENS PLP"
+      ],
+      [
+        "DOM Leaf Node Count",
+        "GetMiniCartCount()"
+      ],
+      [
+        "EnsureCartOverlayOpen()",
+        "Opacity Fade-In Transition"
+      ],
+      [
+        "dispatchEvent(new MouseEvent('click', ...))",
+        "selectSize()"
+      ],
+      [
+        "Converse",
+        "Platypus AU WOMENS URL"
+      ],
+      [
+        "Mini Cart Overlay",
+        "Position Fixed"
+      ],
+      [
+        "TIMEOUTS.POLL_INTERVAL_FAST",
+        "WaitForCustomCondition()"
+      ],
+      [
+        "Add To Cart (ATC)",
+        "Justify Button"
+      ],
+      [
+        "E2E-CART-002",
+        "Platypus AU"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "Overlay Div"
+      ],
+      [
+        "Race Condition",
+        "Skechers NZ"
+      ],
+      [
+        "Cart Overlay Methods",
+        "isOverlayGenuinelyOpen()"
+      ],
+      [
+        "Escape Key",
+        "L3L4Navigation-root Container"
+      ],
+      [
+        "ALL NAV Label",
+        "Socks"
+      ],
+      [
+        "E2E-CART-003",
+        "Platypus AU"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "Popup Close Button Lookup"
+      ],
+      [
+        "Platypus AU Cart Button",
+        "getMiniCartCount()"
+      ],
+      [
+        "React Event Delegation",
+        "el.click()"
+      ],
+      [
+        "Page Snapshot",
+        "Validation Error"
+      ],
+      [
+        "Mens PLP Navigation",
+        "Skechers"
+      ],
+      [
+        "Mini Cart Overlay",
+        "Opacity"
+      ],
+      [
+        "GetTotalProductCount",
+        "Regex"
+      ],
+      [
+        "E2E-PDP-005",
+        "MaxProductsToTry"
+      ],
+      [
+        "E2E-PDP-007",
+        "MaxProductsToTry"
+      ],
+      [
+        "Diagnostic Process",
+        "console.log Diagnostics"
+      ],
+      [
+        "Auth Modal",
+        "Cart Overlay Methods"
+      ],
+      [
+        "Page Snapshot",
+        "Test Results Directory"
+      ],
+      [
+        "Cart Count",
+        "Delta Assertion Rule"
+      ],
+      [
+        "Race Condition",
+        "Skechers AU"
+      ],
+      [
+        "DIV.sc-fnxdBY.kEwWPG.L3L4Navigation-root",
+        "L3L4Navigation Container"
+      ],
+      [
+        "Rect",
+        "isOverlayVisible()"
+      ],
+      [
+        "Dr. Martens AU",
+        "GetTotalProductCount"
+      ],
+      [
+        "Dr. Martens NZ",
+        "E2E-CART-005-008"
+      ],
+      [
+        "Dr. Martens AU",
+        "E2E-PLP-006"
+      ],
+      [
+        "Vans AU",
+        "Vans AU MEN URL"
+      ],
+      [
+        "Playwright",
+        "force:true"
+      ],
+      [
+        "WaitForOverlayGenuinelyOpen()",
+        "isOverlayGenuinelyOpen()"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "Ecommerce Smoke Suite Chromium"
+      ],
+      [
+        "Mens PLP Navigation",
+        "Vans NZ WOMENS"
+      ],
+      [
+        "ATC Button",
+        "isAddToCartEnabled()"
+      ],
+      [
+        "Cart-overlay-page.ts",
+        "isOverlayGenuinelyOpen()"
+      ],
+      [
+        "Dr. Martens AU",
+        "getTotalProductCount()"
+      ],
+      [
+        "EnsureCartOverlayOpen()",
+        "Platform Storefronts"
+      ],
+      [
+        "Platypus AU",
+        "WOMENS NAV Label"
+      ],
+      [
+        "dispatchEvent(new MouseEvent('click', ...))",
+        "elementFromPoint()"
+      ],
+      [
+        "EcommercePDPPage",
+        "Feedback"
+      ],
+      [
+        "DispatchEvent",
+        "React Handlers"
+      ],
+      [
+        "WaitForCustomCondition()",
+        "WaitForOverlayHidden()"
+      ],
+      [
+        "E2E-CART-006",
+        "Fixture Registry"
+      ],
+      [
+        "Vans AU",
+        "Vans AU OUTLET URL"
+      ],
+      [
+        "GetPreferredNavLabel()",
+        "Mens PLP Navigation"
+      ],
+      [
+        "EnsureCartOverlayOpen()",
+        "Race Condition"
+      ],
+      [
+        "E2E-PLP-006",
+        "Size Filter"
+      ],
+      [
+        "EnsureNoOverlay()",
+        "Vans AU"
+      ],
+      [
+        "Dr. Martens NZ",
+        "Two H1 Elements Issue"
+      ],
+      [
+        "Boots",
+        "Colour Swatches"
+      ],
+      [
+        "ARIA-label Fast Path",
+        "GetMiniCartCount()"
+      ],
+      [
+        "Page.goto()",
+        "Swatch Click Navigation"
+      ],
+      [
+        "MENS PLP",
+        "Skechers"
+      ],
+      [
+        "Dr. Martens NZ",
+        "E2E-PDP-002"
+      ],
+      [
+        "Ecommerce Smoke Suite Chromium",
+        "Firefox"
+      ],
+      [
+        "EcommercePDPPage",
+        "Memory"
+      ],
+      [
+        "Platypus AU WOMENS URL",
+        "Vans NZ"
+      ],
+      [
+        "Position",
+        "isOverlayVisible()"
+      ],
+      [
+        "EcommerceCartOverlayPage",
+        "isOverlayVisible()"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "EcommerceAccountModalPage"
+      ],
+      [
+        "Mini Cart Overlay",
+        "isOverlayVisible()"
+      ],
+      [
+        "Diagnostic Approach",
+        "React Click Not Registering Bugs"
+      ],
+      [
+        "E2E-CART-002 Scan Strategy",
+        "WOMENS NAV Label"
+      ],
+      [
+        "E2E-CART-003",
+        "Vans AU"
+      ],
+      [
+        "Dr. Martens AU",
+        "Gallery Images"
+      ],
+      [
+        "Dr. Martens AU",
+        "E2E-PLP-006-007"
+      ],
+      [
+        "Bloomreach Acquisition Popup",
+        "Vans AU"
+      ],
+      [
+        "Page",
+        "Page.Evaluate"
+      ],
+      [
+        "Cart Overlay Methods",
+        "Wishlist Panel"
+      ],
+      [
+        "Vans AU",
+        "Vans AU WOMEN URL"
+      ],
+      [
+        "InnerText",
+        "isOverlayVisible()"
+      ]
+    ],
+    "count": 139,
+    "create_time": 1783085987,
+    "update_time": 1783085987,
+    "_id": "doc-cecb0d91ce73637998acce9c5c61beac"
+  },
+  "doc-89278d88eec2b6ee50a522529e8ddbde": {
+    "relation_pairs": [
+      [
+        "Concurrency Race",
+        "Staging Environment"
+      ],
+      [
+        "GRA Storefronts",
+        "Platypus AU"
+      ],
+      [
+        "E2E-CHKOUT-004",
+        "Ecommerce PDP Page Gotchas"
+      ],
+      [
+        "Concurrency Race",
+        "Workers"
+      ],
+      [
+        "NZ Storefronts",
+        "createGuestShippingAddress(isNz)"
+      ],
+      [
+        "E2E-CHKOUT-004",
+        "Paid Method Pre-checked"
+      ],
+      [
+        "E2E-CHKOUT-004",
+        "tests/ecommerce/regression/checkout.spec.ts"
+      ],
+      [
+        "Discount",
+        "Subtotal"
+      ],
+      [
+        "GRA Storefronts",
+        "Skechers AU"
+      ],
+      [
+        "Dr. Martens AU",
+        "GRA Storefronts"
+      ],
+      [
+        "Baseline Shipping Method",
+        "Selected Method Delta"
+      ],
+      [
+        "Concurrency Race",
+        "waitForShippingMethodsReady()"
+      ],
+      [
+        "Delivery",
+        "Subtotal"
+      ],
+      [
+        "Platypus AU",
+        "Sydney CBD"
+      ],
+      [
+        "Address-autocomplete Widget",
+        "Concurrency Race"
+      ],
+      [
+        "GRA Storefronts",
+        "NZ Storefronts"
+      ],
+      [
+        "E2E-CHKOUT-004",
+        "GRA Storefronts"
+      ],
+      [
+        "Address-autocomplete Widget",
+        "Shipping-Method Readiness Gate"
+      ],
+      [
+        "E2E-CHKOUT-004",
+        "Ecommerce Storefronts"
+      ],
+      [
+        "Infra Tuning",
+        "Staging Environment"
+      ],
+      [
+        "Concurrency Race",
+        "Skip Counts"
+      ],
+      [
+        "Address-autocomplete Widget",
+        "ElementHelper.clearAndTypeSequentially()"
+      ],
+      [
+        "GRA Storefronts",
+        "tests/ecommerce/regression/checkout.spec.ts"
+      ],
+      [
+        "Infra Tuning",
+        "Workers"
+      ],
+      [
+        "Address-autocomplete Widget",
+        "GRA Storefronts"
+      ],
+      [
+        "MethodCount Guard",
+        "waitForShippingMethodsReady()"
+      ],
+      [
+        "Staging Environment",
+        "Workers"
+      ],
+      [
+        "GRA Storefronts",
+        "Vans AU/NZ"
+      ],
+      [
+        "GRA Storefronts",
+        "Shipping-Address Form Markup"
+      ]
+    ],
+    "count": 29,
+    "create_time": 1783765189,
+    "update_time": 1783765189,
+    "_id": "doc-89278d88eec2b6ee50a522529e8ddbde"
+  },
+  "doc-9b7502586fbddb3db19fdfbf98d6e442": {
+    "relation_pairs": [
+      [
+        "CLAUDE_CONFIG_DIR",
+        "MCP Away Profile Config"
+      ],
+      [
+        ".mcp.json",
+        "playwright-test"
+      ],
+      [
+        "Backup .claude.json.bak-mcp-fix",
+        "mcpServers"
+      ],
+      [
+        ".mcp.json",
+        "Commit 80cc522"
+      ],
+      [
+        "LightRAG HTTP Server",
+        "localhost:9621"
+      ],
+      [
+        ".claude.json",
+        "MCP Servers"
+      ],
+      [
+        "LightRAG HTTP Server",
+        "lightrag-mcp Bridge"
+      ],
+      [
+        ".claude-away Folder",
+        "MCP Away Profile Config"
+      ],
+      [
+        "lightrag-mcp Bridge",
+        "uvx"
+      ],
+      [
+        ".mcp.json",
+        "Commit 4507d03"
+      ],
+      [
+        ".mcp.json",
+        "Commit 9a8120a"
+      ],
+      [
+        ".mcp.json",
+        "lightrag"
+      ],
+      [
+        "User-Scoped Servers",
+        "mcpServers"
+      ],
+      [
+        "MCP Servers",
+        "enabledMcpjsonServers"
+      ],
+      [
+        "LightRAG HTTP Server",
+        "lightrag"
+      ],
+      [
+        "ACER Machine",
+        "MCP Away Profile Config"
+      ],
+      [
+        ".mcp.json",
+        "enabledMcpjsonServers"
+      ],
+      [
+        "MCP Away Profile Config",
+        "lightrag-memory-guide"
+      ],
+      [
+        "MCP Servers",
+        "mcpServers"
+      ],
+      [
+        ".claude-away Folder",
+        ".claude.json"
+      ],
+      [
+        "Claude Code",
+        "MCP Servers"
+      ]
+    ],
+    "count": 21,
+    "create_time": 1784291530,
+    "update_time": 1784291530,
+    "_id": "doc-9b7502586fbddb3db19fdfbf98d6e442"
+  },
+  "doc-6a6e1efbd4304c8a3c59149f2dcf1317": {
+    "relation_pairs": [
+      [
+        "Object.values(payload.data)[0]?.cart?.items",
+        "addConfigurableProductsToCart"
+      ],
+      [
+        "dataLayer",
+        "docs/gra-integration-test-scenarios.html"
+      ],
+      [
+        "addConfigurableProductToCart",
+        "addConfigurableProductsToCart"
+      ],
+      [
+        "POST /graphql",
+        "route `**/graphql?**operationName=...**`"
+      ],
+      [
+        "E2E-INT-001-001..008",
+        "GRA INT-001"
+      ],
+      [
+        "add_to_cart",
+        "cart_add"
+      ],
+      [
+        "createAddToCartCapture",
+        "tests/ecommerce/integration/add-to-cart-integration.spec.ts"
+      ],
+      [
+        "adobeDataLayer",
+        "docs/gra-integration-test-scenarios.html"
+      ],
+      [
+        "POST /graphql",
+        "operationName"
+      ],
+      [
+        "EcommercePDPPage.dismissPostAtcPopup()",
+        "Vans"
+      ],
+      [
+        "tests/ecommerce/integration/add-to-cart-integration.spec.ts",
+        "tests/ecommerce/integration/integration-helpers.ts"
+      ],
+      [
+        "createAddToCartCapture",
+        "factory fixture"
+      ],
+      [
+        "Adobe Client Data Layer 2.0.2",
+        "cart_add"
+      ],
+      [
+        "POST /graphql",
+        "route pattern"
+      ],
+      [
+        "src/data/ecommerce/analytics-events.ts",
+        "tests/ecommerce/integration/add-to-cart-integration.spec.ts"
+      ],
+      [
+        "page.route closure",
+        "typeScript strict-mode"
+      ],
+      [
+        "GRA INT-001",
+        "GRA Storefront"
+      ]
+    ],
+    "count": 17,
+    "create_time": 1784302321,
+    "update_time": 1784302321,
+    "_id": "doc-6a6e1efbd4304c8a3c59149f2dcf1317"
+  },
+  "doc-c52b0c7ea9072a599183553ee3aed95a": {
+    "relation_pairs": [
+      [
+        ".lightrag-venv",
+        "Per-machine Items"
+      ],
+      [
+        ".env",
+        "lightrag-server"
+      ],
+      [
+        "LightRAG Memory-Vault Backend",
+        "lightrag-1.5.4-upgrade-completed"
+      ],
+      [
+        "33495c1",
+        "scripts/lightrag-requirements.txt"
+      ],
+      [
+        "MCP Server",
+        "mcp__lightrag__* tools"
+      ],
+      [
+        "Runbook",
+        "lightrag-1.5.4-upgrade-completed"
+      ],
+      [
+        "C:\\Users\\Lincoln.Pham\\...\\playwright-typescript",
+        "docs/technical-research/lightrag-1.5.4-upgrade-runbook.html"
+      ],
+      [
+        "lightrag-hku==1.5.4",
+        "scripts/lightrag-requirements.txt"
+      ],
+      [
+        "LightRAG Memory-Vault Backend",
+        "LightRAG Version 1.5.4"
+      ],
+      [
+        "Per-machine Items",
+        "Runbook"
+      ],
+      [
+        "LIGHTRAG_RUNTIME_TARGET=host",
+        "root .env"
+      ],
+      [
+        ".lightrag-venv",
+        "lightrag_hku==1.5.2"
+      ],
+      [
+        ".lightrag-venv",
+        "Lightrag-UV-Managed-Venv"
+      ],
+      [
+        "LightRAG Server v1.5.4/0313",
+        "scripts/start-rag.bat"
+      ],
+      [
+        "Python 3.12.13",
+        "uv"
+      ],
+      [
+        ".lightrag-venv",
+        "uv"
+      ],
+      [
+        "ACER",
+        "LightRAG Memory-Vault Backend"
+      ],
+      [
+        "E:\\OLDDATA\\DATA\\TESTING\\AutomationTesting\\playwright-typescript",
+        "LightRAG Memory-Vault Backend"
+      ],
+      [
+        ".env",
+        "Per-machine Items"
+      ],
+      [
+        "LightRAG Memory-Vault Backend",
+        "node scripts/sync-vault-to-lightrag.mjs"
+      ],
+      [
+        ".env",
+        "Multi-instance Check>=1.5.3"
+      ]
+    ],
+    "count": 21,
+    "create_time": 1784708006,
+    "update_time": 1784708006,
+    "_id": "doc-c52b0c7ea9072a599183553ee3aed95a"
+  },
+  "doc-b0565a3b3ed4ba90053450a6d12e132d": {
+    "relation_pairs": [
+      [
+        ".Lightrag-Venv",
+        "Pip"
+      ],
+      [
+        ".Lightrag-Venv/Lib/Site-Packages",
+        "Dist-Info-Folder"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Pipmaster"
+      ],
+      [
+        "Pip",
+        "Python.exe"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Lightrag-1.5.4-Upgrade-Completed"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Uv-Pip-List"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Dist-Info-Folder"
+      ],
+      [
+        ".Lightrag-Venv",
+        ".Lightrag-Venv/Scripts/Python.exe"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Uv-Pip-Show"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Uv-Pip-Install"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Pip-Show-Install Commands"
+      ],
+      [
+        ".Lightrag-Venv",
+        "UV"
+      ],
+      [
+        ".Lightrag-Venv",
+        "Scripts/Lightrag-Requirements.txt"
+      ]
+    ],
+    "count": 13,
+    "create_time": 1784708041,
+    "update_time": 1784708041,
+    "_id": "doc-b0565a3b3ed4ba90053450a6d12e132d"
+  },
+  "doc-13c6ca4c338ad773242cc059a8049dc9": {
+    "relation_pairs": [
+      [
+        "AuthType.BEARER Enum Rule",
+        "QA Code Reviewer"
+      ],
+      [
+        "GRA Order History Data",
+        "GRA Order History Spec"
+      ],
+      [
+        "AssertNoCriticalErrors",
+        "TC_01"
+      ],
+      [
+        "Drm-AU",
+        "Workers Parameter"
+      ],
+      [
+        "TC_04",
+        "TC_06"
+      ],
+      [
+        "BasePrice",
+        "PriceSort"
+      ],
+      [
+        "PriceSort",
+        "TC_04"
+      ],
+      [
+        "Drm-AU",
+        "TestIgnore Flag"
+      ],
+      [
+        "Always-Fresh-Auth Pattern",
+        "GRA Spec"
+      ],
+      [
+        "Api Test Helpers",
+        "TestState Class"
+      ],
+      [
+        "Braintree",
+        "PaymentMethodNonce"
+      ],
+      [
+        "TC_18",
+        "UrlResolver"
+      ],
+      [
+        "GRA API Testing",
+        "Skx-AU"
+      ],
+      [
+        "Pla-AU",
+        "Workers Parameter"
+      ],
+      [
+        "Gra Place Order Data Ts",
+        "Order Number Pattern"
+      ],
+      [
+        "Drm-AU",
+        "GRA API Testing"
+      ],
+      [
+        "Always-Fresh-Cart Pattern",
+        "CartId"
+      ],
+      [
+        "CategoryFilterField",
+        "GRA Catalog Spec"
+      ],
+      [
+        "Gra Loyalty Rewards Spec",
+        "Remove Qantas Points From Cart"
+      ],
+      [
+        "CustomerOrders",
+        "PLA Staging"
+      ],
+      [
+        "Src/Data/Api/Gra-Test.TS",
+        "graTest"
+      ],
+      [
+        "TestIgnore Flag",
+        "Van-AU"
+      ],
+      [
+        "P2 Schema Gaps",
+        "gra-loyalty-rewards.spec.ts"
+      ],
+      [
+        "Guest Client",
+        "SetGuestEmailOnCart"
+      ],
+      [
+        "CategoryFilterField",
+        "CategoryUid"
+      ],
+      [
+        "AssertNoCriticalErrors",
+        "PriceRangePathErrors"
+      ],
+      [
+        "SiteContext Interface",
+        "Src/Data/Api/Sites.TS"
+      ],
+      [
+        "GRA Order History Data",
+        "GRA Test Data"
+      ],
+      [
+        "Authenticated Customers",
+        "Create Empty Cart"
+      ],
+      [
+        "CustomerOrders",
+        "GraOrderHistorySpecTs"
+      ],
+      [
+        "GRA Search Data",
+        "GRA Test Data"
+      ],
+      [
+        "BeforeAll Timeout",
+        "Test Set Timeout"
+      ],
+      [
+        "GRA Checkout Shipping Data",
+        "GRA Test Data"
+      ],
+      [
+        "GenerateCustomerToken",
+        "Platypus Staging"
+      ],
+      [
+        "Api.Config.TS FullyParallel Setting",
+        "FullyParallel Flag"
+      ],
+      [
+        "Shipping Method Mutation",
+        "ShippingMethodSet Flag"
+      ],
+      [
+        "CreateEmptyCart",
+        "TC_02"
+      ],
+      [
+        "Module-level Variable Initialization Rule",
+        "QA Code Reviewer"
+      ],
+      [
+        "Api.Config.TS",
+        "FullyParallel Flag"
+      ],
+      [
+        "ProductSearch",
+        "TC_05"
+      ],
+      [
+        "SignInAndStoreToken",
+        "TestLogger"
+      ],
+      [
+        "Gra Place Order Spec",
+        "Place Order"
+      ],
+      [
+        "Gra Order History Spec",
+        "Guest Order By Token"
+      ],
+      [
+        "Errors Optional Chaining Rule",
+        "QA Code Reviewer"
+      ],
+      [
+        "FullyParallel Flag",
+        "Gra-*.Spec.TS Files"
+      ],
+      [
+        "GraAuthErrorMessages.invalidEmailFormat",
+        "Magento 2"
+      ],
+      [
+        "GRA Loyalty Rewards Spec",
+        "Shared State TypeScript File"
+      ],
+      [
+        "Magento 2",
+        "Magento 2 Error Message"
+      ],
+      [
+        "Always-Fresh-Cart Pattern",
+        "Magento 2"
+      ],
+      [
+        "BraintreePaypal",
+        "PaymentMethodNonce"
+      ],
+      [
+        "Create GraphQL Client",
+        "Guest Client"
+      ],
+      [
+        "Logger Verify Rule",
+        "QA Code Reviewer"
+      ],
+      [
+        "Checkout Billing And Payment Patterns",
+        "SetPaymentMethodOnCart"
+      ],
+      [
+        "Api-Scenarios-Report.html",
+        "Qa Orchestrator Explore Workflow"
+      ],
+      [
+        "GRA Checkout Shipping Data",
+        "GRA Checkout Shipping Spec"
+      ],
+      [
+        "GRA Loyalty Rewards Data",
+        "GRA Test Data"
+      ],
+      [
+        "GRA Auth Data",
+        "GRA Test Data"
+      ],
+      [
+        "Braintree",
+        "PayMethodNonce"
+      ],
+      [
+        "Apply Reward Points To Cart",
+        "PlatyPoints"
+      ],
+      [
+        "GRA Customer Profile Data",
+        "GRA Customer Profile Spec"
+      ],
+      [
+        "AssertNoCriticalErrors",
+        "TC_06"
+      ],
+      [
+        "Remove Reward Points From Cart",
+        "Remove Reward Points From Cart Argument Shape"
+      ],
+      [
+        "GraTest",
+        "TestState"
+      ],
+      [
+        "GraTest",
+        "SiteContext Interface"
+      ],
+      [
+        "Api Test Helpers",
+        "GRA Spec Files"
+      ],
+      [
+        "CreateEmptyCart",
+        "Guest Client"
+      ],
+      [
+        "GraPlaceOrderSpecTs",
+        "TC_02"
+      ],
+      [
+        "Braintree Apple Pay",
+        "Staging AU Cart"
+      ],
+      [
+        "TC_20",
+        "UrlResolver"
+      ],
+      [
+        "AssertNoCriticalErrors",
+        "GRA Catalog Spec"
+      ],
+      [
+        "Gra Loyalty Rewards Spec",
+        "Remove Reward Points From Cart"
+      ],
+      [
+        "Gra Checkout Billing Payment Spec",
+        "Set Billing Address On Cart"
+      ],
+      [
+        "CartId",
+        "RemoveRewardPointsFromCart Mutation"
+      ],
+      [
+        "GraphqlAuthorization Error",
+        "RevokeCustomerToken"
+      ],
+      [
+        "CustomerToken",
+        "SignInAndStoreToken"
+      ],
+      [
+        "ApiTestHelpers.ts",
+        "SignInAndStoreToken"
+      ],
+      [
+        "Apparel21BrandId",
+        "GraCatalogData.discovery.brandRetryTerm"
+      ],
+      [
+        "Checkout Billing And Payment Patterns",
+        "SetShippingMethodsOnCart"
+      ],
+      [
+        "GRA Checkout Billing Payment Data",
+        "GRA Checkout Billing Payment Spec"
+      ],
+      [
+        "TC_17",
+        "UrlResolver"
+      ],
+      [
+        "TC_04",
+        "TC_05"
+      ],
+      [
+        "GRA Catalog Spec",
+        "UrlKey"
+      ],
+      [
+        "GRA Search Data",
+        "GRA Search Spec"
+      ],
+      [
+        "AddressId",
+        "TestState"
+      ],
+      [
+        "CustomerToken",
+        "TestState"
+      ],
+      [
+        "Gra Place Order Data Ts",
+        "Place Order Test Data Generator"
+      ],
+      [
+        "GRA API Testing",
+        "Gra-*.Spec.TS Files"
+      ],
+      [
+        "ApplyRewardPointsToCart Mutation",
+        "CartId"
+      ],
+      [
+        "Pla-AU",
+        "Pla-AU SiteCode"
+      ],
+      [
+        "Checkout Billing And Payment Patterns",
+        "SetBillingAddressOnCart"
+      ],
+      [
+        "Cart Creation",
+        "GRA Create Cart After Sign In"
+      ],
+      [
+        "CreateEmptyCart",
+        "TC_03"
+      ],
+      [
+        "Gra Checkout Shipping Spec",
+        "Set Shipping Methods On Cart"
+      ],
+      [
+        "CreateGraphQLClient",
+        "GRA Catalog Spec"
+      ],
+      [
+        "Afterpay",
+        "Staging AU Cart"
+      ],
+      [
+        "ApplyQantasPointsToCart Mutation",
+        "cart_id field"
+      ],
+      [
+        "AddProductsToCart",
+        "User Errors"
+      ],
+      [
+        "BeforeAll",
+        "Fresh Account"
+      ],
+      [
+        "CartId Dead Field Anti-Pattern",
+        "Shared-State.ts"
+      ],
+      [
+        "CategoryFilterField",
+        "CategoryId"
+      ],
+      [
+        "P2 Schema Gaps",
+        "TC_06"
+      ],
+      [
+        "Cart",
+        "Remove Qantas Points From Cart"
+      ],
+      [
+        "BeforeAll",
+        "Cart Creation"
+      ],
+      [
+        "Guest Client",
+        "TC_02"
+      ],
+      [
+        "GRA Authentication Spec",
+        "Shared State TypeScript File"
+      ],
+      [
+        "GraOrderHistorySpecTs",
+        "TC_01"
+      ],
+      [
+        "P2 Schema Gaps",
+        "TC_05"
+      ],
+      [
+        "CustomerUpdateInput",
+        "UpdateCustomerV2"
+      ],
+      [
+        "QA Code Reviewer",
+        "Test Describe Configure Rule"
+      ],
+      [
+        "SignInAndStoreToken",
+        "TestState"
+      ],
+      [
+        "SignInAndStoreToken",
+        "SiteContext Interface"
+      ],
+      [
+        "BraintreeApplePay",
+        "PaymentMethodNonce"
+      ],
+      [
+        "Always-Fresh-Auth Pattern",
+        "BeforeAll"
+      ],
+      [
+        "Drm-AU",
+        "Drm-AU Brand Loyalty"
+      ],
+      [
+        "GraPlaceOrderSpecTs",
+        "TC_03"
+      ],
+      [
+        "Flatrate Flatrate",
+        "Place Order"
+      ],
+      [
+        "Api.Config.TS",
+        "Workers Parameter"
+      ],
+      [
+        "Apply Qantas Points To Cart",
+        "Cart"
+      ],
+      [
+        "Van-AU",
+        "Van-AU Brand Loyalty"
+      ],
+      [
+        "Shared-State Map<Keyed by SiteCode>",
+        "TestState"
+      ],
+      [
+        "CreateBrandTestData",
+        "GraTestData"
+      ],
+      [
+        "Api.Config.TS",
+        "TestIgnore Flag"
+      ],
+      [
+        "CustomerOrder",
+        "PLA Staging"
+      ],
+      [
+        "CustomerToken",
+        "GenerateCustomerToken"
+      ],
+      [
+        "Address List Assertions",
+        "gra-my-details.spec.ts"
+      ],
+      [
+        "Apply Qantas Points To Cart",
+        "Points Burned"
+      ],
+      [
+        "POLL_INTERVAL_NORMAL",
+        "TC_02"
+      ],
+      [
+        "GraphQLClient",
+        "SignInAndStoreToken"
+      ],
+      [
+        "Apply Qantas Points To Cart",
+        "Internal Server Error"
+      ],
+      [
+        "GraTest",
+        "Src/Data/Api/Gra-Test.TS"
+      ],
+      [
+        "GraphQL Strings Hoisting Rule",
+        "QA Code Reviewer"
+      ],
+      [
+        "POLL_INTERVAL_NORMAL",
+        "RevokeCustomerToken"
+      ],
+      [
+        "Braintree PayPal",
+        "Payment Method Nonce"
+      ],
+      [
+        "GraTestData",
+        "SiteRegistry"
+      ],
+      [
+        "Skx-AU",
+        "Skx-AU Brand Loyalty"
+      ],
+      [
+        "CreateEmptyCart",
+        "PlaceOrder"
+      ],
+      [
+        "Skx-AU",
+        "Workers Parameter"
+      ],
+      [
+        "GuestOrder",
+        "PLA Staging"
+      ],
+      [
+        "Apply Qantas Points To Cart",
+        "Authentication Guard"
+      ],
+      [
+        "BillingAddress",
+        "SetBillingAddressOnCart"
+      ],
+      [
+        "DiscoveredCategoryFilterField",
+        "GRA Catalog Spec"
+      ],
+      [
+        "Guest Token",
+        "Order"
+      ],
+      [
+        "Shared-State Map<Keyed by SiteCode>",
+        "getStateForSite"
+      ],
+      [
+        "CartId",
+        "GRA_CreateCartAfterSignIn"
+      ],
+      [
+        "Apply Qantas Points To Cart",
+        "Dollar Value"
+      ],
+      [
+        "Address List Assertions",
+        "Magento 2"
+      ],
+      [
+        "Checkout Billing And Payment Patterns",
+        "SetShippingAddressesOnCart"
+      ],
+      [
+        "CreateBrandTestData",
+        "CreatePlaTestData"
+      ],
+      [
+        "Cart",
+        "Remove Reward Points From Cart"
+      ],
+      [
+        "SiteRegistry",
+        "Src/Data/Api/Sites.TS"
+      ],
+      [
+        "SignInAndStoreToken Pattern",
+        "Site Test Data"
+      ],
+      [
+        "GRA Cart Minicart Spec",
+        "Shared State TypeScript File"
+      ],
+      [
+        "Shared State TypeScript File",
+        "TestState Class"
+      ],
+      [
+        "FlatRate",
+        "PlaceOrder"
+      ],
+      [
+        "Always-Fresh-Cart Pattern",
+        "BeforeAll"
+      ],
+      [
+        "Customer Orders",
+        "Gra Order History Spec"
+      ],
+      [
+        "Apparel21BrandId",
+        "TC_02"
+      ],
+      [
+        "Guest Client",
+        "TC_03"
+      ],
+      [
+        "Apply Qantas Points To Cart",
+        "Is QFF Member"
+      ],
+      [
+        "ChangeCustomerPassword",
+        "GraCustomerProfileErrorMessages.wrongCurrentPassword"
+      ],
+      [
+        "RemoveQantasPointsFromCart Mutation",
+        "cart_id field"
+      ],
+      [
+        "Src Constants Timeouts Ts",
+        "Timeouts API Suite Setup"
+      ],
+      [
+        "Dmr-au Staging",
+        "TC_04"
+      ],
+      [
+        "GRA Checkout Billing Payment Data",
+        "GRA Test Data"
+      ],
+      [
+        "GetCustomerToken",
+        "TestState"
+      ],
+      [
+        "GRA Specs",
+        "TC_XX Naming Convention"
+      ],
+      [
+        "Qantas Frequent Flyer Credentials",
+        "Quote Ref"
+      ],
+      [
+        "TC_01",
+        "TC_02"
+      ],
+      [
+        "AddProductsToCart",
+        "Checkout Billing And Payment Patterns"
+      ],
+      [
+        "GraOrderHistorySpecTs",
+        "TC_05"
+      ],
+      [
+        "GRA API Testing",
+        "Pla-AU"
+      ],
+      [
+        "SignInAndStoreToken",
+        "Tests/Api/Api-Test-Helpers.TS"
+      ],
+      [
+        "PriceSort",
+        "TC_03"
+      ],
+      [
+        "Gra Place Order Data Ts",
+        "Product Search Terms"
+      ],
+      [
+        "Apparel21BrandId",
+        "GRA Catalog Spec"
+      ],
+      [
+        "InstorePickup",
+        "PlaceOrder"
+      ],
+      [
+        "GenerateCustomerToken",
+        "Site.testData.validCredentials"
+      ],
+      [
+        "ApplyQantasPointsToCart Mutation",
+        "Internal Server Error"
+      ],
+      [
+        "Api.Config.TS FullyParallel Setting",
+        "TestDescribe Configure Serial Mode"
+      ],
+      [
+        "Gra Checkout Shipping Spec",
+        "Set Shipping Addresses On Cart"
+      ],
+      [
+        "OrderByToken",
+        "PLA Staging"
+      ],
+      [
+        "GRA Catalog Data",
+        "GRA Test Data"
+      ],
+      [
+        "SetCustomerToken",
+        "TestState"
+      ],
+      [
+        "GRA Checkout Billing Payment Spec",
+        "GRA Place Order Spec"
+      ],
+      [
+        "Require Password for Account Changes",
+        "UpdateCustomerV2"
+      ],
+      [
+        "Checkmo",
+        "Staging AU Cart"
+      ],
+      [
+        "GRA Order History Spec",
+        "GRA Place Order Spec"
+      ],
+      [
+        "Applied Multiple Rewards",
+        "Apply Reward Points To Cart"
+      ],
+      [
+        "GRA Loyalty Rewards Data",
+        "GRA Loyalty Rewards Spec"
+      ],
+      [
+        "Site.testData.validCustomer.email",
+        "TestEmail"
+      ],
+      [
+        "Cart Creation",
+        "TC_01"
+      ],
+      [
+        "GRA Account Creation Signin Spec",
+        "Shared State TypeScript File"
+      ],
+      [
+        "GRA API Testing",
+        "Van-AU"
+      ],
+      [
+        "EntityUrl",
+        "UrlResolver"
+      ],
+      [
+        "API Config",
+        "GRA Spec Files"
+      ],
+      [
+        "Gra-*.Spec.TS Files",
+        "Pla-*.Spec.TS Files"
+      ],
+      [
+        "Gra Braintree Payment",
+        "Gra Order History Spec"
+      ],
+      [
+        "Cart Creation",
+        "Playwright"
+      ],
+      [
+        "Test Set Timeout",
+        "Timeouts API Suite Setup"
+      ],
+      [
+        "GraOrderHistorySpecTs",
+        "TC_03"
+      ],
+      [
+        "CartId",
+        "TestState"
+      ],
+      [
+        "GRA Checkout Shipping Spec",
+        "GRA Place Order Spec"
+      ],
+      [
+        "Account Addresses",
+        "Address List Assertions"
+      ],
+      [
+        "ApiTest",
+        "Restful-Booker Specs"
+      ],
+      [
+        "GraphqlInput Error",
+        "RequestPasswordResetEmail"
+      ],
+      [
+        "Always-Fresh-Auth Pattern",
+        "SignInAndStoreToken"
+      ],
+      [
+        "Magento 2",
+        "RequestPasswordResetEmail"
+      ],
+      [
+        "Pla-AU",
+        "Pla-AU Brand Loyalty"
+      ],
+      [
+        "Braintree",
+        "Gra Order History Spec"
+      ],
+      [
+        "Van-AU",
+        "Workers Parameter"
+      ],
+      [
+        "AddProductsToCart",
+        "OOS Items"
+      ],
+      [
+        "Gra Checkout Billing Payment Spec",
+        "Set Payment Method On Cart"
+      ],
+      [
+        "GraMyDetailsSpecTs",
+        "UpdateCustomerV2"
+      ],
+      [
+        "DiscoveredCategoryFilterValue",
+        "GRA Catalog Spec"
+      ],
+      [
+        "GRA Catalog Data",
+        "GRA Catalog Spec"
+      ],
+      [
+        "Gra Braintree Payment",
+        "Gra Place Order Spec"
+      ],
+      [
+        "PERTH Address",
+        "SYDNEY Address"
+      ],
+      [
+        "GRA Customer Profile Data",
+        "GRA Test Data"
+      ],
+      [
+        "CustomerId",
+        "TestState"
+      ],
+      [
+        "Instore Pickup",
+        "Place Order"
+      ],
+      [
+        "SoftAssert",
+        "SoftExpect"
+      ],
+      [
+        "Apply Reward Points To Cart",
+        "Gra Loyalty Rewards Spec"
+      ],
+      [
+        "Place Order Validation",
+        "Set Guest Email On Cart"
+      ],
+      [
+        "Checkout Billing And Payment Patterns",
+        "PlaceOrder"
+      ],
+      [
+        "FinalPrice",
+        "PriceSort"
+      ],
+      [
+        "CLAUDE.md",
+        "TC_XX Naming Convention"
+      ],
+      [
+        "GetCartId",
+        "TestState"
+      ],
+      [
+        "Braintree",
+        "Gra Place Order Spec"
+      ],
+      [
+        "TC_05",
+        "UpdateCustomerV2"
+      ],
+      [
+        "CartId Dead Field Anti-Pattern",
+        "QA Code Reviewer"
+      ]
+    ],
+    "count": 230,
+    "create_time": 1785074432,
+    "update_time": 1785074432,
+    "_id": "doc-13c6ca4c338ad773242cc059a8049dc9"
+  },
+  "doc-22b4f6a856aea6d7be1c0b7f9d72afb6": {
+    "relation_pairs": [
+      [
+        "CustomerOrders",
+        "PlaNz"
+      ],
+      [
+        "Api.Config.ts",
+        "Nonce"
+      ],
+      [
+        "GitStash",
+        "GraphqlInputIntegrationIssuesError"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Pla-nz"
+      ],
+      [
+        "Braintree-Sandbox",
+        "Gra-Braintree-Payment"
+      ],
+      [
+        "GraphQLDate",
+        "TokenizeCreditCard"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Gra-Order-History-Spec.ts"
+      ],
+      [
+        "PaymentResult",
+        "SetPaymentMethod"
+      ],
+      [
+        "PaymentMethodNonce",
+        "SetPaymentMethodOnCart"
+      ],
+      [
+        "GraGraphqlOperations.ts",
+        "SetBraintreePaymentMethodMutation"
+      ],
+      [
+        "Gra-Order-History-Spec.ts",
+        "TC_01"
+      ],
+      [
+        "Drm-au",
+        "Gra-Braintree-Payment"
+      ],
+      [
+        "Nonce",
+        "Shared-State.ts"
+      ],
+      [
+        "GraPlaceOrderData.ts",
+        "SimplePaymentCodes"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Gra-Place-Order-Spec.ts"
+      ],
+      [
+        "Nonce",
+        "Redact.ts"
+      ],
+      [
+        "SetBraintreePaymentMethodMutation",
+        "SetPaymentMethodOnCart"
+      ],
+      [
+        "CustomerOrders",
+        "StagingEnvironment"
+      ],
+      [
+        "GraOrderHistoryData.ts",
+        "SimplePaymentCodes"
+      ],
+      [
+        "OrderHistoryVerification",
+        "PlaNz"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Skx-au"
+      ],
+      [
+        "CreateBraintreeClientTokenMutation",
+        "GraGraphqlOperations.ts"
+      ],
+      [
+        "Forter",
+        "Gra-Integration-Summary"
+      ],
+      [
+        "3DSCardVerification",
+        "StagingEnvironment"
+      ],
+      [
+        "CustomerOrders",
+        "PlaAu"
+      ],
+      [
+        "CreateBraintreeClientToken",
+        "GraphQL-Endpoint"
+      ],
+      [
+        "Nonce",
+        "SetPaymentMethodOnCart"
+      ],
+      [
+        "AuthorizationFingerprint",
+        "TokenizeCreditCard"
+      ],
+      [
+        "CartReadyForPayment",
+        "TC_03"
+      ],
+      [
+        "Braintree-SDK",
+        "Gra-API-Testing"
+      ],
+      [
+        "BraintreeTestCardGenerator.generateSandboxVisa",
+        "SrcDataApiGraBraintreePaymentData.ts"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Van-nz"
+      ],
+      [
+        "OrderHistoryVerification",
+        "StagingEnvironment"
+      ],
+      [
+        "GraphQLClient",
+        "Redact.ts"
+      ],
+      [
+        "CustomerOrders",
+        "GraphqlInputIntegrationIssuesError"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Van-au"
+      ],
+      [
+        "TC_03",
+        "Unix-Node-Modules/Playwright-Lib-Worker-WorkerProcessEntry.js"
+      ],
+      [
+        "Braintree",
+        "TokenizeCreditCard"
+      ],
+      [
+        "CartReadyForPayment",
+        "TC_01"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Skx-nz"
+      ],
+      [
+        "GraGraphqlOperations.ts",
+        "SetPaymentMethodMutation"
+      ],
+      [
+        "SetPaymentMethodMutation",
+        "SetPaymentMethodOnCart"
+      ],
+      [
+        "Available_Payment_Methods",
+        "TC_03"
+      ],
+      [
+        "Environment",
+        "Gra-Braintree-Payment"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Tests-Api-Api-Test-Helpers.ts"
+      ],
+      [
+        "OrderHistoryVerification",
+        "PlaAu"
+      ],
+      [
+        "Checkmo",
+        "SetPaymentMethod"
+      ],
+      [
+        "Gra-Order-History-Spec.ts",
+        "TC_03"
+      ],
+      [
+        "CreateBraintreeClientToken",
+        "GraphQL"
+      ],
+      [
+        "Braintree",
+        "BraintreeTestCardGenerator.generateSandboxVisa"
+      ],
+      [
+        "Forter",
+        "GraIntegrationSummary"
+      ],
+      [
+        "AP21",
+        "GraIntegrationSummary"
+      ],
+      [
+        "Gra-Place-Order-Spec.ts",
+        "TC_01"
+      ],
+      [
+        "Gra-Braintree-Payment",
+        "Pla-au"
+      ],
+      [
+        "ApiClientExt",
+        "Redact.ts"
+      ],
+      [
+        "Drm-nz",
+        "Gra-Braintree-Payment"
+      ]
+    ],
+    "count": 56,
+    "create_time": 1785075998,
+    "update_time": 1785075998,
+    "_id": "doc-22b4f6a856aea6d7be1c0b7f9d72afb6"
+  },
+  "doc-161b36b883451ba6736c2ae4b3738bcc": {
+    "relation_pairs": [
+      [
+        "Background Dispatch",
+        "Qa-Orchestrator"
+      ],
+      [
+        "Braintree Sandbox",
+        "Recon-Only Pass"
+      ],
+      [
+        "Qa-Orchestrator",
+        "Recon-Only Pass"
+      ],
+      [
+        "CI Workflow Wiring",
+        "E2E-PLAORD-001"
+      ],
+      [
+        "E2E-PLAORD-001",
+        "PayPal Sandbox"
+      ],
+      [
+        "E2E-PLAORD-002",
+        "Platypus AU"
+      ],
+      [
+        "Environment Variable Requirement",
+        "Qa-Orchestrator"
+      ],
+      [
+        "Data Module",
+        "Qa-Orchestrator"
+      ],
+      [
+        "Ecommerce Checkout Payment Flow",
+        "Pay With Button Disambiguation"
+      ],
+      [
+        "Credit Card Braintree Hosted Fields",
+        "E2E-PLAORD-004"
+      ],
+      [
+        "Complex Payment Flow Task Workflow",
+        "Memory"
+      ],
+      [
+        "E2E-PLAORD-002",
+        "Ecommerce Checkout Payment Flow"
+      ],
+      [
+        "Credit Card Braintree Hosted Fields",
+        "E2E-PLAORD-003"
+      ],
+      [
+        "E2E-PLAORD-001",
+        "Qa-Orchestrator"
+      ],
+      [
+        "Button-enable Timing Race",
+        "Ecommerce Checkout Payment Flow"
+      ],
+      [
+        "Qa-Orchestrator",
+        "Zero-Hard-Wait Constraint"
+      ],
+      [
+        "Background Dispatch",
+        "Recon-Only Pass"
+      ],
+      [
+        "Complex Payment Flow Task Workflow",
+        "Feedback"
+      ],
+      [
+        "PayPal Sandbox",
+        "Recon-Only Pass"
+      ]
+    ],
+    "count": 19,
+    "create_time": 1785164210,
+    "update_time": 1785164210,
+    "_id": "doc-161b36b883451ba6736c2ae4b3738bcc"
+  },
+  "doc-ddca318d24811cc5b8909ad5fe282759": {
+    "relation_pairs": [
+      [
+        "E2E-PLAORD-001",
+        "PayPal"
+      ],
+      [
+        "Sandbox Account",
+        "Sandbox Environment"
+      ],
+      [
+        "Sandbox Environment",
+        "www.sandbox.paypal.com"
+      ],
+      [
+        "Live Environment",
+        "www.paypal.com"
+      ],
+      [
+        "TabHelper",
+        "switchToPage()"
+      ],
+      [
+        "Braintree",
+        "PayPal"
+      ],
+      [
+        "checkout-helpers.ts",
+        "parsePriceToken()"
+      ],
+      [
+        "Guest Email",
+        "Shipping Form"
+      ],
+      [
+        "Shipping-Method Radio Button",
+        "fillGuestShippingContactFields()"
+      ],
+      [
+        "Sandbox Environment",
+        "payments.sandbox.braintree-api.com"
+      ],
+      [
+        "Cart-Level Express-Checkout Buttons",
+        "paypal-button"
+      ],
+      [
+        "CONTINUE TO PAYMENT Button",
+        "Shipping-Method Radio Button"
+      ],
+      [
+        "Shipping-Method Radio Button",
+        "waitForContinueToPaymentEnabled()"
+      ],
+      [
+        "GitHub Actions",
+        "PAYPAL_SANDBOX_PASSWORD"
+      ],
+      [
+        "CI Workflows",
+        "GitHub Actions"
+      ],
+      [
+        "E2E-PLAORD-001",
+        "Platypus AU"
+      ],
+      [
+        "addToCartAndReachCheckoutCta()",
+        "checkout-helpers.ts"
+      ],
+      [
+        "PAYPAL_SANDBOX_PASSWORD",
+        "Sandbox Account"
+      ],
+      [
+        "Guideline/E2E_DISCOVERY_REPORT.md",
+        "Plaintext PayPal Sandbox Password"
+      ],
+      [
+        "EcommerceCheckoutPage",
+        "checkout.spec.ts"
+      ],
+      [
+        "Ecommerce Checkout Flow",
+        "braintree_paypal_gra"
+      ],
+      [
+        "Cart-Level Express-Checkout Buttons",
+        "afterpay-button"
+      ],
+      [
+        "PayPal Smart Payment Buttons",
+        "TabHelper"
+      ],
+      [
+        "PayPal Smart Payment Buttons",
+        "Zooid Dispatch Frame"
+      ],
+      [
+        "E2E-PLAORD-001",
+        "E2E-PLAORD-002/003/004"
+      ]
+    ],
+    "count": 25,
+    "create_time": 1785252701,
+    "update_time": 1785252701,
+    "_id": "doc-ddca318d24811cc5b8909ad5fe282759"
+  },
+  "doc-4a866eedabe835ebfcbbd234b864175d": {
+    "relation_pairs": [
+      [
+        "Api-Restful-Tests-With-Slack.yml",
+        "Monocart Trend Cache Key"
+      ],
+      [
+        "Advisor",
+        "Tools Frontmatter"
+      ],
+      [
+        "Increment A",
+        "Playwright-Test-Healer.md"
+      ],
+      [
+        "Increment A",
+        "Technical-Debt-Fixer.md"
+      ],
+      [
+        "Increment B",
+        "Loop Engineering Research"
+      ],
+      [
+        "Monocart Trend Cache Key",
+        "Playwright-With-Slack.yml"
+      ],
+      [
+        "Advisor",
+        "Technical-Debt-Fixer.md"
+      ],
+      [
+        "Api.Config.ts",
+        "Test-Execution Retry"
+      ],
+      [
+        "Env.Retries",
+        "Test-Execution Retry"
+      ],
+      [
+        "Loop Engineering Research",
+        "Project_Context_Engineering"
+      ],
+      [
+        "Feedback/Monitoring",
+        "Monocart Trend Cache Key"
+      ],
+      [
+        "Src.Config.Environment.ts",
+        "Test-Execution Retry"
+      ],
+      [
+        "Flaky-Test-Detection-Research",
+        "Increment B"
+      ],
+      [
+        "Increment A",
+        "Loop Contract"
+      ],
+      [
+        "Increment A",
+        "Loop Engineering Research"
+      ],
+      [
+        "Src.Api.Config.Environment.ts",
+        "Test-Execution Retry"
+      ],
+      [
+        "Benefits Section",
+        "Humanizer Skill"
+      ],
+      [
+        "Benefits Section",
+        "Loop Engineering Research"
+      ],
+      [
+        "Qa-Orchestrator",
+        "Qa-Orchestrator.md"
+      ],
+      [
+        "Playwright-Test-Healer.md",
+        "Qa-Orchestrator.md"
+      ],
+      [
+        "Qa-Orchestrator.md",
+        "Technical-Debt-Fixer.md"
+      ],
+      [
+        "Qa-Orchestrator",
+        "WORKFLOW-10"
+      ],
+      [
+        "Advisor",
+        "Playwright-Test-Healer.md"
+      ],
+      [
+        "Increment A",
+        "Qa-Orchestrator.md"
+      ],
+      [
+        "Claude.md",
+        "Loop Contract"
+      ]
+    ],
+    "count": 25,
+    "create_time": 1785255080,
+    "update_time": 1785255080,
+    "_id": "doc-4a866eedabe835ebfcbbd234b864175d"
+  },
+  "doc-7c985acc4088373ba5594433f3fd9b56": {
+    "relation_pairs": [
+      [
+        "Evidence Gap",
+        "Plan Mode Effort"
+      ],
+      [
+        "Cheaply Gettable Data",
+        "Supporting Evidence"
+      ],
+      [
+        "Increment A+B+C",
+        "Increment B"
+      ],
+      [
+        "Increment C",
+        "Supporting Evidence"
+      ],
+      [
+        "Full Scope as Requested",
+        "Plan"
+      ],
+      [
+        "Flaky-Test Data",
+        "Gh Run View --Log"
+      ],
+      [
+        "Increment A",
+        "Supporting Evidence"
+      ],
+      [
+        "ExitPlanMode",
+        "User"
+      ],
+      [
+        "Scope",
+        "User Answers"
+      ],
+      [
+        "Plan",
+        "Scope"
+      ],
+      [
+        "Scope",
+        "Source Document Dependencies and Caveats"
+      ],
+      [
+        "Research Report",
+        "docs/technical-research/flaky-test-detection-isolation.html"
+      ],
+      [
+        "Flaky-Test Data",
+        "Gh Run Download"
+      ],
+      [
+        "Conflict between User Answers and Research Report",
+        "Scope"
+      ],
+      [
+        "Research Report",
+        "Scope"
+      ],
+      [
+        "AskUserQuestion",
+        "Scope"
+      ],
+      [
+        "User",
+        "Visibility-Only Goal"
+      ],
+      [
+        "Git Grep",
+        "Live Config/Workflow Files"
+      ],
+      [
+        "Loop Engineering Research",
+        "Pattern"
+      ],
+      [
+        "Advisor()",
+        "Plan"
+      ],
+      [
+        "Increment A+B+C",
+        "Increment C"
+      ],
+      [
+        "Flaky-Test Detection",
+        "Increment A+B+C"
+      ],
+      [
+        "Increment A",
+        "Increment A+B+C"
+      ],
+      [
+        "Plan",
+        "User"
+      ],
+      [
+        "AskUserQuestion",
+        "User"
+      ],
+      [
+        "Scope Validation",
+        "Source Document Dependencies and Caveats"
+      ],
+      [
+        "Increment B",
+        "Supporting Evidence"
+      ]
+    ],
+    "count": 27,
+    "create_time": 1785259288,
+    "update_time": 1785259288,
+    "_id": "doc-7c985acc4088373ba5594433f3fd9b56"
+  },
+  "doc-a10959480a72a6acd62582bf626094f7": {
+    "relation_pairs": [
+      [
+        "Playwright Config.ts",
+        "TestIgnore"
+      ],
+      [
+        "Chromium Project",
+        "E2E-CHKOUT-009 Checkout Address Prefill"
+      ],
+      [
+        "API Suite",
+        "Platypus AU"
+      ],
+      [
+        "GraphQL createCustomer Mutation",
+        "Platypus NZ"
+      ],
+      [
+        "Dr. Martens AU",
+        "checkout address prefill test"
+      ],
+      [
+        "HTTP 503 No Available Channel",
+        "Kimi-k3"
+      ],
+      [
+        "Full Product Scan",
+        "Go Walk"
+      ],
+      [
+        "confirmDefaultShippingAddressViaGraphQL",
+        "createFreshAccountViaGraphQL"
+      ],
+      [
+        "Dr. Martens AU",
+        "Dr. Martens AU Storefront Loop"
+      ],
+      [
+        "bounding-rect isVisible() check",
+        "getDeliverToAddressDiagnostics"
+      ],
+      [
+        "Dr. Martens NZ",
+        "Go Walk"
+      ],
+      [
+        "API Suite",
+        "Platypus NZ"
+      ],
+      [
+        "GraphQL confirmation polling",
+        "submitNewAddress()"
+      ],
+      [
+        "AU and NZ Phone Formats",
+        "createNewSavedAddressData"
+      ],
+      [
+        "Go Walk",
+        "GraphQL-Poll-Confirm"
+      ],
+      [
+        "MAX_PRODUCTS_TO_SCAN",
+        "Product-Scan Loop"
+      ],
+      [
+        "Npm Run Lint",
+        "Two Previously-Passing Storefronts"
+      ],
+      [
+        "Product-Scan Loop",
+        "Skechers AU"
+      ],
+      [
+        "Npm Run Lint",
+        "Previously-Passing Storefronts"
+      ],
+      [
+        "NZ Region Combobox Selector",
+        "TestIgnore"
+      ],
+      [
+        "ElementHelper.waitForLocatorHidden",
+        "submitNewAddress()"
+      ],
+      [
+        "Go Walk",
+        "Skechers NZ"
+      ],
+      [
+        "Dr. Martens NZ",
+        "Region/State Combobox Selector"
+      ],
+      [
+        "Go Walk",
+        "Vans NZ"
+      ],
+      [
+        "Region/State Combobox Selector",
+        "Skechers NZ"
+      ],
+      [
+        "Region/State Combobox Selector",
+        "Vans NZ"
+      ],
+      [
+        "GraphQL createCustomer Mutation",
+        "Platypus AU"
+      ],
+      [
+        "Chromium Project",
+        "TestIgnore"
+      ],
+      [
+        "Dr. Martens AU",
+        "Region/State Combobox Selector"
+      ],
+      [
+        "Council-Review",
+        "QA-Code-Reviewer"
+      ],
+      [
+        "Per-Storefront Selector Strategy",
+        "TestIgnore"
+      ],
+      [
+        "Region/State Combobox Selector",
+        "regionOptionList"
+      ],
+      [
+        "Address-Save",
+        "Go Walk"
+      ],
+      [
+        "ElementHelper.fillLocator",
+        "ElementHelper.waitForLocatorHidden"
+      ],
+      [
+        "Vans AU",
+        "checkout address prefill test"
+      ]
+    ],
+    "count": 35,
+    "create_time": 1785682508,
+    "update_time": 1785682508,
+    "_id": "doc-a10959480a72a6acd62582bf626094f7"
+  },
+  "doc-2ab3b9924abd286f558faef307aad25c": {
+    "relation_pairs": [
+      [
+        "Council-Review Transcript",
+        "Gpt-5.6-Sol"
+      ],
+      [
+        "Council-Review Transcript",
+        "Scripts/Council/Dispatch.mjs"
+      ],
+      [
+        "AskUserQuestion",
+        "User"
+      ],
+      [
+        "Council-Review Run",
+        "Council-Review Transcript"
+      ],
+      [
+        "Council-Review Transcript",
+        "SSE Completion"
+      ],
+      [
+        "E2E-CHKOUT-009 Review",
+        "Gpt-5.6-Sol"
+      ],
+      [
+        "Console Summary",
+        "User"
+      ],
+      [
+        "Council-Review Run",
+        "Scripts/Council/Dispatch.mjs"
+      ],
+      [
+        "Console Summary",
+        "Transcript File"
+      ],
+      [
+        "Console Summary",
+        "Kimi-K3"
+      ],
+      [
+        "E2E-CHKOUT-009 Review",
+        "Kimi-K3"
+      ],
+      [
+        "Console Summary",
+        "Council-Review Run"
+      ],
+      [
+        "Console Summary",
+        "Gpt-5.6-Sol"
+      ],
+      [
+        "Console Summary",
+        "Scripts/Council/Dispatch.mjs"
+      ]
+    ],
+    "count": 14,
+    "create_time": 1785682532,
+    "update_time": 1785682532,
+    "_id": "doc-2ab3b9924abd286f558faef307aad25c"
+  },
+  "doc-57b684947bb7f507034c4528fdc3b68d": {
+    "relation_pairs": [
+      [
+        "CLAUDE.md",
+        "LightRAG"
+      ],
+      [
+        "LightRAG",
+        "Memory-Vault/20-Memory/"
+      ],
+      [
+        "Lightrag-Agent-Scoping-2026-08-05",
+        "Lightrag-UV-Managed-Venv"
+      ],
+      [
+        "Grep",
+        "Memory-Vault-Curator"
+      ],
+      [
+        "Automation-Test-Architect",
+        "Code-Only Agents"
+      ],
+      [
+        "MCP__LightRAG__Query_Document",
+        "QA-Orchestrator"
+      ],
+      [
+        "Grep",
+        "Memory-Vault/20-Memory/"
+      ],
+      [
+        "MCP__LightRAG__Query_Document",
+        "Playwright-Test-Planner"
+      ],
+      [
+        "Code-Only Agents",
+        "QA-Code-Reviewer"
+      ],
+      [
+        "Code-Only Agents",
+        "Technical-Implementation-Agent"
+      ],
+      [
+        "Code-Only Agents",
+        "Playwright-Test-Healer"
+      ],
+      [
+        "Code-Only Agents",
+        "Playwright-Test-Generator"
+      ],
+      [
+        "MCP__LightRAG__Query_Document",
+        "Technical-Research-Agent"
+      ],
+      [
+        "Code-Only Agents",
+        "Technical-Debt-Agent"
+      ],
+      [
+        "Code-Only Agents",
+        "Technical-Debt-Fixer"
+      ],
+      [
+        "Code-Only Agents",
+        "Security-Reviewer"
+      ],
+      [
+        "MCP__LightRAG__Query_Document",
+        "Memory-Vault-Curator"
+      ],
+      [
+        "MCP__LightRAG__Check_LightRAG_Health",
+        "QA-Orchestrator"
+      ],
+      [
+        "MCP__LightRAG__Query_Document",
+        "Vault-Updater"
+      ],
+      [
+        "MCP__LightRAG__Check_LightRAG_Health",
+        "Playwright-Test-Planner"
+      ],
+      [
+        "Lightrag-1.5.4-Upgrade-Completed",
+        "Lightrag-Agent-Scoping-2026-08-05"
+      ],
+      [
+        "MCP__LightRAG__Check_LightRAG_Health",
+        "Technical-Research-Agent"
+      ],
+      [
+        "AskUserQuestion",
+        "LightRAG"
+      ],
+      [
+        "LightRAG",
+        "QA-Orchestrator"
+      ],
+      [
+        "Code-Only Agents",
+        "Statusline-Setup"
+      ],
+      [
+        "LightRAG",
+        "Playwright-Test-Planner"
+      ],
+      [
+        "LightRAG",
+        "Lightrag-Agent-Scoping-2026-08-05"
+      ],
+      [
+        "Code-Only Agents",
+        "DevOps-CICD-Specialist"
+      ],
+      [
+        "MCP__LightRAG__Check_LightRAG_Health",
+        "Memory-Vault-Curator"
+      ],
+      [
+        "MCP__LightRAG__Check_LightRAG_Health",
+        "Vault-Updater"
+      ],
+      [
+        "LightRAG",
+        "Technical-Research-Agent"
+      ],
+      [
+        "LightRAG",
+        "Memory-Vault-Curator"
+      ],
+      [
+        "LightRAG",
+        "Vault-Updater"
+      ],
+      [
+        "Code-Only Agents",
+        "LightRAG"
+      ]
+    ],
+    "count": 34,
+    "create_time": 1785862977,
+    "update_time": 1785862977,
+    "_id": "doc-57b684947bb7f507034c4528fdc3b68d"
+  },
+  "doc-4fec88a914ce6fed98a6b122e9ed67db": {
+    "relation_pairs": [
+      [
+        "Pi Coding Agent",
+        "davidondrej/pi-agent"
+      ],
+      [
+        "Pi Coding Agent",
+        "Scripts/Council/Dispatch.mjs"
+      ],
+      [
+        "LLM Council",
+        "scrub.mjs"
+      ],
+      [
+        "Pi Coding Agent",
+        "edit"
+      ],
+      [
+        "@earendil-works/pi-coding-agent",
+        "Pi Coding Agent"
+      ],
+      [
+        "LLM Council",
+        "Pi Coding Agent"
+      ],
+      [
+        "Integrator",
+        "Technical Research Agent"
+      ],
+      [
+        "Claude Code",
+        "Pi Coding Agent"
+      ],
+      [
+        "Claude Code",
+        "claude/skills"
+      ],
+      [
+        "Pi Coding Agent",
+        "sandbox system"
+      ],
+      [
+        "Pi Coding Agent",
+        "write"
+      ],
+      [
+        "Technical Research Agent",
+        "User"
+      ],
+      [
+        "Pi Coding Agent",
+        "PyPI Package"
+      ],
+      [
+        "Claude Code",
+        "claude/agents"
+      ],
+      [
+        "CLAUDE.md",
+        "LLM Council"
+      ],
+      [
+        "Claude Code",
+        "permission system"
+      ],
+      [
+        "Pi Coding Agent",
+        "permission system"
+      ],
+      [
+        "Pi Coding Agent",
+        "bash"
+      ]
+    ],
+    "count": 18,
+    "create_time": 1788972825,
+    "update_time": 1788972825,
+    "_id": "doc-4fec88a914ce6fed98a6b122e9ed67db"
+  }
+}

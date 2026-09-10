@@ -1,0 +1,1276 @@
+{
+  "doc-2d433c31438483509138f842334e6525": {
+    "status": "processed",
+    "content_summary": "---\nname: test-conventions\ndescription: \"Test naming patterns, tag placement, serial mode rules, and the no-rename policy\"\ntype: feedback\ntags: [memory, feedback]\nlast_verified: 2026-06-12\n---\n\n## Test Naming Patterns\n\nThree naming patterns exist in ...",
+    "content_length": 3413,
+    "created_at": "2026-06-14T14:53:22.598122+00:00",
+    "updated_at": "2026-06-14T14:53:28.056583+00:00",
+    "file_path": "test-conventions.md",
+    "track_id": "insert_20260614_215322_d7b9f50d",
+    "content_hash": "83b54e9be6a4bb63186265c8a5124754",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448807,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448807,
+      "process_end_time": 1781448808,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-2d433c31438483509138f842334e6525-chunk-000"
+    ]
+  },
+  "doc-cc4fd56733f33ebf5767403007d22d7f": {
+    "status": "processed",
+    "content_summary": "---\nname: typescript-coding-rules\ndescription: \"TypeScript quality rules enforced by qa-code-reviewer and CI lint gate — error array guards, optional chaining, initializers, GraphQL hoisting\"\ntype: feedback\ntags: [memory, feedback]\nlast_verified: 202...",
+    "content_length": 3740,
+    "created_at": "2026-06-14T14:53:22.607662+00:00",
+    "updated_at": "2026-06-14T14:53:32.793849+00:00",
+    "file_path": "typescript-coding-rules.md",
+    "track_id": "insert_20260614_215322_d84ca680",
+    "content_hash": "8840706951b59ddd1ada8d973e09cbf8",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448807,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448807,
+      "process_end_time": 1781448812,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-cc4fd56733f33ebf5767403007d22d7f-chunk-000"
+    ]
+  },
+  "doc-89e7571edfb83032dd2861085d5e5a7c": {
+    "status": "processed",
+    "content_summary": "---\nname: advisor-nudge-mechanism\ndescription: \"PostToolUse hook that nudges Claude to call advisor() when stuck in a repetitive debugging loop — iteration-count primary, wall-clock secondary\"\ntype: project\ntags: [memory, project]\nsource_session: da3...",
+    "content_length": 2158,
+    "created_at": "2026-06-14T14:53:22.615940+00:00",
+    "updated_at": "2026-06-14T14:53:36.257111+00:00",
+    "file_path": "advisor-nudge-mechanism.md",
+    "track_id": "insert_20260614_215322_79be632a",
+    "content_hash": "7dffff18b3bdc9d251f89b07509bff08",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448807,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448812,
+      "process_end_time": 1781448816,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-89e7571edfb83032dd2861085d5e5a7c-chunk-000"
+    ]
+  },
+  "doc-18c320b704b53c1b59c41f904f29e640": {
+    "status": "processed",
+    "content_summary": "---\nname: ecommerce-storefronts\ndescription: \"All 8 ecommerce storefronts — staging URLs, nav labels, quirks, preferMens brands, API project codes\"\ntype: project\ntags: [memory, project]\nlast_verified: 2026-06-12\n---\n\n## Storefront Registry (8 sites)\n...",
+    "content_length": 4105,
+    "created_at": "2026-06-14T14:53:22.627182+00:00",
+    "updated_at": "2026-06-14T14:53:43.327092+00:00",
+    "file_path": "ecommerce-storefronts.md",
+    "track_id": "insert_20260614_215322_a4b1175e",
+    "content_hash": "6ea7afd62c80492b278e0088df7265ca",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448807,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448815,
+      "process_end_time": 1781448823,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-18c320b704b53c1b59c41f904f29e640-chunk-000",
+      "doc-18c320b704b53c1b59c41f904f29e640-chunk-001"
+    ]
+  },
+  "doc-608145bb261a9d22b7e671804cd417ae": {
+    "status": "processed",
+    "content_summary": "---\nname: gra-integration-summary\ndescription: Third-party integration architecture for the GRA platform (Magento/Adobe Commerce) covering AP21, email marketing, payments, search, and logistics\ntype: project\ntags: [memory, project]\nsource: confluence...",
+    "content_length": 12224,
+    "created_at": "2026-06-14T14:53:22.749751+00:00",
+    "updated_at": "2026-06-14T14:54:23.390236+00:00",
+    "file_path": "gra-integration-summary.md",
+    "track_id": "insert_20260614_215322_38a87700",
+    "content_hash": "e33a4aacd80719a14ab3207ca98d7e4b",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448807,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448828,
+      "process_end_time": 1781448863,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 3,
+    "chunks_list": [
+      "doc-608145bb261a9d22b7e671804cd417ae-chunk-000",
+      "doc-608145bb261a9d22b7e671804cd417ae-chunk-001",
+      "doc-608145bb261a9d22b7e671804cd417ae-chunk-002"
+    ]
+  },
+  "doc-7c71bf1656505c03b6b2326090fb17ca": {
+    "status": "processed",
+    "content_summary": "---\nname: pla-api-testing-deprecated\ndescription: DEPRECATED — renamed to gra-api-testing. See gra-api-testing.md.\ntype: project\ntags: [memory, project]\nsource_session: cc988aa2-251e-48bf-98c4-13f089351d3e\nlast_verified: 2026-06-12\n---\n\nThis memory w...",
+    "content_length": 300,
+    "created_at": "2026-06-14T14:53:22.784832+00:00",
+    "updated_at": "2026-06-14T14:54:04.508583+00:00",
+    "file_path": "pla-api-testing.md",
+    "track_id": "insert_20260614_215322_473dfe19",
+    "content_hash": "9cfe78a1ce5f7eb99b09d3b069144fdb",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448807,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448844,
+      "process_end_time": 1781448844,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-7c71bf1656505c03b6b2326090fb17ca-chunk-000"
+    ]
+  },
+  "doc-37021337f75253d67cd5a707cd5e8893": {
+    "status": "processed",
+    "content_summary": "---\nname: Context Engineering Setup\ndescription: State of CLAUDE.md, skills, settings, and memory for this project as of 2026-04-22\ntype: project\ntags: [memory, project]\nlast_verified: 2026-06-02\n---\n\nContext engineering reviewed and fully set up on ...",
+    "content_length": 2089,
+    "created_at": "2026-06-14T14:53:22.813333+00:00",
+    "updated_at": "2026-06-14T14:54:35.417812+00:00",
+    "file_path": "project_context_engineering.md",
+    "track_id": "insert_20260614_215322_c1010296",
+    "content_hash": "04c08e537f3e8eb4bcc1ec6d80243e65",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448812,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448863,
+      "process_end_time": 1781448875,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-37021337f75253d67cd5a707cd5e8893-chunk-000"
+    ]
+  },
+  "doc-df9d885798e8423f552299c4f82dd919": {
+    "status": "processed",
+    "content_summary": "---\nname: technical-debt-phase1\ndescription: Technical debt audit status — ALL phases complete as of 2026-06-13; framework grade A, zero open items\ntype: project\ntags: [memory, project]\nsource_session: 3fef18ff-9217-40d8-b62d-b17831c64499\nlast_verifi...",
+    "content_length": 3885,
+    "created_at": "2026-06-14T14:53:22.820247+00:00",
+    "updated_at": "2026-06-14T14:54:39.900930+00:00",
+    "file_path": "technical_debt_phase1.md",
+    "track_id": "insert_20260614_215322_70a5187f",
+    "content_hash": "f6206e7ce3ffa465a61ce2522f977dd5",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448815,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448868,
+      "process_end_time": 1781448879,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-df9d885798e8423f552299c4f82dd919-chunk-000",
+      "doc-df9d885798e8423f552299c4f82dd919-chunk-001"
+    ]
+  },
+  "doc-4f8399fbaebadbb6df183a2b737e9324": {
+    "status": "processed",
+    "content_summary": "---\nname: User Profile\ndescription: QA engineer profile — role, working style, environment, preferences\ntype: user\ntags: [memory, user]\nlast_verified: 2026-05-15\n---\nQA engineer / automation specialist building and maintaining a Playwright TypeScript...",
+    "content_length": 1084,
+    "created_at": "2026-06-14T14:53:22.829466+00:00",
+    "updated_at": "2026-06-14T14:54:43.088159+00:00",
+    "file_path": "user_profile.md",
+    "track_id": "insert_20260614_215322_efd618a7",
+    "content_hash": "ca0ac0d8d9031e63fb080b834b87423b",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448816,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448875,
+      "process_end_time": 1781448883,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-4f8399fbaebadbb6df183a2b737e9324-chunk-000"
+    ]
+  },
+  "doc-28274e5d1bc00fbd5533608f4fbecab5": {
+    "status": "processed",
+    "content_summary": "---\nname: feedback-preferences\ndescription: \"Confirmed working patterns, corrections given, stylistic preferences\"\ntype: feedback\ntags: [memory, feedback]\nsource_session: da3c13e7-e43f-48e9-8c8e-a045c7cfd24c\nlast_verified: 2026-06-14\n---\n\n**Keep resp...",
+    "content_length": 6454,
+    "created_at": "2026-06-14T14:55:49.167145+00:00",
+    "updated_at": "2026-06-14T14:56:07.583279+00:00",
+    "file_path": "feedback_preferences.md",
+    "track_id": "insert_20260614_215549_717a4bda",
+    "content_hash": "f564e5df20e5836da86b72b26dcb7e2a",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781448949,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781448949,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781448949,
+      "process_end_time": 1781448967,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-28274e5d1bc00fbd5533608f4fbecab5-chunk-000",
+      "doc-28274e5d1bc00fbd5533608f4fbecab5-chunk-001"
+    ]
+  },
+  "doc-c9488069466f7da02e04d0a79614e167": {
+    "status": "processed",
+    "content_summary": "---\nname: gra-storefront-tech-notes\ndescription: \"Deep tech investigation of all 8 GRA storefronts — framework, DOM, network, cart, third-party integrations, and automation gotchas\"\ntype: project\ntags: [memory, project]\nlast_verified: 2026-06-15\n---\n...",
+    "content_length": 26662,
+    "created_at": "2026-06-15T16:26:47.131608+00:00",
+    "updated_at": "2026-06-15T16:27:26.302085+00:00",
+    "file_path": "gra-storefront-tech-notes.md",
+    "track_id": "insert_20260615_232647_4f3d50c2",
+    "content_hash": "1a4e3e9a21ac187c4d4c2ffefe12caa2",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781540807,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781540807,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781540807,
+      "process_end_time": 1781540846,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 7,
+    "chunks_list": [
+      "doc-c9488069466f7da02e04d0a79614e167-chunk-000",
+      "doc-c9488069466f7da02e04d0a79614e167-chunk-001",
+      "doc-c9488069466f7da02e04d0a79614e167-chunk-002",
+      "doc-c9488069466f7da02e04d0a79614e167-chunk-003",
+      "doc-c9488069466f7da02e04d0a79614e167-chunk-004",
+      "doc-c9488069466f7da02e04d0a79614e167-chunk-005",
+      "doc-c9488069466f7da02e04d0a79614e167-chunk-006"
+    ]
+  },
+  "doc-676423a7c776b523c259115b15e81a0c": {
+    "status": "processed",
+    "content_summary": "---\nname: gra-integration-test-report\ndescription: \"Canonical INT-001–010 integration test scenarios for 8 GRA storefronts — ROI priority, system boundaries, file location\"\ntype: project\ntags: [memory, project]\nsource_session: b3f0ec60-b17d-47f8-9416...",
+    "content_length": 2781,
+    "created_at": "2026-06-15T16:46:38.881498+00:00",
+    "updated_at": "2026-06-15T16:47:22.685761+00:00",
+    "file_path": "gra-integration-test-report.md",
+    "track_id": "insert_20260615_234638_586b4d46",
+    "content_hash": "c98781db4094087eef5f60770753f727",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781541998,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781541998,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781541998,
+      "process_end_time": 1781542042,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-676423a7c776b523c259115b15e81a0c-chunk-000"
+    ]
+  },
+  "doc-b04fc6e551abe62bce0c9eb54f88300e": {
+    "status": "processed",
+    "content_summary": "---\nname: memory-vault-authority\ndescription: The vault (memory-vault/) is authoritative — Claude writes memory directly to vault; seed is deprecated\ntype: feedback\ntags: [memory, feedback]\nlast_verified: 2026-06-16\n---\n\n**The vault at `memory-vault/...",
+    "content_length": 1607,
+    "created_at": "2026-06-17T14:05:19.188128+00:00",
+    "updated_at": "2026-06-17T14:07:19.782441+00:00",
+    "file_path": "memory_vault_authority.md",
+    "track_id": "insert_20260617_210519_e322f5f1",
+    "content_hash": "c8c04caf3070ab3ee51197fd0fee7f18",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781705212,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781705212,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781705212,
+      "process_end_time": 1781705239,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-b04fc6e551abe62bce0c9eb54f88300e-chunk-000"
+    ]
+  },
+  "doc-d0bad7be8975f725cb7551dbf9673c25": {
+    "status": "processed",
+    "content_summary": "---\nname: pdp-004-005-vans-au-root-cause\ndescription: Root cause and fix for E2E-PDP-004-005 Vans AU \"Size selector shows correct sizes with gender toggle\" failing in parallel run — breadcrumb button poisoned DOM walk\nmetadata:\n  type: project\n---\n\nR...",
+    "content_length": 4084,
+    "created_at": "2026-06-20T16:21:59.672750+00:00",
+    "updated_at": "2026-06-20T16:22:23.738684+00:00",
+    "file_path": "pdp-004-005-vans-au-root-cause.md",
+    "track_id": "insert_20260620_232159_9786d60b",
+    "content_hash": "11cf168f97abe3ec0055ce33d807ae21",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1781972519,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1781972519,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1781972519,
+      "process_end_time": 1781972543,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-d0bad7be8975f725cb7551dbf9673c25-chunk-000"
+    ]
+  },
+  "doc-4feb9b02843e96ba10a59d3bc60dce82": {
+    "status": "processed",
+    "content_summary": "---\nname: playwright-161-and-helper-migration\ndescription: Playwright 1.61 isVisible({timeout}) deprecation fix + dom.count / waitForUrlPredicate migration patterns\ntype: feedback\ntags: [memory, feedback]\nlast_verified: 2026-06-22\n---\n\n## Playwright ...",
+    "content_length": 3834,
+    "created_at": "2026-06-21T18:33:06.046958+00:00",
+    "updated_at": "2026-06-21T18:33:32.112068+00:00",
+    "file_path": "playwright-161-and-helper-migration.md",
+    "track_id": "insert_20260622_013306_f1d3741c",
+    "content_hash": "0a7c52eb9ed13067f29eccf3be8399bc",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782066788,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782066788,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782066788,
+      "process_end_time": 1782066812,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-4feb9b02843e96ba10a59d3bc60dce82-chunk-000"
+    ]
+  },
+  "doc-683a4a88832a08e0b1ee59059259caa0": {
+    "status": "processed",
+    "content_summary": "---\nname: jira-gra-147\ndescription: \"GRA-147 [Epic] GRA - PayPal Pay in 4 Updates — Not Defined | Done\"\ntype: project\ntags: [memory, project, jira, gra, epic]\njira_key: GRA-147\njira_url: https://accentgr.atlassian.net/browse/GRA-147\njira_status: Done...",
+    "content_length": 900,
+    "created_at": "2026-06-22T14:53:18.104744+00:00",
+    "updated_at": "2026-06-22T14:53:30.016308+00:00",
+    "file_path": "jira-gra-147.md",
+    "track_id": "insert_20260622_215318_0c5ca208",
+    "content_hash": "caec31c8140e3e6ef88e486a83d28608",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782139998,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782139998,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782139998,
+      "process_end_time": 1782140010,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-683a4a88832a08e0b1ee59059259caa0-chunk-000"
+    ]
+  },
+  "doc-a89515b39357d1c9baf4dd466e7b49b0": {
+    "status": "processed",
+    "content_summary": "---\nname: jira-gra-148\ndescription: \"GRA-148 [Story] PayPal Update - Pay in 4 [Checkout] — Critical | Done\"\ntype: project\ntags: [memory, project, jira, gra, story]\njira_key: GRA-148\njira_url: https://accentgr.atlassian.net/browse/GRA-148\njira_status:...",
+    "content_length": 4820,
+    "created_at": "2026-06-22T14:53:18.156868+00:00",
+    "updated_at": "2026-06-22T14:54:30.223657+00:00",
+    "file_path": "jira-gra-148.md",
+    "track_id": "insert_20260622_215318_18aa9d6d",
+    "content_hash": "b8494e02b70ab3f37a768d7305bc18c7",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782140012,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782140012,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782140012,
+      "process_end_time": 1782140070,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-a89515b39357d1c9baf4dd466e7b49b0-chunk-000",
+      "doc-a89515b39357d1c9baf4dd466e7b49b0-chunk-001"
+    ]
+  },
+  "doc-d216ba7446e240fa1c556c160f175887": {
+    "status": "processed",
+    "content_summary": "---\nname: jira-gra-149\ndescription: \"GRA-149 [Epic] GRA - My Account - Edit Details Update — Normal | Done\"\ntype: project\ntags: [memory, project, jira, gra, epic]\njira_key: GRA-149\njira_url: https://accentgr.atlassian.net/browse/GRA-149\njira_status: ...",
+    "content_length": 837,
+    "created_at": "2026-06-22T14:53:18.185430+00:00",
+    "updated_at": "2026-06-22T14:53:58.056826+00:00",
+    "file_path": "jira-gra-149.md",
+    "track_id": "insert_20260622_215318_f15154a9",
+    "content_hash": "b51026426dfb75bf93452d4692e38395",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782140012,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782140012,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782140012,
+      "process_end_time": 1782140038,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-d216ba7446e240fa1c556c160f175887-chunk-000"
+    ]
+  },
+  "doc-e06ad78290d5db25f3a4f84c2e156204": {
+    "status": "processed",
+    "content_summary": "---\nname: ecommerce-auth-modal-gotchas\ndescription: EcommerceAccountModalPage patterns — addLocatorHandler for Bloomreach popup, CMS block discriminator for click verification, Firefox CI exclusion, locator strategy for account toggle button, modal t...",
+    "content_length": 8443,
+    "created_at": "2026-06-22T16:10:33.424817+00:00",
+    "updated_at": "2026-06-22T16:11:25.392358+00:00",
+    "file_path": "ecommerce-auth-modal-gotchas.md",
+    "track_id": "insert_20260622_231033_224357b5",
+    "content_hash": "6b4834a2a51224b376352dcfe8ece1cb",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782144633,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782144633,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782144642,
+      "process_end_time": 1782144685,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-e06ad78290d5db25f3a4f84c2e156204-chunk-000",
+      "doc-e06ad78290d5db25f3a4f84c2e156204-chunk-001"
+    ]
+  },
+  "doc-92ee23296c45f454b040c61ea2ec6e86": {
+    "status": "processed",
+    "content_summary": "---\nname: smoke-helpers-patterns\ndescription: smoke-helpers.ts export catalog, design decisions for extraction vs inline, and advisor-verified rules for cart scan and size selection patterns\nmetadata:\n  type: feedback\n  tags: [memory, feedback]\n  las...",
+    "content_length": 4723,
+    "created_at": "2026-06-22T17:08:41.282716+00:00",
+    "updated_at": "2026-06-22T17:09:14.577693+00:00",
+    "file_path": "smoke-helpers-patterns.md",
+    "track_id": "insert_20260623_000841_6da7c4f6",
+    "content_hash": "ea0e03e5212de33bd344db2c0e12f01a",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782148121,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782148121,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782148121,
+      "process_end_time": 1782148154,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-92ee23296c45f454b040c61ea2ec6e86-chunk-000",
+      "doc-92ee23296c45f454b040c61ea2ec6e86-chunk-001"
+    ]
+  },
+  "doc-0ee91f4170b49f11110671d51881a6db": {
+    "status": "processed",
+    "content_summary": "---\nname: Project Architecture\ndescription: Core architectural decisions — composition helpers, fixture system, dual configs, import rules\ntype: project\ntags: [memory, project]\nlast_verified: 2026-06-02\n---\n\nPlaywright TypeScript framework. Key facts...",
+    "content_length": 3397,
+    "created_at": "2026-06-30T14:54:15.218515+00:00",
+    "updated_at": "2026-06-30T14:57:55.377427+00:00",
+    "file_path": "project_architecture.md",
+    "track_id": "insert_20260630_215415_4565be06",
+    "content_hash": "a66021ee68a2cf9b44e3c2ffc0c162a1",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782831304,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782831304,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782831304,
+      "process_end_time": 1782831475,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-0ee91f4170b49f11110671d51881a6db-chunk-000"
+    ]
+  },
+  "doc-b925bb86b9a77a3986020e5efd7b2e99": {
+    "status": "processed",
+    "content_summary": "---\nname: project-context\ndescription: \"Framework architecture decisions, CI shape, active initiatives, key tooling\"\ntype: project\ntags: [memory, project]\nsource_session: 551a0925-f8d8-4f42-bbe1-663d6c154edd\nlast_verified: 2026-06-11\n---\n\nPlaywright ...",
+    "content_length": 6434,
+    "created_at": "2026-06-30T14:54:15.252584+00:00",
+    "updated_at": "2026-06-30T14:56:06.843579+00:00",
+    "file_path": "project_context.md",
+    "track_id": "insert_20260630_215415_8dfe2d51",
+    "content_hash": "d97f10ca55a758faea2e9ffb1bf0042e",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782831304,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782831304,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782831304,
+      "process_end_time": 1782831366,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-b925bb86b9a77a3986020e5efd7b2e99-chunk-000",
+      "doc-b925bb86b9a77a3986020e5efd7b2e99-chunk-001"
+    ]
+  },
+  "doc-cf017a813cd0b782aef34bc894b9789d": {
+    "status": "processed",
+    "content_summary": "---\nname: ecommerce-smoke-spec-catalog\ndescription: \"Full catalog of tests in localization-smoke.spec.ts and error-handling-smoke.spec.ts — scope, fixtures, skip conditions, and known behaviours\"\ntype: project\ntags: [memory, project]\nlast_verified: 2...",
+    "content_length": 8407,
+    "created_at": "2026-06-30T14:54:15.270130+00:00",
+    "updated_at": "2026-06-30T14:56:37.652870+00:00",
+    "file_path": "ecommerce-smoke-spec-catalog.md",
+    "track_id": "insert_20260630_215415_fcfff322",
+    "content_hash": "fbe598701f9a1aaabd5e00e510c18e08",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782831304,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782831304,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782831304,
+      "process_end_time": 1782831397,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 3,
+    "chunks_list": [
+      "doc-cf017a813cd0b782aef34bc894b9789d-chunk-000",
+      "doc-cf017a813cd0b782aef34bc894b9789d-chunk-001",
+      "doc-cf017a813cd0b782aef34bc894b9789d-chunk-002"
+    ]
+  },
+  "doc-62f4f496367f45bac92c9ab98ba2b175": {
+    "status": "processed",
+    "content_summary": "---\nname: windows-ci-timeout-shard-fix\ndescription: \"Windows UI job in playwright-with-slack.yml chronically cancelled at 45min timeout; root-caused to broken %USERPROFILE% cache path + slow Windows throughput; fixed via ~ cache path + 3-way Windows ...",
+    "content_length": 5073,
+    "created_at": "2026-07-01T13:55:01.999057+00:00",
+    "updated_at": "2026-07-01T13:56:00.361760+00:00",
+    "file_path": "windows-ci-timeout-shard-fix.md",
+    "track_id": "insert_20260701_205501_b980664a",
+    "content_hash": "f4d69e42831e3b864437931e415141dc",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1782914102,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1782914102,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1782914102,
+      "process_end_time": 1782914160,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-62f4f496367f45bac92c9ab98ba2b175-chunk-000",
+      "doc-62f4f496367f45bac92c9ab98ba2b175-chunk-001"
+    ]
+  },
+  "doc-3b6ffa939ea42d6f764cbf5263f0a48f": {
+    "status": "processed",
+    "content_summary": "---\nname: parallel-ui-data-isolation\ndescription: \"Six independent layers that make fullyParallel:true safe for UI/ecommerce tests without data corruption; contrasts with API suite's per-brand sequential model\"\ntype: project\ntags: [memory, project, p...",
+    "content_length": 4123,
+    "created_at": "2026-07-02T15:16:02.383011+00:00",
+    "updated_at": "2026-07-02T15:16:57.883474+00:00",
+    "file_path": "parallel-ui-data-isolation.md",
+    "track_id": "insert_20260702_221602_590c44ea",
+    "content_hash": "2c6ab419dddcb07342e67171dd01102f",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783005362,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783005362,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783005362,
+      "process_end_time": 1783005417,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-3b6ffa939ea42d6f764cbf5263f0a48f-chunk-000"
+    ]
+  },
+  "doc-5f6e2edfd03ecdb4008577782507d3db": {
+    "status": "processed",
+    "content_summary": "---\nname: execution-config\ndescription: \"Parallelism strategy, retry settings, CI auto-detection, timeouts gotchas, and Firefox testIgnore in CI\"\ntype: project\ntags: [memory, project]\nlast_verified: 2026-07-02\n---\n\n## Worker & Parallelism Strategy\n\n|...",
+    "content_length": 3362,
+    "created_at": "2026-07-02T15:17:31.357028+00:00",
+    "updated_at": "2026-07-02T15:18:10.534208+00:00",
+    "file_path": "execution-config.md",
+    "track_id": "insert_20260702_221731_b0583d28",
+    "content_hash": "c05959c6959f630d08f1b72ec0326f88",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783005451,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783005451,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783005451,
+      "process_end_time": 1783005490,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-5f6e2edfd03ecdb4008577782507d3db-chunk-000"
+    ]
+  },
+  "doc-2529585b3ac5a54b6bea6d144b388e95": {
+    "status": "processed",
+    "content_summary": "---\nname: fixture-registry\ndescription: \"All registered test fixtures — UI base-test.ts and API ApiTest.ts — with Firefox teardown list and registration rules\"\ntype: project\ntags: [memory, project]\nlast_verified: 2026-06-30\n---\n\n## UI Fixtures (src/c...",
+    "content_length": 5626,
+    "created_at": "2026-07-02T16:52:12.660450+00:00",
+    "updated_at": "2026-07-02T16:52:56.450382+00:00",
+    "file_path": "fixture-registry.md",
+    "track_id": "insert_20260702_235212_9612507f",
+    "content_hash": "eff6c8981509d160a13f4aea6f43de23",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783011132,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783011132,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783011132,
+      "process_end_time": 1783011176,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-2529585b3ac5a54b6bea6d144b388e95-chunk-000",
+      "doc-2529585b3ac5a54b6bea6d144b388e95-chunk-001"
+    ]
+  },
+  "doc-a74540e7570b89ad3bb5cb22795ee605": {
+    "status": "processed",
+    "content_summary": "---\nname: ecommerce-header-help-gotcha\ndescription: GRA storefront header \"Help\" is a figure-trigger (not a link) that opens a complementary flyout; live Playwright MCP investigation found this after a diagnostic-script false negative caused an 8/8 v...",
+    "content_length": 4936,
+    "created_at": "2026-07-02T16:52:37.612656+00:00",
+    "updated_at": "2026-07-02T16:53:46.204312+00:00",
+    "file_path": "ecommerce-header-help-gotcha.md",
+    "track_id": "insert_20260702_235237_4c671582",
+    "content_hash": "95522e9fbe10b96704228c79e0eb751f",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783011179,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783011179,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783011179,
+      "process_end_time": 1783011226,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-a74540e7570b89ad3bb5cb22795ee605-chunk-000",
+      "doc-a74540e7570b89ad3bb5cb22795ee605-chunk-001"
+    ]
+  },
+  "doc-37d75b184e09a7e3125b15d7a511e315": {
+    "status": "processed",
+    "content_summary": "---\nname: ecommerce-utilities-smoke-spec\ndescription: \"Test catalog for utilities-smoke.spec.ts — E2E-UTIL-001 (Track Order, footer link) and E2E-UTIL-005 (Help/Support, header figure-trigger + flyout)\"\ntype: project\ntags: [memory, project]\nlast_veri...",
+    "content_length": 2825,
+    "created_at": "2026-07-02T16:52:52.727696+00:00",
+    "updated_at": "2026-07-02T16:53:32.197217+00:00",
+    "file_path": "ecommerce-utilities-smoke-spec.md",
+    "track_id": "insert_20260702_235252_51b30e77",
+    "content_hash": "8c25822df7aa2a9babf1ee814c75ed74",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783011179,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783011179,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783011179,
+      "process_end_time": 1783011212,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-37d75b184e09a7e3125b15d7a511e315-chunk-000"
+    ]
+  },
+  "doc-86e28457a0070a258f94860361f8b13b": {
+    "status": "processed",
+    "content_summary": "---\ntype: project\ntags: [memory, project, ecommerce, promotions, test-scoping]\nlast_verified: 2026-07-03\n---\n# E2E-CART-009 Omitted (Decision)\n\n**Decision (2026-07-03):** E2E-CART-009 — `\"BUY 2 GET 20% OFF\" discount applies with 2 qualifying items` (...",
+    "content_length": 2002,
+    "created_at": "2026-07-03T11:10:07.792648+00:00",
+    "updated_at": "2026-07-03T11:10:46.758372+00:00",
+    "file_path": "e2e-cart-009-omitted.md",
+    "track_id": "insert_20260703_181007_178d3802",
+    "content_hash": "39e6691976e0239be2d3653082da216d",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783077007,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783077007,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783077007,
+      "process_end_time": 1783077046,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-86e28457a0070a258f94860361f8b13b-chunk-000"
+    ]
+  },
+  "doc-cecb0d91ce73637998acce9c5c61beac": {
+    "status": "processed",
+    "content_summary": "---\nname: ecommerce-pdp-page-gotchas\ndescription: Known DOM/selector bugs and patterns in EcommercePDPPage, EcommerceAccountModalPage, EcommerceCartOverlayPage — Bloomreach popup (two contexts), gallery selectors, dual-h1, swatch navigation, cart cou...",
+    "content_length": 20116,
+    "created_at": "2026-07-03T13:38:51.774190+00:00",
+    "updated_at": "2026-07-03T13:39:47.935309+00:00",
+    "file_path": "ecommerce-pdp-page-gotchas.md",
+    "track_id": "insert_20260703_203851_521cae6c",
+    "content_hash": "987d9e989f77e722b039dfac07e74ce2",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783085931,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783085931,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783085931,
+      "process_end_time": 1783085987,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 5,
+    "chunks_list": [
+      "doc-cecb0d91ce73637998acce9c5c61beac-chunk-000",
+      "doc-cecb0d91ce73637998acce9c5c61beac-chunk-001",
+      "doc-cecb0d91ce73637998acce9c5c61beac-chunk-002",
+      "doc-cecb0d91ce73637998acce9c5c61beac-chunk-003",
+      "doc-cecb0d91ce73637998acce9c5c61beac-chunk-004"
+    ]
+  },
+  "doc-89278d88eec2b6ee50a522529e8ddbde": {
+    "status": "processed",
+    "content_summary": "---\nname: e2e-chkout-004-shipping-method\ndescription: E2E-CHKOUT-004 implemented as baseline→selected-method delta; GRA storefronts expose only ONE guest shipping method; staging has address-commit→rate-calc concurrency race\nmetadata:\n  type: project...",
+    "content_length": 2715,
+    "created_at": "2026-07-11T10:19:23.842823+00:00",
+    "updated_at": "2026-07-11T10:19:49.430599+00:00",
+    "file_path": "e2e-chkout-004-shipping-method.md",
+    "track_id": "insert_20260711_171923_a4da5486",
+    "content_hash": "11168471f4c91c1cce67a8a6f1b55087",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1783765163,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1783765163,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1783765163,
+      "process_end_time": 1783765189,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-89278d88eec2b6ee50a522529e8ddbde-chunk-000"
+    ]
+  },
+  "doc-9b7502586fbddb3db19fdfbf98d6e442": {
+    "status": "processed",
+    "content_summary": "---\nname: mcp-away-profile-config\ndescription: Sessions on ACER machine use CLAUDE_CONFIG_DIR=C:\\Users\\ACER\\.claude-away — MCP servers must be defined in that profile's .claude.json, not the regular ~/.claude.json\nmetadata:\n  type: project\n---\n\n# MCP...",
+    "content_length": 1417,
+    "created_at": "2026-07-17T12:31:31.974778+00:00",
+    "updated_at": "2026-07-17T12:32:10.946847+00:00",
+    "file_path": "mcp-away-profile-config.md",
+    "track_id": "insert_20260717_193131_a1b53a11",
+    "content_hash": "36f8ced584a014b7fc88c7fd544119b0",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1784291492,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1784291492,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1784291492,
+      "process_end_time": 1784291530,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-9b7502586fbddb3db19fdfbf98d6e442-chunk-000"
+    ]
+  },
+  "doc-6a6e1efbd4304c8a3c59149f2dcf1317": {
+    "status": "processed",
+    "content_summary": "---\nname: gra-int001-graphql-analytics-quirks\ndescription: GRA storefront ATC quirks discovered during INT-001 (2026-07-17) — cart_add event name, POST-body-only mutation, addConfigurableProductsToCart field variant\nmetadata:\n  type: project\n---\n\n# G...",
+    "content_length": 2491,
+    "created_at": "2026-07-17T15:31:21.996480+00:00",
+    "updated_at": "2026-07-17T15:32:01.158924+00:00",
+    "file_path": "gra-int001-graphql-analytics-quirks.md",
+    "track_id": "insert_20260717_223121_081d93ee",
+    "content_hash": "8cbec5fcc6a1114dbfa8e9ab18dae388",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1784302282,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1784302282,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1784302282,
+      "process_end_time": 1784302321,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-6a6e1efbd4304c8a3c59149f2dcf1317-chunk-000"
+    ]
+  },
+  "doc-c52b0c7ea9072a599183553ee3aed95a": {
+    "status": "processed",
+    "content_summary": "---\nname: lightrag-1.5.4-upgrade-completed\ndescription: \"LightRAG memory-vault backend upgraded to 1.5.4 on this machine (E:\\\\OLDDATA\\\\...\\\\playwright-typescript); repo-side pin/script fixes were already committed, only per-machine steps remained\"\nty...",
+    "content_length": 2958,
+    "created_at": "2026-07-22T08:12:30.954768+00:00",
+    "updated_at": "2026-07-22T08:13:26.944788+00:00",
+    "file_path": "lightrag-1.5.4-upgrade-completed.md",
+    "track_id": "insert_20260722_151230_bb0a67e2",
+    "content_hash": "77934d6e59af3174088fb823aaca2acf",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1784707950,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1784707951,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1784707951,
+      "process_end_time": 1784708006,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-c52b0c7ea9072a599183553ee3aed95a-chunk-000"
+    ]
+  },
+  "doc-b0565a3b3ed4ba90053450a6d12e132d": {
+    "status": "processed",
+    "content_summary": "---\nname: lightrag-uv-managed-venv\ndescription: \".lightrag-venv is uv-managed and has no pip module — use `uv pip install --python .lightrag-venv/Scripts/python.exe <pkg>`, not pip/python -m pip\"\ntype: feedback\ntags: [memory, feedback, lightrag]\nlast...",
+    "content_length": 1255,
+    "created_at": "2026-07-22T08:12:44.963424+00:00",
+    "updated_at": "2026-07-22T08:14:01.647513+00:00",
+    "file_path": "lightrag-uv-managed-venv.md",
+    "track_id": "insert_20260722_151244_7b599780",
+    "content_hash": "729ddfebbf655ddb94ed710188d4ef33",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1784708011,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1784708011,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1784708011,
+      "process_end_time": 1784708041,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-b0565a3b3ed4ba90053450a6d12e132d-chunk-000"
+    ]
+  },
+  "doc-13c6ca4c338ad773242cc059a8049dc9": {
+    "status": "processed",
+    "content_summary": "---\nname: gra-api-testing\ndescription: \"GRA multi-brand GraphQL API test patterns, file structure, shared-state flow, and staging API quirks (4 AU brands: pla-au, skx-au, drm-au, van-au)\"\ntype: project\ntags: [memory, project]\nsource_session: bcd19b4a...",
+    "content_length": 28325,
+    "created_at": "2026-07-26T13:59:30.025844+00:00",
+    "updated_at": "2026-07-26T14:00:32.662055+00:00",
+    "file_path": "gra-api-testing.md",
+    "track_id": "insert_20260726_205930_0c65a28b",
+    "content_hash": "71fae05a235918e22216e691adde8c51",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785074370,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785074370,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785074370,
+      "process_end_time": 1785074432,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 7,
+    "chunks_list": [
+      "doc-13c6ca4c338ad773242cc059a8049dc9-chunk-000",
+      "doc-13c6ca4c338ad773242cc059a8049dc9-chunk-001",
+      "doc-13c6ca4c338ad773242cc059a8049dc9-chunk-002",
+      "doc-13c6ca4c338ad773242cc059a8049dc9-chunk-003",
+      "doc-13c6ca4c338ad773242cc059a8049dc9-chunk-004",
+      "doc-13c6ca4c338ad773242cc059a8049dc9-chunk-005",
+      "doc-13c6ca4c338ad773242cc059a8049dc9-chunk-006"
+    ]
+  },
+  "doc-22b4f6a856aea6d7be1c0b7f9d72afb6": {
+    "status": "processed",
+    "content_summary": "---\nname: gra-braintree-payment\ndescription: \"Braintree sandbox credit-card payments are testable via pure API calls on all 8 GRA storefronts; gra-place-order.spec.ts and gra-order-history.spec.ts now place real orders through this chain instead of c...",
+    "content_length": 6718,
+    "created_at": "2026-07-26T14:26:16.306825+00:00",
+    "updated_at": "2026-07-26T14:26:38.035741+00:00",
+    "file_path": "gra-braintree-payment.md",
+    "track_id": "insert_20260726_212616_8701a14f",
+    "content_hash": "86a1b80145a764ead7e3cdcdbbe46264",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785075976,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785075976,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785075976,
+      "process_end_time": 1785075998,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-22b4f6a856aea6d7be1c0b7f9d72afb6-chunk-000",
+      "doc-22b4f6a856aea6d7be1c0b7f9d72afb6-chunk-001"
+    ]
+  },
+  "doc-161b36b883451ba6736c2ae4b3738bcc": {
+    "status": "processed",
+    "content_summary": "---\nname: complex-payment-flow-task-workflow\ndescription: \"Time/process pattern for building a new slow external-payment-integration E2E test (PayPal/Braintree) via qa-orchestrator — confirmed effective approach\"\ntype: feedback\ntags: [memory, feedbac...",
+    "content_length": 3010,
+    "created_at": "2026-07-27T14:56:12.041877+00:00",
+    "updated_at": "2026-07-27T14:56:50.833647+00:00",
+    "file_path": "complex-payment-flow-task-workflow.md",
+    "track_id": "insert_20260727_215612_e7c138b2",
+    "content_hash": "dc5650e305b8a4ae8689f0df06fd0324",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785164172,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785164172,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785164172,
+      "process_end_time": 1785164210,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-161b36b883451ba6736c2ae4b3738bcc-chunk-000"
+    ]
+  },
+  "doc-ddca318d24811cc5b8909ad5fe282759": {
+    "status": "processed",
+    "content_summary": "---\nname: ecommerce-checkout-payment-flow\ndescription: \"E2E-PLAORD-001 PayPal guest checkout implementation — Platypus AU payment step, Braintree+PayPal popup integration shape, recon findings\"\ntype: project\ntags: [memory, project]\nlast_verified: 202...",
+    "content_length": 3907,
+    "created_at": "2026-07-28T15:30:56.873768+00:00",
+    "updated_at": "2026-07-28T15:31:41.730352+00:00",
+    "file_path": "ecommerce-checkout-payment-flow.md",
+    "track_id": "insert_20260728_223056_38a7f83f",
+    "content_hash": "c079ba468158ec8405790e546a8e23e9",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785252656,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785252656,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785252656,
+      "process_end_time": 1785252701,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-ddca318d24811cc5b8909ad5fe282759-chunk-000"
+    ]
+  },
+  "doc-4a866eedabe835ebfcbbd234b864175d": {
+    "status": "processed",
+    "content_summary": "---\nname: loop-engineering-research\ndescription: \"Loop engineering research (2026-07-28); Increment A implemented and reviewed, Increment B still awaiting approval\"\ntype: project\ntags: [memory, project]\nlast_verified: 2026-07-28\n---\n\nTechnical resear...",
+    "content_length": 4416,
+    "created_at": "2026-07-28T16:10:37.862191+00:00",
+    "updated_at": "2026-07-28T16:11:20.427667+00:00",
+    "file_path": "loop-engineering-research.md",
+    "track_id": "insert_20260728_231037_a9d7dad5",
+    "content_hash": "7290456319015a0863e70f3cbb48becd",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785255037,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785255037,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785255037,
+      "process_end_time": 1785255080,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-4a866eedabe835ebfcbbd234b864175d-chunk-000"
+    ]
+  },
+  "doc-7c985acc4088373ba5594433f3fd9b56": {
+    "status": "processed",
+    "content_summary": "---\nname: honest-judgment-over-scope-compliance\ntype: feedback\ntags: [memory, feedback]\nlast_verified: 2026-07-28\n---\n\n**When a user picks a scope via AskUserQuestion, don't just build it — check whether the scope actually holds up, especially agains...",
+    "content_length": 2497,
+    "created_at": "2026-07-28T17:20:57.738018+00:00",
+    "updated_at": "2026-07-28T17:21:28.145576+00:00",
+    "file_path": "honest-judgment-over-scope-compliance.md",
+    "track_id": "insert_20260729_002057_f3ef967d",
+    "content_hash": "9b1bc38f2ea0dc6d8ea84ce82c3af747",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785259257,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785259257,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785259257,
+      "process_end_time": 1785259288,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-7c985acc4088373ba5594433f3fd9b56-chunk-000"
+    ]
+  },
+  "doc-a10959480a72a6acd62582bf626094f7": {
+    "status": "processed",
+    "content_summary": "---\nname: e2e-chkout-009-checkout-address-prefill\ndescription: \"E2E-CHKOUT-009 (logged-in checkout pre-fills saved default shipping address) — build, qa-code-reviewer + council-review findings, all 7 fixes applied, current per-storefront skip/pass br...",
+    "content_length": 5834,
+    "created_at": "2026-08-02T14:54:27.352823+00:00",
+    "updated_at": "2026-08-02T14:55:08.868838+00:00",
+    "file_path": "e2e-chkout-009-checkout-address-prefill.md",
+    "track_id": "insert_20260802_215427_39122fba",
+    "content_hash": "aed1d76e4df8c813605cd1e31b148fd9",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785682467,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785682467,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785682467,
+      "process_end_time": 1785682508,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 2,
+    "chunks_list": [
+      "doc-a10959480a72a6acd62582bf626094f7-chunk-000",
+      "doc-a10959480a72a6acd62582bf626094f7-chunk-001"
+    ]
+  },
+  "doc-2ab3b9924abd286f558faef307aad25c": {
+    "status": "processed",
+    "content_summary": "---\nname: council-review-transcript-vs-console\ndescription: \"/council-review console/notification summary can report a model as failed (timeout) even when its transcript file contains a complete, substantive response — always read the transcript befo...",
+    "content_length": 2199,
+    "created_at": "2026-08-02T14:54:40.198556+00:00",
+    "updated_at": "2026-08-02T14:55:32.631396+00:00",
+    "file_path": "council-review-transcript-vs-console.md",
+    "track_id": "insert_20260802_215440_ac1b9a46",
+    "content_hash": "680f82f0bb5b03759a7749e72e2428a8",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785682514,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785682514,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785682514,
+      "process_end_time": 1785682532,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-2ab3b9924abd286f558faef307aad25c-chunk-000"
+    ]
+  },
+  "doc-57b684947bb7f507034c4528fdc3b68d": {
+    "status": "processed",
+    "content_summary": "---\nname: lightrag-agent-scoping-2026-08-05\ndescription: \"LightRAG query access deliberately scoped to 5 vault/context agents (qa-orchestrator, playwright-test-planner, technical-research-agent, memory-vault-curator, vault-updater), not all 19 .claud...",
+    "content_length": 3147,
+    "created_at": "2026-08-04T17:02:03.214675+00:00",
+    "updated_at": "2026-08-04T17:02:57.426672+00:00",
+    "file_path": "lightrag-agent-scoping-2026-08-05.md",
+    "track_id": "insert_20260805_000203_58bab943",
+    "content_hash": "74ac805c7ca9c7db7779546ddb784aea",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1785862923,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1785862923,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1785862923,
+      "process_end_time": 1785862977,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-57b684947bb7f507034c4528fdc3b68d-chunk-000"
+    ]
+  },
+  "doc-4fec88a914ce6fed98a6b122e9ed67db": {
+    "status": "processed",
+    "content_summary": "---\nname: pi-coding-agent-evaluation\ndescription: Pi Coding Agent evaluated 2026-08-28 via technical-research-agent; decision was not to integrate\nmetadata:\n  type: project\n---\n\nEvaluated `@earendil-works/pi-coding-agent` (v0.84.3, MIT, ~98.5k GitHub...",
+    "content_length": 2060,
+    "created_at": "2026-09-09T16:53:22.040210+00:00",
+    "updated_at": "2026-09-09T16:53:45.528700+00:00",
+    "file_path": "pi-coding-agent-evaluation.md",
+    "track_id": "insert_20260909_235322_a6f01603",
+    "content_hash": "19554489ec55d867625ab43ca3d4cbbe",
+    "metadata": {
+      "process_options": "F",
+      "parse_start_time": 1788972802,
+      "parse_stage_skipped": true,
+      "parse_format": "raw",
+      "parse_engine": "legacy",
+      "analyzing_start_time": 1788972802,
+      "analyzing_stage_skipped": true,
+      "process_start_time": 1788972802,
+      "process_end_time": 1788972825,
+      "chunk_method": "fixed_token",
+      "chunk_opts": "size=1200, split_only=False, overlap=100"
+    },
+    "chunks_count": 1,
+    "chunks_list": [
+      "doc-4fec88a914ce6fed98a6b122e9ed67db-chunk-000"
+    ]
+  }
+}
