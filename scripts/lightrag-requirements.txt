@@ -1,1 +1,1 @@
-lightrag-hku==1.5.4
+lightrag-hku==1.5.7

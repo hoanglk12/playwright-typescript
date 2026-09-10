@@ -72,10 +72,15 @@ async function main() {
 
   console.log('[sync-vault-to-lightrag] LightRAG healthy — syncing...');
 
-  // Get current docs
-  const docsRes = await fetch(`${LIGHTRAG_URL}/documents`);
+  // Get current docs — GET /documents was removed in lightrag-hku 1.5.7, replaced by
+  // POST /documents/paginated (page_size max is 200, well above the vault's note count)
+  const docsRes = await fetch(`${LIGHTRAG_URL}/documents/paginated`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ page: 1, page_size: 200 }),
+  });
   const docsData = await docsRes.json();
-  const processed = docsData.statuses?.processed ?? [];
+  const processed = (docsData.documents ?? []).filter((d) => d.status === 'processed');
   const lrMap = new Map(
     processed.map((d) => [d.file_path, { id: d.id, contentLength: d.content_length }])
   );
