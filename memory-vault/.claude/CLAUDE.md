@@ -38,7 +38,7 @@ Manual: `npm run sync:vault` (or directly, `node scripts/sync-vault-to-lightrag.
 ## Searching the vault
 
 Use built-in `Glob` and `Grep` tools for exact lookups — no MCP or extra process needed.
-Use `mcp__lightrag__query` for semantic or multi-note synthesis queries.
+Use `mcp__lightrag__query_document` for semantic or multi-note synthesis queries.
 
 | Goal | Tool | Pattern / Path |
 |------|------|----------------|
@@ -47,11 +47,11 @@ Use `mcp__lightrag__query` for semantic or multi-note synthesis queries.
 | Full-text keyword search | `Grep` | keyword, path `memory-vault/20-memory/` |
 | Read the index | `Read` | `memory-vault/00-index.md` |
 | Read a specific note | `Read` | `memory-vault/20-memory/{type}/{filename}.md` |
-| Semantic / multi-note synthesis | `mcp__lightrag__query` | query string, mode `"hybrid"` |
+| Semantic / multi-note synthesis | `mcp__lightrag__query_document` | query string, mode `"hybrid"` |
 
 **Search-first rule:** before answering any question about framework patterns, API quirks, or user preferences, run a Grep over `memory-vault/20-memory/` for the relevant keyword. Do not rely on memory of prior sessions alone.
 
-**LightRAG query rule:** when the question spans multiple notes, requires relationship reasoning ("what are all constraints for X?", "list everything that affects Y"), or Grep returns no relevant results — call `mcp__lightrag__query` with the question as the query string and `mode: "hybrid"`. Check `mcp__lightrag__check_lightrag_health` first; if the server is not running, fall back to Grep.
+**LightRAG query rule:** when the question spans multiple notes, requires relationship reasoning ("what are all constraints for X?", "list everything that affects Y"), or Grep returns no relevant results — call `mcp__lightrag__query_document` with the question as the query string and `mode: "hybrid"`. Check `mcp__lightrag__check_lightrag_health` first; if the server is not running, fall back to Grep.
 
 **Mode reference:**
 

@@ -1,7 +1,7 @@
 ---
 name: vault-updater
 description: Fetches a Jira issue or Confluence page and writes a formatted memory vault note to memory-vault/20-memory/{type}/. Invoke when the user says "update knowledge from Jira", "add this Confluence page to vault", "save this issue to memory", or gives a Jira key like PROJ-123.
-tools: Read, Glob, Grep, Write, Edit, Bash, mcp__atlassian__getJiraIssue, mcp__atlassian__getConfluencePage, mcp__atlassian__search, mcp__atlassian__getConfluenceSpaces, mcp__lightrag__get_documents, mcp__lightrag__delete_by_doc_ids, mcp__lightrag__insert_file, mcp__lightrag__check_lightrag_health, mcp__lightrag__get_pipeline_status, mcp__lightrag__query_document
+tools: Read, Glob, Grep, Write, Edit, Bash, mcp__atlassian__getJiraIssue, mcp__atlassian__getConfluencePage, mcp__atlassian__search, mcp__atlassian__getConfluenceSpaces, mcp__lightrag__check_lightrag_health, mcp__lightrag__get_pipeline_status, mcp__lightrag__query_document
 ---
 
 # Vault Updater Agent
@@ -79,19 +79,17 @@ Filename rules:
 - Kebab-case, no spaces or special characters
 - Must be unique across all subdirs (check with Glob before writing)
 
-## Step 6 — Sync to LightRAG via MCP
+## Step 6 — Sync to LightRAG
 
-After writing the vault note, sync it to LightRAG using MCP tools directly (not the shell script — MCP tools bypass LightRAG's file-tracker and reliably handle both new and updated notes).
+Sync happens automatically — the `PostToolUse` hook (`.claude/hooks/sync-memory.js`) runs `scripts/sync-vault-to-lightrag.mjs` whenever `Write`/`Edit`/`MultiEdit` touches a `.md` file under `memory-vault/20-memory/`. That script correctly handles both new and updated notes (delete-then-poll-then-reinsert for changed files, per its own comments), so writing or editing the note in Step 5 is enough to trigger the sync — no separate tool call is needed here.
 
-1. **Health check**: call `mcp__lightrag__check_lightrag_health`. If not healthy or if the call fails, skip LightRAG sync — it is non-fatal. Report it to the user.
+`mcp__lightrag__get_documents`, `mcp__lightrag__insert_file`, and `mcp__lightrag__delete_by_doc_ids` must not be used for this: they call `GET /documents`, `POST /documents/file`, and (for per-doc-id delete) `DELETE /documents/{doc_id}` respectively, none of which exist on the LightRAG backend — only `POST /documents/paginated`, `POST /documents/text`, and `DELETE /documents/delete_document` (body `{doc_ids: [...]}`) do.
 
-2. **Check if note already exists**: call `mcp__lightrag__get_documents`. Look for a doc with `file_path` matching the filename you just wrote (basename only, e.g. `jira-proj-123.md`).
+1. **Health check** (optional, for reporting): call `mcp__lightrag__check_lightrag_health`. If not healthy or if the call fails, note that sync will be skipped — the hook's underlying script does its own health check and exits silently when the server is down, so this is non-fatal.
 
-3. **If updating an existing note**: call `mcp__lightrag__delete_by_doc_ids` with the old doc's `id`. Then call `mcp__lightrag__insert_file` with the full absolute path to the vault note.
+2. **If the hook's sync failed silently for some reason**: run `npm run sync:vault` (or `node scripts/sync-vault-to-lightrag.mjs`) via `Bash` as a manual fallback — this re-syncs the whole vault and is safe to re-run.
 
-4. **If adding a new note**: call `mcp__lightrag__insert_file` with the full absolute path to the vault note.
-
-5. **Confirm**: call `mcp__lightrag__get_pipeline_status` and report to the user whether the pipeline is processing.
+3. **Confirm**: call `mcp__lightrag__get_pipeline_status` and report to the user whether the pipeline is processing.
 
 ## Rules
 

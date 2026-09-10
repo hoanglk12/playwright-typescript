@@ -3,7 +3,7 @@ name: lightrag-agent-scoping-2026-08-05
 description: "LightRAG query access deliberately scoped to 5 vault/context agents (qa-orchestrator, playwright-test-planner, technical-research-agent, memory-vault-curator, vault-updater), not all 19 .claude/agents/*.md definitions"
 type: project
 tags: [memory, project, lightrag]
-last_verified: 2026-08-05
+last_verified: 2026-09-10
 ---
 
 ## Decision
@@ -41,4 +41,11 @@ with `query_document` for consistency with the allowlisted/already-in-use name. 
 `mcp__lightrag__query` — and add the same health-check-first, silent-Grep-fallback pattern used
 in the 5 agents above rather than a hard dependency on the server being up.
 
-Related: [[lightrag-1.5.4-upgrade-completed]], [[lightrag-uv-managed-venv]]
+**Update (2026-09-10):** the `mcp__lightrag__query` naming inconsistency in
+`memory-vault/.claude/CLAUDE.md` was corrected to `mcp__lightrag__query_document`. Separately,
+`vault-updater`'s write-side tools listed above (`get_documents`/`delete_by_doc_ids`/`insert_file`)
+are now removed from its frontmatter — all three target LightRAG HTTP routes that no longer exist
+on the backend (`GET /documents`, `DELETE /documents/{doc_id}`, `POST /documents/file`). Sync is
+now automatic via the `PostToolUse` hook instead. See [[lightrag-mcp-adapter-dependency-risk]].
+
+Related: [[lightrag-1.5.4-upgrade-completed]], [[lightrag-uv-managed-venv]], [[lightrag-mcp-adapter-dependency-risk]]
