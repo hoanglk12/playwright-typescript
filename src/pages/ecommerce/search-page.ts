@@ -35,6 +35,21 @@ export class EcommerceSearchPage extends BasePage {
     await this.waits.waitForElement(this.mainContainer, TIMEOUTS.ELEMENT_VISIBLE);
   }
 
+  async getSearchPlaceholder(): Promise<string | null> {
+    await this.waits.waitForElement(this.iconSearchInput, TIMEOUTS.ELEMENT_VISIBLE);
+    return this.elements.getAttribute(this.iconSearchInput, 'placeholder');
+  }
+
+  async submitEmptySearch(): Promise<void> {
+    await this.waits.waitForElement(this.iconSearchInput, TIMEOUTS.ELEMENT_VISIBLE);
+    await this.elements.enterText(this.iconSearchInput, '');
+    await this.elements.pressKey('Enter');
+    // An empty term is a client-side no-op — no navigation fires, so this wait is
+    // expected to time out; it just gives any unexpected navigation a chance to
+    // complete before the caller reads the URL.
+    await this.waits.waitForUrlMatches(/search|catalogsearch/i, TIMEOUTS.TIMEOUT_SHORT).catch(() => {});
+  }
+
   async waitForSearchResults(): Promise<void> {
     await this.waits.waitForCustomCondition(
       async () => (await this.dom.count(this.productCardSelector)) > 0,

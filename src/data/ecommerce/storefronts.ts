@@ -27,6 +27,8 @@ export interface Storefront {
   saleNavLabel?: string;
   /** Stable search term confirmed to return product results (E2E-SRCH-001) */
   searchTerm: string;
+  /** Search input placeholder text; confirmed brand-level, not region-level (E2E-SRCH-002) */
+  searchPlaceholder: string;
   /** Category filter label on the PLP filter sidebar that reduces product count when clicked (E2E-PLP-004) */
   categoryFilterLabel: string;
   /** Size filter label on the PLP filter sidebar that reduces product count when clicked (E2E-PLP-006). Omit to skip. */
@@ -73,6 +75,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Nike',
+    searchPlaceholder: 'Find products, colours, fits...',
     searchResultUrlPattern: /(search|\/shop\/)/i,
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
@@ -97,6 +100,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Nike',
+    searchPlaceholder: 'Find products, colours, fits...',
     searchResultUrlPattern: /(search|\/shop\/)/i,
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
@@ -120,6 +124,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Go Walk',
+    searchPlaceholder: 'What are you looking for?',
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
     pdpPath: '/some-product.html', // TODO: replace with real slug
@@ -145,6 +150,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Go Walk',
+    searchPlaceholder: 'What are you looking for?',
     categoryFilterLabel: 'Footwear',
     sizeFilterLabel: '7',
     pdpPath: '/some-product.html', // TODO: replace with real slug
@@ -170,6 +176,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'OUTLET',  // OUTLET navigates to /shop/sale
     searchTerm: 'Old Skool',
+    searchPlaceholder: 'What are you looking for?',
     categoryFilterLabel: 'Low Top',
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
@@ -192,6 +199,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: 'Old Skool',
+    searchPlaceholder: 'What are you looking for?',
     categoryFilterLabel: 'Old Skool',
     sizeFilterLabel: '7',
     pdpPath: '/some-product-vn000000000.html', // TODO: replace with real slug
@@ -213,6 +221,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'SALE',
     searchTerm: '1460',
+    searchPlaceholder: 'What are you looking for?',
     categoryFilterLabel: 'Boots',
     sizeFilterLabel: '4',
     pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
@@ -237,6 +246,7 @@ export const storefronts: readonly Storefront[] = [
     kidsNavLabel: 'KIDS',
     saleNavLabel: 'BLACK FRIDAY',  // staging seasonal label — navigates to /shop/sale
     searchTerm: '1460',
+    searchPlaceholder: 'What are you looking for?',
     categoryFilterLabel: 'Boots',
     sizeFilterLabel: '4',
     pdpPath: '/some-product-00000000.html', // TODO: replace with real slug
