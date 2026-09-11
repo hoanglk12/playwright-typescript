@@ -496,6 +496,8 @@ await apiClient.post(`/rest/V1/carts/${cartId}/items`, {
 | E2E-PLAORD-002 | Place order via Paypal using logged-in user      | P1 | All |
 | E2E-PLAORD-003 | Place order via Credit Card using guest user     | P1 | All |
 | E2E-PLAORD-004 | Place order via Credit Card using logged-in user | P1 | All |
+| E2E-PLAORD-005 | Place order via Afterpay using guest user     | P1 | All |
+| E2E-PLAORD-006 | Place order via Afterpay using logged-in user | P1 | All |
 
 ---
 

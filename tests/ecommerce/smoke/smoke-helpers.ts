@@ -5,6 +5,7 @@ import { EcommerceCartOverlayPage } from '@pages/ecommerce/cart-overlay-page';
 import { EcommerceNavPage } from '@pages/ecommerce/nav-page';
 import { EcommercePDPPage } from '@pages/ecommerce/pdp-page';
 import { EcommercePLPPage } from '@pages/ecommerce/plp-page';
+import { TIMEOUTS } from '../../../src/constants/timeouts';
 
 const BRAND_CODES: Record<string, string> = {
   'Platypus AU': 'pla-au',
@@ -150,6 +151,157 @@ export async function confirmDefaultShippingAddressViaGraphQL(
     ) ?? null;
 
   return { hasDefaultShippingAddress: matchedAddress !== null, matchedAddress };
+}
+
+const GET_CUSTOMER_CART_QUERY = `
+  query GetCustomerCart {
+    customerCart {
+      id
+      items {
+        id
+        quantity
+      }
+    }
+  }
+`;
+
+// Same UpdateCartItemsInput/updateCartItems shape as gra-cart-minicart.spec.ts's
+// UPDATE_CART_ITEMS_MUTATION — quantity: 0 removes an item, confirmed live against
+// the known-dirty Skechers AU QA account (2026-09-11).
+const CLEAR_CART_ITEMS_MUTATION = `
+  mutation ClearCartItems($input: UpdateCartItemsInput!) {
+    updateCartItems(input: $input) {
+      cart {
+        items {
+          id
+          quantity
+        }
+      }
+    }
+  }
+`;
+
+interface CustomerCartItemSummary {
+  id: string;
+  quantity: number;
+}
+
+export interface CartClearResult {
+  cleared: boolean;
+  itemsRemoved: number;
+  reason?: string;
+}
+
+const MAX_CLEAR_ATTEMPTS = 3;
+
+function clearFailure(reason: string): CartClearResult {
+  return { cleared: false, itemsRemoved: 0, reason };
+}
+
+/**
+ * Clears every item from `credentials`' cart. RECON FINDING (live, 2026-09-11, against
+ * the known-dirty Skechers AU QA account): a single pass does not always remove every item — one
+ * leftover reappeared under a regenerated cart_item_id after its quantity-0 update, and needed a
+ * second pass to actually clear. Each attempt therefore re-submits whatever the previous
+ * mutation's own response reports as still present, up to `MAX_CLEAR_ATTEMPTS`, rather than
+ * assuming one round trip is sufficient.
+ *
+ * Never throws and never asserts — an already-empty cart, an auth failure, or a leftover item
+ * after all attempts are all valid non-fatal outcomes surfaced via the returned result. Callers
+ * use this as precondition hygiene (log and continue), not a test assertion.
+ */
+export async function clearCustomerCartViaGraphQL(
+  request: APIRequestContext,
+  site: Storefront,
+  credentials: { email: string; password: string },
+): Promise<CartClearResult> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (site.storeHeader) headers['Store'] = site.storeHeader;
+
+  try {
+    const tokenResponse = await request.post(site.graphqlUrl, {
+      headers,
+      data: {
+        query: GENERATE_CUSTOMER_TOKEN_MUTATION,
+        variables: { email: credentials.email, password: credentials.password },
+      },
+      timeout: TIMEOUTS.API_RESPONSE,
+    });
+    const tokenBody = (await tokenResponse.json()) as {
+      data?: { generateCustomerToken?: { token?: string } };
+      errors?: Array<{ message?: string }>;
+    };
+    if (!tokenResponse.ok() || (tokenBody.errors?.length ?? 0) > 0) {
+      return clearFailure(
+        tokenBody.errors?.[0]?.message ?? `token request failed with HTTP ${tokenResponse.status()}`,
+      );
+    }
+    const token = tokenBody.data?.generateCustomerToken?.token;
+    if (!token) {
+      return clearFailure('no token returned from generateCustomerToken');
+    }
+    const authHeaders = { ...headers, Authorization: `Bearer ${token}` };
+
+    const cartResponse = await request.post(site.graphqlUrl, {
+      headers: authHeaders,
+      data: { query: GET_CUSTOMER_CART_QUERY },
+      timeout: TIMEOUTS.API_RESPONSE,
+    });
+    const cartBody = (await cartResponse.json()) as {
+      data?: { customerCart?: { id?: string; items?: CustomerCartItemSummary[] } };
+      errors?: Array<{ message?: string }>;
+    };
+    if (!cartResponse.ok() || (cartBody.errors?.length ?? 0) > 0) {
+      return clearFailure(
+        cartBody.errors?.[0]?.message ?? `customerCart query failed with HTTP ${cartResponse.status()}`,
+      );
+    }
+    const cartId = cartBody.data?.customerCart?.id;
+    let remainingItems = cartBody.data?.customerCart?.items ?? [];
+    const totalToRemove = remainingItems.length;
+    if (!cartId || totalToRemove === 0) {
+      return { cleared: true, itemsRemoved: 0 };
+    }
+
+    for (let attempt = 1; attempt <= MAX_CLEAR_ATTEMPTS && remainingItems.length > 0; attempt++) {
+      const clearResponse = await request.post(site.graphqlUrl, {
+        headers: authHeaders,
+        data: {
+          query: CLEAR_CART_ITEMS_MUTATION,
+          variables: {
+            input: {
+              cart_id: cartId,
+              cart_items: remainingItems.map((item) => ({ cart_item_id: Number(item.id), quantity: 0 })),
+            },
+          },
+        },
+        timeout: TIMEOUTS.API_RESPONSE,
+      });
+      const clearBody = (await clearResponse.json()) as {
+        data?: { updateCartItems?: { cart?: { items?: CustomerCartItemSummary[] } } };
+        errors?: Array<{ message?: string }>;
+      };
+      if (!clearResponse.ok() || (clearBody.errors?.length ?? 0) > 0) {
+        return clearFailure(
+          clearBody.errors?.[0]?.message ??
+            `updateCartItems mutation failed with HTTP ${clearResponse.status()} (started with ${totalToRemove} item(s))`,
+        );
+      }
+      remainingItems = clearBody.data?.updateCartItems?.cart?.items ?? [];
+    }
+
+    if (remainingItems.length > 0) {
+      // IDs can regenerate between passes (see docblock above), so a leftover count cannot be
+      // reliably diffed against totalToRemove — report both counts as observed instead.
+      return clearFailure(
+        `${remainingItems.length} of ${totalToRemove} item(s) still in cart after ${MAX_CLEAR_ATTEMPTS} clear attempts`,
+      );
+    }
+
+    return { cleared: true, itemsRemoved: totalToRemove };
+  } catch (error) {
+    return clearFailure(error instanceof Error ? error.message : String(error));
+  }
 }
 
 /**
