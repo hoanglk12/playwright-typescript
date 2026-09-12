@@ -8,6 +8,7 @@ export class EcommerceSearchPage extends BasePage {
   private readonly iconSearchInput = 'div.search input[type="text"]';
   private readonly iconSearchButton = 'div.search svg.icon';
   private readonly productCardSelector = '[data-product-id]';
+  private readonly productSuggestionSelector = 'div.search a.product-suggestion';
 
   constructor(page: Page) {
     super(page);
@@ -35,6 +36,18 @@ export class EcommerceSearchPage extends BasePage {
     await this.waits.waitForElement(this.mainContainer, TIMEOUTS.ELEMENT_VISIBLE);
   }
 
+  /**
+   * Distinct from search(), which submits and waits for a URL change — this leaves the
+   * autocomplete dropdown open for inspection (E2E-SRCH-005).
+   *
+   * enterText (fill) is correct here despite the usual keyup-debounce caveat: the GRA
+   * header autocomplete fires on React onChange, verified live on all 8 storefronts.
+   */
+  async typeSearchTerm(term: string): Promise<void> {
+    await this.waits.waitForElement(this.iconSearchInput, TIMEOUTS.ELEMENT_VISIBLE);
+    await this.elements.enterText(this.iconSearchInput, term);
+  }
+
   async getSearchPlaceholder(): Promise<string | null> {
     await this.waits.waitForElement(this.iconSearchInput, TIMEOUTS.ELEMENT_VISIBLE);
     return this.elements.getAttribute(this.iconSearchInput, 'placeholder');
@@ -59,5 +72,20 @@ export class EcommerceSearchPage extends BasePage {
 
   async getResultCount(): Promise<number> {
     return this.dom.count(this.productCardSelector);
+  }
+
+  /**
+   * PAGE_LOAD_SLOW, not ELEMENT_VISIBLE: the suggestion list is network-backed and has
+   * been observed taking ~21s under parallel load across storefronts.
+   */
+  async waitForAutocompleteSuggestions(): Promise<void> {
+    await this.waits.waitForCustomCondition(
+      async () => (await this.dom.count(this.productSuggestionSelector)) > 0,
+      { timeout: TIMEOUTS.PAGE_LOAD_SLOW, interval: TIMEOUTS.POLL_INTERVAL_FAST }
+    );
+  }
+
+  async getProductSuggestionCount(): Promise<number> {
+    return this.dom.count(this.productSuggestionSelector);
   }
 }

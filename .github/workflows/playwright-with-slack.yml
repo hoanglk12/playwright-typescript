@@ -191,6 +191,7 @@ jobs:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
           PAYPAL_SANDBOX_PASSWORD: ${{ secrets.PAYPAL_SANDBOX_PASSWORD }}
+          RUN_CARD_CHECKOUT: ${{ vars.RUN_CARD_CHECKOUT }}
           HEADLESS: 'true'
 
       - name: Run UI tests (Windows)
@@ -201,6 +202,7 @@ jobs:
           BROWSER: ${{ env.TEST_BROWSER }}
           GRA_TEST_PASSWORD: ${{ secrets.GRA_TEST_PASSWORD }}
           PAYPAL_SANDBOX_PASSWORD: ${{ secrets.PAYPAL_SANDBOX_PASSWORD }}
+          RUN_CARD_CHECKOUT: ${{ vars.RUN_CARD_CHECKOUT }}
           HEADLESS: 'true'
 
       - name: Copy test-results into monocart shard

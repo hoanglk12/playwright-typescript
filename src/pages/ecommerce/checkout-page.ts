@@ -3,6 +3,7 @@ import { BasePage } from '../base-page';
 import { TIMEOUTS } from '../../constants/timeouts';
 import { type GuestShippingAddress } from '../../data/ecommerce/test-accounts';
 import { type PayPalSandboxAccount } from '../../data/ecommerce/payment-accounts';
+import { type BraintreeTestCard } from '../../data/api/gra-braintree-payment-data';
 
 export interface OrderSummaryTotals {
   subtotal: number | null;
@@ -79,6 +80,14 @@ export interface OrderReviewLineItem {
   quantity: number;
   /** Line price, parsed the same way as OrderSummaryTotals prices. Null if not parseable. */
   price: number | null;
+}
+
+// E2E-PLAORD-003 — populated from a single poll (waitForCardPlaceOrderOutcome()) so callers
+// never reconcile two separate reads. Root-cause context: memory-vault/20-memory/project/
+// gra-card-checkout-placeorder-blocker.md.
+export interface CardPlaceOrderOutcome {
+  orderSucceeded: boolean;
+  failureMessages: string[];
 }
 
 // E2E-CHKOUT-004 — RECON FINDINGS (Platypus AU staging, 2026-07-11, verified live via a
@@ -173,6 +182,30 @@ export class EcommerceCheckoutPage extends BasePage {
   //   b) Shipping form step: "This is a required field.", "Please enter a value."
   private readonly validationTextPattern =
     /(please enter|please provide|please select|is required|required field|must be|cannot be blank|invalid|this field)/i;
+
+  // E2E-PLAORD-003 — Dedicated payment-rejection vocabulary, deliberately kept separate from
+  // validationTextPattern rather than merged into it: that pattern is tuned for form-field
+  // copy and is shared by two other specs (checkout.spec.ts, error-handling-smoke.spec.ts) that
+  // must not gain new match surface. It also fully REPLACES validationTextPattern for the
+  // caller that passes it (see getValidationMessages()) rather than being OR'd alongside it —
+  // an OR would still let e.g. "Required fields marked with *" (real, harmless checkout copy
+  // elsewhere on this same step) match via validationTextPattern's "required" alternative and
+  // report a false rejection.
+  //
+  // The one confirmed live rejection text is "Unable to place order: We are sorry, but we
+  // could not process your order at this time." (see
+  // gra-card-checkout-placeorder-blocker.md). Only "could not process" and "unable to place"
+  // are drawn directly from it; "could not be placed"/"unable to process"/"payment
+  // (failed|error)" generalise across verb-form variants a different Magento error message
+  // could plausibly use, on the same root cause. A prior draft also included "we are sorry" —
+  // removed: it carries no rejection-specific semantics on its own, and since the poll returns
+  // on the FIRST tick where failureMessages.length > 0, any unrelated benign "We are sorry ..."
+  // copy on the payment step would end the poll immediately and report a false card-checkout
+  // failure. "decline"/"try again"/generic "something went wrong" were considered and dropped
+  // for the same reason — too likely to false-match unrelated visible copy (e.g. a cookie-
+  // banner "Decline" button).
+  private readonly placeOrderRejectionTextPattern =
+    /(could not (be placed|process)|unable to (place|process)|payment (failed|error))/i;
 
   // ARIA selector for semantic validation signals (preferred over text scan).
   private readonly ariaValidationSelector = '[role="alert"], [aria-live]:not([aria-live="off"])';
@@ -406,6 +439,24 @@ export class EcommerceCheckoutPage extends BasePage {
   private readonly paypalAgreeContinueButtonSelector = 'role=button[name="Agree & Continue"]';
   private readonly orderSuccessUrlPattern = /\/ordersuccess/i;
   private readonly orderNumberTextPattern = /order number\s*([a-z0-9-]+)/i;
+
+  // E2E-PLAORD-003 — full recon in memory-vault/20-memory/project/
+  // gra-card-checkout-placeorder-blocker.md. Each Hosted Fields iframe's DOM carries all 5
+  // possible field inputs as clones, only its OWN field active — locate by (frame id, field
+  // name) pair only, never a bare field-name match across frames. Cross-origin
+  // (assets.braintreegateway.com) — this.frames (FrameHelper) required, same as the PayPal
+  // Smart Button iframe above. Expiry is a single combined MM/YY field, not separate month/year.
+  private readonly cardRadioSelector = 'input[type="radio"][value="braintree_gra"]';
+  private readonly braintreeNumberFrameSelector = 'iframe#braintree-hosted-field-number';
+  private readonly braintreeExpirationFrameSelector = 'iframe#braintree-hosted-field-expirationDate';
+  private readonly braintreeCvvFrameSelector = 'iframe#braintree-hosted-field-cvv';
+  private readonly braintreeNumberInputSelector = 'input[name="credit-card-number"]';
+  private readonly braintreeExpirationInputSelector = 'input[name="expiration"]';
+  private readonly braintreeCvvInputSelector = 'input[name="cvv"]';
+  // A confirmed disabled -> enabled race exists here, the same shape as
+  // continueToPaymentButtonSelector above — submitCurrentStep() is NOT safe for this button,
+  // since its Pass 2 silently skips a disabled button rather than waiting for it to enable.
+  private readonly placeOrderButtonSelector = 'button:has-text("PLACE ORDER")';
 
   // E2E-CHKOUT-009 — RECON FINDING (confirmed live, Dr. Martens AU staging): when a logged-in
   // customer with a saved default-shipping address reaches the checkout shipping step, the
@@ -841,42 +892,66 @@ export class EcommerceCheckoutPage extends BasePage {
 
   // Returns the text content of all visible validation error messages on the current step.
   // Returns an empty array if none are found. Never throws.
-  async getValidationMessages(): Promise<string[]> {
+  //
+  // E2E-PLAORD-003 — `overridePattern` REPLACES validationTextPattern for this call (does not
+  // OR alongside it): a caller matching a different vocabulary class (e.g. a payment-gateway
+  // rejection — see placeOrderRejectionTextPattern's docblock for why merging would false-match
+  // unrelated "required"-style copy elsewhere on the same step) gets the same DOM scan without
+  // widening what the two existing default-pattern callers match.
+  //
+  // The ARIA branch (any visible [role="alert"]/[aria-live] text) is unconditional — not
+  // pattern-gated — for the two existing default-pattern callers, unchanged from this method's
+  // original behavior. It IS pattern-gated when overridePattern is supplied: an ungated ARIA
+  // branch would let an unrelated alert region on the payment step (e.g. a session-timeout
+  // banner) register as a false payment rejection, which defeats the point of a narrow
+  // rejection-only pattern. This asymmetry is deliberate, not an inconsistency — see
+  // gra-card-checkout-placeorder-blocker.md.
+  async getValidationMessages(overridePattern?: RegExp): Promise<string[]> {
     return this.page.evaluate(
-      ({ ariaSelector, textPattern }: { ariaSelector: string; textPattern: string }) => {
+      (
+        { ariaSelector, textPattern, gateAriaByPattern, isDefaultPattern }:
+        { ariaSelector: string; textPattern: string; gateAriaByPattern: boolean; isDefaultPattern: boolean },
+      ) => {
         const messages: string[] = [];
         const seen = new Set<string>();
+        const re = new RegExp(textPattern, 'i');
+        // Only meaningful for isDefaultPattern — a near-superset of validationTextPattern
+        // (matches everything it does except the "this field" alternative on its own, e.g.
+        // "This field is mandatory." — narrower, not just a cheap pre-check), preserved exactly
+        // as this method originally applied it (two-stage: word check before the full regex, to
+        // skip getBoundingClientRect() on most non-matches). Not reused for an override
+        // pattern, which is already narrow and untested for this shape.
+        const defaultPrefilter = /(please|required|must|invalid|cannot|blank)/i;
 
-        const addIfVisible = (el: Element): void => {
+        const addIfVisible = (el: Element, requirePatternMatch: boolean): void => {
           const text =
             (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
           if (!text || seen.has(text)) return;
+          if (requirePatternMatch) {
+            if (isDefaultPattern && !defaultPrefilter.test(text)) return;
+            if (!re.test(text)) return;
+          }
           const r = el.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) return;
           seen.add(text);
           messages.push(text);
         };
 
-        Array.from(document.querySelectorAll(ariaSelector)).forEach(addIfVisible);
+        Array.from(document.querySelectorAll(ariaSelector)).forEach((el) => addIfVisible(el, gateAriaByPattern));
 
-        const re = new RegExp(textPattern, 'i');
         Array.from(document.querySelectorAll('*')).forEach((el) => {
           if (el.children.length > 0) return;
-          const text =
-            (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
-          if (!text || !/(please|required|must|invalid|cannot|blank)/i.test(text)) return;
-          const r = el.getBoundingClientRect();
-          if (r.width === 0 || r.height === 0) return;
-          if (!re.test(text)) return;
-          if (!seen.has(text)) {
-            seen.add(text);
-            messages.push(text);
-          }
+          addIfVisible(el, true);
         });
 
         return messages;
       },
-      { ariaSelector: this.ariaValidationSelector, textPattern: this.validationTextPattern.source },
+      {
+        ariaSelector: this.ariaValidationSelector,
+        textPattern: (overridePattern ?? this.validationTextPattern).source,
+        gateAriaByPattern: overridePattern !== undefined,
+        isDefaultPattern: overridePattern === undefined,
+      },
     );
   }
 
@@ -2128,6 +2203,78 @@ export class EcommerceCheckoutPage extends BasePage {
     const orderSucceeded = await this.waitForOrderSuccess();
     if (!popupPage.isClosed()) await popupPage.close().catch(() => {});
     return orderSucceeded;
+  }
+
+  async selectCardPaymentMethod(): Promise<void> {
+    await this.elements.clickElement(this.cardRadioSelector);
+  }
+
+  // E2E-PLAORD-003 — The Hosted Fields SDK renders its 3 iframes asynchronously after the card
+  // radio is selected, so a fill without this wait would race ahead of them.
+  async waitForCardHostedFieldsReady(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(
+        async () =>
+          (await this.frames.isVisible(this.braintreeNumberFrameSelector, this.braintreeNumberInputSelector)) &&
+          (await this.frames.isVisible(this.braintreeExpirationFrameSelector, this.braintreeExpirationInputSelector)) &&
+          (await this.frames.isVisible(this.braintreeCvvFrameSelector, this.braintreeCvvInputSelector)),
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
+      )
+      .catch(() => {});
+  }
+
+  // E2E-PLAORD-003 — Derives the combined MM/YY expiry string here so callers pass the
+  // generator's card object through untouched.
+  async fillCardDetails(card: BraintreeTestCard): Promise<void> {
+    await this.frames.fill(this.braintreeNumberFrameSelector, this.braintreeNumberInputSelector, card.number);
+    await this.frames.fill(
+      this.braintreeExpirationFrameSelector,
+      this.braintreeExpirationInputSelector,
+      `${card.expirationMonth}/${card.expirationYear.slice(-2)}`,
+    );
+    await this.frames.fill(this.braintreeCvvFrameSelector, this.braintreeCvvInputSelector, card.cvv);
+  }
+
+  async waitForPlaceOrderEnabled(): Promise<void> {
+    await this.waits
+      .waitForCustomCondition(() => this.elements.isElementEnabled(this.placeOrderButtonSelector), {
+        timeout: TIMEOUTS.NETWORK_IDLE_SLOW,
+        interval: TIMEOUTS.POLL_INTERVAL_NORMAL,
+      })
+      .catch(() => {});
+  }
+
+  async clickPlaceOrder(): Promise<void> {
+    await this.elements.clickElement(this.placeOrderButtonSelector);
+  }
+
+  // E2E-PLAORD-003 — Both terminal signals are checked on every tick of one poll, so the
+  // method returns as soon as either fires rather than waiting out the full timeout on whichever
+  // would have been awaited second. Passes placeOrderRejectionTextPattern (not the default
+  // validationTextPattern) since a payment-gateway rejection uses different wording than a
+  // form-field validation error — see that field's docblock.
+  //
+  // `orderSucceeded: false` with an empty `failureMessages` is not itself a confirmed rejection
+  // — it also covers the timeout expiring with neither signal ever firing. Callers that need to
+  // report a rejection as confirmed, rather than "did not complete", must check
+  // `failureMessages.length > 0`.
+  async waitForCardPlaceOrderOutcome(): Promise<CardPlaceOrderOutcome> {
+    let succeeded = false;
+    let failureMessages: string[] = [];
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          if (this.orderSuccessUrlPattern.test(this.page.url())) {
+            succeeded = true;
+            return true;
+          }
+          failureMessages = await this.getValidationMessages(this.placeOrderRejectionTextPattern);
+          return failureMessages.length > 0;
+        },
+        { timeout: TIMEOUTS.NETWORK_IDLE_SLOW, interval: TIMEOUTS.POLL_INTERVAL_NORMAL },
+      )
+      .catch(() => {});
+    return { orderSucceeded: succeeded, failureMessages };
   }
 
   // E2E-CHKOUT-009 — Resolves the "DELIVER TO" address block on the logged-in checkout shipping

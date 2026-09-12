@@ -122,11 +122,12 @@ const MAX_REDACTED_TEXT_LENGTH = 2000;
  * network requests) — a distinct surface from `redactSensitiveText`, which existing API-side
  * callers depend on for its exact current behavior.
  *
- * Deliberately omits `CARD_NUMBER_PATTERN`: this codebase's tested checkout flows never pass
- * raw card numbers through the browser (tokenized gateway widgets only — Braintree, checkmo,
- * afterpay), so the pattern has no protective value here, while it does false-positive on
- * ordinary browser telemetry (GA client IDs, epoch-millisecond timestamps) that commonly
- * appears in console output and failed-request URLs, corrupting the diagnostic text.
+ * Deliberately omits `CARD_NUMBER_PATTERN`: PLAORD-003 (creditcard-checkout.spec.ts) does fill a
+ * raw card number into the browser, but only into Braintree's own cross-origin Hosted Fields
+ * inputs — never into the merchant's own JS/DOM — and this surface records only a failed
+ * request's method, URL and error text, never its body. The pattern therefore has no protective
+ * value here, while it does false-positive on ordinary browser telemetry (GA client IDs,
+ * epoch-millisecond timestamps) that commonly appears here, corrupting the diagnostic text.
  * @param text - Raw text to scrub (a console message, page error, or failed-request line)
  * @returns The same text with JWTs, emails, and secret-bearing query params redacted, truncated
  * to `MAX_REDACTED_TEXT_LENGTH` characters

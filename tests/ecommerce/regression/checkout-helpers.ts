@@ -30,6 +30,20 @@ export interface CheckoutCtaOkResult {
 
 export interface CheckoutCtaSkippedResult {
   status: 'skipped';
+  /** In 'skip' mode this is the message passed to test.skip(); in 'return' mode it is the
+   *  reason the caller must surface itself. See PreconditionFailureMode. */
+  reason: string;
+}
+
+// E2E-PLAORD-003 — 'skip' (default) preserves today's behavior exactly: call test.skip() and
+// return the skipped result. 'return' skips the test.skip() call and just returns the result,
+// for callers that need every precondition failure to surface as a named hard assertion instead
+// (a per-brand pass/fail characterization run, where a skip conveys nothing).
+export type PreconditionFailureMode = 'skip' | 'return';
+
+function reportPrecondition(mode: PreconditionFailureMode, reason: string): CheckoutCtaSkippedResult {
+  if (mode !== 'return') test.skip(true, reason);
+  return { status: 'skipped', reason };
 }
 
 export type CheckoutCtaResult = CheckoutCtaOkResult | CheckoutCtaSkippedResult;
@@ -55,8 +69,8 @@ export function parsePriceToken(token: string): number | null {
 }
 
 // Stops short of the final checkout-state assertion — each test supplies its own after this
-// returns. On `{ status: 'skipped' }` the caller must `return` immediately, since `test.skip()`
-// has already been called internally.
+// returns. On `{ status: 'skipped' }` the caller must `return` immediately — in the default
+// 'skip' mode `test.skip()` has already been called internally.
 export async function addToCartAndReachCheckoutCta(params: {
   site: Storefront;
   navLabel: string | undefined;
@@ -67,6 +81,7 @@ export async function addToCartAndReachCheckoutCta(params: {
   ecommerceCartOverlayPage: EcommerceCartOverlayPage;
   ecommerceCheckoutPage: EcommerceCheckoutPage;
   logger: TestLogger;
+  onPreconditionFailure?: PreconditionFailureMode;
 }): Promise<CheckoutCtaResult> {
   const {
     site,
@@ -78,11 +93,11 @@ export async function addToCartAndReachCheckoutCta(params: {
     ecommerceCartOverlayPage,
     ecommerceCheckoutPage,
     logger,
+    onPreconditionFailure = 'skip',
   } = params;
 
   if (!navLabel) {
-    test.skip(true, `${site.name} has no nav link configured for PDP navigation`);
-    return { status: 'skipped' };
+    return reportPrecondition(onPreconditionFailure, `${site.name} has no nav link configured for PDP navigation`);
   }
 
   let originHealthy = false;
@@ -93,11 +108,10 @@ export async function addToCartAndReachCheckoutCta(params: {
       .catch(() => false);
   });
   if (!originHealthy) {
-    test.skip(
-      true,
+    return reportPrecondition(
+      onPreconditionFailure,
       `${site.name}: origin failed health check (unreachable or non-2xx within ${TIMEOUTS.TIMEOUT_SHORT}ms) — skipping to avoid burning the retry/test.slow() budget on a dead backend`,
     );
-    return { status: 'skipped' };
   }
 
   await logger.step('Steps 1-5 - Navigate to PLP', async () => {
@@ -109,8 +123,10 @@ export async function addToCartAndReachCheckoutCta(params: {
     availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
   });
   if (availableSizes.length === 0) {
-    test.skip(true, `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`);
-    return { status: 'skipped' };
+    return reportPrecondition(
+      onPreconditionFailure,
+      `${site.name}: no product with available sizes found in first 10 ${navLabel} PLP products`,
+    );
   }
 
   let initialCartCount = 0;
@@ -145,8 +161,10 @@ export async function addToCartAndReachCheckoutCta(params: {
     }
   });
   if (targetSize === null) {
-    test.skip(true, `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`);
-    return { status: 'skipped' };
+    return reportPrecondition(
+      onPreconditionFailure,
+      `${site.name}: first 3 sizes all resulted in sold-out state — no purchasable size found`,
+    );
   }
   logger.verify('Size that enabled Add to Cart', 'non-empty string', targetSize);
 
@@ -183,17 +201,18 @@ export async function addToCartAndReachCheckoutCta(params: {
 // same way addToCartAndReachCheckoutCta() owns Steps 0-14 for those same three call sites.
 // `addressSkipContext` supplies the caller-specific tail of the address skip reason (what the
 // caller can no longer verify without a committed address).
-// On `{ status: 'skipped' }` the caller must `return` immediately — test.skip() has already
-// been called internally. On `{ status: 'ok' }`, `contactFieldsSettled` is surfaced rather than
-// gated on here — the caller decides whether an unsettled contact field is a skip or a hard
-// failure (see GuestShippingOkResult).
+// On `{ status: 'skipped' }` the caller must `return` immediately — in the default 'skip' mode
+// test.skip() has already been called internally. On `{ status: 'ok' }`, `contactFieldsSettled`
+// is surfaced rather than gated on here — the caller decides whether an unsettled contact field
+// is a skip or a hard failure (see GuestShippingOkResult).
 export async function fillGuestDetailsAndCommitAddress(params: {
   site: Storefront;
   ecommerceCheckoutPage: EcommerceCheckoutPage;
   logger: TestLogger;
   addressSkipContext: string;
+  onPreconditionFailure?: PreconditionFailureMode;
 }): Promise<GuestShippingResult> {
-  const { site, ecommerceCheckoutPage, logger, addressSkipContext } = params;
+  const { site, ecommerceCheckoutPage, logger, addressSkipContext, onPreconditionFailure = 'skip' } = params;
 
   await logger.step('Step 15 - Fill a valid guest email and submit CONTINUE AS GUEST', async () => {
     const { email: guestEmail } = createGuestCheckoutEmail();
@@ -225,11 +244,10 @@ export async function fillGuestDetailsAndCommitAddress(params: {
   });
 
   if (!fillResult.addressSelected) {
-    test.skip(
-      true,
+    return reportPrecondition(
+      onPreconditionFailure,
       `${site.name}: no address suggestion could be selected for "${shippingAddress.addressQuery}" — ${addressSkipContext}`,
     );
-    return { status: 'skipped' };
   }
 
   return { status: 'ok', contactFieldsSettled: fillResult.contactFieldsSettled };
