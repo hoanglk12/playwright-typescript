@@ -332,6 +332,7 @@
     <div class="nav-section">
       <div class="nav-label">Overview</div>
       <a href="#hero" class="nav-item"><span class="nav-num">—</span>What is this Framework?</a>
+      <a href="#pitch" class="nav-item"><span class="nav-num">00</span>Elevator Pitch</a>
       <a href="#architecture" class="nav-item"><span class="nav-num">01</span>Architecture</a>
       <a href="#features" class="nav-item"><span class="nav-num">02</span>Core Features</a>
     </div>
@@ -354,6 +355,7 @@
       <a href="#stack" class="nav-item"><span class="nav-num">11</span>Technology Stack</a>
       <a href="#commands" class="nav-item"><span class="nav-num">12</span>Run Commands</a>
       <a href="#isolation" class="nav-item"><span class="nav-num">13</span>Parallel Data Isolation</a>
+      <a href="#patterns" class="nav-item"><span class="nav-num">14</span>Design Patterns</a>
     </div>
   </nav>
 
@@ -399,6 +401,87 @@
           <div class="stat-label">CI Reporters<br><small>HTML · JSON · JUnit · Monocart · Slack</small></div>
         </div>
       </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 00 — Elevator Pitch & Cheat Sheet                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="pitch">
+      <div class="section-header">
+        <div class="section-num">00</div>
+        <div>
+          <h2>Elevator Pitch &amp; Cheat Sheet</h2>
+          <div class="section-desc">The whole framework in one spoken answer, plus a table to drill the specifics</div>
+        </div>
+      </div>
+
+      <div class="arch-diagram" style="padding:28px 32px;">
+        <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px;">🎤 Spoken answer (interview-ready)</div>
+
+        <p style="color:var(--muted); font-size:13.5px; line-height:1.8; margin-bottom:16px;">
+          It's a TypeScript Playwright framework built to test a group of ecommerce storefronts across
+          Australia and New Zealand. It covers UI, REST API, and GraphQL, and runs through two separate
+          Playwright configs: one for UI, one for API, because the API suite runs eight workers in parallel
+          (one per brand and region) with sequential execution inside each spec, while the UI suite runs across
+          Chromium and Firefox with about half the machine's workers.
+        </p>
+
+        <p style="color:var(--muted); font-size:13.5px; line-height:1.8; margin-bottom:16px;">
+          Architecturally, I moved away from the classic page object model where every page inherits a bloated
+          base class full of unrelated methods. Instead, every page extends a <code>BasePage</code>, but
+          <code>BasePage</code> doesn't touch the browser directly. It just holds eleven helper objects: one for
+          waits, one for element interaction, one for computed styles, one for iframes, one for file uploads,
+          one for storage and cookies, one for network mocking, one for tables, one for tabs and dialogs, one
+          for read-only DOM scans, and one for dismissing popups. So a page class calls
+          <code>this.elements.clickElement()</code> instead of <code>page.click()</code> directly, and if I need
+          a new kind of browser interaction, it goes into the right helper, not into <code>BasePage</code>.
+        </p>
+
+        <p style="color:var(--muted); font-size:13.5px; line-height:1.8; margin-bottom:16px;">
+          For locators, the rule is they always live as private readonly fields at the top of the class, never
+          inline inside a method or an evaluate call, and I prefer <code>getByRole</code> and
+          <code>getByLabel</code> over CSS so tests don't break every time the DOM shifts.
+        </p>
+
+        <p style="color:var(--muted); font-size:13.5px; line-height:1.8; margin-bottom:16px;">
+          Test setup uses dependency injection: a custom <code>base-test.ts</code> extends Playwright's own
+          <code>test</code> object and registers every page object as a fixture, so a test just asks for
+          <code>ecommercePDPPage</code> or <code>ecommerceCheckoutPage</code> as an argument, and Playwright
+          hands it a ready instance scoped to that test.
+        </p>
+
+        <p style="color:var(--muted); font-size:13.5px; line-height:1.8; margin-bottom:16px;">
+          Test data is never hardcoded in a spec. It lives in <code>src/data</code>, either as a typed constant
+          object or a generator class, always backed by a named interface, so there's no relying on inferred
+          types.
+        </p>
+
+        <p style="color:var(--muted); font-size:13.5px; line-height:1.8;">
+          And there's a layer of engineering maturity underneath all of it: a soft-assertion helper that batches
+          independent checks on a page and reports every failure together instead of stopping at the first one,
+          CI-aware timeout constants that automatically get longer when running in CI, structured per-test
+          logging attached to the report, and a monocart reporter that tracks trend history across runs so I can
+          see if something's getting flakier over time.
+        </p>
+      </div>
+
+      <p style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:28px 0 8px;">Cheat sheet to memorize</p>
+      <table>
+        <thead><tr><th>Topic</th><th>Anchor to recall it by</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Stack</strong></td><td>TypeScript + Playwright, ecommerce UI + API (REST + GraphQL)</td></tr>
+          <tr><td><strong>Two configs</strong></td><td><code>playwright.config.ts</code> (UI, Chromium + Firefox, ~50% workers) vs <code>api.config.ts</code> (API, 8 workers = brand × region, sequential per spec)</td></tr>
+          <tr><td><strong>Pattern</strong></td><td>composition-based POM, not inheritance-heavy</td></tr>
+          <tr><td><strong>BasePage → 11 helpers</strong></td><td>waits, elements, style, frames, files, storage, network, tables, tabs, dom, overlays</td></tr>
+          <tr><td><strong>Locators</strong></td><td>private readonly class fields, <code>getByRole</code> / <code>getByLabel</code> over CSS</td></tr>
+          <tr><td><strong>Fixtures</strong></td><td><code>base-test.ts</code> extends Playwright's <code>test</code>, dependency-injected page objects</td></tr>
+          <tr><td><strong>Test data</strong></td><td><code>src/data/</code>, typed constants or generator classes, always a named interface</td></tr>
+          <tr><td><strong>Soft assertions</strong></td><td><code>SoftAssertHelper</code>, batches independent checks</td></tr>
+          <tr><td><strong>Timeouts</strong></td><td>named constants in <code>src/constants/timeouts.ts</code>, CI-aware</td></tr>
+          <tr><td><strong>Logging</strong></td><td>structured, per-test log attached to the report</td></tr>
+          <tr><td><strong>Reporting</strong></td><td>html + json + junit + monocart, with trend history</td></tr>
+        </tbody>
+      </table>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════ -->
@@ -1596,6 +1679,170 @@ npm run codegen             <span class="cmt"># Playwright recorder</span></pre>
           </tbody>
         </table>
 
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 14 — Design Patterns Applied                             -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="content-section" id="patterns">
+      <div class="section-header">
+        <div class="section-num">14</div>
+        <div>
+          <h2>Design Patterns Applied</h2>
+          <div class="section-desc">Named patterns sitting underneath composition (§01) and fixture injection (§04)</div>
+        </div>
+      </div>
+
+      <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">
+        Composition and dependency injection cover the page-object layer. The API client stack and the test
+        lifecycle add a second set of patterns on top, mostly aimed at one goal: adding a new client, a new
+        auth type, or a new piece of teardown logic should mean writing a new implementation of an existing
+        shape, not touching code that already works.
+      </p>
+
+      <div class="feature-grid">
+
+        <div class="feature-card" style="--card-accent: var(--accent)">
+          <div class="feature-icon">🔀</div>
+          <div class="feature-title">Strategy</div>
+          <div class="feature-body">
+            The <code>AuthType</code> enum (<code>NONE</code>, <code>BASIC</code>, <code>BEARER</code>,
+            <code>API_KEY</code>, <code>CUSTOM</code>) lets <code>ApiClient</code> swap how a request
+            authenticates without changing the request-building code itself. Pass a different <code>AuthType</code>
+            into the client options and the header logic underneath changes on its own.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">ApiClient</span><span class="feature-tag">AuthType</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--green)">
+          <div class="feature-icon">🏭</div>
+          <div class="feature-title">Factory</div>
+          <div class="feature-body">
+            <code>createClient</code>, <code>createClientExt</code>, <code>createRestfulApiClient</code>, and
+            <code>createGraphQLClient</code> each hand back a freshly configured client on demand instead of
+            forcing every test onto one shared instance. The <code>*DataGenerator</code> classes in
+            <code>src/data/api/</code> do the same job for test data, e.g.
+            <code>PlaceOrderTestDataGenerator.generateGuestEmail()</code> returns a fresh, unique value on every call.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">createClientExt</span><span class="feature-tag">PlaceOrderTestDataGenerator</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--cyan)">
+          <div class="feature-icon">🔗</div>
+          <div class="feature-title">Wrapper + Fluent Interface</div>
+          <div class="feature-body">
+            <code>ApiResponseWrapper</code> and <code>GraphQLResponseWrapper</code> wrap the raw response and add
+            a chainable assertion API on top: <code>assertStatus()</code>, <code>assertJsonPath()</code>,
+            <code>assertNoErrors()</code>. Each call returns something chainable, so a test reads
+            <code>response.assertStatus(200)</code> and keeps going instead of picking the body apart by hand.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">ApiResponseWrapper</span><span class="feature-tag">GraphQLResponseWrapper</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--amber)">
+          <div class="feature-icon">🔌</div>
+          <div class="feature-title">Adapter</div>
+          <div class="feature-body">
+            <code>extract&lt;T&gt;(path)</code> on the same wrapper takes a dot-notation path like
+            <code>'user.name'</code> and adapts the raw JSON blob into a typed value directly, so a test never
+            walks a parsed response object field by field.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">extract&lt;T&gt;()</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--purple)">
+          <div class="feature-icon">🗄️</div>
+          <div class="feature-title">Registry</div>
+          <div class="feature-body">
+            <code>ApiClient.tokenStore</code> is static, so a token stored in one test
+            (<code>ApiClient.storeToken('admin', token)</code>) is retrievable in any later test in the same
+            worker (<code>ApiClient.getToken('admin')</code>). It behaves as a small in-memory registry shared
+            across the spec file, not something owned by one client instance.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">tokenStore</span><span class="feature-tag">withStoredToken</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--red)">
+          <div class="feature-icon">📐</div>
+          <div class="feature-title">Template Method</div>
+          <div class="feature-body">
+            <code>global-setup.ts</code> and <code>global-teardown.ts</code> hook into Playwright's fixed
+            lifecycle: clear logs and validate connectivity before the run runs, then generate reports and
+            archive artifacts after it finishes. Neither file changes the algorithm, they just fill in fixed
+            steps around a sequence Playwright already controls, which is the textbook shape of the pattern.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">global-setup.ts</span><span class="feature-tag">global-teardown.ts</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--accent)">
+          <div class="feature-icon">🧺</div>
+          <div class="feature-title">Collector</div>
+          <div class="feature-body">
+            <code>SoftAssertHelper</code> doesn't throw on the first failed check. It collects every failure and
+            reports them together at teardown, so one run surfaces all the broken assertions instead of stopping
+            at the first, which is the opposite of Playwright's default hard-assertion behaviour.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">SoftAssertHelper</span><span class="feature-tag">softAssert fixture</span></div>
+        </div>
+
+        <div class="feature-card" style="--card-accent: var(--green)">
+          <div class="feature-icon">🎭</div>
+          <div class="feature-title">Facade</div>
+          <div class="feature-body">
+            Every <code>BasePage</code> helper is a facade over Playwright's raw <code>page</code> API.
+            <code>this.elements.clickElement()</code> hides retry logic, waiting, and error handling behind one
+            call, so page objects never touch Playwright primitives directly.
+          </div>
+          <div class="feature-tags"><span class="feature-tag">BasePage</span><span class="feature-tag">ElementHelper</span></div>
+        </div>
+
+      </div>
+
+      <div class="arch-diagram" style="margin-top:28px; padding:28px 32px;">
+        <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px;">🎤 Spoken answer (interview-ready)</div>
+        <p style="color:var(--muted); font-size:13.5px; line-height:1.8;">
+          Beyond composition and dependency injection, I lean on a handful of named patterns in the client and
+          lifecycle code. The API layer uses Strategy for authentication: the <code>AuthType</code> enum swaps
+          how a request signs itself without touching the request-building code. I use Factory for anything that
+          needs a fresh, differently configured instance, like the <code>createClientExt</code>-style fixtures
+          and the test data generators. The response wrappers combine Wrapper with a fluent interface, so
+          <code>assertStatus</code> and <code>assertJsonPath</code> chain together instead of me tearing a JSON
+          body apart by hand, and <code>extract&lt;T&gt;()</code> on that same wrapper works as an Adapter,
+          turning a raw blob into a typed value by dot-notation path. Cross-test token sharing runs through a
+          static token store, which is a small Registry. Global setup and teardown follow Template Method: fixed
+          steps run before and after the whole suite without any spec file repeating them. The two base-test
+          files that extend Playwright's own <code>test</code> object are a separate thing, the
+          dependency-injection layer, not a second instance of this pattern. Soft assertions are a Collector, gathering every
+          failed check and reporting them together instead of stopping at the first one. And every
+          <code>BasePage</code> helper is a Facade over Playwright's raw <code>page</code> API, so page objects
+          never call <code>page.click()</code> or <code>page.locator()</code> directly.
+        </p>
+      </div>
+
+      <p style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:28px 0 8px;">Cheat sheet to memorize</p>
+      <table>
+        <thead><tr><th>Pattern</th><th>Anchor to recall it by</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Strategy</strong></td><td><code>AuthType</code> enum on <code>ApiClient</code></td></tr>
+          <tr><td><strong>Factory</strong></td><td><code>createClientExt</code> / <code>createGraphQLClient</code> fixtures, <code>PlaceOrderTestDataGenerator</code></td></tr>
+          <tr><td><strong>Wrapper + Fluent Interface</strong></td><td><code>ApiResponseWrapper</code> / <code>GraphQLResponseWrapper</code>, both return <code>Promise&lt;this&gt;</code></td></tr>
+          <tr><td><strong>Adapter</strong></td><td><code>extract&lt;T&gt;(path)</code>, dot-notation into a typed value</td></tr>
+          <tr><td><strong>Registry</strong></td><td><code>ApiClient.tokenStore</code> (static, shared per worker)</td></tr>
+          <tr><td><strong>Template Method</strong></td><td><code>global-setup.ts</code> / <code>global-teardown.ts</code> only (not base-test.ts, that's DI)</td></tr>
+          <tr><td><strong>Collector</strong></td><td><code>SoftAssertHelper</code>, batches failures at teardown</td></tr>
+          <tr><td><strong>Facade</strong></td><td><code>BasePage</code> helpers, e.g. <code>this.elements.clickElement()</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-blue" style="margin-top:24px">
+        <span class="callout-icon">🧠</span>
+        <div class="callout-body">
+          <strong>Interview one-liner:</strong> composition, dependency injection, strategy, factory,
+          wrapper/fluent interface, adapter, registry, template method, collector, and facade. Each one solves a
+          specific extension problem in this framework, not a textbook exercise, so it's worth being able to
+          point at the file where each one actually lives.
+        </div>
       </div>
     </section>
 
