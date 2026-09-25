@@ -16,7 +16,7 @@ async function queryLightRAG(prompt, timeoutMs = 9000) {
     const res = await fetch('http://localhost:9621/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: prompt, mode: 'hybrid' }),
+      body: JSON.stringify({ query: prompt, mode: 'hybrid', enable_rerank: false }),
       signal: controller.signal,
     });
     clearTimeout(timer);

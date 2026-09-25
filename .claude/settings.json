@@ -31,6 +31,19 @@
     "defaultMode": "bypassPermissions"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/session-start-git-check.js",
+            "timeout": 15,
+            "statusMessage": "Checking for remote changes..."
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
