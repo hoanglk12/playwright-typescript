@@ -1351,8 +1351,10 @@ node scripts/sync-vault-to-lightrag.mjs</code><span class="lang-tag">PowerShell<
           <code class="inline">.env</code> file reader. Since the project already has a Node
           <code class="inline">.env.*</code> file for Playwright, these are normal.
           The server operates correctly despite these warnings.
-          To suppress <code class="inline">TOKEN_SECRET</code>: add <code class="inline">TOKEN_SECRET=any-random-string</code>
-          to <code class="inline">.lightrag.env</code>.
+          To suppress <code class="inline">TOKEN_SECRET</code>: add a random value of at least 32 bytes
+          (<code class="inline">python -c "import secrets; print(secrets.token_urlsafe(48))"</code>)
+          to <code class="inline">.lightrag.env</code>. A shorter value starts the server but makes PyJWT print
+          <code class="inline">InsecureKeyLengthWarning</code> whenever it signs a token.
         </p>
       </div>
     </div>
