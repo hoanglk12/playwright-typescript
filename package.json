@@ -34,6 +34,8 @@
     "report:api": "npx playwright show-report api-report --port 9324",
     "report:monocart": "npx monocart show-report monocart-report/index.html",
     "report:monocart:api": "npx monocart show-report monocart-api-report/index.html",
+    "eval:lightrag": "node scripts/eval-lightrag.mjs",
+    "eval:lightrag:recall": "node scripts/eval-lightrag.mjs --recall-stats",
     "test:api:testing": "cross-env NODE_ENV=testing playwright test --config=api.config.ts",
     "test:api": "playwright test --config=api.config.ts",
     "test:api:gra": "playwright test --config=api.config.ts --project=pla-au --project=skx-au --project=drm-au --project=van-au --project=pla-nz --project=skx-nz --project=drm-nz --project=van-nz",

@@ -8,24 +8,53 @@ const path = require('path');
 // LightRAG recall — queries the local KG for memories relevant to the prompt
 // ---------------------------------------------------------------------------
 
-async function queryLightRAG(prompt, timeoutMs = 9000) {
-  if (typeof fetch === 'undefined') return null;
+// Shared with scripts/eval-lightrag.mjs so the eval measures exactly what recall sends.
+// Falls back to defaults so a missing or broken config never costs a prompt its context.
+let RECALL;
+try {
+  RECALL = require('./lightrag-recall-config.json');
+} catch {
+  RECALL = {
+    mode: 'hybrid',
+    enable_rerank: false,
+    timeoutMs: 9000,
+    minChars: 80,
+    noInfoPattern: "^(i (do not|don'?t) have|no information|there is no|unable to|cannot provide)",
+  };
+}
+const RECALL_LOG = path.join(__dirname, '..', '.state', 'lightrag-recall-log.jsonl');
+
+async function queryLightRAG(prompt) {
+  if (typeof fetch === 'undefined') return { outcome: 'error', ms: 0, text: null };
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RECALL.timeoutMs);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const res = await fetch('http://localhost:9621/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: prompt, mode: 'hybrid', enable_rerank: false }),
+      body: JSON.stringify({ query: prompt, mode: RECALL.mode, enable_rerank: RECALL.enable_rerank }),
       signal: controller.signal,
     });
-    clearTimeout(timer);
-    if (!res.ok) return null;
+    if (!res.ok) return { outcome: `http_${res.status}`, ms: Date.now() - started, text: null };
     const data = await res.json();
-    return typeof data.response === 'string' ? data.response.trim() : null;
-  } catch {
-    return null;
+    const text = typeof data.response === 'string' ? data.response.trim() : null;
+    return { outcome: 'ok', ms: Date.now() - started, text };
+  } catch (e) {
+    const outcome =
+      e.name === 'AbortError' ? 'timeout' : e.cause?.code === 'ECONNREFUSED' ? 'unreachable' : 'error';
+    return { outcome, ms: Date.now() - started, text: null };
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+// Prompt text is never logged — only its length — since prompts can carry secrets.
+function logRecall(entry) {
+  try {
+    fs.mkdirSync(path.dirname(RECALL_LOG), { recursive: true });
+    fs.appendFileSync(RECALL_LOG, JSON.stringify(entry) + '\n');
+  } catch {}
 }
 
 let raw = '';
@@ -41,8 +70,13 @@ process.stdin.on('end', async () => {
   const prompt = (input.prompt || '').trim();
   const cwd = input.cwd || process.cwd();
 
+  // Background-task notification turns aren't user prompts: querying them wastes a 9s LLM
+  // call, and logging them would skew the real recall hit rate.
+  const isNotification = prompt.includes('<task-notification>');
+
   // Fire LightRAG query immediately so it runs in parallel with git/section work below
-  const lrQueryPromise = prompt.length >= 10 ? queryLightRAG(prompt) : Promise.resolve(null);
+  const lrQueryPromise =
+    prompt.length >= 10 && !isNotification ? queryLightRAG(prompt) : Promise.resolve(null);
 
   const codingIntentRe = /\b(write|create|add|implement|generate|fix)\b/i;
   const existingSpecRe = /[\w\-./]+\.spec\.ts/i;
@@ -88,11 +122,31 @@ process.stdin.on('end', async () => {
 
   // Step 1b — LightRAG recall (await parallel query started above)
   const recall = await lrQueryPromise;
-  const noInfoRe = /^(i (do not|don'?t) have|no information|there is no|unable to|cannot provide)/i;
-  if (recall && recall.length > 80 && !noInfoRe.test(recall)) {
-    const trimmed = recall.length > 1500 ? recall.slice(0, 1500) + '\n…[truncated]' : recall;
-    sections.push(`## Relevant Memory (LightRAG)\n${trimmed}`);
+  const noInfoRe = new RegExp(RECALL.noInfoPattern, 'i');
+  let recallOutcome = recall
+    ? recall.outcome
+    : isNotification
+      ? 'skipped_notification'
+      : 'skipped_short_prompt';
+  if (recallOutcome === 'ok') {
+    const text = recall.text || '';
+    if (text.length > RECALL.minChars && !noInfoRe.test(text)) {
+      const trimmed = text.length > 1500 ? text.slice(0, 1500) + '\n…[truncated]' : text;
+      sections.push(`## Relevant Memory (LightRAG)\n${trimmed}`);
+      recallOutcome = 'injected';
+    } else {
+      recallOutcome = 'no_info';
+    }
   }
+  logRecall({
+    ts: new Date().toISOString(),
+    outcome: recallOutcome,
+    ms: recall ? recall.ms : 0,
+    chars: recall?.text?.length ?? 0,
+    promptChars: prompt.length,
+    mode: RECALL.mode,
+    timeoutMs: RECALL.timeoutMs,
+  });
 
   // Step 2 — Coding intent: inject compact ruleset
   if (hasCodingIntent) {

@@ -1,0 +1,7 @@
+{
+  "mode": "hybrid",
+  "enable_rerank": false,
+  "timeoutMs": 9000,
+  "minChars": 80,
+  "noInfoPattern": "^(i (do not|don'?t) have|no information|there is no|unable to|cannot provide)"
+}
