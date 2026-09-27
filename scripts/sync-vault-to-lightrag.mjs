@@ -77,7 +77,7 @@ async function main() {
   const docsRes = await fetch(`${LIGHTRAG_URL}/documents/paginated`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ page: 1, page_size: 200, status_filter: 'processed' }),
+    body: JSON.stringify({ page: 1, page_size: 200 }),
   });
   if (!docsRes.ok) {
     console.log(
@@ -86,19 +86,23 @@ async function main() {
     return;
   }
   const docsData = await docsRes.json();
-  // Keep the client-side filter even though status_filter already did this server-side —
-  // the API labels status_filter "Legacy", and status_counts.processed is scoped by status
-  // regardless of the filter param's future behavior, unlike pagination.total_count.
-  const processed = (docsData.documents ?? []).filter((d) => d.status === 'processed');
-  const total = docsData.status_counts?.processed ?? processed.length;
-  if (total > processed.length) {
+  const docs = docsData.documents ?? [];
+  const total = docsData.status_counts?.all ?? docs.length;
+  if (total > docs.length) {
     console.log(
-      `[sync-vault-to-lightrag] Only ${processed.length} of ${total} processed docs fetched — page_size cap hit, aborting`
+      `[sync-vault-to-lightrag] Only ${docs.length} of ${total} docs fetched — page_size cap hit, aborting`
     );
     return;
   }
+  const processed = docs.filter((d) => d.status === 'processed');
   const lrMap = new Map(
     processed.map((d) => [d.file_path, { id: d.id, contentLength: d.content_length }])
+  );
+  // WHY: the end-of-turn Stop hook runs seconds after the PostToolUse hook inserted a note,
+  // while it is still being indexed. Re-inserting it then fails with 409 "already contains".
+  // Failed docs are deliberately not skipped — their 409 is a real error worth reporting.
+  const inFlight = new Set(
+    docs.filter((d) => d.status !== 'processed' && d.status !== 'failed').map((d) => d.file_path)
   );
 
   // Walk vault files
@@ -113,6 +117,7 @@ async function main() {
   let inserted = 0;
   let updated = 0;
   let unchanged = 0;
+  let inProgress = 0;
   let errors = 0;
 
   // Separate unchanged from files that need work
@@ -120,6 +125,10 @@ async function main() {
   const toUpdate = [];
 
   for (const file of vaultFiles) {
+    if (inFlight.has(file.name)) {
+      inProgress++;
+      continue;
+    }
     const existing = lrMap.get(file.name);
     // WHY: LightRAG strips 1–2 chars (trailing newline/CRLF) when storing, so stored
     // content_length is always 1–2 less than the raw file length. Tolerance prevents
@@ -176,7 +185,7 @@ async function main() {
   }
 
   console.log(
-    `[sync-vault-to-lightrag] Done — ${inserted} new, ${updated} updated, ${unchanged} unchanged${errors ? `, ${errors} errors` : ''}`
+    `[sync-vault-to-lightrag] Done — ${inserted} new, ${updated} updated, ${unchanged} unchanged${inProgress ? `, ${inProgress} in progress` : ''}${errors ? `, ${errors} errors` : ''}`
   );
 }
 

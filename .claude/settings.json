@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/sync-memory.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/sync-memory.js\"",
             "timeout": 30,
             "statusMessage": "Syncing memory to vault..."
           }
@@ -148,7 +148,7 @@
           },
           {
             "type": "command",
-            "command": "node scripts/sync-vault-to-lightrag.mjs 2>&1 || true",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/lightrag-sync-status.js\"",
             "timeout": 120,
             "statusMessage": "Syncing vault to LightRAG..."
           },

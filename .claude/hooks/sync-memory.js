@@ -9,7 +9,7 @@
  */
 
 const { resolve } = require('path');
-const { spawnSync } = require('child_process');
+const { syncAndSummarize } = require('./lightrag-sync-status');
 
 let data = '';
 process.stdin.on('data', (chunk) => (data += chunk));
@@ -36,11 +36,9 @@ process.stdin.on('end', () => {
       return;
     }
 
-    // Sync vault → LightRAG
-    spawnSync('node', ['scripts/sync-vault-to-lightrag.mjs'], {
-      cwd: projectRoot,
-      stdio: 'inherit',
-    });
+    // Stays under this hook's 30s settings.json timeout; the Stop hook retries anything left over.
+    const message = syncAndSummarize(25000);
+    if (message) process.stdout.write(JSON.stringify({ systemMessage: message }));
 
     process.exit(0);
   } catch {
