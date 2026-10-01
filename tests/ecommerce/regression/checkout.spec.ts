@@ -500,6 +500,146 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
     });
   }
 
+  for (const [index, site] of storefronts.entries()) {
+    const tcId = `E2E-CHKOUT-007-${String(index + 1).padStart(3, '0')}`;
+    const preferMens = shouldPreferMens(site);
+    const navLabel = getPreferredNavLabel(site, preferMens);
+
+    test(`${tcId} - ${site.name} Valid promo code reduces order total`, async ({
+      request,
+      ecommerceNavPage,
+      ecommercePLPPage,
+      ecommercePDPPage,
+      ecommerceCartOverlayPage,
+      ecommerceCheckoutPage,
+      softAssert,
+    }) => {
+      const logger = createTestLogger(`${tcId} - ${site.name} Valid promo code reduces order total`);
+
+      const result = await addToCartAndReachCheckoutCta({
+        site,
+        navLabel,
+        request,
+        ecommerceNavPage,
+        ecommercePLPPage,
+        ecommercePDPPage,
+        ecommerceCartOverlayPage,
+        ecommerceCheckoutPage,
+        logger,
+      });
+      if (result.status === 'skipped') return;
+
+      let baselineTotals!: OrderSummaryTotals;
+      await logger.step('Step 15 - Navigate to /cart, locate the promo code field and read the pre-coupon baseline', async () => {
+        await ecommerceCheckoutPage.navigateToCart();
+        const promoFieldVisible = await ecommerceCheckoutPage.isPromoCodeFieldVisible();
+        // Precondition gate — must be hard: E2E-CART-010 already proves this field is present on /cart.
+        expect(
+          promoFieldVisible,
+          `${site.name}: A promo/discount code field must be reachable on /cart before a valid code can be applied`,
+        ).toBeTruthy();
+        // Only the subtotal is parseable on /cart, so a readable subtotal with no negative line
+        // before "Total" is the evidence that no automatic promotion is displayed yet; an
+        // unreadable subtotal must not be defaulted to a zero baseline.
+        baselineTotals = await ecommerceCheckoutPage.getOrderSummaryTotals();
+        logger.verify('Baseline order summary (pre-coupon)', 'subtotal readable', JSON.stringify(baselineTotals));
+        expect(
+          baselineTotals.subtotal,
+          `${site.name}: /cart order summary subtotal must be readable to establish the pre-coupon discount baseline`,
+        ).not.toBeNull();
+      });
+
+      let applied = false;
+      await logger.step(`Step 16 - Apply the valid promo code "${PromoCodes.validCode}"`, async () => {
+        applied = await ecommerceCheckoutPage.applyPromoCode(PromoCodes.validCode);
+        // The field was just asserted visible, so a failed fill/Apply is a UI regression, not drift.
+        expect(
+          applied,
+          `${site.name}: promo code "${PromoCodes.validCode}" could not be submitted (field not fillable or Apply control not found)`,
+        ).toBeTruthy();
+      });
+
+      let accepted = false;
+      let rejectionMessage: string | null = null;
+      await logger.step('Step 17 - Classify the outcome: accepted (success banner or REMOVE button) vs rejected', async () => {
+        accepted = await ecommerceCheckoutPage.waitForPromoCodeAccepted(PromoCodes.validCode);
+        if (!accepted) {
+          rejectionMessage = await ecommerceCheckoutPage.getPromoCodeErrorMessage(PromoCodes.validCode);
+        }
+        logger.verify('Promo code accepted', 'true', String(accepted));
+      });
+      // Shared staging promo config can drift: an explicit rejection of the code is an environment
+      // condition, not an app defect. No signal at all means Apply had no effect, which is a defect.
+      test.skip(
+        !accepted && rejectionMessage !== null,
+        `${site.name}: promo code "${PromoCodes.validCode}" rejected on staging (rejection: "${rejectionMessage}") — promo configuration drift, not an app defect`,
+      );
+      expect(
+        accepted,
+        `${site.name}: Apply had no effect — promo code "${PromoCodes.validCode}" produced neither an acceptance signal nor a rejection message`,
+      ).toBeTruthy();
+
+      await logger.step('Step 18 - Proceed to checkout as a guest and commit an address', async () => {
+        // Guest checkout is an auth modal opened by a CHECKOUT CTA, not a /checkout route a direct
+        // goto can reach — click the cart page's own CTA so the promo applied here carries over.
+        await ecommerceCheckoutPage.clickCheckoutFromCartPage();
+        await ecommerceCheckoutPage.waitForCheckoutLoad();
+      });
+
+      const guestStep = await fillGuestDetailsAndCommitAddress({
+        site,
+        ecommerceCheckoutPage,
+        logger,
+        addressSkipContext: 'the checkout order summary cannot be reliably read without a confirmed address',
+      });
+      if (guestStep.status === 'skipped') return;
+
+      await logger.step('Step 19 - Wait for shipping methods / order summary to settle', async () => {
+        await ecommerceCheckoutPage.waitForShippingMethodsReady();
+        await ecommerceCheckoutPage.waitForShippingSelectionSettled();
+      });
+
+      const baselineDiscount = Math.abs(baselineTotals.discount ?? 0);
+      let totals!: OrderSummaryTotals;
+      await logger.step('Step 20 - Read the checkout order summary and assert a discount line is present (precondition)', async () => {
+        totals = await ecommerceCheckoutPage.waitForOrderSummaryDiscount(baselineDiscount);
+        logger.verify('Order summary discount', `> ${baselineDiscount} (baseline)`, String(totals.discount));
+        // Precondition gate — must be hard: the code was positively accepted, so a missing
+        // discount or unreadable subtotal/total means the promo did not reach the order summary.
+        expect(
+          totals.subtotal !== null && totals.total !== null,
+          `${site.name}: Order summary subtotal (${totals.subtotal}) and total (${totals.total}) must be readable`,
+        ).toBeTruthy();
+        expect(
+          totals.discount !== null && Math.abs(totals.discount) > baselineDiscount,
+          `${site.name}: Promo code "${PromoCodes.validCode}" was accepted but added no discount beyond the pre-coupon baseline (baseline: ${baselineDiscount}, now: ${totals.discount})`,
+        ).toBeTruthy();
+      });
+
+      const subtotal = totals.subtotal ?? 0;
+      const discount = totals.discount ?? 0;
+      const total = totals.total ?? 0;
+      const delivery = totals.delivery ?? 0;
+      const tolerance = PromoCodes.priceTolerance;
+      const couponDiscount = Math.abs(discount) - baselineDiscount;
+
+      await logger.step('Step 21 - Assert the total is reduced by the discount (independent checks)', async () => {
+        softAssert.toBeTruthy(
+          total < subtotal + delivery,
+          `${site.name}: Total (${total}) should be below subtotal + delivery (${subtotal + delivery}) once the promo discount applies`,
+        );
+        softAssert.toBeTruthy(
+          totals.delivery !== null && Math.abs(total - (subtotal + delivery + discount)) < tolerance,
+          `${site.name}: Total should equal subtotal + delivery + discount (subtotal: ${subtotal}, delivery: ${totals.delivery}, discount: ${discount}, total: ${total})`,
+        );
+        softAssert.toBeTruthy(
+          couponDiscount >= subtotal * PromoCodes.validCodeMinDiscountRatio - tolerance && Math.abs(discount) < subtotal,
+          `${site.name}: Coupon's incremental discount (${couponDiscount} = ${Math.abs(discount)} now - ${baselineDiscount} baseline) should be at least ${PromoCodes.validCodeMinDiscountRatio * 100}% of the subtotal (${subtotal}) and the total discount below it`,
+        );
+      });
+    });
+  }
+
   // Also covers E2E-ERR-004 (error-catalog angle) — same underlying behaviour, no separate spec.
   for (const [index, site] of storefronts.entries()) {
     const tcId = `E2E-CHKOUT-008-${String(index + 1).padStart(3, '0')}`;

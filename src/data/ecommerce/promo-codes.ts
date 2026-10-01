@@ -1,5 +1,8 @@
 export interface PromoCodeData {
   invalidCode: string;
+  validCode: string;
+  validCodeMinDiscountRatio: number;
+  priceTolerance: number;
 }
 
 // Deliberately carries no word matching EcommerceCheckoutPage.promoCodeErrorTextPattern: the
@@ -9,4 +12,7 @@ export interface PromoCodeData {
 // its own echoed value, defeating the guard that check exists to provide.
 export const PromoCodes: PromoCodeData = {
   invalidCode: 'QA-NOPE-99999',
+  validCode: 'test',
+  validCodeMinDiscountRatio: 0.1,
+  priceTolerance: 0.02,
 };

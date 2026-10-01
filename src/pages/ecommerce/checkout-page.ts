@@ -280,6 +280,20 @@ export class EcommerceCheckoutPage extends BasePage {
   private readonly promoCodeTargetAttr = 'data-qa-promo-code-target';
   private readonly promoCodeTargetSelector = '[data-qa-promo-code-target="true"]';
 
+  // E2E-CHKOUT-007 — Acceptance signals for a valid promo code: the "<code> successfully applied."
+  // banner, or the Apply control flipping to a Remove control.
+  private readonly promoAppliedTextPattern = /successfully applied/i;
+  private readonly promoRemoveButtonPattern = /^\s*remove\s*$/i;
+  private readonly allElementsSelector = '*';
+  private readonly buttonElementSelector = 'button';
+  private readonly cartPageCheckoutCta = this.page
+    .getByRole('button', { name: /^\s*checkout\s*$/i })
+    .or(this.page.getByRole('link', { name: /^\s*checkout\s*$/i }))
+    .first();
+  private readonly promoSectionToggle = this.page
+    .getByRole('button', { name: /enter promo code/i, expanded: false })
+    .first();
+
   // E2E-CHKOUT-008 — Rejection vocabulary for an invalid/expired promo code. Kept distinct
   // from validationTextPattern: that pattern targets required-field messages ("please enter",
   // "is required") and its "invalid" alternative does not match Magento's actual coupon-rejection
@@ -1168,9 +1182,109 @@ export class EcommerceCheckoutPage extends BasePage {
         return true;
       } catch {
         // Field vanished between tag and fill (re-render race) — loop retags fresh DOM state.
+        // A collapsed accordion (Vans NZ) reports the input visible but never accepts input
+        // until its "Enter promo code" toggle is expanded. The toggle locator matches only a
+        // collapsed (aria-expanded=false) toggle, so an already-open accordion is never closed.
+        if (await this.elements.isLocatorVisible(this.promoSectionToggle)) {
+          await this.elements.clickLocator(this.promoSectionToggle).catch(() => {});
+        }
       }
     }
     return false;
+  }
+
+  // E2E-CHKOUT-007 — Polls for positive evidence that a promo code was accepted: the success
+  // banner naming the code, or a visible REMOVE button inside the promo input's own container
+  // (a page-wide scan would match cart line-item REMOVE buttons). Stops polling as soon as a
+  // rejection message appears. Returns false if no acceptance signal appears within
+  // DIALOG_APPEAR. Never throws.
+  async waitForPromoCodeAccepted(code: string): Promise<boolean> {
+    let accepted = false;
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          accepted = await this.page
+            .evaluate(
+              ({
+                appliedSource,
+                removeSource,
+                code,
+                targetSelector,
+                allSelector,
+                buttonSelector,
+              }: {
+                appliedSource: string;
+                removeSource: string;
+                code: string;
+                targetSelector: string;
+                allSelector: string;
+                buttonSelector: string;
+              }) => {
+                const appliedRe = new RegExp(appliedSource, 'i');
+                const removeRe = new RegExp(removeSource, 'i');
+                const codeLower = code.toLowerCase();
+                const isVisible = (el: Element): boolean => {
+                  const r = el.getBoundingClientRect();
+                  return r.width > 0 && r.height > 0;
+                };
+                const leaves = Array.from(document.querySelectorAll(allSelector)).filter(
+                  (el) => el.children.length === 0 && isVisible(el),
+                );
+                const bannerShown = leaves.some((el) => {
+                  const text = ((el as HTMLElement).innerText ?? el.textContent ?? '').trim();
+                  return appliedRe.test(text) && text.toLowerCase().includes(codeLower);
+                });
+                if (bannerShown) return true;
+                const tagged = document.querySelector<HTMLElement>(targetSelector);
+                if (!tagged) return false;
+                const scope: ParentNode =
+                  tagged.closest('form') ?? tagged.parentElement?.parentElement ?? document;
+                return Array.from(scope.querySelectorAll<HTMLElement>(buttonSelector)).some(
+                  (btn) => isVisible(btn) && removeRe.test((btn.innerText ?? '').trim()),
+                );
+              },
+              {
+                appliedSource: this.promoAppliedTextPattern.source,
+                removeSource: this.promoRemoveButtonPattern.source,
+                code,
+                targetSelector: this.promoCodeTargetSelector,
+                allSelector: this.allElementsSelector,
+                buttonSelector: this.buttonElementSelector,
+              },
+            )
+            .catch(() => false);
+          if (accepted) return true;
+          return (await this.readPromoCodeErrorOnce(code)) !== null;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return accepted;
+  }
+
+  // E2E-CHKOUT-007 — Clicks the CHECKOUT button in the /cart order summary, which opens the
+  // guest auth modal in place (same as the mini-cart CTA).
+  async clickCheckoutFromCartPage(): Promise<void> {
+    await this.elements.clickLocator(this.cartPageCheckoutCta);
+  }
+
+  // E2E-CHKOUT-007 — Polls getOrderSummaryTotals() until the discount magnitude exceeds
+  // `baselineDiscount` (the pre-coupon absolute discount), so a slow order-summary re-render is
+  // not mistaken for a missing discount and an automatic promotion already present is not
+  // mistaken for the coupon. Returns the latest read (discount stays at its last value if no
+  // increase appeared within DIALOG_APPEAR).
+  async waitForOrderSummaryDiscount(baselineDiscount = 0): Promise<OrderSummaryTotals> {
+    let latest: OrderSummaryTotals = { subtotal: null, delivery: null, total: null, discount: null };
+    await this.waits
+      .waitForCustomCondition(
+        async () => {
+          latest = await this.getOrderSummaryTotals();
+          return latest.discount !== null && Math.abs(latest.discount) > baselineDiscount;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return latest;
   }
 
   // E2E-CHKOUT-008 / E2E-ERR-004 — Fills the promo/discount field with `code` and clicks Apply.
@@ -1201,7 +1315,20 @@ export class EcommerceCheckoutPage extends BasePage {
     await this.waits
       .waitForCustomCondition(
         async () => {
-          message = await this.page.evaluate(
+          message = await this.readPromoCodeErrorOnce(code);
+          return message !== null;
+        },
+        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
+      )
+      .catch(() => {});
+    return message;
+  }
+
+  // Single non-polling read of the rejection scan, shared by scanForPromoCodeError() and
+  // waitForPromoCodeAccepted() so both agree on what counts as a rejection message.
+  private async readPromoCodeErrorOnce(code: string): Promise<string | null> {
+    return this.page
+      .evaluate(
             ({
               ariaSelector,
               textPattern,
@@ -1244,13 +1371,8 @@ export class EcommerceCheckoutPage extends BasePage {
               contextPattern: this.promoErrorContextPattern.source,
               code,
             },
-          );
-          return message !== null;
-        },
-        { timeout: TIMEOUTS.DIALOG_APPEAR, interval: TIMEOUTS.POLL_INTERVAL_FAST },
-      )
-      .catch(() => {});
-    return message;
+          )
+      .catch(() => null);
   }
 
   // E2E-CHKOUT-008 / E2E-ERR-004 — Returns the visible rejection message text, or null if none
@@ -1755,6 +1877,10 @@ export class EcommerceCheckoutPage extends BasePage {
   // shipping cost is read POSITIONALLY: the first price token that appears strictly between
   // the subtotal's price and the "Total" label. Returns null for any value that cannot be
   // parsed. Never throws.
+  // Discount rule: only negative tokens strictly between the subtotal and the delivery price
+  // count as discount. A negative token after the delivery price is an informational
+  // sale-savings line already baked into the subtotal and is ignored. When no delivery price
+  // was found, the cutoff falls back to the "Total" label.
   async getOrderSummaryTotals(): Promise<OrderSummaryTotals> {
     const orderSummaryHeading = this.orderSummaryHeadingPattern.source;
     const subtotalLabel = this.summarySubtotalLabelPattern.source;
@@ -1819,10 +1945,12 @@ export class EcommerceCheckoutPage extends BasePage {
           }
 
           let delivery: number | null = null;
+          let deliveryPriceIdx = -1;
           if (subtotalPriceIdx !== -1 && totalLabelIdx !== -1) {
             for (let j = subtotalPriceIdx + 1; j < totalLabelIdx; j++) {
               if (priceRe.test(scoped[j])) {
                 delivery = parsePrice(scoped[j]);
+                deliveryPriceIdx = j;
                 break;
               }
             }
@@ -1834,7 +1962,10 @@ export class EcommerceCheckoutPage extends BasePage {
           // callers reconstructing total = subtotal + delivery + discount.
           let discount: number | null = null;
           if (subtotalPriceIdx !== -1 && totalLabelIdx !== -1) {
-            for (let j = subtotalPriceIdx + 1; j < totalLabelIdx; j++) {
+            // A negative token after the delivery price is an informational sale-savings line
+            // (Skechers AU, Vans NZ) already baked into the subtotal, not applied to the total.
+            const discountEndIdx = deliveryPriceIdx !== -1 ? deliveryPriceIdx : totalLabelIdx;
+            for (let j = subtotalPriceIdx + 1; j < discountEndIdx; j++) {
               if (discountRe.test(scoped[j])) {
                 discount = (discount ?? 0) - parsePrice(scoped[j]);
               }
