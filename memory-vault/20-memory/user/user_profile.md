@@ -3,7 +3,7 @@ name: User Profile
 description: QA engineer profile — role, working style, environment, preferences
 type: user
 tags: [memory, user]
-last_verified: 2026-05-15
+last_verified: 2026-10-02
 ---
 QA engineer / automation specialist building and maintaining a Playwright TypeScript framework for web applications. Works on Windows 11 using Claude Code CLI (Opus model). Comfortable with CI/CD, GitHub Actions, and modern TypeScript.
 
@@ -12,7 +12,7 @@ QA engineer / automation specialist building and maintaining a Playwright TypeSc
 **Technical level:** Senior — understands POM architecture, composition patterns, CI pipeline design, API testing, reporter tooling. No need to explain fundamentals.
 
 **Environment:**
-- OS: Windows 11 Pro, PowerShell + Bash available
+- OS: Windows 11 (Pro on the `Lincoln.Pham` machine, Home on the `ACER` machine), PowerShell + Bash available
 - Editor: VS Code with Claude Code extension
 - Shell: PowerShell primary, Bash via tool
-- Project path: `C:\Users\Lincoln.Pham\Documents\AccentGroupDocs\AutomationTest\playwright-typescript`
+- Project path: `C:\Users\Lincoln.Pham\Documents\AccentGroupDocs\AutomationTest\playwright-typescript` on the `Lincoln.Pham` machine; `E:\OLDDATA\DATA\TESTING\AutomationTesting\playwright-typescript` on the `ACER` machine

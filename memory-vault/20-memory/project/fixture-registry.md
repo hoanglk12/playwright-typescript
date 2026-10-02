@@ -3,7 +3,7 @@ name: fixture-registry
 description: "All registered test fixtures — UI base-test.ts and API ApiTest.ts — with Firefox teardown list and registration rules"
 type: project
 tags: [memory, project]
-last_verified: 2026-06-30
+last_verified: 2026-10-02
 ---
 
 ## UI Fixtures (src/config/base-test.ts)
@@ -12,12 +12,6 @@ Import: `import { test, expect } from '@config/base-test'`
 
 | Fixture | Type | Area | Firefox teardown? |
 |---|---|---|---|
-| `homePage` | `HomePage` | frontsite | — |
-| `loginPage` | `LoginPage` | admin | — |
-| `formDragAndDropPage` | `FormDragAndDropPage` | frontsite | — |
-| `profileListingPage` | `ProfileListingPage` | frontsite | — |
-| `insightsPage` | `InsightsPage` | frontsite | — |
-| `servicesAZPage` | `ServicesAZPage` | frontsite | — |
 | `ecommerceHomePage` | `EcommerceHomePage` | ecommerce | ✅ |
 | `ecommerceNavPage` | `EcommerceNavPage` | ecommerce | ✅ |
 | `ecommerceSearchPage` | `EcommerceSearchPage` | ecommerce | ✅ |
@@ -29,10 +23,14 @@ Import: `import { test, expect } from '@config/base-test'`
 | `ecommerceCheckoutPage` | `EcommerceCheckoutPage` | ecommerce | ✅ |
 | `ecommerceTrackOrderPage` | `EcommerceTrackOrderPage` | ecommerce | ✅ |
 | `ecommerceHelpSupportPage` | `EcommerceHelpSupportPage` | ecommerce | ✅ |
+| `ecommerceWishlistPage` | `EcommerceWishlistPage` | ecommerce | ✅ |
+| `ecommerceMyDetailsPage` | `EcommerceMyDetailsPage` | ecommerce | ✅ |
 | `percyHelper` | `PercyHelper` | visual regression | — |
 | `softAssert` | `SoftAssertHelper` | soft assertions | — |
+| `consoleHelper` | `ConsoleHelper` | failure-context capture (auto) | — |
+| `makeAxeBuilder` | `() => AxeBuilder` | axe-core accessibility | — |
 
-**Firefox teardown pattern** (all 11 ecommerce fixtures): navigates to `about:blank` before context teardown on Firefox. Prevents Juggler protocol hang caused by SPA service workers + persistent WebSocket/analytics connections on staging storefronts. **Do not remove.**
+**Firefox teardown pattern** (all 13 ecommerce fixtures): navigates to `about:blank` before context teardown on Firefox. Prevents Juggler protocol hang caused by SPA service workers + persistent WebSocket/analytics connections on staging storefronts. **Do not remove.**
 
 `ecommerceErrorPage` — `src/pages/ecommerce/error-page.ts`. Handles soft-404 SPA routing. Methods: `navigateToNotFound(baseUrl)`, `assertBackToHomeVisible()`, `assertBrandErrorUiVisible(brandName, siteName)`. Used by E2E-ERR-001.
 

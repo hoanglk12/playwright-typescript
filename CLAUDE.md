@@ -76,7 +76,7 @@ Both configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`
 3. Prefer `page.getByRole()` / `page.getByLabel()` / `page.getByText()` over CSS selectors
 4. **Banned:** hierarchical structural selectors (e.g. `div > span > ul > li:nth-child(2)`) — they break on any DOM restructure and carry no semantic meaning
 5. Keep CSS selectors only when needed for `this.style.*` computed-style queries or browser-side `evaluate()` calls
-5. Place under `src/pages/{area}/` matching the app area (frontsite, admin, ecommerce)
+5. Place under `src/pages/{area}/` matching the app area (currently only `ecommerce`)
 6. Register as a fixture in `src/config/base-test.ts`
 
 ```ts
@@ -104,12 +104,6 @@ export class MyPage extends BasePage {
 
 | Fixture | Type | Area |
 |---|---|---|
-| `homePage` | `HomePage` | frontsite |
-| `loginPage` | `LoginPage` | admin |
-| `formDragAndDropPage` | `FormDragAndDropPage` | frontsite |
-| `profileListingPage` | `ProfileListingPage` | frontsite |
-| `insightsPage` | `InsightsPage` | frontsite |
-| `servicesAZPage` | `ServicesAZPage` | frontsite |
 | `ecommerceHomePage` | `EcommerceHomePage` | ecommerce |
 | `ecommerceNavPage` | `EcommerceNavPage` | ecommerce |
 | `ecommerceSearchPage` | `EcommerceSearchPage` | ecommerce |
@@ -136,8 +130,8 @@ import { MyData } from '../../src/data/my-data';
 import { createTestLogger } from '../../src/utils/test-logger';
 
 test.describe('Feature Name @tag1 @tag2', () => {
-  test('TC_01 - Description', async ({ myPage }) => {
-    const logger = createTestLogger('TC_01 description');
+  test('E2E-DOMAIN-001 - Description', async ({ myPage }) => {
+    const logger = createTestLogger('E2E-DOMAIN-001 description');
 
     logger.step('Step 1 - Navigate');
     await myPage.navigateToPage();
@@ -148,16 +142,16 @@ test.describe('Feature Name @tag1 @tag2', () => {
 });
 ```
 
-Tags go in `test.describe()` name string (e.g. `@homepage`, `@frontsite`, `@admin`).
+Tags go in `test.describe()` name string (e.g. `@ecommerce`, `@smoke`, `@regression`).
 
 ### Test naming conventions
 
 **Existing tests** use one of these legacy patterns — do not rename them (breaks CI tag filtering and monocart history):
-- `TC_01 - Description` (frontsite / admin / most API specs)
+- `TC_01 - Description` (most API specs)
 - `E2E-{DOMAIN}-{NNN}-{site}` (ecommerce smoke)
 - `PLA_OperationName - description` (older PLA account spec)
 
-**New tests** should follow `TC_XX - Description` for API/UI tests or `E2E-{DOMAIN}-{NNN}-{site}` for ecommerce smoke, matching the existing suite they extend.
+**New tests** should follow `TC_XX - Description` for API tests or `E2E-{DOMAIN}-{NNN}-{site}` for ecommerce UI tests, matching the existing suite they extend.
 
 ## Soft Assertions
 
@@ -216,7 +210,7 @@ Never hardcode test data in spec files. Create typed data modules in `src/data/`
 - **Constants** (static expected values) → `const` objects annotated with a named interface type
 - **Generated data** (random/dynamic) → generator classes/functions with explicit return types matching a named interface
 - **Always declare interfaces** for every data shape — both `const` objects and generator return types must carry a named interface annotation. Never rely on inferred types for exported data.
-- See `src/data/admin-data.ts` as the reference pattern
+- See `src/data/api/dummyjson-data.ts` as the reference pattern
 - **Data sub-directories:** API test data → `src/data/api/` (one file per feature domain); ecommerce storefront config → `src/data/ecommerce/storefronts.ts`
 
 ```ts
@@ -475,7 +469,7 @@ const client = await ApiClient.withStoredToken(
 - Use `percyHelper` fixture in tests that need visual snapshots
 - Percy only runs when `PERCY_TOKEN` is set; snapshots are skipped silently otherwise
 - Snapshot options: `PercySnapshotOptions` type from `src/pages/helpers/`
-- Run via dedicated scripts: `test:percy`, `test:percy:smoke`, `test:percy:admin`, etc.
+- Run via dedicated scripts: `test:percy`, `test:percy:smoke`, `test:percy:testing`, `test:percy:staging`.
 
 ## Run Commands
 
@@ -508,7 +502,7 @@ NODE_ENV=staging npm test       # loads .env.staging
 NODE_ENV=production npm test    # loads .env.production
 ```
 
-Key env vars: `FRONT_SITE_URL`, `ADMIN_URL`, `API_BASE_URL`, `WORKERS`, `HEADLESS`, `TRACE_MODE`, `SCREENSHOT_MODE`, `VIDEO_MODE`, `PERCY_TOKEN`, `VERBOSE_LOGS`.
+Key env vars: `API_BASE_URL`, `WORKERS`, `HEADLESS`, `TRACE_MODE`, `SCREENSHOT_MODE`, `VIDEO_MODE`, `PERCY_TOKEN`, `VERBOSE_LOGS`.
 
 `VERBOSE_LOGS` — default **ON**. Every `apiClientExt`/`createClientExt` call (`*WithWrapper` methods) and every `graphqlClient`/`createGraphQLClient` call (`queryWrapped`/`mutateWrapped`) buffers a redacted request+response entry (`src/utils/verbose-log-buffer.ts`), keyed by `testInfo.testId`. Buffer-then-flush-on-failure: an auto-fixture (`attachVerboseLogFailureContext` in `src/api/ApiTest.ts`) flushes the buffered entries into a single `api-verbose-failure-context.json` attachment only when the test failed — passing tests get no attachment, so report size tracks failing-test count rather than total call count. Redaction (`src/utils/redact.ts`) is a denylist of known-sensitive keys/patterns, not a provably complete one — extend `SENSITIVE_KEYS`/`redactSensitiveText` there before any new spec sends a field/header that could carry a token or PII through `apiClientExt` or `GraphQLClient`. Set `VERBOSE_LOGS=false` (or `=0`) to opt out for a run entirely. Failure-gating is a permanent design decision, not a missing feature — verbose log attachments are only ever shown for failed tests, and there is deliberately no `VERBOSE_LOGS=always` (or similar) opt-in to restore per-call attaching on passing tests. There is no dedicated regression test for the redaction (removed after Phase 3 — see git history for `tests/api/verbose-logging.spec.ts`).
 
