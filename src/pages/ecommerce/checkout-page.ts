@@ -1193,66 +1193,15 @@ export class EcommerceCheckoutPage extends BasePage {
     return false;
   }
 
-  // E2E-CHKOUT-007 — Polls for positive evidence that a promo code was accepted: the success
-  // banner naming the code, or a visible REMOVE button inside the promo input's own container
-  // (a page-wide scan would match cart line-item REMOVE buttons). Stops polling as soon as a
-  // rejection message appears. Returns false if no acceptance signal appears within
-  // DIALOG_APPEAR. Never throws.
+  // E2E-CHKOUT-007 — Polls for positive evidence that a promo code was accepted. Stops polling
+  // as soon as a rejection message appears. Returns false if no acceptance signal appears
+  // within DIALOG_APPEAR. Never throws.
   async waitForPromoCodeAccepted(code: string): Promise<boolean> {
     let accepted = false;
     await this.waits
       .waitForCustomCondition(
         async () => {
-          accepted = await this.page
-            .evaluate(
-              ({
-                appliedSource,
-                removeSource,
-                code,
-                targetSelector,
-                allSelector,
-                buttonSelector,
-              }: {
-                appliedSource: string;
-                removeSource: string;
-                code: string;
-                targetSelector: string;
-                allSelector: string;
-                buttonSelector: string;
-              }) => {
-                const appliedRe = new RegExp(appliedSource, 'i');
-                const removeRe = new RegExp(removeSource, 'i');
-                const codeLower = code.toLowerCase();
-                const isVisible = (el: Element): boolean => {
-                  const r = el.getBoundingClientRect();
-                  return r.width > 0 && r.height > 0;
-                };
-                const leaves = Array.from(document.querySelectorAll(allSelector)).filter(
-                  (el) => el.children.length === 0 && isVisible(el),
-                );
-                const bannerShown = leaves.some((el) => {
-                  const text = ((el as HTMLElement).innerText ?? el.textContent ?? '').trim();
-                  return appliedRe.test(text) && text.toLowerCase().includes(codeLower);
-                });
-                if (bannerShown) return true;
-                const tagged = document.querySelector<HTMLElement>(targetSelector);
-                if (!tagged) return false;
-                const scope: ParentNode =
-                  tagged.closest('form') ?? tagged.parentElement?.parentElement ?? document;
-                return Array.from(scope.querySelectorAll<HTMLElement>(buttonSelector)).some(
-                  (btn) => isVisible(btn) && removeRe.test((btn.innerText ?? '').trim()),
-                );
-              },
-              {
-                appliedSource: this.promoAppliedTextPattern.source,
-                removeSource: this.promoRemoveButtonPattern.source,
-                code,
-                targetSelector: this.promoCodeTargetSelector,
-                allSelector: this.allElementsSelector,
-                buttonSelector: this.buttonElementSelector,
-              },
-            )
-            .catch(() => false);
+          accepted = await this.readPromoCodeAcceptedOnce(code);
           if (accepted) return true;
           return (await this.readPromoCodeErrorOnce(code)) !== null;
         },
@@ -1260,6 +1209,62 @@ export class EcommerceCheckoutPage extends BasePage {
       )
       .catch(() => {});
     return accepted;
+  }
+
+  // Single non-polling read of the acceptance signals: the success banner naming the code, or a
+  // visible REMOVE button inside the promo input's own container (a page-wide scan would match
+  // cart line-item REMOVE buttons).
+  private async readPromoCodeAcceptedOnce(code: string): Promise<boolean> {
+    return this.page
+      .evaluate(
+        ({
+          appliedSource,
+          removeSource,
+          code,
+          targetSelector,
+          allSelector,
+          buttonSelector,
+        }: {
+          appliedSource: string;
+          removeSource: string;
+          code: string;
+          targetSelector: string;
+          allSelector: string;
+          buttonSelector: string;
+        }) => {
+          const appliedRe = new RegExp(appliedSource, 'i');
+          const removeRe = new RegExp(removeSource, 'i');
+          const codeLower = code.toLowerCase();
+          const isVisible = (el: Element): boolean => {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0;
+          };
+          const leaves = Array.from(document.querySelectorAll(allSelector)).filter(
+            (el) => el.children.length === 0 && isVisible(el),
+          );
+          const bannerShown = leaves.some((el) => {
+            const text = ((el as HTMLElement).innerText ?? el.textContent ?? '').trim();
+            return appliedRe.test(text) && text.toLowerCase().includes(codeLower);
+          });
+          if (bannerShown) return true;
+          const tagged = document.querySelector<HTMLElement>(targetSelector);
+          if (!tagged) return false;
+          const scope: ParentNode =
+            tagged.closest('form') ?? tagged.parentElement?.parentElement ?? document;
+          return Array.from(scope.querySelectorAll<HTMLElement>(buttonSelector)).some(
+            (btn) => isVisible(btn) && removeRe.test((btn.innerText ?? '').trim()),
+          );
+        },
+        {
+          appliedSource: this.promoAppliedTextPattern.source,
+          removeSource: this.promoRemoveButtonPattern.source,
+          code,
+          targetSelector: this.promoCodeTargetSelector,
+          allSelector: this.allElementsSelector,
+          buttonSelector: this.buttonElementSelector,
+        },
+      )
+      .catch(() => false);
   }
 
   // E2E-CHKOUT-007 — Clicks the CHECKOUT button in the /cart order summary, which opens the
@@ -1329,49 +1334,60 @@ export class EcommerceCheckoutPage extends BasePage {
   private async readPromoCodeErrorOnce(code: string): Promise<string | null> {
     return this.page
       .evaluate(
-            ({
-              ariaSelector,
-              textPattern,
-              contextPattern,
-              code,
-            }: {
-              ariaSelector: string;
-              textPattern: string;
-              contextPattern: string;
-              code: string;
-            }) => {
-              const errorRe = new RegExp(textPattern, 'i');
-              const contextRe = new RegExp(contextPattern, 'i');
-              const codeLower = code.toLowerCase();
-              const isPromoError = (text: string): boolean =>
-                errorRe.test(text) && (text.toLowerCase().includes(codeLower) || contextRe.test(text));
+        ({
+          ariaSelector,
+          textPattern,
+          contextPattern,
+          code,
+          allSelector,
+        }: {
+          ariaSelector: string;
+          textPattern: string;
+          contextPattern: string;
+          code: string;
+          allSelector: string;
+        }) => {
+          const errorRe = new RegExp(textPattern, 'i');
+          const contextRe = new RegExp(contextPattern, 'i');
+          const codeLower = code.toLowerCase();
+          const isWordChar = (ch: string | undefined): boolean => ch !== undefined && /[a-z0-9]/.test(ch);
+          const echoesCode = (text: string): boolean => {
+            const lower = text.toLowerCase();
+            for (let from = lower.indexOf(codeLower); from !== -1; from = lower.indexOf(codeLower, from + 1)) {
+              if (!isWordChar(lower[from - 1]) && !isWordChar(lower[from + codeLower.length])) return true;
+            }
+            return false;
+          };
+          const isPromoError = (text: string): boolean =>
+            errorRe.test(text) && (echoesCode(text) || contextRe.test(text));
 
-              const visibleText = (el: Element): string => {
-                const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
-                if (!text) return '';
-                const r = el.getBoundingClientRect();
-                return r.width > 0 && r.height > 0 ? text : '';
-              };
+          const visibleText = (el: Element): string => {
+            const text = (el instanceof HTMLElement ? el.innerText : el.textContent ?? '').trim();
+            if (!text) return '';
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 ? text : '';
+          };
 
-              for (const el of Array.from(document.querySelectorAll(ariaSelector))) {
-                const text = visibleText(el);
-                if (text && isPromoError(text)) return text;
-              }
+          for (const el of Array.from(document.querySelectorAll(ariaSelector))) {
+            const text = visibleText(el);
+            if (text && isPromoError(text)) return text;
+          }
 
-              for (const el of Array.from(document.querySelectorAll('*'))) {
-                if (el.children.length > 0) continue;
-                const text = visibleText(el);
-                if (text && isPromoError(text)) return text;
-              }
-              return null;
-            },
-            {
-              ariaSelector: this.ariaValidationSelector,
-              textPattern: this.promoCodeErrorTextPattern.source,
-              contextPattern: this.promoErrorContextPattern.source,
-              code,
-            },
-          )
+          for (const el of Array.from(document.querySelectorAll(allSelector))) {
+            if (el.children.length > 0) continue;
+            const text = visibleText(el);
+            if (text && isPromoError(text)) return text;
+          }
+          return null;
+        },
+        {
+          ariaSelector: this.ariaValidationSelector,
+          textPattern: this.promoCodeErrorTextPattern.source,
+          contextPattern: this.promoErrorContextPattern.source,
+          code,
+          allSelector: this.allElementsSelector,
+        },
+      )
       .catch(() => null);
   }
 
@@ -1877,10 +1893,6 @@ export class EcommerceCheckoutPage extends BasePage {
   // shipping cost is read POSITIONALLY: the first price token that appears strictly between
   // the subtotal's price and the "Total" label. Returns null for any value that cannot be
   // parsed. Never throws.
-  // Discount rule: only negative tokens strictly between the subtotal and the delivery price
-  // count as discount. A negative token after the delivery price is an informational
-  // sale-savings line already baked into the subtotal and is ignored. When no delivery price
-  // was found, the cutoff falls back to the "Total" label.
   async getOrderSummaryTotals(): Promise<OrderSummaryTotals> {
     const orderSummaryHeading = this.orderSummaryHeadingPattern.source;
     const subtotalLabel = this.summarySubtotalLabelPattern.source;
@@ -1956,14 +1968,15 @@ export class EcommerceCheckoutPage extends BasePage {
             }
           }
 
-          // Sums ALL negative-token discount/promotion lines between subtotal and total (not
-          // just the first) — parsePrice() strips the leading "-" along with the "$", so the
-          // negation is re-applied explicitly here to keep the value genuinely negative for
-          // callers reconstructing total = subtotal + delivery + discount.
+          // Sums ALL negative-token discount/promotion lines between the subtotal and the
+          // delivery price (not just the first) — parsePrice() strips the leading "-" along with
+          // the "$", so the negation is re-applied explicitly here to keep the value genuinely
+          // negative for callers reconstructing total = subtotal + delivery + discount.
           let discount: number | null = null;
           if (subtotalPriceIdx !== -1 && totalLabelIdx !== -1) {
             // A negative token after the delivery price is an informational sale-savings line
             // (Skechers AU, Vans NZ) already baked into the subtotal, not applied to the total.
+            // With no delivery price found, the cutoff falls back to the "Total" label.
             const discountEndIdx = deliveryPriceIdx !== -1 ? deliveryPriceIdx : totalLabelIdx;
             for (let j = subtotalPriceIdx + 1; j < discountEndIdx; j++) {
               if (discountRe.test(scoped[j])) {

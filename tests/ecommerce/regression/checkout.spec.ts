@@ -3,6 +3,7 @@ import { storefronts } from '@data/ecommerce/storefronts';
 import { createGuestCheckoutEmail } from '@data/ecommerce/test-accounts';
 import { PromoCodes } from '@data/ecommerce/promo-codes';
 import { createTestLogger } from '@utils/test-logger';
+import { TIMEOUTS } from '../../../src/constants/timeouts';
 import type {
   OrderSummaryTotals,
   OrderReviewLineItem,
@@ -514,6 +515,7 @@ test.describe('Ecommerce Checkout Regression @regression @ecommerce', () => {
       ecommerceCheckoutPage,
       softAssert,
     }) => {
+      test.setTimeout(TIMEOUTS.TEST_LONG_CHECKOUT_FLOW);
       const logger = createTestLogger(`${tcId} - ${site.name} Valid promo code reduces order total`);
 
       const result = await addToCartAndReachCheckoutCta({

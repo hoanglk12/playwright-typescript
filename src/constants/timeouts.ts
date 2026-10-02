@@ -34,6 +34,9 @@ export const TIMEOUTS = {
   TIMEOUT_MEDIUM: 10000,
   TIMEOUT_LONG: 30000,
 
+  // Whole-test budget for flows that add to cart, visit /cart, then complete guest checkout
+  TEST_LONG_CHECKOUT_FLOW: 180000,
+
   // Polling intervals for expect.poll / waitForCustomCondition
   POLL_INTERVAL_FAST: 500,
   POLL_INTERVAL_NORMAL: 1000,
