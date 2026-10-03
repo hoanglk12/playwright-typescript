@@ -1,0 +1,1097 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arize Phoenix for LightRAG</title>
+<style>
+  :root {
+    --bg: #F6F7FB; --surface: #FFFFFF; --surface-alt: #ECEEF7; --border: #DBDFEE;
+    --ink: #1B1E2B; --ink-soft: #565B72; --ink-faint: #8286A0;
+    --accent: #3B4FE0; --accent-soft: #E4E7FC;
+    --good: #1F8A5F; --good-soft: #DDF0E7;
+    --warn: #B4700A; --warn-soft: #F6E7D2;
+    --critical: #B3372A; --critical-soft: #F5DFDC;
+    --code-bg: #1B1E2B; --code-ink: #E7E9F5;
+    --shadow: 0 1px 2px rgba(27,30,43,0.06), 0 6px 16px rgba(27,30,43,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12141F; --surface: #191C29; --surface-alt: #212536; --border: #2E3348;
+      --ink: #E7E9F5; --ink-soft: #A3A8C2; --ink-faint: #6D7290;
+      --accent: #8B9AFF; --accent-soft: #23264A;
+      --good: #5BC898; --good-soft: #163227;
+      --warn: #E0A438; --warn-soft: #2E2515;
+      --critical: #E2695A; --critical-soft: #2E1B17;
+      --code-bg: #0C0E17; --code-ink: #DDE1F5;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141F; --surface: #191C29; --surface-alt: #212536; --border: #2E3348;
+    --ink: #E7E9F5; --ink-soft: #A3A8C2; --ink-faint: #6D7290;
+    --accent: #8B9AFF; --accent-soft: #23264A;
+    --good: #5BC898; --good-soft: #163227;
+    --warn: #E0A438; --warn-soft: #2E2515;
+    --critical: #E2695A; --critical-soft: #2E1B17;
+    --code-bg: #0C0E17; --code-ink: #DDE1F5;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 900px; margin: 0 auto; padding: 56px 16px 96px; }
+  .eyebrow {
+    font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 14px;
+  }
+  h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 680; letter-spacing: -0.01em; margin: 0 0 10px; text-wrap: balance; }
+  .subtitle { font-size: 16px; color: var(--ink-soft); max-width: 70ch; margin: 0 0 24px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 36px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+    padding: 5px 11px; border-radius: 100px; border: 1px solid var(--border);
+    color: var(--ink-soft); background: var(--surface);
+  }
+  .chip.hold { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+  .chip.rec { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin-bottom: 32px; box-shadow: var(--shadow);
+  }
+  .stat { background: var(--surface); padding: 18px 18px 16px; }
+  .stat-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px; }
+  .stat-value { font-size: 19px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  .stat-sub { font-size: 12.5px; color: var(--ink-faint); margin: 4px 0 0; }
+
+  .panel {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .panel.good { border-left-color: var(--good); background: var(--good-soft); }
+  .panel-title { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
+  .panel p, .panel li { font-size: 14.5px; }
+  .panel p { margin: 0 0 8px; max-width: none; }
+  .panel ul { margin: 0; padding-left: 20px; }
+  .panel li { margin-bottom: 5px; }
+
+  nav.toc {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; margin: 28px 0 44px;
+  }
+  nav.toc .toc-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px; font-weight: 700; }
+  nav.toc ol { margin: 0; padding-left: 0; list-style: none; columns: 2; column-gap: 28px; }
+  nav.toc li { margin-bottom: 4px; font-size: 14px; break-inside: avoid; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  .report h2 {
+    font-size: 13px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700;
+    color: var(--ink-soft); margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    scroll-margin-top: 16px;
+  }
+  .report h3 { font-size: 16px; font-weight: 650; margin: 28px 0 10px; }
+  .report p { margin: 0 0 14px; max-width: 74ch; }
+  .report ul, .report ol { margin: 0 0 14px; padding-left: 22px; max-width: 76ch; }
+  .report li { margin-bottom: 6px; }
+  .report li > ul { margin-top: 6px; }
+  .report hr { display: none; }
+  .report blockquote {
+    margin: 0 0 16px; padding: 14px 18px; border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 8px;
+  }
+  .report blockquote p { margin: 0; max-width: none; }
+  a { color: var(--accent); }
+
+  code { font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 0.9em; }
+  p code, li code, td code, h3 code { background: var(--surface-alt); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-size: 13px; line-height: 1.5; margin: 8px 0 14px;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin: 0 0 18px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); background: var(--surface-alt); font-weight: 700; }
+  tr:last-child td { border-bottom: none; }
+  td { min-width: 120px; }
+
+  footer {
+    border-top: 1px solid var(--border); margin-top: 56px; padding-top: 20px; font-size: 12.5px; color: var(--ink-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  @media (max-width: 640px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    nav.toc ol { columns: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="eyebrow">LightRAG observability &middot; Technical research report</p>
+  <h1>Arize Phoenix for LightRAG</h1>
+  <p class="subtitle">Could a self-hosted Arize Phoenix server trace the dev-time LightRAG server without sending prompts, vault notes or Jira content off the machine, and would it beat Option D, the standing decision to rely on local logs? This report checks both questions against source code and a dependency dry-run.</p>
+  <div class="meta-row">
+    <span class="chip hold"><span class="dot"></span>Awaiting your approval</span>
+    <span class="chip rec"><span class="dot"></span>Recommended: Option D now</span>
+    <span class="chip">Escalation: P1, local Phoenix</span>
+    <span class="chip">LightRAG 1.5.7</span>
+    <span class="chip">2026-10-03</span>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <p class="stat-label">Answer LLM phase</p>
+      <p class="stat-value">4.3-11.2 s</p>
+      <p class="stat-sub">The largest phase in today's log samples</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Phoenix footprint</p>
+      <p class="stat-value">1 process</p>
+      <p class="stat-sub">SQLite; chart requests 1 GiB, caps at 2 GiB</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">P1 tracer install</p>
+      <p class="stat-value">16 packages</p>
+      <p class="stat-sub">Dry-run: 0 removed, stop-list untouched</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Docker VM</p>
+      <p class="stat-value">0.9 GiB</p>
+      <p class="stat-sub">1 CPU, 5 containers running: too small for P3</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">How this was researched</p>
+    <p>Research only. No repo file was modified, nothing was installed, and LightRAG was not restarted. The calls against LightRAG were read-only: <code>GET /health</code> and one hybrid <code>query_document</code> call through the MCP adapter. <code>uv pip install --dry-run</code> and <code>uv pip compile</code> ran with output going to the scratchpad only, and small throwaway <code>.bat</code>/<code>.py</code> probes tested Windows <code>os.execl</code> behaviour, <code>PYTHONPATH</code>/<code>sitecustomize</code> handling by the uv trampoline, and the <code>start-rag.bat</code> loader. Web and registry sources were retrieved on 2026-10-03.</p>
+    <p>The baseline is the Langfuse research report of 2026-10-02, cited as [LF]. Its facts are reused, not re-derived. Nothing here is implemented until you approve it (WORKFLOW-10).</p>
+  </div>
+
+  <div class="panel good">
+    <p class="panel-title">Checked again by the main session (2026-10-03)</p>
+    <ul>
+      <li>The queue's context propagation: <code>utils.py</code> calls <code>contextvars.copy_context()</code> on each submission and runs the call with <code>ctx.run(asyncio.ensure_future, ...)</code>, and the source comments name OpenTelemetry spans as the reason. Confirmed.</li>
+      <li>Docker's resources: <code>docker info</code> reports 942,149,632 bytes of memory, 1 CPU and 5 running containers. Confirmed.</li>
+      <li>Prompts already on disk: <code>.lightrag/kv_store_llm_response_cache.json</code> held 1,861 <code>original_prompt</code> entries at the re-check, against the 1,859 counted earlier the same day. Both files involved are gitignored.</li>
+      <li>Masking values: <code>OPENINFERENCE_HIDE_*</code> accepts only <code>true</code> or <code>false</code>. Anything else logs a "Could not parse" warning and falls back to the default, which captures content. The research agent's summary called this silent; the risk table below has been corrected to say it logs a warning.</li>
+    </ul>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <ol>
+      <li><a href="#1-summary">1. Summary</a></li>
+      <li><a href="#2-scope">2. Scope</a></li>
+      <li><a href="#3-research-sources">3. Research sources</a></li>
+      <li><a href="#4-confirmed-facts-with-evidence">4. Confirmed facts (with evidence)</a></li>
+      <li><a href="#5-assumptions-and-unverified-items">5. Assumptions and unverified items</a></li>
+      <li><a href="#6-technical-findings">6. Technical findings</a></li>
+      <li><a href="#7-qa-and-testing-impact">7. QA and testing impact</a></li>
+      <li><a href="#8-options-compared">8. Options compared</a></li>
+      <li><a href="#9-recommendation">9. Recommendation</a></li>
+      <li><a href="#10-risks-and-mitigations">10. Risks and mitigations</a></li>
+      <li><a href="#11-implementation-steps-after-approval-only">11. Implementation steps (after approval only)</a></li>
+      <li><a href="#12-validation">12. Validation</a></li>
+      <li><a href="#13-open-questions-user-decisions">13. Open questions (user decisions)</a></li>
+      <li><a href="#sources">Sources</a></li>
+    </ol>
+  </nav>
+
+  <main class="report">
+<h2 id="1-summary">1. Summary</h2>
+<h3 id="the-sentence-being-tested">The sentence being tested</h3>
+<p>The Langfuse report ([LF], 2026-10-02) dismissed Phoenix in one line: &quot;LightRAG has no native hook for them, so they&#39;d need the same launcher work as A2, and they aren&#39;t obviously lighter.&quot; Here is each of its three claims, checked against source.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Verdict</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;No native hook&quot;</td>
+<td>Half true. LightRAG has no Phoenix- or OpenInference-specific hook, but 1.5.7 deliberately carries the request&#39;s OpenTelemetry context into its LLM and embedding queue workers.</td>
+<td><code>utils.py:2216-2225</code>, <code>2352-2358</code>, <code>1449-1462</code>; upstream PR HKUDS/LightRAG#3386, merged 2026-07-14, which fixes #3382 &quot;Tracability compatibility&quot;.</td>
+</tr>
+<tr>
+<td>&quot;Same launcher work as A2&quot;</td>
+<td>Refuted. No Python launcher is needed.</td>
+<td><code>openinference-instrumentation-openai</code> registers an <code>opentelemetry_instrumentor</code> entry point, and OTel&#39;s <code>sitecustomize</code> auto-instrumentation can be switched on by one <code>PYTHONPATH</code> line in the gitignored <code>.lightrag.env</code>. The probe ran on a sibling uv trampoline in the same venv (<code>normalizer.exe</code>), which honoured <code>PYTHONPATH</code>/<code>sitecustomize</code>; <code>lightrag-server.exe</code> is the same kind of uv launcher and is expected to behave the same, which V2/V3 confirm (U1).</td>
+</tr>
+<tr>
+<td>&quot;Not obviously lighter&quot;</td>
+<td>Refuted against Langfuse self-host, confirmed against Option D.</td>
+<td>Phoenix is one Python process with SQLite, and its own chart requests 1 GiB and caps at 2 GiB, against Langfuse&#39;s 6 containers and 16 GiB VM guidance. It still needs a second Python env of 158 packages, 16 packages in the LightRAG venv and an always-on process, where D needs nothing.</td>
+</tr>
+</tbody></table></div>
+<h3 id="does-phoenix-beat-option-d">Does Phoenix beat Option D?</h3>
+<p>Not for the question that&#39;s open today.</p>
+<p>D can already split the ~9 s per query. At INFO level, <code>lightrag.log</code> writes four timestamps per uncached query: the keyword-cache save, <code>Query nodes</code>, <code>Final context</code> and the answer-cache save. <code>operate.py:5179-5212</code> shows that the query-embedding batch runs between the first two. Join those with the client&#39;s send time (the eval knows it, and the recall log records it as <code>ts</code>/<code>ms</code>) and you get four phases: keyword LLM, embedding, local retrieval and answer LLM.</p>
+<p>Today&#39;s log already answers the question [LF] wanted its trial to settle (&quot;what share of the ~9 s does the answer call take?&quot;):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Today&#39;s samples</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Answer LLM call</td>
+<td>4.3 s, 4.8 s and 11.2 s</td>
+</tr>
+<tr>
+<td>Query embedding</td>
+<td>1.4 s and 1.8 s</td>
+</tr>
+<tr>
+<td>Local retrieval</td>
+<td>≤ 0.3 s</td>
+</tr>
+</tbody></table></div>
+<p>These come from <code>lightrag.log:73060-73115</code> and are single samples, so treat them as indicative. They also come from mixed callers with different parameters: the <code>Query nodes</code> lines show <code>top_k</code> of 20, 40 and 30, and the 11.2 s answer phase was the research agent&#39;s own MCP <code>query_document</code> call with rerank requested, not the recall hook&#39;s configuration. They still support D, because D3 will produce numbers at the hook&#39;s own settings.</p>
+<p>Phoenix does add things D can&#39;t give you: per-call prompt and completion token counts, each embedding call as its own span, ShopAIKey retries and errors as spans, per-<code>/query</code> trees that stay correct when hook, MCP and eval traffic overlap (where D&#39;s timestamp join gets ambiguous), and a UI. Those are real gains. None of them is needed to act on the current finding.</p>
+<h3 id="recommendation">Recommendation</h3>
+<p>Do Option D now: D2 (per-run JSON) plus D3 (the log-phase join). Treat P1, a local Phoenix server in its own venv hooked in through <code>PYTHONPATH</code> with no launcher, as the escalation, and only take it when one of the triggers in §9 fires.</p>
+<p>If P1 is ever enabled, these conditions are non-negotiable:</p>
+<ol>
+<li>Batch span export. The OTel auto-config path already defaults to it. <code>phoenix.otel.register()</code> defaults to synchronous export, which would stall LightRAG&#39;s whole event loop whenever Phoenix is down.</li>
+<li>The full set of masking env vars.</li>
+<li><code>PHOENIX_HOST=127.0.0.1</code>. Phoenix binds <code>0.0.0.0</code> by default, and its gRPC port 4317 always binds <code>[::]</code>.</li>
+<li><code>PHOENIX_ALLOW_EXTERNAL_RESOURCES=false</code>, because a Scarf telemetry pixel and Google Fonts load by default.</li>
+<li>A finite retention period. The default keeps traces forever.</li>
+</ol>
+<p>The remaining options don&#39;t fit. Docker (P3) is out because this machine&#39;s Docker VM has about 0.9 GiB and 1 CPU, which is below Phoenix&#39;s own 1 GiB request. Phoenix Cloud (P4) brings back egress. A launcher (P2) means the repo&#39;s first <code>.py</code> file, grpcio in the LightRAG venv, and a synchronous-export default that has to be overridden.</p>
+<hr>
+<h2 id="2-scope">2. Scope</h2>
+<h3 id="verified-out-of-scope">Verified out of scope</h3>
+<p>None of these has a Phoenix role: <code>src/**</code>, <code>tests/**</code>, <code>playwright.config.ts</code>, <code>api.config.ts</code>, <code>src/config/base-test.ts</code>, <code>src/config/environment.ts</code>, <code>tsconfig.json</code>, <code>.github/workflows/**</code>, <code>package.json</code> and <code>package-lock.json</code>. Running <code>git grep -ciE &quot;phoenix|openinference|opentelemetry|arize&quot;</code> over those paths, lockfile included, exits 1 (no matches). [LF] already confirmed that src, tests and CI make no LLM calls, so that analysis wasn&#39;t repeated.</p>
+<p>No option changes a fixture, helper, reporter or path alias. Nothing runs in CI or the test suite, and the council tool (<code>scripts/council/</code>) stays untraced, per [LF] §6.5.</p>
+<h3 id="files-each-option-would-touch">Files each option would touch</h3>
+<p>Tags: (T) tracked in git, (G) gitignored or per machine, (O) outside the repo.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Files</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>D (recommended)</td>
+<td><code>scripts/eval-lightrag.mjs</code> (T): the D2 per-run JSON plus the D3 phase join, zero dependencies, about 40-60 lines. Output goes to <code>.claude/.state/lightrag-eval-runs/</code> (G, covered by <code>.gitignore:165</code>). It reads <code>lightrag.log</code> (G, <code>.gitignore:119</code> <code>*.log</code>). Optionally <code>docs/technical-research/*.research.md</code> (T) and one vault note plus one golden question (T).</td>
+</tr>
+<tr>
+<td>P1 (escalation)</td>
+<td><code>.lightrag-venv/</code> (G): 16 pinned packages. <code>scripts/lightrag-tracing-requirements.txt</code> (T, new): the 16 pins, kept apart from <code>lightrag-requirements.txt</code> so the base install stays minimal. <code>.lightrag.env</code> (G, edited by the user): about 13 lines. <code>scripts/start-rag.bat</code> (T): one added <code>setlocal</code> line. Phoenix venv <code>%USERPROFILE%\.phoenix-venv</code> (O). Phoenix data <code>%USERPROFILE%\.phoenix-lightrag\phoenix.db</code> (O). <code>scripts/phoenix-server-requirements.txt</code> (T, new, optional): a 158-line compiled lock so both machines match. <code>scripts/start-phoenix.bat</code> (T, new, optional): <code>setlocal</code> plus the non-secret <code>PHOENIX_*</code> env. <code>CLAUDE.md</code> (T): a short section. <code>docs/technical-research/lightrag-memory-guide.html</code> (T). A vault note (T).</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>Everything in P1, plus a launcher <code>scripts/lightrag_traced.py</code> (T, the first <code>.py</code> in the repo). <code>start-rag.bat</code> (T) calls the launcher instead of <code>lightrag-server</code>, and grpcio goes into <code>.lightrag-venv</code>.</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>P1&#39;s tracer side, plus <code>docker run</code> arguments or a compose file. The Docker Desktop memory limit is raised per machine, which is a global Docker change.</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>P1&#39;s tracer side. The endpoint is <code>app.phoenix.arize.com</code>, and an API key goes in <code>.lightrag.env</code> (G).</td>
+</tr>
+</tbody></table></div>
+<p>No option touches root <code>.env</code> or <code>.env.{NODE_ENV}</code>; LightRAG&#39;s <code>openai.py:77</code> <code>load_dotenv(&quot;.env&quot;)</code> and <code>src/config/environment.ts:42-50</code> both read root <code>.env</code>, per [LF]. No option edits site-packages source, and none touches <code>.claude/hooks/user-prompt-submit.js</code> (a <code>traceparent</code> header there is possible but not proposed).</p>
+<hr>
+<h2 id="3-research-sources">3. Research sources</h2>
+<p>Two kinds of reference recur below. [LF] is the Langfuse research report from 2026-10-02; it lives only in a session scratchpad and isn&#39;t committed to the repo. <code>prior-phoenix-fetch/</code> is a scratchpad copy of the source files and PyPI metadata fetched by an earlier, interrupted research session on 2026-10-02. The table records which released version each fetched file matches.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Type</th>
+<th>Reference</th>
+<th>Version it reflects, or notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LightRAG installed source</td>
+<td>Local code</td>
+<td><code>.lightrag-venv/Lib/site-packages/lightrag/utils.py:1052, 1409-1462, 1690-1714, 2216-2225, 2352-2358</code>; <code>operate.py:4642, 4810, 5079, 5149-5212, 5832, 6020-6031</code>; <code>llm/openai.py:48-77, 282</code>; <code>api/lightrag_server.py:5, 1697</code>; <code>api/routers/query_routes.py:518, 602</code>; <code>constants.py:59-61</code></td>
+<td>lightrag-hku 1.5.7 (installed)</td>
+</tr>
+<tr>
+<td>LightRAG upstream</td>
+<td>GitHub issue and PR</td>
+<td><a href="https://github.com/HKUDS/LightRAG/issues/3382">https://github.com/HKUDS/LightRAG/issues/3382</a> ; <a href="https://github.com/HKUDS/LightRAG/pull/3386">https://github.com/HKUDS/LightRAG/pull/3386</a></td>
+<td>PR merged 2026-07-14 (merge commit <code>f31193b</code>)</td>
+</tr>
+<tr>
+<td>OpenInference OpenAI instrumentor</td>
+<td>Source (prior fetch)</td>
+<td><code>prior-phoenix-fetch/pin/oi-*</code></td>
+<td>0.1.61. <code>_request.py</code> is byte-identical to tags v0.1.60 and v0.1.61, v0.1.61 <code>version.py</code> reads &quot;0.1.61&quot;, and requires-dist matches PyPI 0.1.60/0.1.61</td>
+</tr>
+<tr>
+<td>OpenInference OpenAI instrumentor</td>
+<td>Source (prior fetch)</td>
+<td><code>prior-phoenix-fetch/oi-openai-*</code>, <code>oi-_request*.py</code>, <code>oi-package.py</code></td>
+<td>main, which is 0.1.63 (<code>version.py</code> on main reads &quot;0.1.63&quot;, and requires-dist matches PyPI 0.1.63)</td>
+</tr>
+<tr>
+<td>OpenInference TraceConfig</td>
+<td>Source (prior fetch)</td>
+<td><code>prior-phoenix-fetch/pin/oi-config.py</code>, <code>oi-config.py</code></td>
+<td>The pin is openinference-instrumentation 0.1.65/0.1.66 (byte-identical to both tags); main is 0.1.70. The masking env-var lines are identical in both</td>
+</tr>
+<tr>
+<td>Phoenix OTel (<code>phoenix.otel</code>)</td>
+<td>Source (prior fetch)</td>
+<td><code>prior-phoenix-fetch/px-otel.py</code>, <code>px-settings.py</code></td>
+<td>arize-phoenix-otel 0.17.2 (byte-identical to tag <code>arize-phoenix-otel-v0.17.2</code> and to main). <code>px-settings.py</code> is phoenix-otel&#39;s client settings, not the server&#39;s</td>
+</tr>
+<tr>
+<td>Phoenix server</td>
+<td>Source (prior fetch)</td>
+<td><code>px-config.py</code> (same as <code>px-config-tag.py</code>), <code>px-main.py</code>, <code>px-grpc.py</code>, <code>px-app.py</code>, <code>px-pyproject.toml</code>, <code>px-index.html</code>, <code>px-helm-values.yaml</code></td>
+<td>arize-phoenix 20.19.0; each is byte-identical to tag <code>arize-phoenix-v20.19.0</code>. <code>px-serve.py</code> is serve-CLI code whose exact path wasn&#39;t located, so treat it as approximately 20.19.0</td>
+</tr>
+<tr>
+<td>Phoenix server at the recommended pin</td>
+<td>Source (fresh fetch)</td>
+<td><code>src/phoenix/config.py</code> and <code>src/phoenix/server/grpc_server.py</code> at tag <code>arize-phoenix-v20.16.0</code></td>
+<td>The same env vars, <code>HOST = &quot;0.0.0.0&quot;</code>, the default Scarf pixel ID and the <code>[::]</code> gRPC bind are all present</td>
+</tr>
+<tr>
+<td>Phoenix releases</td>
+<td>GitHub</td>
+<td><a href="https://github.com/Arize-ai/phoenix/releases">https://github.com/Arize-ai/phoenix/releases</a> ; <a href="https://github.com/Arize-ai/phoenix/pull/16549">https://github.com/Arize-ai/phoenix/pull/16549</a></td>
+<td>20.17.0 fixed <code>register()</code> crashing with OTLP HTTP exporter 1.45</td>
+</tr>
+<tr>
+<td>OTel Python SDK</td>
+<td>Source (prior fetch)</td>
+<td><code>otel-sdk-export.py</code>, <code>otel-sdk-config.py</code></td>
+<td>1.45.0 (byte-identical to tag v1.45.0). Key paths were re-checked at v1.44.0: the Batch default and <code>none</code> handling</td>
+</tr>
+<tr>
+<td>OTel contrib</td>
+<td>Source (prior fetch)</td>
+<td><code>otel-auto-init.py</code>, <code>otel-auto-load.py</code>, <code>otel-auto-sitecustomize.py</code>, <code>otel-distro.py</code>, <code>otel-fastapi*.py</code></td>
+<td>0.66b0 (byte-identical to tag v0.66b0). Key paths were re-checked at v0.65b0: <code>execl</code>, <code>sitecustomize</code>, distro defaults, the wildcard skip and FastAPI <code>_instruments</code></td>
+</tr>
+<tr>
+<td>OTel OTLP HTTP exporter internals</td>
+<td>Source (prior fetch)</td>
+<td><code>otel-common-http.py</code>, <code>otel-http-common.py</code>, <code>otel-http-trace.py</code></td>
+<td>The restructured 1.45.0/0.66b0 layout. Retry and timeout constants are cited from this version</td>
+</tr>
+<tr>
+<td>OTel util-http, asgi</td>
+<td>Source (fresh fetch)</td>
+<td>tag v0.65b0, <code>util/opentelemetry-util-http/.../__init__.py</code>, <code>instrumentation-asgi/.../__init__.py</code></td>
+<td>ExcludeList regex semantics</td>
+</tr>
+<tr>
+<td>OTel issue</td>
+<td>GitHub</td>
+<td><a href="https://github.com/open-telemetry/opentelemetry-python/issues/5180">https://github.com/open-telemetry/opentelemetry-python/issues/5180</a></td>
+<td>&quot;opentelemetry-instrument fails very silently if no configurator is available&quot; (open)</td>
+</tr>
+<tr>
+<td>PyPI metadata</td>
+<td>Registry</td>
+<td><code>prior-phoenix-fetch/pypi-*.json</code> (latest-version metadata, 2026-10-02/03), plus fresh per-version JSON for the recommended pins</td>
+<td>Dates and dependency bounds in §4.6</td>
+</tr>
+<tr>
+<td>npm</td>
+<td>Registry</td>
+<td><a href="https://registry.npmjs.org/@arizeai/phoenix-client/latest">https://registry.npmjs.org/@arizeai/phoenix-client/latest</a> ; <code>@arizeai/phoenix-otel/2.2.0</code></td>
+<td>Dependencies for the evals push (§4.10)</td>
+</tr>
+<tr>
+<td>Context7</td>
+<td>MCP</td>
+<td><code>/websites/arize_phoenix</code> (retention, project routing, REST datasets and experiments), <code>/arize-ai/phoenix</code> (docker and serve)</td>
+<td>Version-current docs</td>
+</tr>
+<tr>
+<td>Phoenix REST routers</td>
+<td>Source (GitHub API)</td>
+<td><code>src/phoenix/server/api/routers/v1/{experiments,experiment_runs,traces,projects}.py</code> @ 20.19.0</td>
+<td>Trace deletion and the experiment-run <code>trace_id</code></td>
+</tr>
+<tr>
+<td>Docker Hub</td>
+<td>Registry</td>
+<td><code>hub.docker.com/v2/repositories/arizephoenix/phoenix/tags</code></td>
+<td><code>version-20.19.0</code> is 362 MB compressed (linux/amd64)</td>
+</tr>
+<tr>
+<td>Phoenix Cloud pricing</td>
+<td>Third-party blogs</td>
+<td>costbench.com, theneuralbase.com, llmtools.cc</td>
+<td>UNVERIFIED. No official page was fetched</td>
+</tr>
+<tr>
+<td>Repo and machine</td>
+<td>Local</td>
+<td><code>scripts/start-rag.bat</code>, <code>scripts/lightrag-requirements.txt</code>, <code>scripts/eval-lightrag.mjs:101-125</code>, <code>.claude/hooks/user-prompt-submit.js:27-50, 140-148</code>, <code>.lightrag.env</code> (key names only), <code>.gitignore:119, 160-165</code>, <code>lightrag.log:73060-73115</code>, the <code>.lightrag/</code> listing, <code>netstat</code>, <code>Get-CimInstance</code>, <code>docker info</code>/<code>ps</code>/<code>stats</code></td>
+<td>2026-10-03</td>
+</tr>
+<tr>
+<td>Vault</td>
+<td>LightRAG and Grep</td>
+<td>No vault note mentions Phoenix, Arize, OpenInference or OpenTelemetry (Grep found 0 hits)</td>
+<td>LightRAG&#39;s hybrid answer about the &quot;Langfuse outcome&quot; was hallucinated: it claimed the rejection was over &quot;tokens in URLs&quot;. No vault note covers Langfuse, and [LF] exists only in the scratchpad, so that answer wasn&#39;t used.</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2 id="4-confirmed-facts-with-evidence">4. Confirmed facts (with evidence)</h2>
+<h3 id="41-per-query-grouping-question-b-verified-yes-at-source-level">4.1 Per-<code>/query</code> grouping (question b): verified yes at source level</h3>
+<p>LightRAG copies the caller&#39;s context when it enqueues a call. Both submission paths call <code>contextvars.copy_context()</code>: <code>_limited_wait</code> at <code>utils.py:2216-2221</code>, whose comment reads &quot;Capture the enqueuer&#39;s context (e.g. an active OpenTelemetry span) so the worker executes func() under it&quot;, and <code>wait_func</code> at <code>utils.py:2352-2358</code>. The context rides along in the queue tuple (<code>2225</code>, <code>2368/2374</code>).</p>
+<p>Each call then runs under that context. <code>worker()</code> unpacks <code>ctx</code> (<code>1416-1423</code>) and runs <code>exec_task = ctx.run(asyncio.ensure_future, func(*args, **kwargs))</code> (<code>1460-1462</code>), and <code>limited_worker()</code> does the same (<code>1709-1714</code>). So every call becomes a fresh Task whose context is a copy of the enqueuer&#39;s, not the long-lived worker&#39;s.</p>
+<p>This was a deliberate upstream fix. Issue #3382 says the old behaviour caused &quot;observations that detach into their own trace&quot; and &quot;cross-request pollution&quot;, and PR #3386 (merged 2026-07-14) fixed it.</p>
+<p>Nothing on the <code>/query</code> path breaks the context. <code>query_text</code> (<code>query_routes.py:518</code>) awaits <code>rag.aquery_llm(...)</code> directly (<code>:602</code>). A grep found no <code>run_in_executor</code> or <code>threading.Thread</code> anywhere in <code>lightrag/</code> outside the webui. The query embedding is a single batched call made before vector search (<code>operate.py:5179-5212</code>), and it goes through the same queue decorator.</p>
+<p>FastAPI instrumentation would supply the parent span. <code>opentelemetry-instrumentation-fastapi</code> replaces <code>fastapi.FastAPI</code> with <code>_InstrumentedFastAPI</code> at instrument time (<code>otel-fastapi.py:491-493, 504-514</code>). LightRAG imports <code>FastAPI</code> at module level (<code>lightrag_server.py:5</code>) and builds the app at <code>:1697</code>. <code>sitecustomize</code> runs before that import, so the app gets instrumented. The installed FastAPI, 0.136.3, satisfies <code>_instruments = (&quot;fastapi ~= 0.92&quot;,)</code>.</p>
+<p>With FastAPI server spans, then, the keyword <code>ChatCompletion</code>, the <code>CreateEmbeddings</code> batch and the answer <code>ChatCompletion</code> spans nest under <code>POST /query</code> (span names from <code>pin/oi-_request.py:314, 375</code>). This hasn&#39;t been confirmed at runtime yet; V3 covers it.</p>
+<p>A W3C <code>traceparent</code> header from Node would link as well. The ASGI middleware extracts context with the global propagator (default <code>tracecontext,baggage</code>), so a <code>traceparent: 00-&lt;32hex&gt;-&lt;16hex&gt;-01</code> header sent by <code>eval-lightrag.mjs</code> would make the server span a child of that trace ID, and <code>node:crypto</code> can generate the header with zero dependencies. The flag must be <code>01</code>: the default sampler is parent-based, so <code>00</code> would drop the whole trace. If the eval doesn&#39;t export its own parent span, the server span&#39;s parent will be missing in Phoenix, and how Phoenix displays that is UNVERIFIED (U6). The trace ID still lets you look up each eval question exactly.</p>
+<blockquote>
+<p><strong>Correction to [LF] §4.1.</strong> [LF] said &quot;No request context reaches the wrapper.&quot; For 1.5.7 that&#39;s wrong; context does reach it. Calls were ungrouped in Option A because nothing created a request-level span, not because the queue severed the context.</p>
+</blockquote>
+<p>Without FastAPI instrumentation you can still group by timestamp adjacency, by span name (<code>ChatCompletion</code> vs <code>CreateEmbeddings</code>) and by token count, since the answer call carries the large context, up to <code>DEFAULT_MAX_TOTAL_TOKENS = 30000</code> (<code>constants.py:61</code>). OpenInference&#39;s <code>session.id</code> and <code>metadata</code> context attributes (<code>pin/oi-_request.py:330, 391</code>, <code>get_attributes_from_context()</code>) would need code running inside the LightRAG process.</p>
+<h3 id="42-a-hook-with-no-new-files-question-a-yes-through-pythonpath-but-not-through-the-opentelemetry-instrument-command">4.2 A hook with no new files (question a): yes through <code>PYTHONPATH</code>, but not through the <code>opentelemetry-instrument</code> command</h3>
+<p>The entry point exists and the version range matches. <code>pin/oi-pyproject.toml:42-43</code> (0.1.61) and main (0.1.63) both declare <code>[project.entry-points.opentelemetry_instrumentor] openai = &quot;openinference.instrumentation.openai:OpenAIInstrumentor&quot;</code>, along with an <code>openinference_instrumentor</code> group (<code>:45-46</code>). <code>oi-package.py:1</code> sets <code>_instruments = (&quot;openai &gt;= 2.8.0&quot;,)</code>, which the installed openai 2.41.1 satisfies. The loader checks conflicts per entry point and skips on a mismatch (<code>otel-auto-load.py:81-92</code>). The instrumentor wraps <code>AsyncOpenAI.request</code> at class level (<code>pin/oi-__init__.py:50-57</code>), which covers LightRAG creating a fresh client on every call (<code>openai.py:282</code> <code>AsyncOpenAI(**merged_configs)</code>; <code>AsyncAzureOpenAI</code> subclasses it).</p>
+<p>A distro is mandatory. Auto-instrumentation runs <code>distro.configure()</code>, then <code>_load_configurators()</code> (<code>otel-auto-init.py:135</code>), then <code>_load_instrumentors()</code> (<code>:136</code>), all inside a <code>try</code> that logs and swallows failures (<code>:138</code>). Without <code>opentelemetry-distro</code> nothing configures an SDK provider, and tracing becomes a silent no-op (issue #5180). The distro&#39;s entry points are <code>opentelemetry_configurator</code> and <code>opentelemetry_distro</code> (distro pyproject at v0.65b0, lines 39-43).</p>
+<p>Some of the distro&#39;s defaults fail silently on this setup. <code>otel-distro.py:28-31</code> (v0.66b0, unchanged at v0.65b0) defaults <code>OTEL_EXPORTER_OTLP_PROTOCOL=grpc</code> and sets <code>OTEL_METRICS_EXPORTER</code>/<code>OTEL_LOGS_EXPORTER=otlp</code>. With only the HTTP exporter installed, resolving <code>otlp_proto_grpc</code> raises inside <code>_load_configurators()</code>, the error is swallowed (<code>:138</code>), and the instrumentors never load. You get no tracing and no visible error. Three settings are therefore required: <code>OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</code>, <code>OTEL_METRICS_EXPORTER=none</code> and <code>OTEL_LOGS_EXPORTER=none</code> (<code>none</code> gives an empty exporter list, <code>otel-sdk-config.py:198</code>).</p>
+<p>The endpoint has to be set too. The SDK default is <code>http://localhost:4318</code> (<code>otel-http-common.py:49</code>), and <code>/v1/traces</code> is appended to the base endpoint (<code>:138</code>). Set <code>OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:6006</code>; Phoenix accepts OTLP-HTTP at <code>POST /v1/traces</code> (router <code>traces.py:441</code> @20.19.0).</p>
+<p><code>opentelemetry-instrument lightrag-server</code> misbehaves on Windows. <code>run()</code> sets <code>PYTHONPATH</code> to the auto-instrumentation dir and then calls <code>os.execl(executable, ...)</code> (<code>otel-auto-init.py:105, 108</code>). In a scratch test on this machine with the venv&#39;s Python 3.12.13, <code>os.execl</code> started a new PID (25412 → 32896), the parent exited, and <code>cmd</code> printed &quot;cmd regained control&quot; before the child had finished. Inside <code>start-rag.bat</code>, that would hand the prompt back while the server kept writing to the same console, which makes foreground behaviour and Ctrl+C confusing.</p>
+<p>The same mechanism works without the exec. <code>.../auto_instrumentation/sitecustomize.py</code> contains nothing but <code>initialize()</code>. With <code>PYTHONPATH</code> pointed at a scratch dir holding a <code>sitecustomize.py</code>, the uv trampoline <code>.lightrag-venv\Scripts\normalizer.exe</code> loaded it and reported the venv python as <code>sys.executable</code>. <code>activate.bat</code> clears <code>PYTHONHOME</code> but leaves <code>PYTHONPATH</code> alone (lines 51-55). One line in <code>.lightrag.env</code>, <code>PYTHONPATH=&lt;abs&gt;\.lightrag-venv\Lib\site-packages\opentelemetry\instrumentation\auto_instrumentation</code>, is therefore enough. No <code>.py</code> file is needed, and <code>start-rag.bat</code> keeps calling <code>lightrag-server</code> directly. The full chain (install → sitecustomize → spans in Phoenix) stays UNVERIFIED until something is actually installed (V2/V3).</p>
+<p>The <code>start-rag.bat</code> loader keeps every proposed value intact. Running the identical <code>for /f &quot;usebackq eol=# tokens=1,* delims==&quot;</code> loop on a scratch copy showed that <code>openinference.project.name=lightrag</code> keeps its embedded <code>=</code>, that comma lists survive, and that <code>^(?!.*/query)</code> survives because delayed expansion is off. Python&#39;s <code>re</code> then excluded <code>/health</code> and <code>/documents/pipeline_status</code> but kept <code>/query</code> and <code>/query/stream</code>.</p>
+<p>For the exclusion rules: <code>ExcludeList</code> compiles <code>&quot;|&quot;.join(urls)</code> and runs <code>search</code> against the full URL (util-http v0.65b0 <code>:77-83</code>), the URL has the form <code>scheme://host + path</code> (asgi <code>:452-478</code>), and the env var is read at module import (<code>otel-fastapi.py:277</code>).</p>
+<p>The <code>phoenix.otel.register(auto_instrument=True)</code> route is weaker. It loads only the <code>openinference_instrumentor</code> group (<code>px-otel.py:829-841</code>), so there are no FastAPI spans and no grouping. It needs code inside the process, which means a launcher, and it defaults to <code>batch=False</code> (<code>px-otel.py:69, 174-177</code>). <code>arize-phoenix-otel</code> also depends on <code>opentelemetry-exporter-otlp</code> (both transports) and imports the gRPC exporter at the top of the module (<code>px-otel.py:13</code>), which pulls grpcio into the LightRAG venv (see the dry-run in §4.7).</p>
+<h3 id="43-export-mode-latency-and-fail-open-question-c-verified">4.3 Export mode, latency and fail-open (question c): verified</h3>
+<p><code>register()</code> exports synchronously by default. <code>SimpleSpanProcessor.on_end</code> calls <code>self.span_exporter.export((span,))</code> inline (<code>otel-sdk-export.py:116-127</code>, 1.45.0) on whichever thread ends the span, and for async OpenAI calls that is LightRAG&#39;s single asyncio event-loop thread (<code>/health</code> reports uvicorn with 1 worker). The OTLP-HTTP client retries until a 10 s deadline (<code>otel-common-http.py:30-31</code>, <code>_MAX_RETRIES=6</code>, <code>_DEFAULT_TIMEOUT=10.0</code>), treating connection errors as retryable with 2^n × jitter backoff (<code>:139-140, 186-234</code>).</p>
+<p>With Phoenix down, each span end could therefore block the whole server for about 7 s: roughly 1 + 2 + 4 s of backoff before the next wait would overrun the deadline. That estimate comes from reading the source and hasn&#39;t been measured. At around 4 spans per query, it would blow the 9 s budget for every client. Even with Phoenix up, Simple mode makes a synchronous localhost HTTP POST on the event loop for every span, and <code>px-otel.py:354-364</code> itself prints &quot;strongly advised to use a BatchSpanProcessor in production&quot;.</p>
+<p>The SDK&#39;s auto-config path uses Batch by default. <code>_init_tracing</code> sets <code>export_processor = export_span_processor or BatchSpanProcessor</code> (<code>otel-sdk-config.py:223</code> at 1.45.0, <code>:250</code> at 1.44.0). <code>BatchSpanProcessor.on_end</code> calls <code>emit()</code>, which does <code>self._queue.appendleft(data)</code> and drops the span with a warning when the queue is full (<code>shared_internal/__init__.py:192-205</code>). It never blocks. The defaults are a 5 s schedule delay, batches of 512, a queue of 2048 and a 30 s export timeout (<code>otel-sdk-export.py:41-44</code>), and export and retries run on the worker thread.</p>
+<p>In Batch mode it fails open: calls go ahead when Phoenix is down, spans are retried in the background and then dropped, and the exporter writes WARNING/ERROR lines to the LightRAG console.</p>
+<p>At shutdown, Batch <code>shutdown</code> joins the worker thread for up to <code>timeout_millis</code> (30 s by default; <code>shared_internal:207-217</code>), and a pending retry wait is interrupted by <code>_shutdown_event</code> (<code>otel-common-http.py:234-237</code>). How long Ctrl+C takes with Phoenix stopped is UNVERIFIED (V6).</p>
+<p>So P1 (the sitecustomize path) is Batch by default and fine as it stands. P2 (<code>register</code>) is Simple by default, which makes <code>batch=True</code> a hard requirement there.</p>
+<h3 id="44-content-controls-question-d-verified-driven-by-env-vars">4.4 Content controls (question d): verified, driven by env vars</h3>
+<p>Masking is read from env vars. When no config is passed in, <code>TraceConfig()</code> is constructed (<code>pin/oi-__init__.py:40</code>) and reads each field from the environment (<code>oi-config.py:459-480</code>). Every default is <code>False</code>, so everything is captured (<code>pin/oi-config.py:124</code> onward). Redacted values become <code>&quot;__REDACTED__&quot;</code> (<code>:116</code>).</p>
+<p>Here is what each flag covers (<code>oi-config.py:338-420</code> on main; the env names are the same in the pin):</p>
+<ul>
+<li><code>OPENINFERENCE_HIDE_INPUTS</code> hides <code>input.value</code>, the input MIME type and all <code>llm.input_messages.*</code>.</li>
+<li><code>OPENINFERENCE_HIDE_OUTPUTS</code> does the same for outputs.</li>
+<li><code>OPENINFERENCE_HIDE_EMBEDDINGS_TEXT</code> is needed as well, because embedding text is a separate per-index attribute (<code>embedding.embeddings.N.embedding.text</code>; <code>oi-_request_attributes_extractor.py:259-268</code>).</li>
+<li><code>OPENINFERENCE_HIDE_EMBEDDINGS_VECTORS</code> matters for storage as much as for content. LightRAG requests base64 encoding ([LF]), and the instrumentor decodes each vector back into a list of floats, 3072 per text for <code>text-embedding-3-large</code> (<code>pin/oi-_response_attributes_extractor.py:170</code>). The older <code>OPENINFERENCE_HIDE_EMBEDDING_VECTORS</code> is a deprecated alias.</li>
+</ul>
+<p><strong>Boolean parsing fails toward capturing content.</strong> <code>_cast_value</code> accepts only <code>true</code> or <code>false</code>, case-insensitive (<code>pin/oi-config.py:495-503</code>). Any other value, such as <code>1</code> or <code>yes</code>, logs a warning and falls back to the default <code>False</code>, which means captured. Use the literal <code>true</code>.</p>
+<p>Masking still keeps span names and timings, <code>llm.model_name</code> and <code>llm.provider</code>/<code>llm.system</code>, token counts (<code>llm.token_count.*</code>, <code>oi-_response_attributes_extractor.py:270-316</code>), and <code>llm.invocation_parameters</code>, which are model parameters rather than content and can be hidden separately. Failures are still recorded as ERROR spans with the exception (<code>pin/oi-_request.py</code> <code>record_exception</code>). FastAPI spans keep the method, route, status and client address. Headers are captured only if <code>OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*</code> is set, and by default it isn&#39;t.</p>
+<p>The recommended default is to hide everything, with all four flags set to <code>true</code>. Unmask only for a named debugging session, and record that in the vault note.</p>
+<p>For context, LightRAG already keeps verbatim prompts on local disk. <code>.lightrag/kv_store_llm_response_cache.json</code> (13.3 MB, gitignored at <code>.gitignore:160</code>) held 1,859 <code>original_prompt</code> entries (<code>utils.py:4227</code>), and keyword-cache rows store <code>prompt=text</code>, which is the user query (<code>operate.py:5079-5086</code>). <code>lightrag.log</code> also keeps prompt-derived keywords at INFO, for example <code>Query nodes: Arizona, Phoenix, LightRAG</code> (<code>:73085</code>). An unmasked Phoenix would be a second local copy rather than a new kind of exposure. The hook&#39;s &quot;never log prompt text&quot; rule (<code>user-prompt-submit.js:52</code>) currently holds only for the hook&#39;s own log.</p>
+<h3 id="45-storage-question-e-verified-defaults">4.5 Storage (question e): verified defaults</h3>
+<p>Phoenix uses <code>PHOENIX_WORKING_DIR</code> as its working dir, falling back to <code>Path.home() / &quot;.phoenix&quot;</code> (<code>px-config.py:1146-1154</code>). The database is <code>sqlite:///{working_dir}/phoenix.db</code> unless <code>PHOENIX_SQL_DATABASE_URL</code> or Postgres env vars are set (<code>:3373-3381</code>). On this machine that default is <code>C:\Users\ACER\.phoenix\phoenix.db</code>, which is outside the repo and outside <code>memory-vault/20-memory</code>, so no <code>.gitignore</code> entry is needed unless someone points it inside the repo. It must never go under <code>memory-vault/20-memory</code>, because that&#39;s LightRAG&#39;s input dir. The recommendation is to set <code>PHOENIX_WORKING_DIR=%USERPROFILE%\.phoenix-lightrag</code> explicitly.</p>
+<p>Retention defaults to forever. <code>PHOENIX_DEFAULT_RETENTION_POLICY_DAYS</code> is <code>0</code>, which means infinite (<code>px-config.py:1040-1050</code>; the helm values comment says &quot;Set to 0 to disable automatic trace cleanup&quot;, and the Context7 data-retention doc agrees). Policies can be set per project, by time or by trace count (Phoenix ≥ 9.0, per the docs). The recommendation is 14 days.</p>
+<p>For deletion, the 20.19.0 routers expose <code>DELETE /v1/projects/{id}/traces</code> (<code>traces.py:384-387</code>), <code>DELETE /v1/traces/{id}</code> (<code>:836-839</code>) and <code>DELETE /v1/projects/{id}</code> (<code>projects.py:282</code>). A full reset means stopping Phoenix and deleting the working dir. Whether SQLite gives the space back after a delete without <code>VACUUM</code> is UNVERIFIED.</p>
+<p>Growth, as a rough and UNVERIFIED estimate:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Estimate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Masked, per uncached <code>/query</code> (≈ 1 server span + 1-2 ASGI send/receive + 2 <code>ChatCompletion</code> + 1 <code>CreateEmbeddings</code>)</td>
+<td>Roughly 10-20 KB. An eval run (~50 queries) stays under 1 MB.</td>
+</tr>
+<tr>
+<td>Unmasked, per query</td>
+<td>Roughly 0.3-0.5 MB. The answer call&#39;s ~30k-token context (≈120 KB of text) is stored twice (<code>input.value</code> JSON plus <code>llm.input_messages</code>), and each embedding span adds about 60 KB of JSON per 3072-float vector. One eval run comes to about 20 MB.</td>
+</tr>
+<tr>
+<td>Unmasked full vault re-index (embedding batches of 10; <code>/health</code> <code>embedding_batch_num: 10</code>)</td>
+<td>Could reach hundreds of MB.</td>
+</tr>
+</tbody></table></div>
+<h3 id="46-versions-and-pins-pypi-2026-10-03">4.6 Versions and pins (PyPI, 2026-10-03)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Latest (date)</th>
+<th>Recommended <code>==</code> (date)</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>arize-phoenix (server, own venv)</td>
+<td>20.19.0 (2026-10-01)</td>
+<td>20.16.0 (2026-09-23)</td>
+<td>10 days old. The config env vars, the <code>HOST</code> default and the <code>[::]</code> gRPC bind were re-verified at the tag. A 158-package, wheel-only Windows cp312 resolve succeeds (<code>uv pip compile --only-binary :all:</code>).</td>
+</tr>
+<tr>
+<td>openinference-instrumentation-openai</td>
+<td>0.1.63 (2026-10-01)</td>
+<td>0.1.61 (2026-09-24)</td>
+<td>9 days old. The entry point and <code>_instruments</code> were verified in this exact source.</td>
+</tr>
+<tr>
+<td>openinference-instrumentation</td>
+<td>0.1.70 (2026-10-01)</td>
+<td>0.1.66 (2026-09-24)</td>
+<td>An unpinned resolve pulls 0.1.70, which is 2 days old. 0.1.66 matches the pinned <code>config.py</code> that was read.</td>
+</tr>
+<tr>
+<td>openinference-semantic-conventions</td>
+<td>0.1.41 (2026-10-01)</td>
+<td>0.1.39 (2026-09-24)</td>
+<td>Satisfies <code>&gt;=0.1.37</code>.</td>
+</tr>
+<tr>
+<td>opentelemetry-api / -sdk / -proto / -exporter-otlp-proto-common / -exporter-otlp-proto-http</td>
+<td>1.45.0 (2026-09-25)</td>
+<td>1.44.0 (2026-07-16)</td>
+<td>1.45.0 restructured the exporter internals (new <code>exporter-http-transport</code> and <code>exporter-otlp-common</code> packages, with headers moved to <code>_client</code>), and within 3 days that broke <code>phoenix.otel.register()</code> (Phoenix PR #16549). 1.44.0 has had 79 days of soak and dry-runs cleanly.</td>
+</tr>
+<tr>
+<td>opentelemetry-distro / -instrumentation / -instrumentation-fastapi / -instrumentation-asgi / -util-http / -semantic-conventions</td>
+<td>0.66b0 (2026-09-25)</td>
+<td>0.65b0 (2026-07-16)</td>
+<td>Paired with 1.44.0. FastAPI instrumentation 0.65b0 declares <code>_instruments = fastapi ~= 0.92</code>, which covers the installed 0.136.3. 0.66b0 adds route-context handling for FastAPI ≥ 0.137, which only matters if LightRAG later bumps FastAPI.</td>
+</tr>
+<tr>
+<td>wrapt</td>
+<td>2.5.0 (2026-09-27)</td>
+<td>2.4.1 (2026-09-10)</td>
+<td>An unpinned resolve pulls 2.5.0, which is 6 days old. The cp312 win_amd64 wheel exists.</td>
+</tr>
+<tr>
+<td>asgiref</td>
+<td>n/a</td>
+<td>3.12.1 (2026-07-14)</td>
+<td>Only needed with the FastAPI instrumentor.</td>
+</tr>
+<tr>
+<td>arize-phoenix-otel</td>
+<td>0.17.2 (2026-09-28)</td>
+<td>0.17.2, P2 only</td>
+<td>Contains the 1.45 fix. P1 doesn&#39;t need it.</td>
+</tr>
+<tr>
+<td>@arizeai/phoenix-client (npm)</td>
+<td>7.16.0 (2026-09-30)</td>
+<td>not recommended</td>
+<td>See §4.10.</td>
+</tr>
+</tbody></table></div>
+<p>The arize-phoenix licence is Elastic License 2.0 (<code>px-pyproject.toml:6</code>; LICENSE @20.19.0). Its limitations cover providing the software &quot;to third parties as a hosted or managed service&quot; and circumventing license-key functionality, so local, internal dev use is fine. The tracer packages (OpenInference and OTel) are Apache-2.0, and wrapt is BSD-2-Clause.</p>
+<h3 id="47-dry-run-results-permitted-nothing-installed">4.7 Dry-run results (permitted; nothing installed)</h3>
+<p>These ran as <code>uv pip install --dry-run --python .lightrag-venv/Scripts/python.exe ...</code> with uv 0.11.21.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Set</th>
+<th>Result</th>
+<th>Effect on the stop-list</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Recommended P1 set: 7 direct <code>==</code> pins (<code>openinference-instrumentation-openai==0.1.61</code>, <code>openinference-instrumentation==0.1.66</code>, <code>openinference-semantic-conventions==0.1.39</code>, <code>opentelemetry-distro==0.65b0</code>, <code>opentelemetry-exporter-otlp-proto-http==1.44.0</code>, <code>opentelemetry-instrumentation-fastapi==0.65b0</code>, <code>wrapt==2.4.1</code>) resolving to 16 packages</td>
+<td>Resolved 25; would install 16 and uninstall 0. <code>scripts/lightrag-tracing-requirements.txt</code> has to list all 16 as <code>==</code>, not just the 7 direct pins: asgiref 3.12.1, openinference-instrumentation 0.1.66, openinference-instrumentation-openai 0.1.61, openinference-semantic-conventions 0.1.39, opentelemetry-api 1.44.0, -distro 0.65b0, -exporter-otlp-proto-common 1.44.0, -exporter-otlp-proto-http 1.44.0, -instrumentation 0.65b0, -instrumentation-asgi 0.65b0, -instrumentation-fastapi 0.65b0, -proto 1.44.0, -sdk 1.44.0, -semantic-conventions 0.65b0, -util-http 0.65b0 and wrapt 2.4.1. <code>requests</code>, <code>googleapis-common-protos</code> 1.75.0 and <code>protobuf</code> 7.35.1 were reused.</td>
+<td>None. openai 2.41.1, protobuf 7.35.1, httpx 0.28.1, pydantic 2.13.4, packaging 26.2, typing_extensions 4.15.0 and lightrag-hku 1.5.7 are all untouched.</td>
+</tr>
+<tr>
+<td>The same set at OTel 1.45.0/0.66b0</td>
+<td>Would install 18 (adding <code>exporter-http-transport</code> and <code>exporter-otlp-common</code>) and uninstall 0.</td>
+<td>None</td>
+</tr>
+<tr>
+<td>P1 with top-level pins only and no FastAPI</td>
+<td>14 installs, including openinference-instrumentation 0.1.70 and wrapt 2.5.0 (unpinned drift)</td>
+<td>None</td>
+</tr>
+<tr>
+<td>P2 (<code>arize-phoenix-otel==0.17.2</code> plus instrumentor 0.1.61)</td>
+<td>17 installs, including grpcio 1.84.0 and <code>opentelemetry-exporter-otlp-proto-grpc</code> 1.45.0</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Server co-install as counter-evidence (<code>arize-phoenix==20.19.0</code> into <code>.lightrag-venv</code>)</td>
+<td>Would uninstall 6 and install 110: openai 2.41.1 → 3.24.0, fastapi 0.136.3 → 0.142.2, sqlalchemy 2.0.50 → 2.1.x, plus google-genai, google-auth and jiter</td>
+<td><strong>Blocker.</strong> It breaks the stop-list (openai), which confirms the server needs its own environment.</td>
+</tr>
+</tbody></table></div>
+<h3 id="48-windows-and-footprint-question-f">4.8 Windows and footprint (question f)</h3>
+<p>The server set (20.16.0 and 20.19.0) resolves to 158 packages in a wheel-only compile for <code>x86_64-pc-windows-msvc</code> and cp312, and every one is a wheel. Native packages confirmed include grpcio 1.84.0 (<code>grpcio-1.84.0-cp312-cp312-win_amd64.whl</code>), arize-phoenix-sqlean 0.1.2 (cp312 win_amd64, 2026-09-12), numpy 2.5.3, pandas 3.0.6, pyarrow 25.0.1, scipy 1.18.1, scikit-learn 1.9.1, orjson, psutil and cryptography. <code>phoenix serve</code> itself has never run on this machine (UNVERIFIED), though a GitHub search found no Windows-titled issues opened since 2026-03.</p>
+<p>On ports, <code>netstat</code> shows only <code>127.0.0.1:9621</code> (LightRAG) listening, so 6006, 4317, 4318 and 3000 are all free.</p>
+<p>Network binding is the security concern. By default Phoenix uses <code>HOST = &quot;0.0.0.0&quot;</code> and <code>PORT = 6006</code> (<code>px-config.py:3112-3118</code>), and <code>PHOENIX_HOST</code> overrides the host (<code>:3346</code>). Its gRPC server always binds <code>[::]:{port}</code> with no host option (<code>px-grpc.py:107-109</code>, and <code>:109</code> at 20.16.0), and the only way to disable it is read-only mode (<code>px-app.py:684-690</code>). Auth is off by default (<code>PHOENIX_ENABLE_AUTH</code> defaults to False, <code>px-config.py:1241</code>). LightRAG, by contrast, deliberately binds <code>127.0.0.1</code> (<code>start-rag.bat:24</code>).</p>
+<p>Phoenix also phones home by default:</p>
+<ul>
+<li>A Scarf pixel is on by default with a hard-coded pixel ID (<code>px-config.py:3713-3723</code>) and is rendered as an <code>&lt;img src=&quot;https://static.scarf.sh/...&quot;&gt;</code> (<code>px-index.html:155-156</code>).</li>
+<li>Google Fonts load unless external resources are disallowed (<code>:92-96</code>).</li>
+<li>The agent assistant uses a docs MCP when it&#39;s enabled and external resources are allowed (<code>px-app.py:1101-1105</code>), and the assistant is enabled by default (<code>PHOENIX_DISABLE_AGENT_ASSISTANT</code> defaults to False, <code>px-config.py:110-115, 3652</code>).</li>
+<li>FullStory loads only if <code>PHOENIX_FULLSTORY_ORG</code> is set.</li>
+</ul>
+<p>One switch covers all of them: <code>PHOENIX_ALLOW_EXTERNAL_RESOURCES=false</code>, which &quot;makes no public-internet requests on its own initiative&quot; and also forces telemetry off (<code>px-config.py:3685-3697, 3848-3853</code>). Phoenix&#39;s own MCP server is also on by default (<code>PHOENIX_ENABLE_MCP_SERVER</code>, <code>px-config.py:3656</code>). It&#39;s local, but turning it off is recommended.</p>
+<p>For RAM, Phoenix&#39;s own helm chart (20.19.0 <code>helm/values.yaml:782-788</code>) requests 1 GiB and limits the container to 2 GiB, with a CPU request of 500m and a limit of 1000m. The real idle footprint of a single process on SQLite is UNVERIFIED; given that it imports pandas, pyarrow, scipy and scikit-learn, a few hundred MB to about 1 GB is a reasonable guess. That compares with Langfuse&#39;s 6 containers and 16 GiB guidance ([LF] §4.3). This machine has 15.4 GB in total and had 3.0 GB free when measured. The LightRAG process had a 140 MB working set and 765 MB private.</p>
+<p>Docker doesn&#39;t have room. <code>docker info</code> reports Docker Desktop with MemTotal ≈ 0.9 GiB and NCPU = 1, and 5 MCP containers are already running under a shared 898.5 MiB limit. The <code>arizephoenix/phoenix:version-20.19.0</code> image is 362 MB compressed.</p>
+<p>The separate venv would probably take 0.5-1 GB of disk (UNVERIFIED), with the uv cache deduplicating some of it.</p>
+<h3 id="49-no-lightrag-specific-integration-exists-question-g-verified">4.9 No LightRAG-specific integration exists (question g): verified</h3>
+<p>PyPI returns 404 for <code>openinference-instrumentation-lightrag</code>. The OpenInference repo has 38 Python instrumentors, and none matches <code>rag</code> (GitHub API listing of <code>python/instrumentation</code>). LightRAG&#39;s only tracing-related upstream items are #3382 and #3386, the context fix. Spans will therefore be generic OpenAI spans (<code>ChatCompletion</code>, <code>CreateEmbeddings</code>), with no <code>RETRIEVER</code> spans for LightRAG&#39;s vector or graph search.</p>
+<h3 id="410-evals-and-datasets-question-h">4.10 Evals and datasets (question h)</h3>
+<p>Phoenix 20.19.0 exposes the REST endpoints an eval push would need: <code>POST /v1/datasets/upload</code> (Context7), POST and GET in <code>experiments.py</code>, <code>POST /v1/experiments/{id}/runs</code> with an optional <code>trace_id</code> (<code>experiment_runs.py:34, 55, 97, 128</code>), and <code>POST /v1/experiment_evaluations</code> (Context7). So <code>eval-lightrag.mjs</code> could push golden-set experiments using the built-in <code>fetch</code> and stay dependency-free. If it also sent <code>traceparent</code>, each experiment run could link to its LightRAG trace.</p>
+<p>The npm client is a different story, because it would pull in the OTel stack. <code>@arizeai/phoenix-client</code> 7.16.0 (Apache-2.0, node ≥ 18) depends on <code>@arizeai/phoenix-otel</code> 2.2.0, which brings 9 <code>@opentelemetry/*</code> packages plus <code>openinference-core</code>/<code>-vercel</code>, <code>zod</code>, <code>openapi-fetch</code>, <code>async</code> and <code>tiny-invariant</code>. Its peers (<code>ai</code>, <code>openai</code>, <code>jest</code>, <code>vitest</code>, <code>@anthropic-ai/sdk</code>) are all optional (<code>peerDependenciesMeta</code>). As devDependencies, every CI <code>npm ci</code> would install them, and they would fall inside <code>security.yml</code>/<code>npm audit</code> scope.</p>
+<p>The recommendation is to defer this. D2&#39;s local per-run JSON already covers run-to-run diffs.</p>
+<hr>
+<h2 id="5-assumptions-and-unverified-items">5. Assumptions and unverified items</h2>
+<ul>
+<li><strong>U1.</strong> The whole P1 chain is unverified at runtime: install → <code>sitecustomize</code> → instrumentors load → spans reach Phoenix. Each link is verified in source, and the trampoline/<code>PYTHONPATH</code> link was tested empirically. V2 and V3 decide it.</li>
+<li><strong>U2.</strong> The packages should be inert without <code>PYTHONPATH</code>, doing nothing while installed but not on the path. <code>lightrag/</code> never imports <code>opentelemetry</code> (grep), but another installed library could import it once it&#39;s present. V1 checks that no new <code>.pth</code> files appear.</li>
+<li><strong>U3.</strong> Wrapper latency on the 9 s path hasn&#39;t been measured. OpenInference does synchronous work on the event loop: it runs <code>json.dumps</code> on request params even when the result is masked afterwards, and it eagerly decodes base64 vectors (3072 floats). The expected cost is about 1 ms per call, and the BSP thread&#39;s protobuf encoding contends for the GIL. V5 measures it.</li>
+<li><strong>U4.</strong> The ~7 s stall per span in Simple mode (P2 with defaults, Phoenix down) comes from reading the source, not from a measurement. It&#39;s moot with <code>batch=True</code>.</li>
+<li><strong>U5.</strong> Shutdown time with Phoenix stopped (the Batch join) hasn&#39;t been measured (V6).</li>
+<li><strong>U6.</strong> How Phoenix renders a server span whose parent (from an eval <code>traceparent</code>) was never exported is unknown.</li>
+<li><strong>U7.</strong> A hook abort at 9 s is assumed to leave the server span running to completion with status 200 and a duration over 9000 ms. That fits [LF] U9 (answer saves with no matching access lines) but hasn&#39;t been tested.</li>
+<li><strong>U8.</strong> Phoenix&#39;s cost column prices <code>gpt-4.1-mini</code> and <code>text-embedding-3-large</code> from its own table, so it won&#39;t match ShopAIKey ([LF] U8).</li>
+<li><strong>U9.</strong> The storage-growth figures in §4.5 are estimates.</li>
+<li><strong>U10.</strong> Phoenix&#39;s process RAM and the venv&#39;s disk size in §4.8 are estimates.</li>
+<li><strong>U11.</strong> The Phoenix Cloud free tier (&quot;1M traces/month, 7-day retention, 5 users&quot;) comes from third-party blogs only.</li>
+<li><strong>U12.</strong> D3&#39;s phase mapping assumes traffic doesn&#39;t overlap. That holds for the sequential eval. Hook or MCP queries arriving during an eval would make windows ambiguous, and D3 should detect and flag them.</li>
+<li><strong>U13.</strong> On the first bind of <code>[::]:4317</code>, Windows Defender Firewall should prompt for the shared uv base interpreter at <code>C:\Users\ACER\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python.exe</code>, which (per its process command line) is also what runs LightRAG. Denying it blocks inbound connections only and leaves loopback alone. Untested.</li>
+<li><strong>U14.</strong> The second machine (<code>Lincoln.Pham</code>) is unknown territory: its hardware, its Docker state and its absolute venv path. Its <code>PYTHONPATH</code> line would differ.</li>
+<li><strong>U15.</strong> The task brief described <code>px-settings.py</code> as the server&#39;s settings. It&#39;s actually phoenix-otel&#39;s client settings; the server&#39;s come from <code>px-config.py</code>.</li>
+</ul>
+<hr>
+<h2 id="6-technical-findings">6. Technical findings</h2>
+<h3 id="61-what-phoenix-p1-would-and-wouldnt-show-compared-with-langfuse-and-d">6.1 What Phoenix (P1) would and wouldn&#39;t show, compared with Langfuse and D</h3>
+<p>With FastAPI instrumentation on, P1 would show one trace per <code>/query</code>: <code>POST /query</code> → <code>ChatCompletion</code> (keyword) → <code>CreateEmbeddings</code> (one batch) → <code>ChatCompletion</code> (answer). Each span carries its latency and its prompt and completion token counts, and the answer call&#39;s prompt tokens show how big the context was. Errors and tenacity retries against ShopAIKey 529/503/429 responses appear as ERROR spans; <code>/health</code> shows <code>failed_total</code> of 3 query, 1 keyword, 1 extract and 2 embedding today. Gaps between spans reveal queue waits when <code>max_async=4</code> saturates.</p>
+<p>It would also show two things Langfuse couldn&#39;t:</p>
+<ul>
+<li>requests the hook aborted, as <code>POST /query</code> spans longer than 9000 ms (U7);</li>
+<li>cache hits, as a <code>POST /query</code> with no <code>ChatCompletion</code> children.</li>
+</ul>
+<p>It wouldn&#39;t show LightRAG&#39;s internal graph and vector retrieval steps, since no LightRAG instrumentor exists. The cost column would be wrong, prompt and answer content would be hidden by design under the recommended masking, and the eval&#39;s quality metrics (hit, facts, inTime) would stay out of it. The eval and recall-stats remain the source of truth for those.</p>
+<p>Vault-sync indexing (<code>POST /documents/text|upload</code> → background extraction) produces root-level <code>ChatCompletion</code> and <code>CreateEmbeddings</code> spans. Under the recommended exclude regex, the indexing requests themselves aren&#39;t spanned.</p>
+<p>D already gets four phases per uncached query, from <code>lightrag.log</code> timestamps joined to the client&#39;s send time:</p>
+<ul>
+<li>keyword LLM: send → keyword-cache save;</li>
+<li>embedding: keyword save → <code>Query nodes</code>, the batch at <code>operate.py:5179-5212</code>;</li>
+<li>retrieval: <code>Query nodes</code> → <code>Final context</code>, at <code>operate.py:6028</code> and <code>5832</code>;</li>
+<li>answer LLM: <code>Final context</code> → answer-cache save.</li>
+</ul>
+<p>Live hook traffic can be joined the same way using the recall log&#39;s <code>ts</code>/<code>ms</code> (<code>user-prompt-submit.js:140-148</code>). <code>&quot;POST /query&quot; 200</code> access lines exist too, but they carry no duration. What D lacks is token counts, per-embedding-call detail, visibility into retries beyond ERROR log lines, unambiguous grouping under concurrent traffic, and a UI.</p>
+<h3 id="62-data-at-rest-local-and-egress">6.2 Data at rest (local) and egress</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Store</th>
+<th>What it holds, today or under P1</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.lightrag/kv_store_llm_response_cache.json</code> (exists, 13.3 MB)</td>
+<td>Verbatim queries and answers (1,859 <code>original_prompt</code>)</td>
+</tr>
+<tr>
+<td><code>lightrag.log</code> (exists, 7.8 MB)</td>
+<td>Prompt-derived keywords (<code>Query nodes: …</code>), entity counts and timings</td>
+</tr>
+<tr>
+<td><code>.claude/.state/lightrag-recall-log.jsonl</code> (exists)</td>
+<td>Lengths and outcomes only</td>
+</tr>
+<tr>
+<td>Phoenix <code>phoenix.db</code> (P1, masked)</td>
+<td>Timings, token counts, model, URLs and errors</td>
+</tr>
+<tr>
+<td>Phoenix <code>phoenix.db</code> (P1, unmasked)</td>
+<td>A full second copy of prompts, retrieved context (vault and Jira content) and answers</td>
+</tr>
+</tbody></table></div>
+<p>P1, P2 and P3 send nothing off the machine, provided <code>PHOENIX_ALLOW_EXTERNAL_RESOURCES=false</code> is set. P4 sends full content to Arize, the same exposure as [LF] §6.2. Inference traffic to ShopAIKey is unchanged under every option.</p>
+<h3 id="63-latency-on-the-9-s-recall-path">6.3 Latency on the 9 s recall path</h3>
+<ul>
+<li>P1 (Batch): the expected overhead is milliseconds per call (U3). Exports run off the event loop, and a failed export doesn&#39;t block anything. Validate with V5&#39;s interleaved runs, because ShopAIKey&#39;s variance dwarfs the effect.</li>
+<li>P2 with the default <code>register()</code> (Simple): not acceptable. It exports synchronously on the event loop and stalls about 7 s per span when Phoenix is down (§4.3).</li>
+<li>D: no runtime overhead at all, because D3 parses the log after the fact.</li>
+</ul>
+<h3 id="64-side-by-side">6.4 Side by side</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Langfuse Cloud ([LF] A)</th>
+<th>Langfuse self-host ([LF] B)</th>
+<th>Phoenix local (P1)</th>
+<th>Option D (D2 + D3)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Egress</td>
+<td>Full content to EU/US/JP</td>
+<td>None</td>
+<td>None with <code>ALLOW_EXTERNAL_RESOURCES=false</code> (the default sends a Scarf pixel and loads Google Fonts)</td>
+<td>None</td>
+</tr>
+<tr>
+<td>RAM and processes</td>
+<td>None locally</td>
+<td>6 containers; 16 GiB VM guidance</td>
+<td>1 Python process + SQLite; chart requests 1 GiB, limit 2 GiB; actual use UNVERIFIED</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Packages added to <code>.lightrag-venv</code></td>
+<td>1 (<code>langfuse</code>) plus its dependencies</td>
+<td>Same</td>
+<td>16 pinned (7 direct; dry-run clean)</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Other setup</td>
+<td>4 env lines</td>
+<td>Plus a Compose stack</td>
+<td>Separate 158-package venv (O); ~13 env lines (G); <code>setlocal</code> (T); optional <code>start-phoenix.bat</code> and lock (T)</td>
+<td>~40-60 lines in <code>eval-lightrag.mjs</code> (T)</td>
+</tr>
+<tr>
+<td>Per-<code>/query</code> grouping</td>
+<td>No (no request span)</td>
+<td>No</td>
+<td>Yes, with FastAPI spans (verified in source)</td>
+<td>By timestamp window (the eval is sequential; overlaps get flagged)</td>
+</tr>
+<tr>
+<td>Token counts / retries</td>
+<td>Yes / yes</td>
+<td>Yes / yes</td>
+<td>Yes / yes</td>
+<td>No / log lines only</td>
+</tr>
+<tr>
+<td>Masking</td>
+<td>Constructor only, so a launcher</td>
+<td>Same</td>
+<td>Env vars (<code>OPENINFERENCE_HIDE_*</code>)</td>
+<td>Not applicable (the log already holds keywords)</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Free Hobby (50k units, 30-day retention)</td>
+<td>Free; you run the ops</td>
+<td>Free (ELv2, internal use OK); you maintain a second env</td>
+<td>Free</td>
+</tr>
+<tr>
+<td>Blind spots</td>
+<td>Cache hits, aborts, grouping</td>
+<td>Same</td>
+<td>Internal retrieval; cost column</td>
+<td>Tokens, concurrency, per-embedding detail</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2 id="7-qa-and-testing-impact">7. QA and testing impact</h2>
+<p>The Playwright UI and API suites aren&#39;t affected. No helper class, fixture (<code>base-test.ts</code>, <code>ApiTest.ts</code>), config (<code>playwright.config.ts</code>, <code>api.config.ts</code>) or path alias (<code>tsconfig.json</code>) changes. <code>npm run lint</code> is unaffected because <code>.mjs</code> scripts sit outside <code>tsc</code> scope. <code>package.json</code> stays the same under D, P1, P2, P3 and P4; only the deferred npm-client push (§4.10) would change it. CI isn&#39;t affected either, since GitHub Actions never starts LightRAG.</p>
+<p>Under P1, the areas to watch for regressions are recall-hook latency and availability, MCP query latency, vault-sync indexing, LightRAG startup, Ctrl+C shutdown, and eval comparability. For that last one, compare interleaved off/on runs rather than comparing against the 2026-09-28 baseline.</p>
+<p>The golden set doesn&#39;t change, and validation uses throwaway queries with nothing secret in them.</p>
+<p>One trap carries over from [LF]: a new vault note must not contain <code>jenkins</code>, <code>kubernetes</code>/<code>k8s</code>, <code>sentry</code> or <code>terraform</code>, because the golden set treats those as unanswerable terms. Phoenix&#39;s docs and helm material talk about Kubernetes, so the vault note mustn&#39;t paraphrase the deployment docs. Write &quot;container&quot; or &quot;chart&quot; instead.</p>
+<hr>
+<h2 id="8-options-compared">8. Options compared</h2>
+<h3 id="p1-local-phoenix-server-in-its-own-venv-hooked-in-with-no-new-code-pythonpath-→-otel-sitecustomize">P1. Local Phoenix server in its own venv, hooked in with no new code (<code>PYTHONPATH</code> → OTel <code>sitecustomize</code>)</h3>
+<p>The variant that uses the OTel <code>opentelemetry-instrument</code> wrapper is rejected because of the Windows <code>execl</code> behaviour (§4.2).</p>
+<p><strong>Pros:</strong> no <code>.py</code> file and no launcher. Export is Batch by default and fails open. FastAPI spans give per-<code>/query</code> grouping, masking is set through env vars, and with the flags set nothing leaves the machine. Neither <code>package.json</code> nor CI changes, rollback is one line plus a fresh-terminal restart, and it&#39;s roughly 10× lighter than Langfuse self-host.</p>
+<p><strong>Cons:</strong> a second Python env of 158 packages to maintain on two machines, and 16 packages in the LightRAG venv. It&#39;s an always-on process using a few hundred MB to ~1 GB on a machine with 3 GB free. The <code>PYTHONPATH</code> is absolute and per machine. The gRPC port 4317 is exposed on all interfaces (it only ingests, and the firewall can block it). The OTel distro&#39;s silently failing defaults mean the env lines have to be exactly right. Span names are generic, and there are no retrieval spans.</p>
+<p><strong>Best for:</strong> the point where D3 can no longer answer the question (see the triggers in §9) and you need per-call tokens and retries on live traffic without egress.</p>
+<h3 id="p2-local-phoenix-plus-a-python-launcher-using-phoenixotelregisterbatchtrue-auto_instrumenttrue">P2. Local Phoenix plus a Python launcher using <code>phoenix.otel.register(batch=True, auto_instrument=True)</code></h3>
+<p><strong>Pros:</strong> it uses Phoenix&#39;s own helper, and the project name lives in code.</p>
+<p><strong>Cons:</strong> it&#39;s the repo&#39;s first <code>.py</code> file, and <code>start-rag.bat</code> changes on both machines. grpcio goes into the LightRAG venv. Export is Simple by default, which is easy to get wrong. There are no FastAPI spans unless you add them by hand, so no grouping. And phoenix-otel has already broken once on a new OTel release (#16549).</p>
+<p><strong>Best for:</strong> nothing here that P1 doesn&#39;t do better.</p>
+<h3 id="p3-phoenix-in-docker-arizephoenixphoenixversion-20160--p-12700160066006-4317-not-published">P3. Phoenix in Docker (<code>arizephoenix/phoenix:version-20.16.0</code>, <code>-p 127.0.0.1:6006:6006</code>, 4317 not published)</h3>
+<p><strong>Pros:</strong> it binds to localhost only, which avoids the <code>[::]:4317</code> exposure. There&#39;s no 158-package host venv, and it&#39;s easy to throw away.</p>
+<p><strong>Cons:</strong> this machine&#39;s Docker VM has ≈ 0.9 GiB and 1 CPU, below Phoenix&#39;s 1 GiB request, and 5 containers already run in it. Raising the limit is a global Docker Desktop change. Docker has to be running whenever you want traces, the image is 362 MB, and the tracer side is the same as P1&#39;s.</p>
+<p><strong>Best for:</strong> a machine whose Docker VM has 2 GiB or more to spare.</p>
+<h3 id="p4-phoenix-cloud-appphoenixarizecom">P4. Phoenix Cloud (<code>app.phoenix.arize.com</code>)</h3>
+<p><strong>Pros:</strong> no local server.</p>
+<p><strong>Cons:</strong> it brings back full content egress ([LF] §6.2), the free tier is unverified (U11), and there&#39;s an API key to manage.</p>
+<p><strong>Best for:</strong> never, in this context. It ranks last.</p>
+<h3 id="d-stay-local-with-no-tracer-recommended">D. Stay local with no tracer (recommended)</h3>
+<p>D2 has the eval write a per-run JSON (rows, settings and summary). D3 has the eval record <code>sentAt</code>/<code>receivedAt</code> for each question and, after the run, parse <code>lightrag.log</code> within each window into the 4 phases. It flags windows that are ambiguous or hit the cache, and prints p50/p90 per phase.</p>
+<p><strong>Pros:</strong> no dependencies, no extra process, no egress and no CI impact. It answers the open question of where the 9 s go, and it makes run-to-run diffs possible.</p>
+<p><strong>Cons:</strong> no token counts, and it&#39;s weaker under concurrent traffic. It depends on the format of LightRAG&#39;s INFO log lines, which could change on an upgrade, so the upgrade runbook should re-check them. There&#39;s no UI.</p>
+<p><strong>Best for:</strong> now.</p>
+<hr>
+<h2 id="9-recommendation">9. Recommendation</h2>
+<p>The recommended option is D (D2 + D3), with P1 researched and ready as the escalation.</p>
+<p>D is the boring option: it has no dependencies and already breaks latency down into the phases that matter. Today&#39;s log samples point at the answer LLM call as the dominant phase (4.3-11.2 s), with the query embedding at about 1.4-1.8 s. Those samples came from mixed callers and parameters (<code>top_k</code> 20/40/30, one MCP call with rerank), so the first D3 run at the hook&#39;s own settings is what confirms the split.</p>
+<p>The likely next moves don&#39;t need tracing to judge: a smaller context, a different mode or model, or a different recall budget. Each one is a parameter change plus an eval run, and D2&#39;s run diff measures the effect. Phoenix&#39;s extra signal (tokens, retries, per-request trees) wouldn&#39;t change those decisions yet, and it costs a second Python env, 16 packages in the LightRAG venv and an always-on process on a machine with 3 GB free.</p>
+<p>Escalate to P1 when any of these holds:</p>
+<ol>
+<li>After two or more D3 runs, the phase split is unstable or unexplained. One example is high variance in the answer phase that might be ShopAIKey retries rather than context size.</li>
+<li>Tuning needs per-call prompt-token counts, to relate context size to latency.</li>
+<li>You need to analyse live hook or MCP traffic, where D3&#39;s timestamp join is ambiguous because requests overlap.</li>
+</ol>
+<p>If you do escalate, P1 needs all of the following:</p>
+<ul>
+<li>the exact pins in §4.6;</li>
+<li>the env lines in §11 Part B, including the protocol, the <code>none</code> exporters, the endpoint and all four <code>OPENINFERENCE_HIDE_*=true</code>;</li>
+<li><code>PHOENIX_HOST=127.0.0.1</code>, <code>PHOENIX_ALLOW_EXTERNAL_RESOURCES=false</code>, <code>PHOENIX_TELEMETRY_ENABLED=false</code>, <code>PHOENIX_DISABLE_AGENT_ASSISTANT=true</code>, <code>PHOENIX_ENABLE_MCP_SERVER=false</code> and <code>PHOENIX_DEFAULT_RETENTION_POLICY_DAYS=14</code>;</li>
+<li><code>setlocal</code> added to <code>start-rag.bat</code>;</li>
+<li>a passing V5 latency gate;</li>
+<li>a 2-week time box.</li>
+</ul>
+<p>When not to do P1, or any Phoenix option:</p>
+<ul>
+<li>while RAM is tight, for instance during Playwright suite runs with browsers open (stop Phoenix then);</li>
+<li>if masking can&#39;t stay on by default;</li>
+<li>if you&#39;re not willing to maintain the second env on both machines, or to leave the second machine untraced;</li>
+<li>never call <code>register()</code> without <code>batch=True</code>;</li>
+<li>never use the <code>opentelemetry-instrument</code> wrapper on Windows;</li>
+<li>never install with <code>uvx</code>, which re-resolves on every launch (the <code>mcp&gt;=1.6.0</code> precedent in <code>memory-vault/20-memory/project/lightrag-mcp-adapter-dependency-risk.md</code>);</li>
+<li>never run <code>opentelemetry-bootstrap</code>, which installs instrumentors for every library it detects;</li>
+<li>never in CI or the test suite;</li>
+<li>never trace the council tool.</li>
+</ul>
+<p>P2 is dominated by P1, P3 doesn&#39;t fit this machine&#39;s Docker VM as it&#39;s configured, and P4 reintroduces egress. The npm-client experiments push should be deferred; if it&#39;s wanted later, use the REST endpoints with <code>fetch</code> (§4.10).</p>
+<hr>
+<h2 id="10-risks-and-mitigations">10. Risks and mitigations</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Impact</th>
+<th>Likelihood</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>P1 fails silently because of the distro&#39;s defaults (grpc protocol, otlp metrics/logs)</td>
+<td>Medium (a false &quot;no traces&quot; conclusion)</td>
+<td>High if the env lines are missed</td>
+<td>Mandatory env lines; V2 checks that spans arrive, not just that the server starts</td>
+</tr>
+<tr>
+<td><code>register()</code> used without <code>batch=True</code> (P2 or any future launcher)</td>
+<td>High (the whole server stalls when Phoenix is down)</td>
+<td>Medium</td>
+<td>A hard rule in CLAUDE.md; V6</td>
+</tr>
+<tr>
+<td>Prompt and vault content stored in <code>phoenix.db</code></td>
+<td>Medium (a second local copy, against the spirit of the hook rule)</td>
+<td>Certain if unmasked</td>
+<td>All four <code>HIDE_*=true</code>; values must be the literal <code>true</code> (<code>1</code> is rejected with a warning and falls back to captured); 14-day retention</td>
+</tr>
+<tr>
+<td>Phoenix exposed on the LAN (<code>0.0.0.0</code> UI by default; <code>[::]:4317</code> always; no auth)</td>
+<td>Medium</td>
+<td>High without config</td>
+<td><code>PHOENIX_HOST=127.0.0.1</code>; deny the firewall prompt (U13); P3&#39;s localhost publish if Docker capacity allows</td>
+</tr>
+<tr>
+<td>Phoenix phones home (Scarf pixel, Google Fonts, docs MCP)</td>
+<td>Low to Medium</td>
+<td>Certain by default</td>
+<td><code>PHOENIX_ALLOW_EXTERNAL_RESOURCES=false</code>, with telemetry and the assistant off</td>
+</tr>
+<tr>
+<td>Dependency drift (unpinned transitive deps; the OTel 1.45 restructure)</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>The full 16-package <code>==</code> set; a separate requirements file; a compiled lock for the server; re-run the dry-run on any LightRAG upgrade</td>
+</tr>
+<tr>
+<td>A LightRAG upgrade changes the context fix, the FastAPI version (≥ 0.137 needs instrumentation 0.66b0+), the log line formats, or the log rotation and format settings (D3)</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Add to the upgrade-runbook checklist: re-check the <code>utils.py</code> <code>copy_context</code> calls, the <code>fastapi</code> version, the four D3 log patterns, and the <code>RotatingFileHandler</code> settings and <code>asctime</code> format</td>
+</tr>
+<tr>
+<td>A leftover <code>PYTHONPATH</code> in the cmd window (no <code>setlocal</code>) auto-instruments later Python runs in that window, including LightRAG&#39;s own <code>pipmaster</code> pip subprocesses</td>
+<td>Low to Medium</td>
+<td>Medium</td>
+<td>Add <code>setlocal</code> to <code>start-rag.bat</code>; always restart from a fresh terminal</td>
+</tr>
+<tr>
+<td>Added latency on the 9 s path</td>
+<td>Medium</td>
+<td>Low (U3)</td>
+<td>The V5 interleaved gate</td>
+</tr>
+<tr>
+<td>RAM pressure (Phoenix + LightRAG + browsers with 3 GB free)</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Start Phoenix only on demand, and stop it during suite runs</td>
+</tr>
+<tr>
+<td>Exporter warnings flood the console when Phoenix is down</td>
+<td>Low</td>
+<td>Certain when Phoenix is down and traffic flows</td>
+<td>Run Phoenix only during trials; switch tracing off with rollback level 1 otherwise</td>
+</tr>
+<tr>
+<td>Golden set reports STALE because the new vault note contains trap words</td>
+<td>Low</td>
+<td>Medium</td>
+<td>Avoid kubernetes/k8s/sentry/terraform/jenkins; run <code>node scripts/eval-lightrag.mjs --offline</code></td>
+</tr>
+<tr>
+<td>D3 misattributes phases when traffic overlaps</td>
+<td>Low</td>
+<td>Medium</td>
+<td>Treat more than one keyword-save line in a window as ambiguous; run evals while the machine is otherwise idle</td>
+</tr>
+<tr>
+<td>Misleading cost column</td>
+<td>Low</td>
+<td>High</td>
+<td>Ignore it (ShopAIKey&#39;s pricing differs)</td>
+</tr>
+</tbody></table></div>
+<p>Rollback for P1 has three levels:</p>
+<ol>
+<li><strong>Off.</strong> Remove the <code>PYTHONPATH=</code> line from <code>.lightrag.env</code> and restart LightRAG from a fresh terminal. The packages become inert. Stop Phoenix.</li>
+<li><strong>Uninstall.</strong> Run <code>uv pip uninstall --python .lightrag-venv/Scripts/python.exe</code> on the 16 packages listed in §4.7, and delete <code>scripts/lightrag-tracing-requirements.txt</code>. <code>setlocal</code> can stay, since it&#39;s harmless. Confirm the dist-info folders are gone and that no new <code>.pth</code> files remain, then start LightRAG and run one query.</li>
+<li><strong>Purge.</strong> Delete <code>%USERPROFILE%\.phoenix-venv</code>, <code>%USERPROFILE%\.phoenix-lightrag</code> (including <code>phoenix.db</code>), any Windows Firewall rule created for the uv base interpreter, and, if they were created, <code>scripts/start-phoenix.bat</code> and <code>scripts/phoenix-server-requirements.txt</code>.</li>
+</ol>
+<p>Rolling back D means reverting the <code>eval-lightrag.mjs</code> change and deleting <code>.claude/.state/lightrag-eval-runs/</code>.</p>
+<hr>
+<h2 id="11-implementation-steps-after-approval-only">11. Implementation steps (after approval only)</h2>
+<p>[USER] marks steps the user does: secrets, env edits, restarts and paid runs, following the token-rotation precedent.</p>
+<h3 id="part-a-option-d-recommended">Part A: Option D (recommended)</h3>
+<ol>
+<li><strong>[USER]</strong> Approve D and answer Open Questions 1-3.</li>
+<li><strong>[AGENT] D2.</strong> Extend <code>scripts/eval-lightrag.mjs</code> to write <code>.claude/.state/lightrag-eval-runs/&lt;runId&gt;.json</code> with the settings, per-question rows and summary, using only the built-in <code>fs</code>.</li>
+<li><strong>[AGENT] D3.</strong><ul>
+<li>Record <code>sentAt</code>/<code>receivedAt</code> per question as epoch ms.</li>
+<li>Parse log timestamps as local time. <code>lightrag.log</code> lines use Python&#39;s <code>%(asctime)s</code>, which is local time with a comma before the milliseconds (<code>2026-10-02 23:45:14,141</code>), per the formatter at <code>lightrag_server.py:3282</code>. The recall log&#39;s <code>ts</code> and any <code>toISOString()</code> value are UTC. Compare everything as epoch ms, or every window shifts by the UTC offset.</li>
+<li>Handle rotation. The log handler is a <code>RotatingFileHandler</code> with <code>LOG_MAX_BYTES</code> = 10 MB and 5 backups (<code>constants.py:766-768</code>, <code>lightrag_server.py:3270-3293</code>). Today&#39;s file is 7.8 MB with no backups yet, so read <code>lightrag.log.1</code> as well as <code>lightrag.log</code>, or windows that straddle a rollover will go unmatched.</li>
+<li>After the run, read <code>lightrag.log</code> and match these lines within each window: <code>== LLM cache == saving: &lt;mode&gt;:keywords:</code>, <code>Query nodes:</code>, <code>Final context:</code> and <code>== LLM cache == saving: &lt;mode&gt;:query:</code>.</li>
+<li>Emit <code>keywordMs</code>, <code>embedMs</code>, <code>retrievalMs</code> and <code>answerMs</code>. Flag a window <code>ambiguous</code> if it contains more than one keyword save, and <code>cache_hit</code> if it has none. Print p50/p90 per phase.</li>
+<li>Optionally add the same join for the recall log (<code>ts − ms</code>) behind a separate <code>--recall-phases</code> flag.</li>
+</ul>
+</li>
+<li><strong>[AGENT]</strong> Verify with <code>node scripts/eval-lightrag.mjs --offline</code>, which makes no LLM calls, and apply the comments rule (CLAUDE.md §6).</li>
+<li><strong>[USER]</strong> Run <code>npm run eval:lightrag</code> once (about 10 minutes, billed) and review the phase table.</li>
+<li><strong>[AGENT] Docs.</strong> This report is already exported as <code>docs/technical-research/arize-phoenix-lightrag-tracing.research.html</code>; update it only if the decision changes. Add a vault note, <code>memory-vault/20-memory/project/lightrag-observability-decision.md</code>, recording that D was chosen, that P1 is the escalation along with its triggers, and the masking and network flags. The note must avoid the trap words. Add one golden question and run <code>--offline</code>.</li>
+</ol>
+<h3 id="part-b-the-p1-playbook-only-if-a-§9-trigger-fires-and-the-user-approves">Part B: the P1 playbook (only if a §9 trigger fires and the user approves)</h3>
+<ol>
+<li><strong>[USER]</strong> Confirm the trigger, the masking default, whether the second machine is in scope, and whether to keep the tracked server lock and launcher (Open Questions 4-7).</li>
+<li><strong>[AGENT]</strong> Re-run the dry-run with the exact 16-package set (§4.7). Stop if any stop-list package would change.</li>
+<li><strong>[AGENT]</strong> Record <code>ls .lightrag-venv/Lib/site-packages/*.pth</code>, install the 16 pinned packages with <code>uv pip install --python .lightrag-venv/Scripts/python.exe ...</code>, and list the <code>.pth</code> files again. No new <code>.pth</code> files should appear.</li>
+<li><strong>[AGENT]</strong> Run the import check: <code>.lightrag-venv/Scripts/python.exe -c &quot;import opentelemetry.instrumentation.auto_instrumentation, opentelemetry.distro, openinference.instrumentation.openai, opentelemetry.instrumentation.fastapi; print(&#39;ok&#39;)&quot;</code>.</li>
+<li><strong>[AGENT]</strong> Create <code>scripts/lightrag-tracing-requirements.txt</code> with all 16 <code>==</code> pins and a note that they do nothing unless <code>PYTHONPATH</code> is set.</li>
+<li><strong>[AGENT]</strong> Add <code>setlocal</code> as line 2 of <code>scripts/start-rag.bat</code>.</li>
+<li><strong>[AGENT]</strong> Build the Phoenix server env outside the repo:<ul>
+<li><code>uv venv --python 3.12 &quot;%USERPROFILE%\.phoenix-venv&quot;</code></li>
+<li><code>uv pip compile</code> an <code>arize-phoenix==20.16.0</code> lock (win, cp312, <code>--only-binary :all:</code>) into <code>scripts/phoenix-server-requirements.txt</code> (Open Question 6).</li>
+<li><code>uv pip sync --python &quot;%USERPROFILE%\.phoenix-venv\Scripts\python.exe&quot; scripts/phoenix-server-requirements.txt</code></li>
+<li>Never use <code>uvx</code>.</li>
+</ul>
+</li>
+<li><strong>[AGENT]</strong> Optionally create <code>scripts/start-phoenix.bat</code>:<pre><code class="language-bat">@echo off
+setlocal
+set PHOENIX_HOST=127.0.0.1
+set PHOENIX_PORT=6006
+set PHOENIX_WORKING_DIR=%USERPROFILE%\.phoenix-lightrag
+set PHOENIX_ALLOW_EXTERNAL_RESOURCES=false
+set PHOENIX_TELEMETRY_ENABLED=false
+set PHOENIX_DISABLE_AGENT_ASSISTANT=true
+set PHOENIX_ENABLE_MCP_SERVER=false
+set PHOENIX_DEFAULT_RETENTION_POLICY_DAYS=14
+&quot;%USERPROFILE%\.phoenix-venv\Scripts\phoenix.exe&quot; serve
+</code></pre>
+</li>
+<li><strong>[USER]</strong> Add these lines to <code>.lightrag.env</code> and nowhere else (never root <code>.env</code>). Use no quotes, no inline comments and no trailing spaces, and write the boolean values as the literal <code>true</code>. The path below is this machine&#39;s; the second machine uses its own.<pre><code>PYTHONPATH=E:\OLDDATA\DATA\TESTING\AutomationTesting\playwright-typescript\.lightrag-venv\Lib\site-packages\opentelemetry\instrumentation\auto_instrumentation
+OTEL_SERVICE_NAME=lightrag
+OTEL_RESOURCE_ATTRIBUTES=openinference.project.name=lightrag-acer
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:6006
+OTEL_METRICS_EXPORTER=none
+OTEL_LOGS_EXPORTER=none
+OTEL_PYTHON_FASTAPI_EXCLUDED_URLS=^(?!.*/query)
+OPENINFERENCE_HIDE_INPUTS=true
+OPENINFERENCE_HIDE_OUTPUTS=true
+OPENINFERENCE_HIDE_EMBEDDINGS_TEXT=true
+OPENINFERENCE_HIDE_EMBEDDINGS_VECTORS=true
+</code></pre>
+</li>
+<li><strong>[USER]</strong> Start Phoenix in its own fresh terminal, and deny the firewall prompt if one appears. Then stop LightRAG with Ctrl+C and start <code>scripts\start-rag.bat</code> from a fresh terminal.</li>
+<li><strong>[AGENT/USER]</strong> Run validation V0-V7.</li>
+<li><strong>[AGENT] Docs.</strong> Add a short section to <code>CLAUDE.md</code> titled &quot;LightRAG Phoenix Tracing (Dev-Time, Per-Machine, Optional)&quot;. It should cover: never in CI; the <code>PYTHONPATH</code> off switch and the fresh-terminal rule; Batch only; the masking flags (literal <code>true</code>); the network flags; and the blind spots. Add the env block to <code>lightrag-memory-guide.html</code>, and update the vault note without using the trap words.</li>
+<li><strong>End of trial (2 weeks).</strong> Keep P1 only if it answered a trigger question. Otherwise apply rollback level 1 or 2.</li>
+</ol>
+<hr>
+<h2 id="12-validation">12. Validation</h2>
+<h3 id="for-d">For D</h3>
+<ul>
+<li><strong>VD1.</strong> <code>node scripts/eval-lightrag.mjs --offline</code> passes.</li>
+<li><strong>VD2.</strong> After one live run, the run JSON exists under <code>.claude/.state/lightrag-eval-runs/</code> and <code>git status</code> stays clean.</li>
+<li><strong>VD3.</strong> For every row that isn&#39;t ambiguous, the four phases add up to within about 0.5 s of the measured <code>ms</code>. Cache-hit and ambiguous rows get flagged rather than mis-parsed.</li>
+</ul>
+<h3 id="for-p1-part-b">For P1 (Part B)</h3>
+<ul>
+<li><strong>V0. Scope guard.</strong> <code>git grep -ciE &quot;phoenix|openinference|opentelemetry|arize&quot; -- src tests .github playwright.config.ts api.config.ts package.json package-lock.json</code> finds no matches. It exits 1 today.</li>
+<li><strong>V1. Inertness.</strong> Before editing <code>.lightrag.env</code>, start LightRAG and confirm <code>/health</code> is OK and no traces appear in Phoenix. The <code>.pth</code> list is unchanged (Part B step 3).</li>
+<li><strong>V2. Startup.</strong> <code>curl -s http://127.0.0.1:6006/</code> returns the UI. <code>netstat -ano | findstr &quot;:6006 :4317&quot;</code> shows <code>127.0.0.1:6006</code> and <code>[::]:4317</code>, the latter expected (§4.8). The LightRAG console shows no &quot;Failed to auto initialize OpenTelemetry&quot; line.</li>
+<li><strong>V3. Traces arrive and nest.</strong> Send <code>curl -s -X POST http://localhost:9621/query -H &quot;Content-Type: application/json&quot; -d &quot;{\&quot;query\&quot;:\&quot;What is the LightRAG recall time budget? (phoenix-check &lt;unique&gt;)\&quot;,\&quot;mode\&quot;:\&quot;hybrid\&quot;}&quot;</code>. In project <code>lightrag-acer</code>, expect one <code>POST /query</code> trace with 2 <code>ChatCompletion</code> children and at least 1 <code>CreateEmbeddings</code> child. Input and output should show <code>__REDACTED__</code> or be absent, token counts should be present, and <code>/health</code> should produce no span (the exclude regex).</li>
+<li><strong>V4. Cache blind spot and aborts.</strong> Repeat the identical V3 body. Expect a <code>POST /query</code> span with no <code>ChatCompletion</code> children, and <code>Query cache hit</code> in <code>lightrag.log</code>. Optionally, send a query with a 3 s client timeout and expect the server span to complete with a duration over 3000 ms (U7).</li>
+<li><strong>V5. Latency gate.</strong> Interleave <code>npm run eval:lightrag</code> runs in the order off, on, off, on, with the user restarting between runs (off means rollback level 1). Each run takes about 10 minutes and is billed. Compare p50/p90, &quot;Answered within budget&quot; and the D3 per-phase p50s; the pass threshold is the user&#39;s call (Open Question 5). Also compare a week of <code>npm run eval:lightrag:recall</code> before and during the trial, since there are only 15 recall-log entries today.</li>
+<li><strong>V6. Fail-open.</strong> Stop Phoenix and run the V3 query. Expect normal latency, with exporter warnings only on the LightRAG console. Then stop LightRAG with Ctrl+C and time the shutdown, expecting seconds rather than about 30 s (U5). Restart Phoenix afterwards.</li>
+<li><strong>V7. Rollback.</strong> Apply level 1, restart from a fresh terminal and run V3; no new traces should appear. Optionally apply level 2, confirm the dist-info folders are gone and the <code>.pth</code> list is unchanged, then start the server and run one query.</li>
+</ul>
+<hr>
+<h2 id="13-open-questions-user-decisions">13. Open questions (user decisions)</h2>
+<ol>
+<li>Approve D (D2 + D3) now? And should D3 also join the recall log (live hook traffic), or only eval runs?</li>
+<li>Where should run JSONs live? The default is <code>.claude/.state/lightrag-eval-runs/</code> (gitignored). Should they ever be kept in git? The recommendation is no.</li>
+<li>Should <code>start-rag.bat</code> get <code>setlocal</code> now ([LF] Q8)? It&#39;s recommended under P1 and harmless under D.</li>
+<li>If P1 is triggered, should masking stay on by default and be lifted only for named sessions? Is 14-day retention right?</li>
+<li>For the P1 latency gate, what regression is acceptable? For example, p50 up by no more than 200 ms, with the in-budget share inside normal noise.</li>
+<li>P1 on both machines, or this one only? For two-machine parity, should the 158-line server lock and <code>start-phoenix.bat</code> be tracked in git or kept per machine?</li>
+<li>Would you rather raise Docker Desktop&#39;s memory limit (to ≥ 2 GiB) to get P3&#39;s localhost-only binding, instead of P1&#39;s host venv plus a denied firewall prompt?</li>
+<li>Do you want an eval <code>traceparent</code> header under P1? It has no dependencies and lets you look up the Phoenix trace for each question. It adds about 5 lines to <code>eval-lightrag.mjs</code>, and the flag must be <code>01</code>.</li>
+</ol>
+<hr>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://github.com/HKUDS/LightRAG/issues/3382">HKUDS/LightRAG #3382: Tracability compatibility and enhancement</a></li>
+<li><a href="https://github.com/HKUDS/LightRAG/pull/3386">HKUDS/LightRAG PR #3386: propagate enqueuer&#39;s contextvars</a></li>
+<li><a href="https://github.com/Arize-ai/phoenix/releases">Arize-ai/phoenix releases</a> and <a href="https://github.com/Arize-ai/phoenix/pull/16549">PR #16549</a></li>
+<li><a href="https://github.com/Arize-ai/openinference/tree/main/python/instrumentation">Arize-ai/openinference (python/instrumentation)</a></li>
+<li><a href="https://github.com/open-telemetry/opentelemetry-python/issues/5180">open-telemetry/opentelemetry-python #5180</a></li>
+<li>Phoenix docs: <a href="https://arize.com/docs/phoenix/settings/data-retention">data retention</a>, <a href="https://arize.com/docs/phoenix/tracing/how-to-tracing/setup-tracing/setup-projects">projects and project routing</a>, <a href="https://arize.com/docs/phoenix/self-hosting/deployment-options/docker">Docker deployment</a>, <a href="https://arize.com/docs/phoenix/datasets-and-experiments/how-to-datasets/linking-examples-to-spans">datasets linked to spans (REST)</a></li>
+<li>PyPI: <a href="https://pypi.org/project/arize-phoenix/">arize-phoenix</a>, <a href="https://pypi.org/project/openinference-instrumentation-openai/">openinference-instrumentation-openai</a>, <a href="https://pypi.org/project/opentelemetry-distro/">opentelemetry-distro</a></li>
+<li>npm: <a href="https://www.npmjs.com/package/@arizeai/phoenix-client">@arizeai/phoenix-client</a></li>
+<li>Docker Hub: <a href="https://hub.docker.com/r/arizephoenix/phoenix">arizephoenix/phoenix</a></li>
+<li>Phoenix Cloud pricing (third-party, UNVERIFIED): <a href="https://costbench.com/software/ai-observability/arize-phoenix/free-plan/">costbench</a>, <a href="https://theneuralbase.com/arize-phoenix/learn/advanced/free-phoenix-cloud-tier/">theneuralbase</a>, <a href="https://llmtools.cc/blog/arize-pricing/">llmtools.cc</a></li>
+<li>Windows <code>execl</code> background: <a href="https://github.com/open-telemetry/opentelemetry-python-contrib/issues/2004">opentelemetry-python-contrib #2004</a> (the <code>execl</code> NoneType report)</li>
+</ul>
+
+  </main>
+
+  <footer>
+    <span>Technical research report &middot; technical-research-agent &middot; Arize Phoenix and LightRAG 1.5.7</span>
+    <span>Research only. Awaiting user approval.</span>
+  </footer>
+</div>
+</body>
+</html>
