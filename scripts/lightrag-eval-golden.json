@@ -4,7 +4,6 @@
   },
   "questions": [
     { "note": "complex-payment-flow-task-workflow.md", "question": "How long did building the PayPal guest checkout test take, and what process worked well?", "facts": ["2 ?h(ou)?rs?|two hours", "qa-orchestrator"] },
-    { "note": "council-review-transcript-vs-console.md", "question": "Can I trust the /council-review console summary when it says a model timed out?", "facts": ["transcript"] },
     { "note": "ecommerce-auth-modal-gotchas.md", "question": "How do the account modal tests deal with the Bloomreach popup?", "facts": ["addLocatorHandler"] },
     { "note": "ecommerce-header-help-gotcha.md", "question": "What is the Help element in the GRA storefront header and what does it open?", "facts": ["figure", "flyout"] },
     { "note": "ecommerce-pdp-page-gotchas.md", "question": "How does the cart overlay page object detect whether the mini cart is open or closed?", "facts": ["opacity"] },

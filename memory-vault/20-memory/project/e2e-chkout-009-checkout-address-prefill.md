@@ -45,4 +45,4 @@ last_verified: 2026-08-02
 
 As of 2026-08-02, `playwright.config.ts`'s `chromium` project has a `testIgnore` for this spec file specifically — it is not yet part of the regular local/CI chromium run. Reason: 4 of 6 in-scope storefronts still skip (3 on an unconfirmed region-combobox selector, 1 on genuine staging stock), so the test isn't proven stable enough across the full storefront matrix to run unattended yet. Remove the `testIgnore` entry once the NZ region-combobox selector is reconned and confirmed (or a per-storefront selector strategy is added).
 
-Related: [[ecommerce-storefronts]], [[ecommerce-smoke-spec-catalog]], [[fixture-registry]], [[e2e-chkout-004-shipping-method]], [[council-review-transcript-vs-console]]
+Related: [[ecommerce-storefronts]], [[ecommerce-smoke-spec-catalog]], [[fixture-registry]], [[e2e-chkout-004-shipping-method]]
