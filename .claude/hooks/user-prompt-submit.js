@@ -19,6 +19,7 @@ try {
     enable_rerank: false,
     timeoutMs: 9000,
     minChars: 80,
+    maxInjectChars: 1500,
     noInfoPattern: "^(i (do not|don'?t) have|no information|there is no|unable to|cannot provide)",
   };
 }
@@ -131,7 +132,8 @@ process.stdin.on('end', async () => {
   if (recallOutcome === 'ok') {
     const text = recall.text || '';
     if (text.length > RECALL.minChars && !noInfoRe.test(text)) {
-      const trimmed = text.length > 1500 ? text.slice(0, 1500) + '\n…[truncated]' : text;
+      const max = RECALL.maxInjectChars ?? 1500;
+      const trimmed = text.length > max ? text.slice(0, max) + '\n…[truncated]' : text;
       sections.push(`## Relevant Memory (LightRAG)\n${trimmed}`);
       recallOutcome = 'injected';
     } else {
