@@ -3,5 +3,6 @@
   "enable_rerank": false,
   "timeoutMs": 9000,
   "minChars": 80,
+  "maxInjectChars": 1500,
   "noInfoPattern": "^(i (do not|don'?t) have|no information|there is no|unable to|cannot provide)"
 }
