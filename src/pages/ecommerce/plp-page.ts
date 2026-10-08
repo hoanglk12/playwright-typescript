@@ -8,6 +8,13 @@ export class EcommercePLPPage extends BasePage {
     /(\/women|\/mens|\/men\/|\/kids|\/sale|\/outlet|\/shop\/|\/presale|\/all|black-friday)/i;
   private readonly productCardSelector = '[data-product-id]';
 
+  // data-bv-ready can be set before the widget has any content, so a rendered rating also needs its accessible text
+  private readonly renderedRatingText = 'out of 5 stars';
+  private readonly inlineRatingPlaceholderSelector =
+    '[data-product-id] [data-bv-show="inline_rating"]';
+  private readonly renderedInlineRatingSelector =
+    '[data-product-id] [data-bv-show="inline_rating"][data-bv-ready="true"]';
+
   // Quick Add button — class "quick-add-button" is on the button itself (not a parent)
   private readonly quickAddBtnSelector = '[data-product-id] button[class*="quick-add"]';
 
@@ -243,5 +250,29 @@ export class EcommercePLPPage extends BasePage {
       )
       .catch(() => {});
     return result;
+  }
+
+  private renderedInlineRatings(): Locator {
+    return this.elements
+      .locator(this.renderedInlineRatingSelector)
+      .filter({ hasText: this.renderedRatingText });
+  }
+
+  async getRenderedInlineRatingCount(): Promise<number> {
+    return this.renderedInlineRatings().count();
+  }
+
+  // Bazaarvoice can defer inline ratings until a placeholder enters the viewport
+  async triggerInlineRatingRender(): Promise<void> {
+    await this.elements
+      .locator(this.inlineRatingPlaceholderSelector)
+      .last()
+      .scrollIntoViewIfNeeded({ timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+      .catch(() => {});
+  }
+
+  async getFirstInlineRatingLabel(): Promise<string> {
+    const label = await this.renderedInlineRatings().first().textContent();
+    return (label ?? '').replace(/\s+/g, ' ').trim();
   }
 }
