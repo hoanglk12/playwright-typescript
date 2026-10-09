@@ -27,8 +27,8 @@ export default defineConfig({
   /* Run tests in files in parallel */
   fullyParallel: true,
 
-  /* Skip API tests */
-  testIgnore: ["**/api/**"],
+  /* Skip API tests and one-off manual-assist specs (run via manual.config.ts) */
+  testIgnore: ["**/api/**", "**/tests/manual/**"],
 
   /* Maximum number of concurrent worker processes - dynamically configured */
   workers: process.env.WORKERS
@@ -126,10 +126,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      // Always skip API tests (global testIgnore is replaced by project-level).
+      // Always skip API tests and tests/manual (global testIgnore is replaced by project-level).
       // E2E-CHKOUT-009 not yet stable across the full storefront matrix (region-combobox
       // selector unconfirmed on 3/6 storefronts) — excluded until reconned further.
-      testIgnore: ["**/api/**", "**/ecommerce/smoke/checkout-address-prefill.spec.ts"],
+      testIgnore: ["**/api/**", "**/tests/manual/**", "**/ecommerce/smoke/checkout-address-prefill.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: env.viewportWidth, height: env.viewportHeight },
@@ -139,11 +139,11 @@ export default defineConfig({
 
     {
       name: "firefox",
-      // Always skip API tests (global testIgnore is replaced by project-level).
+      // Always skip API tests and tests/manual (global testIgnore is replaced by project-level).
       // In CI, also skip ecommerce/smoke — those run on Chromium only.
       testIgnore: process.env.CI
-        ? ["**/api/**", "**/ecommerce/smoke/**", "**/ecommerce/regression/**", "**/ecommerce/integration/**", "**/ecommerce/accessibility/**"]
-        : ["**/api/**"],
+        ? ["**/api/**", "**/tests/manual/**", "**/ecommerce/smoke/**", "**/ecommerce/regression/**", "**/ecommerce/integration/**", "**/ecommerce/accessibility/**"]
+        : ["**/api/**", "**/tests/manual/**"],
       use: {
         ...devices["Desktop Firefox"],
         viewport: { width: env.viewportWidth, height: env.viewportHeight },

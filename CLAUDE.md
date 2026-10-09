@@ -54,10 +54,11 @@ import { test, expect, softExpect } from '@config/base-test';
 
 | Config | Scope | Command |
 |---|---|---|
-| `playwright.config.ts` | UI tests (ignores `**/api/**`) | `npm test` |
+| `playwright.config.ts` | UI tests (ignores `**/api/**` and `**/tests/manual/**`) | `npm test` |
 | `api.config.ts` | API tests only (8 workers, sequential) | `npm run test:api` |
+| `manual.config.ts` | One-off manual-assist specs in `tests/manual/` — gitignored, never in CI, headed, paused for a tester. Rules: `tests/manual/CLAUDE.md`; scaffold with `/new-manual-test GRA-XXXX` | `npx playwright test --config=manual.config.ts tests/manual/<file>.spec.ts` |
 
-Both configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`.
+All configs read from `src/config/environment.ts` which loads `.env.{NODE_ENV}`.
 
 **Reporters** — both configs run these reporters in parallel (additive, no conflicts):
 
@@ -485,6 +486,7 @@ npm run test:debug                # Playwright inspector
 npm run test:testing              # against testing environment
 npm run test:staging              # against staging environment
 npx playwright test --grep "TC_01"    # run by test name pattern
+npx playwright test --config=manual.config.ts tests/manual/<file>.spec.ts   # one-off manual-assist case
 npm run lint                      # tsc type-check (no emit)
 npm run report                    # open HTML report
 npm run report:monocart           # open monocart UI report

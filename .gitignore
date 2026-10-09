@@ -23,6 +23,13 @@ node_modules/
 /.playwright-report/
 /.playwright/
 .playwright-mcp/
+
+# One-off manual-assist specs (tests/manual/CLAUDE.md) — run once locally, never committed.
+# Keep the folder flat: a negation cannot re-include a file inside an ignored subdirectory.
+/tests/manual/*
+!/tests/manual/CLAUDE.md
+!/tests/manual/_template.ts
+/manual-report/
 .github/agents/
 .github/chatmodes/
 .playwright-cli/
