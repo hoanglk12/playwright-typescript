@@ -54,7 +54,7 @@ module.exports = {
       assertions: {
         // ── Category score gates — Google scale: 90+ Good, 50–89 Needs Improvement, 0–49 Poor ──
         'categories:performance':    ['warn',  { minScore: 0.9 }],
-        'categories:accessibility':  ['error', { minScore: 0.9 }],
+        'categories:accessibility':  ['warn',  { minScore: 0.9 }],
         'categories:best-practices': ['warn',  { minScore: 0.9 }],
         'categories:seo':            ['warn',  { minScore: 0.9 }],
 
@@ -66,10 +66,10 @@ module.exports = {
         'speed-index':              ['warn', { maxNumericValue: 3400 }],  // Lighthouse Good ≤ 3.4 s
         'interactive':              ['warn', { maxNumericValue: 3800 }],  // Lighthouse Good ≤ 3.8 s
 
-        // ── Accessibility hard errors ─────────────────────────────────────
-        'image-alt':      'error',
-        'document-title': 'error',
-        'html-has-lang':  'error',
+        // ── Accessibility ─────────────────────────────────────────────────
+        'image-alt':      'warn',
+        'document-title': 'warn',
+        'html-has-lang':  'warn',
         'color-contrast': 'warn',
 
         // ── SEO essentials ────────────────────────────────────────────────

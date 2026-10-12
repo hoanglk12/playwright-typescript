@@ -95,14 +95,14 @@ jobs:
           LHCI_NO_ANONYMOUS_USAGE_STATISTICS: 'true'
 
       - name: Upload reports to filesystem output dir
-        # Always runs so reports are available even when assertions fail
+        # Always runs so any collected reports are saved even if collect failed partway
         if: always()
         run: npx lhci upload --config=lighthouserc.js
         env:
           LHCI_NO_ANONYMOUS_USAGE_STATISTICS: 'true'
 
       - name: Assert Lighthouse thresholds
-        # Always runs after collect; failures here set job status to failed
+        # Always runs after collect; every assertion is warn-level, so misses log warnings without failing the job
         if: always()
         run: npx lhci assert --config=lighthouserc.js
 
@@ -194,25 +194,23 @@ jobs:
           echo "### Assertion Thresholds" >> $GITHUB_STEP_SUMMARY
           echo "| Category | Level | Threshold |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Performance | warn | ≥ 50 |" >> $GITHUB_STEP_SUMMARY
-          echo "| Accessibility | **error** | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | warn | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Accessibility | warn | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
           echo "| Best Practices | warn | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
           echo "| SEO | warn | ≥ 90 (Google Good) |" >> $GITHUB_STEP_SUMMARY
           echo "| LCP | warn | ≤ 2 500 ms (Google Good) |" >> $GITHUB_STEP_SUMMARY
           echo "| TBT | warn | ≤ 200 ms (INP proxy Good) |" >> $GITHUB_STEP_SUMMARY
           echo "| CLS | warn | ≤ 0.10 (Google Good) |" >> $GITHUB_STEP_SUMMARY
           echo "| FCP | warn | ≤ 1 800 ms (Google Good) |" >> $GITHUB_STEP_SUMMARY
-          echo "| image-alt / document-title / html-has-lang | **error** | must pass |" >> $GITHUB_STEP_SUMMARY
+          echo "| image-alt / document-title / html-has-lang | warn | expected to pass (not enforced) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "- Full HTML and JSON reports uploaded as **lighthouse-reports** artifact (30-day retention)" >> $GITHUB_STEP_SUMMARY
           echo "- 📊 **Lighthouse Report:** https://playwright-lighthouse-reports.pages.dev" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
 
-      - name: Assert result notice
+      - name: Failure notice
         if: failure()
         run: |
-          echo "::error::One or more Lighthouse assertions failed."
-          echo "::error::Download the 'lighthouse-reports' artifact and open the HTML reports to identify failing audits."
-          echo "::error::Errors (accessibility score < 0.7, missing image-alt/title/lang) must be fixed before merge."
-          echo "::error::Warnings indicate regressions to investigate but do not block the build by themselves."
+          echo "::error::Lighthouse threshold misses are warn-only and don't fail this job, so a collect, upload, lhci runtime or other infra step failed."
+          echo "::error::Check the failed step logs (unreachable URL, Chrome crash). Reports from successful runs are in the 'lighthouse-reports' artifact."

@@ -125,6 +125,8 @@ pipelines:
             # deployed and Teams was already notified above (the `if: always()` dividend
             # from the source research report). Defaulted to 0 defensively: both are always
             # initialized earlier in this script, but the pipeline runner is untested live.
+            # Every assertion is warn-level, so this (and Teams STATUS) only fails if lhci assert
+            # itself errors (bad config, unparseable LHR); re-promoting one to error restores gating.
             - '[ "${ASSERT_DESKTOP:-0}" -eq 0 ] && [ "${ASSERT_MOBILE:-0}" -eq 0 ]'
           artifacts:
             # 14-day retention / 1 GB per-artifact cap (Bitbucket platform defaults, not
