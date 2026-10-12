@@ -28,7 +28,7 @@ parameters:
 executors:
   linux-executor:
     docker:
-      - image: mcr.microsoft.com/playwright:v1.40.0-focal
+      - image: node:22
     working_directory: ~/project
     environment:
       NODE_ENV: << pipeline.parameters.environment >>
@@ -74,7 +74,7 @@ commands:
     steps:
       - checkout
       - node/install:
-          node-version: '20'
+          node-version: '22'
       - restore_cache:
           keys:
             - v1-deps-{{ arch }}-{{ checksum "package-lock.json" }}
@@ -89,7 +89,7 @@ commands:
       - run:
           name: Install Node.js
           command: |
-            choco install nodejs --version=20.10.0 -y
+            choco install nodejs --version=22.23.3 -y
             refreshenv
       - run:
           name: Install dependencies

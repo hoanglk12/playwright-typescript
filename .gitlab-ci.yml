@@ -6,7 +6,7 @@ stages:
   - notify-results
 
 variables:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
   TEST_ENV: "${TEST_ENVIRONMENT:-testing}"
   TEST_MODE: "${TEST_MODE:-parallel}"
@@ -44,7 +44,7 @@ cache:
 
 ui_test_linux:
   stage: ui-test
-  image: mcr.microsoft.com/playwright:v1.40.0-focal
+  image: node:${NODE_VERSION}
   timeout: 45 minutes
   rules:
     - if: $TEST_TYPE != "api"
@@ -57,7 +57,7 @@ ui_test_linux:
     - echo "Test Mode - $TEST_MODE"
     - echo "Workers - $TEST_WORKERS"
     - echo "Browser - $TEST_BROWSER"
-    - echo "OS - Linux (Playwright Container)"
+    - echo "OS - Linux (node:${NODE_VERSION} container)"
     - npm ci
     - npx playwright install --with-deps
   script:
@@ -69,7 +69,7 @@ ui_test_linux:
     - echo "- **Mode** - $TEST_MODE" >> test_summary.md
     - echo "- **Workers** - $TEST_WORKERS" >> test_summary.md
     - echo "- **Browser** - $TEST_BROWSER" >> test_summary.md
-    - echo "- **OS** - Linux (Playwright Container)" >> test_summary.md
+    - echo "- **OS** - Linux (node:${NODE_VERSION} container)" >> test_summary.md
     - echo "- **Status** - $CI_JOB_STATUS" >> test_summary.md
   artifacts:
     when: always
@@ -301,7 +301,7 @@ notify_results:
 
 visual_test:
   stage: visual-test
-  image: mcr.microsoft.com/playwright:v1.40.0-focal
+  image: node:${NODE_VERSION}
   timeout: 30 minutes
   rules:
     - if: $TEST_TYPE != "api"
