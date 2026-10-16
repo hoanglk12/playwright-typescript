@@ -14,6 +14,10 @@ export class EcommercePLPPage extends BasePage {
     '[data-product-id] [data-bv-show="inline_rating"]';
   private readonly renderedInlineRatingSelector =
     '[data-product-id] [data-bv-show="inline_rating"][data-bv-ready="true"]';
+  // On some storefronts unrated products render "0.0 out of 5 stars. 0 reviews", so a non-zero score is required
+  private readonly nonZeroRatingPattern = /[1-9]\.\d out of 5 stars/i;
+  private readonly cardAncestorSelector = 'xpath=ancestor::*[@data-product-id][1]';
+  private readonly cardAnchorSelector = 'a';
 
   // Quick Add button — class "quick-add-button" is on the button itself (not a parent)
   private readonly quickAddBtnSelector = '[data-product-id] button[class*="quick-add"]';
@@ -269,6 +273,24 @@ export class EcommercePLPPage extends BasePage {
       .last()
       .scrollIntoViewIfNeeded({ timeout: TIMEOUTS.ELEMENT_CLICKABLE })
       .catch(() => {});
+  }
+
+  private ratedInlineRatings(): Locator {
+    return this.renderedInlineRatings().filter({ hasText: this.nonZeroRatingPattern });
+  }
+
+  async getRatedInlineRatingCount(): Promise<number> {
+    return this.ratedInlineRatings().count();
+  }
+
+  async clickFirstRatedProductCard(): Promise<void> {
+    await this.dismissOverlays();
+
+    const ratedCard = this.ratedInlineRatings().first().locator(this.cardAncestorSelector);
+    const anchors = ratedCard.locator(this.cardAnchorSelector);
+    if (await this.clickFirstUnobstructed(anchors, 0)) return;
+
+    await anchors.first().evaluate((el: HTMLElement) => el.click());
   }
 
   async getFirstInlineRatingLabel(): Promise<string> {

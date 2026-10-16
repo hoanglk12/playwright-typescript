@@ -10,3 +10,13 @@ export const PlpRatingData: PlpRatingExpectations = {
   minRating: 0,
   maxRating: 5,
 };
+
+export interface PdpReviewSectionExpectations {
+  ratingSnapshotPattern: RegExp;
+  overallRatingPattern: RegExp;
+}
+
+export const PdpReviewSectionData: PdpReviewSectionExpectations = {
+  ratingSnapshotPattern: /rating snapshot/i,
+  overallRatingPattern: /overall rating/i,
+};

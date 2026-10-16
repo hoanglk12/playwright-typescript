@@ -45,7 +45,7 @@
       overflow-y: auto;
       padding: 24px 0;
     }
-    .main { flex: 1; padding: 0; max-width: 1140px; }
+    .main { flex: 1; padding: 0; max-width: 1140px; min-width: 0; }
 
     /* ── Sidebar ── */
     .sidebar-logo { padding: 0 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
@@ -170,6 +170,9 @@
     .tag-all { background: rgba(61,220,132,.1); color: var(--green); }
     .tag-partial { background: rgba(206,147,216,.1); color: var(--purple); }
     .tag-int { background: rgba(0,188,212,.1); color: var(--cyan); }
+    .tag-p3 { background: rgba(136,146,176,.15); color: var(--muted); }
+    .badge-p3 { background: rgba(136,146,176,.2); color: var(--muted); }
+    .tag-tier { background: rgba(206,147,216,.12); color: var(--purple); }
 
     .scenario-body { padding: 24px; }
     .scenario-body p { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
@@ -241,6 +244,8 @@
     }
     td { padding: 10px 14px; border-bottom: 1px solid rgba(46,51,80,.5); vertical-align: top; }
     tr:last-child td { border-bottom: none; }
+    td code { overflow-wrap: anywhere; }
+    #catalog-3p td:first-child { white-space: nowrap; }
     tr:hover td { background: rgba(255,255,255,.02); }
     .check { color: var(--green); }
     .cross { color: var(--red); }
@@ -328,19 +333,30 @@
     <a href="#roi" class="nav-item">ROI Scoring Matrix</a>
     <a href="#coverage" class="nav-item">Coverage Map</a>
 
-    <div class="nav-label">Critical Scenarios — P1</div>
-    <a href="#int-001" class="nav-item">INT-001 — Add to Cart Full Chain <span class="nav-badge badge-p1">P1</span></a>
-    <a href="#int-002" class="nav-item">INT-002 — Search → PDP → ATC Flow <span class="nav-badge badge-p1">P1</span></a>
-    <a href="#int-003" class="nav-item">INT-003 — Auth → Cart Persistence <span class="nav-badge badge-p1">P1</span></a>
-    <a href="#int-004" class="nav-item">INT-004 — Checkout Entry + Shipping <span class="nav-badge badge-p1">P1</span></a>
-    <a href="#int-005" class="nav-item">INT-005 — Localization + Currency <span class="nav-badge badge-p1">P1</span></a>
-    <a href="#int-006" class="nav-item">INT-006 — GraphQL Failure Fallback <span class="nav-badge badge-p1">P1</span></a>
+    <div class="nav-label">Core Scenarios: P1</div>
+    <a href="#int-001" class="nav-item">INT-001 Add to Cart Full Chain <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-002" class="nav-item">INT-002 Search → PDP → ATC Flow <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-003" class="nav-item">INT-003 Auth → Cart Persistence <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-004" class="nav-item">INT-004 Checkout Entry + Shipping <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-005" class="nav-item">INT-005 Localization + Currency <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-006" class="nav-item">INT-006 GraphQL Failure Fallback <span class="nav-badge badge-p1">P1</span></a>
 
-    <div class="nav-label">High-Value Scenarios — P2</div>
-    <a href="#int-007" class="nav-item">INT-007 — Promo Code + Cart Recalc <span class="nav-badge badge-p2">P2</span></a>
-    <a href="#int-008" class="nav-item">INT-008 — PLP Filter → GraphQL Query <span class="nav-badge badge-p2">P2</span></a>
-    <a href="#int-009" class="nav-item">INT-009 — Colour Swatch → Variant URL <span class="nav-badge badge-p2">P2</span></a>
-    <a href="#int-010" class="nav-item">INT-010 — Spend &amp; Save Threshold <span class="nav-badge badge-p2">P2</span></a>
+    <div class="nav-label">Core Scenarios: P2</div>
+    <a href="#int-007" class="nav-item">INT-007 Promo Code + Cart Recalc <span class="nav-badge badge-p2">P2</span></a>
+    <a href="#int-008" class="nav-item">INT-008 PLP Filter → Fredhopper <span class="nav-badge badge-p2">P2</span></a>
+    <a href="#int-009" class="nav-item">INT-009 Colour Swatch → Variant URL <span class="nav-badge badge-p2">P2</span></a>
+    <a href="#int-010" class="nav-item">INT-010 Spend &amp; Save Threshold <span class="nav-badge badge-p2">P2</span></a>
+
+    <div class="nav-label">Third-Party Integrations</div>
+    <a href="#vendors" class="nav-item">Vendor Map (live recon)</a>
+    <a href="#int-011" class="nav-item">INT-011 Staging Isolation <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-012" class="nav-item">INT-012 Payment Methods ↔ Sandbox <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-013" class="nav-item">INT-013 Fredhopper Search Contract <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-014" class="nav-item">INT-014 Kleber Address Lookup <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-015" class="nav-item">INT-015 Vendor Outage Resilience <span class="nav-badge badge-p1">P1</span></a>
+    <a href="#int-016" class="nav-item">INT-016 Afterpay Messaging + Limits <span class="nav-badge badge-p2">P2</span></a>
+    <a href="#catalog-3p" class="nav-item">INT-017 to INT-035 Catalog</a>
+    <a href="#back-office" class="nav-item">Back-Office (not browser-testable)</a>
 
     <div class="nav-label">Implementation</div>
     <a href="#setup" class="nav-item">Test Setup Patterns</a>
@@ -355,14 +371,14 @@
     <div class="hero">
       <div class="hero-eyebrow">GRA Platform · 8 Storefronts · Integration Strategy</div>
       <h1>Critical <span>Integration Tests</span><br>Highest ROI for GRA</h1>
-      <p>10 scenarios that test system boundaries — GraphQL ↔ UI ↔ Analytics ↔ Magento — covering all 8 storefronts with cross-brand coverage and per-brand edge cases.</p>
+      <p>35 scenarios across five system boundaries: GraphQL, UI state, analytics, localization, and the third-party vendors every storefront loads. Each one lists the brands it covers and the per-brand quirks that break it. The third-party half is built on a live recon of all 8 staging storefronts run on 2026-10-16.</p>
       <div class="hero-stats">
         <div class="stat">
-          <span class="stat-val green">10</span>
+          <span class="stat-val green">35</span>
           <span class="stat-label">Scenarios</span>
         </div>
         <div class="stat">
-          <span class="stat-val amber">6</span>
+          <span class="stat-val amber">12</span>
           <span class="stat-label">P1 Critical</span>
         </div>
         <div class="stat">
@@ -370,8 +386,12 @@
           <span class="stat-label">Storefronts</span>
         </div>
         <div class="stat">
-          <span class="stat-val purple">4</span>
+          <span class="stat-val purple">5</span>
           <span class="stat-label">System Boundaries</span>
+        </div>
+        <div class="stat">
+          <span class="stat-val">27</span>
+          <span class="stat-label">Vendor Rows in Map</span>
         </div>
       </div>
     </div>
@@ -381,7 +401,7 @@
       <div class="section-header">
         <div class="section-num">1</div>
         <h2>What Makes a Test "Integration" on GRA</h2>
-        <p>Integration tests verify that two or more system layers communicate correctly. On GRA, there are four boundaries worth testing.</p>
+        <p>Integration tests verify that two or more system layers communicate correctly. On GRA, there are five boundaries worth testing.</p>
       </div>
 
       <div class="roi-grid" style="grid-template-columns: repeat(2,1fr)">
@@ -404,6 +424,11 @@
           <div class="roi-score high">Boundary D</div>
           <h3>Cross-Storefront Localization</h3>
           <p>The same page object must render AUD on AU sites and NZD on NZ sites. Qantas Points must appear only on AU. Tests here catch config drift when GRA deploys to a new region.</p>
+        </div>
+        <div class="roi-card tier-3" style="grid-column: 1 / -1">
+          <div class="roi-score medium">Boundary E</div>
+          <h3>Storefront → Third-Party Vendors</h3>
+          <p>Payments, search, reviews, address lookup, loyalty, chat, analytics and ad tags all run on hosts GRA doesn't control. Tests on this boundary check that staging only talks to each vendor's sandbox or staging endpoint, and that the UI shows what the vendor returned. A separate group checks that the purchase path still works when a vendor is down. Per-brand vendor switches live in <code>getStoreConfigData</code>, so that response is the precondition for most of these tests.</p>
         </div>
       </div>
 
@@ -514,9 +539,58 @@
               <td><strong style="color:var(--amber)">★★★☆☆</strong></td>
               <td><span class="tag tag-p2">P2</span></td>
             </tr>
+            <tr>
+              <td><strong>INT-011</strong> Staging Isolation (no production hosts)</td>
+              <td><span style="color:var(--red)">Critical</span></td>
+              <td><span style="color:var(--red)">High</span> (failing today)</td>
+              <td><span style="color:var(--green)">Low</span></td>
+              <td><strong style="color:var(--green)">★★★★★</strong></td>
+              <td><span class="tag tag-p1">P1</span></td>
+            </tr>
+            <tr>
+              <td><strong>INT-012</strong> Payment Methods ↔ storeConfig ↔ Sandbox</td>
+              <td><span style="color:var(--red)">Critical</span></td>
+              <td><span style="color:var(--amber)">Medium</span></td>
+              <td><span style="color:var(--amber)">Medium</span></td>
+              <td><strong style="color:var(--green)">★★★★☆</strong></td>
+              <td><span class="tag tag-p1">P1</span></td>
+            </tr>
+            <tr>
+              <td><strong>INT-013</strong> Fredhopper Search Contract</td>
+              <td><span style="color:var(--red)">Critical</span></td>
+              <td><span style="color:var(--amber)">Medium</span></td>
+              <td><span style="color:var(--green)">Low</span></td>
+              <td><strong style="color:var(--green)">★★★★☆</strong></td>
+              <td><span class="tag tag-p1">P1</span></td>
+            </tr>
+            <tr>
+              <td><strong>INT-014</strong> Kleber Address Lookup → Shipping</td>
+              <td><span style="color:var(--red)">Critical</span></td>
+              <td><span style="color:var(--amber)">Medium</span></td>
+              <td><span style="color:var(--green)">Low</span></td>
+              <td><strong style="color:var(--green)">★★★★☆</strong></td>
+              <td><span class="tag tag-p1">P1</span></td>
+            </tr>
+            <tr>
+              <td><strong>INT-015</strong> Vendor Outage Resilience</td>
+              <td><span style="color:var(--red)">Critical</span></td>
+              <td><span style="color:var(--amber)">Medium</span></td>
+              <td><span style="color:var(--green)">Low</span></td>
+              <td><strong style="color:var(--green)">★★★★☆</strong></td>
+              <td><span class="tag tag-p1">P1</span></td>
+            </tr>
+            <tr>
+              <td><strong>INT-016</strong> Afterpay Messaging + Order Limits</td>
+              <td><span style="color:var(--amber)">High</span></td>
+              <td><span style="color:var(--amber)">Medium</span></td>
+              <td><span style="color:var(--amber)">Medium</span></td>
+              <td><strong style="color:var(--amber)">★★★☆☆</strong></td>
+              <td><span class="tag tag-p2">P2</span></td>
+            </tr>
           </tbody>
         </table>
       </div>
+      <p style="color:var(--muted);font-size:13px;margin-top:12px">INT-017 to INT-035 carry their priority and test tier in the <a href="#catalog-3p" style="color:var(--accent)">third-party catalog</a> instead of a full score here.</p>
     </section>
 
     <!-- ── Section 3: Coverage Map ── -->
@@ -579,12 +653,40 @@
               <td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td class="check">✓</td>
               <td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td>
               <td><strong>×1 NZ</strong></td></tr>
+            <tr><td><strong>INT-011</strong> Staging Isolation</td>
+              <td class="check">✓</td><td class="partial-mark">△</td><td class="check">✓</td><td class="check">✓</td>
+              <td class="partial-mark">△</td><td class="partial-mark">△</td><td class="check">✓</td><td class="check">✓</td>
+              <td><strong>×8</strong> (3 fail today)</td></tr>
+            <tr><td><strong>INT-012</strong> Payment Methods</td>
+              <td class="check">✓</td><td class="partial-mark">△</td><td class="check">✓</td><td class="partial-mark">△</td>
+              <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+              <td><strong>×8</strong> (AU 4 radios, NZ 3)</td></tr>
+            <tr><td><strong>INT-013</strong> Fredhopper Search</td>
+              <td class="check">✓</td><td class="partial-mark">△</td><td class="check">✓</td><td class="check">✓</td>
+              <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+              <td><strong>×8</strong></td></tr>
+            <tr><td><strong>INT-014</strong> Kleber Address</td>
+              <td class="check">✓</td><td class="partial-mark">△</td><td class="check">✓</td><td class="partial-mark">△</td>
+              <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+              <td><strong>×8</strong></td></tr>
+            <tr><td><strong>INT-015</strong> Vendor Outage</td>
+              <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+              <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+              <td><strong>×8</strong> per vendor</td></tr>
+            <tr><td><strong>INT-016</strong> Afterpay</td>
+              <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+              <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+              <td><strong>×8</strong></td></tr>
+            <tr><td><strong>INT-017</strong> Qantas Points</td>
+              <td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td class="cross">—</td>
+              <td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td class="cross">—</td>
+              <td><strong>×4 AU</strong> (+4 NZ negative)</td></tr>
           </tbody>
         </table>
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Full coverage</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>△ Partial / known issue (DRM AU product count returns 0)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>△ Partial or known issue: DRM AU product count returns 0 (INT-008); PLA NZ search jumps to production and Vans gift-card links point at production (INT-011); checkout was unreachable during recon on PLA NZ (add to cart didn't register) and SKX NZ (no purchasable size) (INT-012, INT-014)</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>— Not applicable</div>
       </div>
     </section>
@@ -612,7 +714,12 @@
             </div>
           </div>
           <div class="scenario-body">
-            <p>The highest-value integration test. Validates that <code>addProductsToCart</code> mutation fires, Magento processes it, the mini-cart badge increments, the overlay total matches the PDP price, and an analytics event lands in <code>adobeDataLayer</code>.</p>
+            <p>The highest-value integration test. It checks that the add-to-cart mutation fires and Magento processes it, then that the mini-cart badge goes up by one, the overlay total matches the PDP price, and a <code>cart_add</code> event lands in <code>adobeDataLayer</code>.</p>
+
+            <div class="alert alert-success">
+              <span class="alert-icon">✓</span>
+              <div><strong>Implemented</strong> as E2E-INT-001-001..008 in <code>tests/ecommerce/integration/add-to-cart-integration.spec.ts</code>, with helpers in <code>integration-helpers.ts</code>. Mutations on these storefronts are a bare <code>POST /graphql</code> with <code>operationName</code> only in the JSON body, so URL patterns like <code>**/graphql?**operationName=…</code> match GET queries but never a mutation. The client operation is <code>addConfigurableProductToCart</code> and the field it calls is <code>addConfigurableProductsToCart</code>, so the spec matches the <code>ProductsToCart</code> substring in the body. The ACDL event is <code>cart_add</code>, with the product name at <code>cart_items[0].name</code>.</div>
+            </div>
 
             <div class="boundaries">
               <div class="boundary"><div class="boundary-dot dot-green"></div>Boundary A: GraphQL mutation → Magento cart</div>
@@ -625,7 +732,7 @@
                 <h4>Test Steps</h4>
                 <ul class="step-list">
                   <li><div class="step-num">1</div> Block noise routes (TrueFit, FullStory, Facebook, Taboola)</li>
-                  <li><div class="step-num">2</div> Intercept <code>addProductsToCart</code> GraphQL request</li>
+                  <li><div class="step-num">2</div> Capture the <code>POST /graphql</code> whose body contains <code>ProductsToCart</code></li>
                   <li><div class="step-num">3</div> Navigate → PLP → PDP (preferMens where required)</li>
                   <li><div class="step-num">4</div> Capture <code>productPrice</code> BEFORE <code>selectSize()</code></li>
                   <li><div class="step-num">5</div> Dismiss Vans popup if present (<code>#popup-close</code>)</li>
@@ -638,32 +745,36 @@
                   <li><span class="assert-icon">✓</span> Intercepted mutation response has <code>cart.items.length &gt; 0</code></li>
                   <li><span class="assert-icon">✓</span> Cart badge = <code>initialCount + 1</code></li>
                   <li><span class="assert-icon">✓</span> Mini-cart overlay total ≈ PDP price (±0.01)</li>
-                  <li><span class="assert-icon">✓</span> <code>add_to_cart</code> event in <code>adobeDataLayer</code></li>
-                  <li><span class="assert-icon">✓</span> Event product name matches PDP product name</li>
+                  <li><span class="assert-icon">✓</span> <code>cart_add</code> event in <code>adobeDataLayer</code></li>
+                  <li><span class="assert-icon">✓</span> <code>cart_items[0].name</code> on the event matches the PDP product name</li>
                 </ul>
               </div>
             </div>
 
-            <pre><span class="cm">// Intercept the GraphQL mutation before navigation</span>
-<span class="kw">let</span> mutationPayload: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">unknown</span>&gt; | <span class="kw">null</span> = <span class="kw">null</span>;
-<span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/graphql?**operationName=addProductsToCart**'</span>, <span class="kw">async</span> route => {
+            <pre><span class="cm">// Mutations are bare POST /graphql; match on the body, pass everything else through</span>
+<span class="kw">const</span> state: { payload: <span class="type">AddToCartMutationResponse</span> | <span class="kw">null</span> } = { payload: <span class="kw">null</span> };
+<span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/graphql*'</span>, <span class="kw">async</span> route => {
+  <span class="kw">const</span> req = route.<span class="fn">request</span>();
+  <span class="kw">const</span> body = req.<span class="fn">method</span>() === <span class="str">'POST'</span> ? req.<span class="fn">postDataJSON</span>() : <span class="kw">undefined</span>;
+  <span class="kw">if</span> (!body?.query?.<span class="fn">includes</span>(<span class="str">'ProductsToCart'</span>)) <span class="kw">return</span> route.<span class="fn">continue</span>();
   <span class="kw">const</span> response = <span class="kw">await</span> route.<span class="fn">fetch</span>();
-  mutationPayload = <span class="kw">await</span> response.<span class="fn">json</span>();
-  <span class="kw">await</span> route.<span class="fn">fulfill</span>({ response });   <span class="cm">// pass through — don't mock</span>
+  state.payload = <span class="kw">await</span> response.<span class="fn">json</span>();
+  <span class="kw">await</span> route.<span class="fn">fulfill</span>({ response });
 });
 
-<span class="cm">// After addToCart() — verify all 3 boundaries</span>
-<span class="kw">const</span> cartItems = (mutationPayload <span class="kw">as</span> <span class="type">any</span>)?.<span class="fn">data</span>?.addProductsToCart?.cart?.items;
-softAssert.<span class="fn">toBeTruthy</span>(cartItems?.length &gt; <span class="num">0</span>, <span class="str">'GraphQL cart has items'</span>);
+<span class="cm">// The response field name varies by product type, so read it positionally</span>
+<span class="kw">const</span> result = <span class="type">Object</span>.<span class="fn">values</span>(state.payload?.data ?? {})[<span class="num">0</span>];
+softAssert.<span class="fn">toBeTruthy</span>((result?.cart?.items?.length ?? <span class="num">0</span>) &gt; <span class="num">0</span>, <span class="str">'GraphQL cart has items'</span>);
 
 <span class="kw">const</span> newCount = <span class="kw">await</span> pdpPage.<span class="fn">getMiniCartCount</span>();
 softAssert.<span class="fn">toBe</span>(newCount, initialCount + <span class="num">1</span>, <span class="str">'Cart badge incremented'</span>);
 
-<span class="kw">const</span> atcEvent = <span class="kw">await</span> page.<span class="fn">evaluate</span>(() =>
-  (window <span class="kw">as</span> <span class="type">any</span>).adobeDataLayer?.<span class="fn">getState</span>?.() ??
-  (window <span class="kw">as</span> <span class="type">any</span>).dataLayer?.<span class="fn">find</span>((e: <span class="type">any</span>) => e?.event === <span class="str">'add_to_cart'</span>)
-);
-softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add_to_cart dataLayer event fired'</span>);</pre>
+<span class="cm">// Array scan, not getState(): getState() always returns an object, so a ?? fallback never runs</span>
+<span class="kw">const</span> atcEvent = <span class="kw">await</span> page.<span class="fn">evaluate</span>(() => {
+  <span class="kw">const</span> isAtc = (e: <span class="type">any</span>) => [<span class="str">'cart_add'</span>, <span class="str">'add_to_cart'</span>].<span class="fn">includes</span>(e?.event);
+  <span class="kw">return</span> (window <span class="kw">as</span> <span class="type">any</span>).adobeDataLayer?.<span class="fn">find</span>(isAtc) ?? (window <span class="kw">as</span> <span class="type">any</span>).dataLayer?.<span class="fn">find</span>(isAtc);
+});
+softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'cart_add event in adobeDataLayer'</span>);</pre>
 
             <div class="gotcha-box">
               <span class="gotcha-icon">⚠</span>
@@ -673,7 +784,7 @@ softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add
         </div>
 
         <!-- INT-002 -->
-        <div class="scenario-card">
+        <div class="scenario-card" id="int-002">
           <div class="scenario-header">
             <span class="scenario-id">INT-002</span>
             <div>
@@ -690,7 +801,7 @@ softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add
             <p>Tests the complete top-of-funnel revenue path. Verifies that Attraqt-powered search returns relevant results, clicking a search result lands on the correct PDP (URL/product name match), and the ATC button is enabled and functional — all in a single session.</p>
 
             <div class="boundaries">
-              <div class="boundary"><div class="boundary-dot dot-green"></div>Boundary A: Search term → Attraqt/Fredhopper query → GraphQL product response</div>
+              <div class="boundary"><div class="boundary-dot dot-green"></div>Boundary A: Search term → same-origin <code>/fredhopper/query</code> proxy → product cards (no Magento <code>products</code> query is involved)</div>
               <div class="boundary"><div class="boundary-dot dot-cyan"></div>Boundary B: Search result click → correct PDP loaded (URL + title consistent)</div>
             </div>
 
@@ -700,7 +811,7 @@ softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add
                 <ul class="step-list">
                   <li><div class="step-num">1</div> Navigate to storefront homepage</li>
                   <li><div class="step-num">2</div> Enter <code>site.searchTerm</code> in search box</li>
-                  <li><div class="step-num">3</div> Wait for <code>ResolveURL</code> GraphQL response</li>
+                  <li><div class="step-num">3</div> Wait for the <code>GET /fredhopper/query</code> response (the result data; <code>ResolveURL</code> only resolves the route)</li>
                   <li><div class="step-num">4</div> Assert search results URL matches <code>site.searchResultUrlPattern</code></li>
                   <li><div class="step-num">5</div> Click first product card → wait for PDP</li>
                   <li><div class="step-num">6</div> Assert product name on PDP is non-empty</li>
@@ -722,13 +833,13 @@ softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add
 
             <div class="gotcha-box">
               <span class="gotcha-icon">⚠</span>
-              <div><strong>Platypus AU:</strong> Search for "Nike" sometimes redirects to <code>/shop/nike</code> (brand page) not <code>/search?q=nike</code>. The <code>searchResultUrlPattern</code> for Platypus already accepts both: <code>/(search|\/shop\/)/i</code>. Do not tighten to exact path.<br><strong>Attraqt analytics:</strong> <code>collect-ap2.attraqt.io</code> fires on every search — do not block this route as it validates the search integration is instrumented.</div>
+              <div><strong>Platypus AU:</strong> Search for "Nike" sometimes redirects to <code>/shop/nike</code> (brand page) not <code>/search?q=nike</code>. The <code>searchResultUrlPattern</code> for Platypus already accepts both: <code>/(search|\/shop\/)/i</code>. Do not tighten to exact path.<br><strong>Platypus NZ:</strong> on 2026-10-16 the same search redirected to the <em>production</em> host <code>www.platypusshoes.co.nz/shop/nike</code>, and the pattern above still matched. Assert the host stays <code>stag-platypus-nz.accentgra.com</code> as well as the path, or the rest of the test runs against production (see INT-011).<br><strong>Attraqt analytics:</strong> <code>collect-ap2.attraqt.io</code> fires on every search. Don't block this route: it is the evidence that search is instrumented.</div>
             </div>
           </div>
         </div>
 
         <!-- INT-003 -->
-        <div class="scenario-card">
+        <div class="scenario-card" id="int-003">
           <div class="scenario-header">
             <span class="scenario-id">INT-003</span>
             <div>
@@ -791,7 +902,7 @@ softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add
         </div>
 
         <!-- INT-004 -->
-        <div class="scenario-card">
+        <div class="scenario-card" id="int-004">
           <div class="scenario-header">
             <span class="scenario-id">INT-004</span>
             <div>
@@ -805,7 +916,7 @@ softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add
             </div>
           </div>
           <div class="scenario-body">
-            <p>Tests the critical checkout data path: shipping address submission fires a <code>setShippingAddressesOnCart</code> mutation, the available shipping methods update, and selecting a method fires <code>setShippingMethodsOnCart</code> — causing the order total to recalculate and display the shipping cost. Automation stops before payment (cannot automate without live sandbox credentials).</p>
+            <p>Tests the critical checkout data path: shipping address submission fires a <code>setShippingAddressesOnCart</code> mutation, the available shipping methods update, and selecting a method fires <code>setShippingMethodsOnCart</code>, which makes the order total recalculate and display the shipping cost. This scenario stops at the payment step. Placing an order is covered separately: E2E-PLAORD-001/002 place Braintree sandbox PayPal orders and E2E-PLAORD-003 places sandbox card orders (opt-in via <code>RUN_CARD_CHECKOUT</code>). On the live storefront the operation names are <code>setShippingAddress</code> and <code>setShippingMethods</code>, both sent as body-only <code>POST /graphql</code>.</p>
 
             <div class="boundaries">
               <div class="boundary"><div class="boundary-dot dot-green"></div>Boundary A: Address form → GraphQL mutation → shipping methods returned</div>
@@ -844,7 +955,7 @@ softAssert.<span class="fn">toBeTruthy</span>(!!atcEvent, <span class="str">'add
         </div>
 
         <!-- INT-005 -->
-        <div class="scenario-card">
+        <div class="scenario-card" id="int-005">
           <div class="scenario-header">
             <span class="scenario-id">INT-005</span>
             <div>
@@ -887,7 +998,7 @@ softAssert.<span class="fn">toBe</span>(dlSite?.currency, expectedCurrency, <spa
         </div>
 
         <!-- INT-006 -->
-        <div class="scenario-card">
+        <div class="scenario-card" id="int-006">
           <div class="scenario-header">
             <span class="scenario-id">INT-006</span>
             <div>
@@ -912,7 +1023,7 @@ softAssert.<span class="fn">toBe</span>(dlSite?.currency, expectedCurrency, <spa
                 <h4>Scenarios to Fail</h4>
                 <ul class="step-list">
                   <li><div class="step-num">A</div> <code>GetCmsPage</code> → 500 → homepage still renders header/nav</li>
-                  <li><div class="step-num">B</div> <code>productSearch</code> → empty results → "No results" message shown</li>
+                  <li><div class="step-num">B</div> <code>GET /fredhopper/query</code> → 500 or empty body → "No results" or error state shown (search has no <code>productSearch</code> GraphQL operation)</li>
                   <li><div class="step-num">C</div> <code>addProductsToCart</code> → GraphQL error → toast or inline error shown</li>
                   <li><div class="step-num">D</div> <code>generateCustomerToken</code> → invalid credentials error → login error shown in modal</li>
                 </ul>
@@ -928,8 +1039,11 @@ softAssert.<span class="fn">toBe</span>(dlSite?.currency, expectedCurrency, <spa
               </div>
             </div>
 
-            <pre><span class="cm">// Simulate GraphQL failure for a specific operation</span>
-<span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/graphql?**operationName=addProductsToCart**'</span>, <span class="kw">async</span> route => {
+            <pre><span class="cm">// Mutations are body-only POST /graphql, so match on the body, not the URL</span>
+<span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/graphql*'</span>, <span class="kw">async</span> route => {
+  <span class="kw">const</span> req = route.<span class="fn">request</span>();
+  <span class="kw">const</span> body = req.<span class="fn">method</span>() === <span class="str">'POST'</span> ? req.<span class="fn">postDataJSON</span>() : <span class="kw">undefined</span>;
+  <span class="kw">if</span> (!body?.query?.<span class="fn">includes</span>(<span class="str">'ProductsToCart'</span>)) <span class="kw">return</span> route.<span class="fn">continue</span>();
   <span class="kw">await</span> route.<span class="fn">fulfill</span>({
     status: <span class="num">200</span>,   <span class="cm">// GraphQL returns 200 even for errors</span>
     contentType: <span class="str">'application/json'</span>,
@@ -981,8 +1095,11 @@ softAssert.<span class="fn">toBe</span>(dlSite?.currency, expectedCurrency, <spa
               <div class="boundary"><div class="boundary-dot dot-cyan"></div>Boundary B: Discount in response → UI total updates + discount line visible</div>
             </div>
 
-            <pre><span class="cm">// Intercept coupon mutation response</span>
-<span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/graphql?**operationName=applyCouponToCart**'</span>, <span class="kw">async</span> route => {
+            <pre><span class="cm">// Coupon mutation is a body-only POST; match the field name in the body</span>
+<span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/graphql*'</span>, <span class="kw">async</span> route => {
+  <span class="kw">const</span> req = route.<span class="fn">request</span>();
+  <span class="kw">const</span> body = req.<span class="fn">method</span>() === <span class="str">'POST'</span> ? req.<span class="fn">postDataJSON</span>() : <span class="kw">undefined</span>;
+  <span class="kw">if</span> (!body?.query?.<span class="fn">includes</span>(<span class="str">'applyCouponToCart'</span>)) <span class="kw">return</span> route.<span class="fn">continue</span>();
   <span class="kw">const</span> response = <span class="kw">await</span> route.<span class="fn">fetch</span>();
   couponResponse = <span class="kw">await</span> response.<span class="fn">json</span>();
   <span class="kw">await</span> route.<span class="fn">fulfill</span>({ response });
@@ -1005,7 +1122,7 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
           <div class="scenario-header">
             <span class="scenario-id">INT-008</span>
             <div>
-              <div class="scenario-title">PLP Category Filter → GraphQL <code>products</code> Query → Count Reduces</div>
+              <div class="scenario-title">PLP Category Filter → Fredhopper Query → Count Reduces</div>
               <div class="scenario-meta" style="margin-top:8px">
                 <span class="tag tag-p2">P2 High</span>
                 <span class="tag tag-partial">×6 + △DRM</span>
@@ -1015,11 +1132,16 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
             </div>
           </div>
           <div class="scenario-body">
-            <p>Applies a category filter on the PLP and intercepts the resulting <code>products</code> GraphQL GET query to verify the filter parameter is correctly encoded, the returned <code>total_count</code> is less than the pre-filter count, and the UI product grid updates to match the server response.</p>
+            <p>Applies a category filter on the PLP and captures the <code>GET /fredhopper/query</code> request it triggers. PLPs on all 8 storefronts are served by this same-origin Fredhopper proxy, with GraphQL helpers (<code>fredhopperSeoConvertToFRH</code>, <code>fredhopperFRHConvertToPretty</code>) translating between the SEO URL and the Fredhopper location. The test checks that the new <code>fh_location</code> carries the filter, the result count in the response drops below the pre-filter count, and the grid matches the response.</p>
 
             <div class="boundaries">
-              <div class="boundary"><div class="boundary-dot dot-green"></div>Boundary A: Filter click → GraphQL products query with filter param → reduced <code>total_count</code></div>
-              <div class="boundary"><div class="boundary-dot dot-cyan"></div>Boundary B: <code>total_count</code> in response → UI product grid count matches</div>
+              <div class="boundary"><div class="boundary-dot dot-green"></div>Boundary A: Filter click → <code>/fredhopper/query</code> with the filter in <code>fh_location</code> → smaller result count</div>
+              <div class="boundary"><div class="boundary-dot dot-cyan"></div>Boundary B: Result count in the response → UI product count matches</div>
+            </div>
+
+            <div class="alert alert-info">
+              <span class="alert-icon">ℹ</span>
+              <div>The Fredhopper response shape (field names for the result count and items) hasn't been captured yet. Log one response per brand before writing assertions against it.</div>
             </div>
 
             <div class="alert alert-warn">
@@ -1112,10 +1234,429 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
       </div>
     </section>
 
+    <!-- ── Third-party vendor map ── -->
+    <section class="section" id="vendors">
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <h2>Third-Party Vendor Map</h2>
+        <p>Built from a passive Playwright run on all 8 staging storefronts on 2026-10-16. It visited home, search suggest, search results, a PDP, add to cart, the cart page, checkout shipping, and the payment step with every payment radio selected in turn. It placed no order and submitted no form. It ran in headless Chromium at 1920×1080 from a Vietnam IP, so geo-gated vendors may behave differently for AU and NZ shoppers or on US-hosted CI runners. Two stores never reached checkout, so their checkout column comes from <code>storeConfig</code> only. On Platypus NZ the add to cart ran but the cart badge stayed at 0. On Skechers NZ none of the first 10 MENS products had a purchasable size.</p>
+      </div>
+
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ</span>
+        <div>Most vendors are switched on or off per store in <code>getStoreConfigData</code> (a GET query, so <code>page.waitForResponse(r =&gt; r.url().includes('operationName=getStoreConfigData'))</code> catches it). Read the flag first and derive the expected behaviour from it, instead of hardcoding brand lists in specs. Flags seen: <code>braintree_paypal_pay_in_4_is_enabled</code>, <code>is_qantas_loyalty_enable</code>, <code>is_qantas_points_pay_enable</code>, <code>afterpay</code>, <code>bazaarvoice_environment</code>, <code>ewave_address_autocomplete</code>, <code>ewave_klaviyo_general_disabled</code>, <code>seko_iframe_endpoint_guest</code>, <code>free_shipping_threshold</code>, <code>forter_settings_site_id</code>, <code>ewave_fredhopper_ab_testing_enable</code>.</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Vendor</th><th>Role on GRA</th><th>Where it loads</th><th>Staging endpoint seen</th><th>Brands</th><th>State on staging</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Braintree</strong></td><td>Card payments, PayPal rail, client token</td><td>Client token on every page view; Drop-in 1.43.0 on cart; Hosted Fields 3.103.0 at payment</td><td><code>payments.sandbox.braintree-api.com</code>, <code>assets.braintreegateway.com</code></td><td>All 8</td><td class="check">Sandbox</td></tr>
+            <tr><td><strong>PayPal</strong></td><td>PayPal checkout, Pay in 4, Pay Later messaging</td><td>PDP and cart messaging; Smart Buttons on cart and payment</td><td><code>www.sandbox.paypal.com</code>, <code>checkout.paypal.com</code>; <code>zoid@9.0.85</code> from <code>cdn.jsdelivr.net</code></td><td>All 8; Pay in 4 AU only</td><td class="check">Sandbox</td></tr>
+            <tr><td><strong>Afterpay (Square)</strong></td><td>BNPL payment and instalment messaging</td><td><code>square-placement</code> on PDP and cart; <code>afterpay_gra</code> radio</td><td><code>js-sandbox.squarecdn.com</code>, <code>placement-api.sandbox.afterpay.com</code>, <code>iq.afterpay-beta.com</code></td><td>All 8</td><td class="partial-mark">Sandbox; <code>iq.afterpay-beta.com</code> events blocked by CSP on all 8</td></tr>
+            <tr><td><strong>Forter</strong></td><td>Fraud fingerprint; decision after order</td><td>Every page</td><td><code>cdn0/cdn3/cdn6.forter.com</code> plus a per-site subdomain</td><td>All 8</td><td class="check">Loads</td></tr>
+            <tr><td><strong>Fredhopper</strong></td><td>Search, PLP, recommendations, autocomplete</td><td>Home, search, PLP, PDP, cart</td><td>Same-origin <code>/fredhopper/query</code> and <code>/accent_{plat|skech|vans|drm}/json</code></td><td>All 8</td><td class="check">OK</td></tr>
+            <tr><td><strong>Attraqt</strong></td><td>Search and merchandising analytics</td><td>Search, PLP, PDP</td><td><code>collect-ap2.attraqt.io</code></td><td>All 8</td><td class="check">OK</td></tr>
+            <tr><td><strong>Bazaarvoice</strong></td><td>Ratings, reviews, Q&amp;A</td><td>PLP inline ratings, PDP</td><td><code>apps.bazaarvoice.com/deployments/{client}/{zone}</code>, <code>apps-stg</code>, <code>network-stg-a</code></td><td>All 8 (<code>bazaarvoice_environment: staging</code>)</td><td class="check">OK</td></tr>
+            <tr><td><strong>TrueFit</strong></td><td>Size advisor</td><td>PDP</td><td><code>{pla|ske|van|dma}-cdn.staging.truefitcorp.com</code></td><td>All 8</td><td class="cross"><code>consumer-dev.truefitcorp.com</code> fails on all 8; Vans script blocked by ORB</td></tr>
+            <tr><td><strong>Bloomreach</strong></td><td>Web layers (Vans popup), experiments, events</td><td>Every page</td><td><code>api-accent.bloomreach.co</code> (one project per brand)</td><td>All 8</td><td class="check">OK; variants change between runs</td></tr>
+            <tr><td><strong>Kleber (DataTools)</strong></td><td>Address autocomplete, AU and NZ</td><td>Checkout shipping</td><td><code>kleber.datatoolscloud.net.au</code> after GraphQL <code>getKleberTempKey</code></td><td>All 8 (6 seen live)</td><td class="check">OK</td></tr>
+            <tr><td><strong>Qantas</strong></td><td>Points earn message, Points Pay widget</td><td>Checkout</td><td><code>cdn.stg.qantasloyalty.com</code></td><td>AU only</td><td class="check">Staging CDN</td></tr>
+            <tr><td><strong>Google Maps</strong></td><td>Store locator, Click &amp; Collect store search</td><td>Script on every page; <code>/stores</code>; checkout</td><td><code>maps.googleapis.com</code></td><td>All 8</td><td class="check">Loads</td></tr>
+            <tr><td><strong>Vii</strong></td><td>Gift cards</td><td>Footer link; checkout <code>getAppliedGiftCards</code></td><td><code>&lt;brand&gt;&lt;region&gt;giftcardsstage.viicloud.com.au</code></td><td>All 8</td><td class="cross">Vans links to production <code>giftcards.vans.com.au</code>; staging sites fail with <code>ERR_HTTP2_PROTOCOL_ERROR</code> in headless Chromium</td></tr>
+            <tr><td><strong>SEKO (OmniParcel)</strong></td><td>Returns booking iframe</td><td><code>/create-returns-info</code></td><td><code>accentgrouptest.omniparcelreturns.com</code> (from <code>storeConfig</code>)</td><td>All 8</td><td class="partial-mark">Not rendered during recon</td></tr>
+            <tr><td><strong>Zendesk</strong></td><td>Customer-service messenger</td><td>Every page</td><td><code>&lt;brand&gt;&lt;region&gt;customercare.zendesk.com</code>, <code>static.zdassets.com</code></td><td>All 8</td><td class="check">OK</td></tr>
+            <tr><td><strong>Adobe Experience Cloud</strong></td><td>Launch tags, Analytics, AEP identity</td><td>Every page</td><td><code>assets.adobedtm.com/…/launch-*-staging.min.js</code>, <code>smetrics.&lt;brand domain&gt;</code>, <code>*.demdex.net</code></td><td>All 8</td><td class="check">Staging Tags library on all 8</td></tr>
+            <tr><td><strong>Google tags</strong></td><td>GTM, GA4, Ads remarketing</td><td>Every page</td><td><code>googletagmanager.com</code>, <code>google-analytics.com</code>, <code>doubleclick.net</code></td><td>All 8</td><td class="check">OK</td></tr>
+            <tr><td><strong>FullStory</strong></td><td>Session recording</td><td>Every page</td><td><code>edge.fullstory.com</code>, <code>rs.fullstory.com</code></td><td>All 8</td><td class="cross">PLA NZ org id has a stray quote and requests <code>edge.na1".fullstory.com</code></td></tr>
+            <tr><td><strong>New Relic Browser</strong></td><td>Real-user monitoring</td><td>Every page</td><td><code>js-agent.newrelic.com</code>, <code>bam.nr-data.net</code></td><td>All 8</td><td class="check">OK</td></tr>
+            <tr><td><strong>Cloudflare Turnstile</strong></td><td>Bot challenge</td><td>PLP and PDP</td><td><code>challenges.cloudflare.com/turnstile</code></td><td>PLA AU, VAN AU, VAN NZ</td><td class="partial-mark">Same three stores where Vimeo video 715894328 returns 401, so most likely Vimeo's own bot check inside the embed, not a GRA form</td></tr>
+            <tr><td><strong>Google reCAPTCHA v3</strong></td><td>Form protection</td><td><code>getRecaptchaV3Config</code> queried on every page</td><td>No reCAPTCHA script loaded in the passive run</td><td>All 8</td><td class="partial-mark">Config returned <code>null</code> on Platypus AU (other stores unchecked), so probably not configured</td></tr>
+            <tr><td><strong>Commission Factory</strong></td><td>Affiliate tracking (inferred from the <code>CommissionFactory</code> global)</td><td>Every page</td><td><code>cfjump.&lt;brand domain&gt;</code>, <code>lantern.roeye(cdn).com</code></td><td>All 8</td><td class="partial-mark">Blocked by CSP on SKX NZ</td></tr>
+            <tr><td><strong>Unidays</strong></td><td>Student discount tracking</td><td>Every page</td><td><code>cdn.unidays.world</code></td><td>7 of 8 (not DRM NZ)</td><td class="check">Loads</td></tr>
+            <tr><td><strong>Foursixty</strong></td><td>Instagram UGC gallery</td><td>Home</td><td><code>foursixty.com</code>, <code>scontent.cdninstagram.com</code></td><td>All 8</td><td class="partial-mark">Blocked by CSP on DRM AU, PLA NZ and Vans</td></tr>
+            <tr><td><strong>Vimeo</strong></td><td>Brand and product video</td><td>Home, PLP, PDP</td><td><code>player.vimeo.com</code></td><td>7 of 8</td><td class="partial-mark">Several videos return 401</td></tr>
+            <tr><td><strong>Social pixels</strong></td><td>Meta, TikTok, Pinterest</td><td>Every page</td><td><code>connect.facebook.net</code>, <code>analytics.tiktok.com</code>, <code>s.pinimg.com</code></td><td>Meta all 8; TikTok not Vans; Pinterest DRM AU, SKX, VAN</td><td class="partial-mark">Pinterest blocked by CSP on SKX and Vans</td></tr>
+            <tr><td><strong>Ad-sync networks</strong></td><td>Criteo, OpenX, Rubicon, PubMatic, AppNexus, SpotX (via Adobe Advertising)</td><td>Home</td><td><code>cm.everesttech.net</code> and partner sync hosts</td><td>6 of 8 (not Vans)</td><td class="partial-mark"><code>cm.everesttech.net</code> blocked by CSP on Platypus</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-size:16px;margin:28px 0 8px">Staging defects found during the recon</h3>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:12px">These are worth raising with the platform team now. INT-011, INT-025, INT-026 and INT-028 turn them into regression checks.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Finding</th><th>Where</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr><td>Search for "Nike" redirects to production <code>www.platypusshoes.co.nz/shop/nike</code>, loading production <code>/graphql</code>, <code>sw.js</code>, Afterpay, Bazaarvoice and TrueFit</td><td>Platypus NZ</td><td>Any add to cart after this search writes to the production store. <code>searchResultUrlPattern</code> still matches, so current specs don't notice. The recon itself followed the redirect: its search-results and PDP stages sent POSTs to production (Adobe analytics, an Afterpay event, TrueFit API calls, <code>/rest/V1/fpid</code> and two <code>/graphql</code> calls). No cart was created; the add-to-cart stage restarted from the staging URL.</td></tr>
+            <tr><td>Footer "Gift Cards" link goes to production <code>giftcards.vans.com.au</code></td><td>Vans AU, Vans NZ</td><td>Other brands link to their Vii staging site. A tester following the link lands on the live gift card shop.</td></tr>
+            <tr><td>CMS banners load images from <code>admin-prod-platypus</code> / <code>admin-prod-skechers</code>, from <code>www.drmartens.com</code>, from another brand (a Skechers image on DRM NZ) and from another region (AU shipping cut-off banner on Vans NZ)</td><td>PLA AU, SKX AU, DRM AU, DRM NZ, VAN NZ</td><td>Read-only, so no data risk, but staging content no longer matches what each store should show.</td></tr>
+            <tr><td>FullStory org id contains a stray <code>"</code>, so the recorder requests <code>edge.na1".fullstory.com</code> and fails DNS</td><td>Platypus NZ</td><td>No session recordings from this store. Likely the same config value in production.</td></tr>
+            <tr><td>TrueFit experiments endpoint <code>consumer-dev.truefitcorp.com</code> fails; Vans TrueFit script blocked by ORB</td><td>All 8; Vans</td><td>Size advisor can't be tested on staging until TrueFit points staging at a working environment.</td></tr>
+            <tr><td>CSP blocks vendor requests: Afterpay <code>iq</code> events (all 8), Pinterest (SKX, Vans), Foursixty (DRM AU, PLA NZ, Vans), a Bazaarvoice request (Platypus), GTM (DRM NZ), Bloomreach media <code>brxcdn.com</code> (Vans AU), Commission Factory (SKX NZ), Vimeo (DRM NZ, SKX NZ), <code>cdnjs</code> qrcodejs (PLA AU, SKX AU), <code>cm.everesttech.net</code> (Platypus)</td><td>All 8</td><td>Either the CSP allow-list is out of date or these tags are meant to be gone. Each block silently drops data or breaks a widget.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Third-party P1 scenarios ── -->
+    <section class="section" id="int-011">
+      <div class="section-header">
+        <div class="section-num">7</div>
+        <h2>Third-Party Scenarios: P1 and Detailed P2</h2>
+        <p>Every scenario here runs from the browser against staging with no side effects outside the storefront's own cart. Tier A means browser-observable; tier B means checkable through the storefront's GraphQL.</p>
+      </div>
+
+      <div class="scenario-list">
+
+        <!-- INT-011 -->
+        <div class="scenario-card">
+          <div class="scenario-header">
+            <span class="scenario-id">INT-011</span>
+            <div>
+              <div class="scenario-title">Staging Isolation: Every Navigation and Vendor Call Stays Out of Production</div>
+              <div class="scenario-meta" style="margin-top:8px">
+                <span class="tag tag-p1">P1 Critical</span>
+                <span class="tag tag-all">All 8 sites</span>
+                <span class="tag tag-int">Boundary E</span>
+                <span class="tag tag-tier">Tier A</span>
+                <span class="tag" style="background:rgba(61,220,132,.1);color:var(--green)">★★★★★ ROI</span>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-body">
+            <p>This one is failing today. On Platypus NZ the search for "Nike" redirected to the production host, after which the PDP, its GraphQL calls, and its Afterpay, Bazaarvoice and TrueFit requests all went to production. The Vans footer sends gift-card buyers to the production Vii shop. The test records every request across the main journey and fails on any production host. It is cheap to run and protects every other spec from quietly testing the wrong environment.</p>
+
+            <div class="boundaries">
+              <div class="boundary"><div class="boundary-dot dot-green"></div>Navigation → main frame stays on <code>stag-{brand}-{region}.accentgra.com</code></div>
+              <div class="boundary"><div class="boundary-dot dot-cyan"></div>Vendor calls → each vendor's sandbox or staging host</div>
+              <div class="boundary"><div class="boundary-dot dot-purple"></div>Footer service links → staging targets</div>
+            </div>
+
+            <div class="steps-grid">
+              <div class="steps-block">
+                <h4>Test Steps</h4>
+                <ul class="step-list">
+                  <li><div class="step-num">1</div> Attach a context-level request listener before the first <code>goto</code></li>
+                  <li><div class="step-num">2</div> Home → search <code>site.searchTerm</code> → first result → PDP</li>
+                  <li><div class="step-num">3</div> Read the footer "Gift Cards" <code>href</code> (no click needed)</li>
+                  <li><div class="step-num">4</div> Optional long form: continue to the payment step and select each payment radio</li>
+                </ul>
+              </div>
+              <div class="steps-block">
+                <h4>Assertions</h4>
+                <ul class="step-list">
+                  <li><span class="assert-icon">✓</span> Main-frame host equals <code>new URL(site.url).host</code> after every navigation</li>
+                  <li><span class="assert-icon">✓</span> No non-image request matches a production marker</li>
+                  <li><span class="assert-icon">✓</span> Braintree calls go to <code>payments.sandbox.braintree-api.com</code> only</li>
+                  <li><span class="assert-icon">✓</span> Gift card link host ends in <code>giftcardsstage.viicloud.com.au</code></li>
+                </ul>
+              </div>
+            </div>
+
+            <pre><span class="cm">// Hosts that mean a staging run is touching production</span>
+<span class="kw">const</span> PROD_MARKERS = [
+  <span class="str">/^www\.(platypusshoes|skechers|vans|drmartens)\.(com\.au|co\.nz|com)$/</span>,
+  <span class="str">/^admin-prod-/</span>, <span class="str">/^giftcards\.vans\.com\.au$/</span>,
+  <span class="str">/^(iq|placement-api)\.afterpay\.com$/</span>, <span class="str">/^js\.squarecdn\.com$/</span>,
+  <span class="str">/^network-a\.bazaarvoice\.com$/</span>, <span class="str">/^payments\.braintree-api\.com$/</span>,
+];
+<span class="kw">const</span> prodHits: { host: <span class="type">string</span>; type: <span class="type">string</span>; onPage: <span class="type">string</span> }[] = [];
+page.<span class="fn">context</span>().<span class="fn">on</span>(<span class="str">'request'</span>, req => {
+  <span class="kw">const</span> host = <span class="kw">new</span> <span class="type">URL</span>(req.<span class="fn">url</span>()).host;
+  <span class="kw">if</span> (PROD_MARKERS.<span class="fn">some</span>(re => re.<span class="fn">test</span>(host))) prodHits.<span class="fn">push</span>({ host, type: req.<span class="fn">resourceType</span>(), onPage: page.<span class="fn">url</span>() });
+});
+
+<span class="cm">// ... home → search → PDP ...</span>
+<span class="fn">expect</span>(<span class="kw">new</span> <span class="type">URL</span>(page.<span class="fn">url</span>()).host).<span class="fn">toBe</span>(<span class="kw">new</span> <span class="type">URL</span>(site.url).host);
+softAssert.<span class="fn">toHaveLength</span>(prodHits.<span class="fn">filter</span>(h => h.type !== <span class="str">'image'</span>), <span class="num">0</span>, <span class="str">'No production requests'</span>);</pre>
+
+            <div class="gotcha-box">
+              <span class="gotcha-icon">⚠</span>
+              <div><strong>Don't flag <code>www.paypal.com</code>.</strong> PayPal's SDK loader and logger load from the bare host in sandbox as well; check that the functional calls go to <code>www.sandbox.paypal.com</code> instead. <strong>Images are excluded</strong> because staging CMS banners already pull from <code>admin-prod-*</code>; INT-028 tracks those separately at P3. <strong>Make the guard abort, not just record.</strong> Route denylisted hosts (and any main-frame navigation off the staging origin) to <code>abort()</code> so a red run stops before it writes anything to production. The 2026-10-16 recon didn't do this, and its Platypus NZ stages sent analytics, Afterpay, TrueFit and <code>/rest/V1/fpid</code> POSTs to production. Promote the guard to an auto-fixture once it is stable, so every ecommerce spec gets it.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INT-012 -->
+        <div class="scenario-card" id="int-012">
+          <div class="scenario-header">
+            <span class="scenario-id">INT-012</span>
+            <div>
+              <div class="scenario-title">Payment Methods ↔ storeConfig ↔ Sandbox SDKs</div>
+              <div class="scenario-meta" style="margin-top:8px">
+                <span class="tag tag-p1">P1 Critical</span>
+                <span class="tag tag-all">All 8 sites</span>
+                <span class="tag tag-int">Boundary E</span>
+                <span class="tag tag-tier">Tier A + B</span>
+                <span class="tag" style="background:rgba(61,220,132,.1);color:var(--green)">★★★★☆ ROI</span>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-body">
+            <p>The payment step should offer exactly what <code>storeConfig</code> enables, and each method should load its vendor SDK from a sandbox host. In the recon, AU stores showed four radios (<code>afterpay_gra</code>, <code>braintree_gra</code>, <code>braintree_paypal_gra</code>, <code>braintree_paypal_pay_in_4_gra</code>) and NZ stores showed three, which matches <code>braintree_paypal_pay_in_4_is_enabled</code>. Selecting a radio loads Hosted Fields from <code>assets.braintreegateway.com</code>, the PayPal Smart Button from <code>www.sandbox.paypal.com/smart/button</code>, or Pay in 4 messaging from <code>www.sandbox.paypal.com/credit-presentment</code>. No order is placed, so this runs on every build, unlike the PLAORD specs.</p>
+
+            <div class="boundaries">
+              <div class="boundary"><div class="boundary-dot dot-green"></div><code>storeConfig</code> flags → radios rendered</div>
+              <div class="boundary"><div class="boundary-dot dot-cyan"></div>Radio selected → vendor iframe from a sandbox origin</div>
+              <div class="boundary"><div class="boundary-dot dot-purple"></div>GraphQL <code>getPaymentMethods</code> codes ↔ UI radios (<code>afterpay</code> → <code>afterpay_gra</code>, <code>braintree</code> → <code>braintree_gra</code>, and so on)</div>
+            </div>
+
+            <pre><span class="kw">const</span> configResponse = page.<span class="fn">waitForResponse</span>(r => r.<span class="fn">url</span>().<span class="fn">includes</span>(<span class="str">'operationName=getStoreConfigData'</span>));
+<span class="kw">await</span> page.<span class="fn">goto</span>(site.url);
+<span class="kw">const</span> storeConfig = (<span class="kw">await</span> (<span class="kw">await</span> configResponse).<span class="fn">json</span>()).data.storeConfig;
+
+<span class="cm">// ... checkout-helpers Steps 0-17, then shipping method + CONTINUE TO PAYMENT (Steps 18-20) ...</span>
+
+<span class="kw">const</span> expected = [<span class="str">'afterpay_gra'</span>, <span class="str">'braintree_gra'</span>, <span class="str">'braintree_paypal_gra'</span>];
+<span class="kw">if</span> (storeConfig.braintree_paypal_pay_in_4_is_enabled) expected.<span class="fn">push</span>(<span class="str">'braintree_paypal_pay_in_4_gra'</span>);
+<span class="kw">const</span> offered = (<span class="kw">await</span> page.<span class="fn">locator</span>(<span class="str">'input[type="radio"]'</span>).<span class="fn">evaluateAll</span>(els => els.<span class="fn">map</span>(e => (e <span class="kw">as</span> <span class="type">HTMLInputElement</span>).value)))
+  .<span class="fn">filter</span>(v => <span class="str">/afterpay|braintree/</span>.<span class="fn">test</span>(v));
+softAssert.<span class="fn">toEqual</span>(offered.<span class="fn">sort</span>(), expected.<span class="fn">sort</span>(), <span class="str">'Payment radios match storeConfig'</span>);
+
+<span class="kw">await</span> page.<span class="fn">locator</span>(<span class="str">'input[value="braintree_gra"]'</span>).<span class="fn">check</span>();
+<span class="kw">await</span> expect.<span class="fn">poll</span>(() => page.<span class="fn">frames</span>().<span class="fn">some</span>(f => f.<span class="fn">url</span>().<span class="fn">startsWith</span>(<span class="str">'https://assets.braintreegateway.com/'</span>))).<span class="fn">toBe</span>(<span class="kw">true</span>);</pre>
+
+            <div class="gotcha-box">
+              <span class="gotcha-icon">⚠</span>
+              <div><strong>Platypus NZ and Skechers NZ</strong> couldn't reach checkout during the recon: Platypus NZ's add to cart never moved the cart badge, and Skechers NZ had no purchasable size in the first 10 MENS products. Seed the cart through GraphQL with a known in-stock SKU rather than relying on the PLP scan and the UI add to cart. <strong>Apple Pay</strong> (<code>braintree_applepay</code>) is in the API's method list but only renders in Safari, so leave it out of the Chromium run. <strong><code>checkmo</code></strong> (check / money order) comes back from <code>getPaymentMethods</code> on 5 of the 6 stores that reached payment (not Platypus AU) and never renders; assert it stays hidden, and ask whether it is enabled in production. Pay in 4 is the reverse: a radio with no matching GraphQL code, driven by the <code>storeConfig</code> flag. Reuse <code>getBraintreeClientConfig()</code> from <code>tests/api/api-test-helpers.ts</code> to assert the client token says <code>environment: "sandbox"</code>.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INT-013 -->
+        <div class="scenario-card" id="int-013">
+          <div class="scenario-header">
+            <span class="scenario-id">INT-013</span>
+            <div>
+              <div class="scenario-title">Search and PLP: Fredhopper Proxy ↔ Product Grid ↔ Attraqt Beacon</div>
+              <div class="scenario-meta" style="margin-top:8px">
+                <span class="tag tag-p1">P1 Critical</span>
+                <span class="tag tag-all">All 8 sites</span>
+                <span class="tag tag-int">Boundary E</span>
+                <span class="tag tag-tier">Tier A</span>
+                <span class="tag" style="background:rgba(61,220,132,.1);color:var(--green)">★★★★☆ ROI</span>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-body">
+            <p>Search results, PLPs and recommendations all come from Fredhopper through a same-origin proxy. A search triggers <code>GET /fredhopper/query</code> plus three GraphQL helpers (<code>fredhopperSeoConvertToFRH</code>, <code>fredhopperSearchSeoConvertToFRH</code>, <code>fredhopperSearchFRHConvertToPretty</code>) that map between SEO URLs and Fredhopper locations. Autocomplete calls <code>GET /accent_{plat|skech|vans|drm}/json</code>. Attraqt's beacon at <code>collect-ap2.attraqt.io</code> records the search. When the Fredhopper feed or proxy breaks, every PLP on the brand is empty, which is why this is P1.</p>
+
+            <div class="boundaries">
+              <div class="boundary"><div class="boundary-dot dot-green"></div>Typing → <code>/accent_{brand}/json</code> → suggestion list</div>
+              <div class="boundary"><div class="boundary-dot dot-cyan"></div>Submit → <code>/fredhopper/query</code> → product cards</div>
+              <div class="boundary"><div class="boundary-dot dot-purple"></div>Search → Attraqt collect beacon</div>
+            </div>
+
+            <pre><span class="kw">const</span> suggest = page.<span class="fn">waitForResponse</span>(r => <span class="str">/\/accent_[a-z]+\/json/</span>.<span class="fn">test</span>(r.<span class="fn">url</span>()));
+<span class="kw">await</span> ecommerceSearchPage.<span class="fn">typeSearchTerm</span>(site.searchTerm);
+softAssert.<span class="fn">toBe</span>((<span class="kw">await</span> suggest).<span class="fn">status</span>(), <span class="num">200</span>, <span class="str">'Autocomplete endpoint'</span>);
+
+<span class="cm">// Sink the beacon (it still fires the 'request' event) unless the tracker keys are confirmed staging-only</span>
+<span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/collect-ap2.attraqt.io/**'</span>, r => r.<span class="fn">fulfill</span>({ status: <span class="num">204</span> }));
+<span class="kw">const</span> results = page.<span class="fn">waitForResponse</span>(r => r.<span class="fn">url</span>().<span class="fn">includes</span>(<span class="str">'/fredhopper/query'</span>));
+<span class="kw">const</span> beacon = page.<span class="fn">waitForRequest</span>(r => r.<span class="fn">url</span>().<span class="fn">includes</span>(<span class="str">'collect-ap2.attraqt.io'</span>));
+<span class="kw">await</span> ecommerceSearchPage.<span class="fn">search</span>(site.searchTerm, site.searchResultUrlPattern);
+softAssert.<span class="fn">toBe</span>((<span class="kw">await</span> results).<span class="fn">status</span>(), <span class="num">200</span>, <span class="str">'Fredhopper proxy'</span>);
+softAssert.<span class="fn">toBeGreaterThan</span>(<span class="kw">await</span> ecommerceSearchPage.<span class="fn">getResultCount</span>(), <span class="num">0</span>, <span class="str">'Product cards rendered'</span>);
+<span class="kw">await</span> beacon;</pre>
+
+            <div class="gotcha-box">
+              <span class="gotcha-icon">⚠</span>
+              <div><strong>Ranking isn't stable.</strong> <code>ewave_fredhopper_ab_testing_enable</code> is on for all 8 stores and AI scoring is on for Platypus and Skechers, so assert counts and presence, never order. <strong>Skechers AU</strong> rendered no autocomplete suggestions for "Go Walk" during the recon. <strong>Platypus NZ</strong> jumps to production on this search (INT-011).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INT-014 -->
+        <div class="scenario-card" id="int-014">
+          <div class="scenario-header">
+            <span class="scenario-id">INT-014</span>
+            <div>
+              <div class="scenario-title">Kleber Address Lookup → <code>setShippingAddress</code> → Shipping Methods</div>
+              <div class="scenario-meta" style="margin-top:8px">
+                <span class="tag tag-p1">P1 Critical</span>
+                <span class="tag tag-all">All 8 sites</span>
+                <span class="tag tag-int">Boundary E</span>
+                <span class="tag tag-tier">Tier A</span>
+                <span class="tag" style="background:rgba(61,220,132,.1);color:var(--green)">★★★★☆ ROI</span>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-body">
+            <p>All 8 stores use Kleber for checkout address autocomplete (<code>ewave_address_autocomplete.type = "KLEBER"</code>). The storefront first fetches a temporary key with the GraphQL query <code>getKleberTempKey</code>, then the browser calls <code>kleber.datatoolscloud.net.au/KleberWebService/DtKleberService.svc/ProcessQueryStringRequest</code> as the user types. Picking a suggestion fills the form and the next step sends <code>setShippingAddress</code>. Every checkout spec already goes through this path in <code>fillGuestShippingAddress()</code> without asserting on it, so a Kleber outage today shows up as an unexplained skip ("no address suggestion could be selected").</p>
+
+            <div class="steps-grid">
+              <div class="steps-block">
+                <h4>Happy path</h4>
+                <ul class="step-list">
+                  <li><span class="assert-icon">✓</span> <code>getKleberTempKey</code> returns 200 with no <code>errors</code></li>
+                  <li><span class="assert-icon">✓</span> Kleber lookup returns 200 and at least one suggestion renders</li>
+                  <li><span class="assert-icon">✓</span> <code>setShippingAddress</code> response has no <code>errors</code></li>
+                  <li><span class="assert-icon">✓</span> At least one shipping method becomes selectable</li>
+                </ul>
+              </div>
+              <div class="steps-block">
+                <h4>Outage variant</h4>
+                <ul class="step-list">
+                  <li><div class="step-num">1</div> <code>page.route('**/kleber.datatoolscloud.net.au/**', r =&gt; r.abort())</code></li>
+                  <li><div class="step-num">2</div> Type the address query</li>
+                  <li><span class="assert-icon">✓</span> "Enter address manually" is offered</li>
+                  <li><span class="assert-icon">✓</span> Manual entry still reaches the shipping methods</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="gotcha-box">
+              <span class="gotcha-icon">⚠</span>
+              <div><strong>Don't log the Kleber request URL.</strong> It carries the temporary key in the query string, and the console/verbose failure attachments would publish it. Use <code>createGuestShippingAddress(site.storeHeader === 'nz')</code> so NZ stores get an NZ address; NZ lookups go to the same Kleber host.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INT-015 -->
+        <div class="scenario-card" id="int-015">
+          <div class="scenario-header">
+            <span class="scenario-id">INT-015</span>
+            <div>
+              <div class="scenario-title">Vendor Outage: The Purchase Path Survives Each Third Party Failing</div>
+              <div class="scenario-meta" style="margin-top:8px">
+                <span class="tag tag-p1">P1 Critical</span>
+                <span class="tag tag-all">All 8 sites</span>
+                <span class="tag tag-int">Boundary E</span>
+                <span class="tag tag-tier">Tier A</span>
+                <span class="tag" style="background:rgba(61,220,132,.1);color:var(--green)">★★★★☆ ROI</span>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-body">
+            <p>Abort one vendor at a time and run home → PLP → PDP → add to cart → checkout entry (checkout-helpers Steps 0 to 14). A storefront that renders vendor widgets inside the React tree without an error boundary turns a slow review widget into a blank PDP. TrueFit already fails on every staging store, so its row doubles as a live example. Nothing is mocked except the abort, and nothing leaves the storefront's own cart.</p>
+
+            <pre><span class="kw">const</span> VENDOR_OUTAGES: <span class="type">Record</span>&lt;<span class="type">string</span>, <span class="type">string</span>&gt; = {
+  bazaarvoice: <span class="str">'**/*.bazaarvoice.com/**'</span>,
+  truefit: <span class="str">'**/*.truefitcorp.com/**'</span>,
+  bloomreach: <span class="str">'**/api-accent.bloomreach.co/**'</span>,
+  afterpay: <span class="str">'**/*.{squarecdn,afterpay,afterpay-beta}.com/**'</span>,
+  zendesk: <span class="str">'**/*.{zendesk,zdassets}.com/**'</span>,
+  googleMaps: <span class="str">'**/maps.googleapis.com/**'</span>,
+  forter: <span class="str">'**/*.forter.com/**'</span>,
+  adobeLaunch: <span class="str">'**/assets.adobedtm.com/**'</span>,
+  fullstory: <span class="str">'**/*.fullstory.com/**'</span>,
+};
+
+<span class="kw">for</span> (<span class="kw">const</span> [vendor, pattern] <span class="kw">of</span> <span class="type">Object</span>.<span class="fn">entries</span>(VENDOR_OUTAGES)) {
+  <span class="fn">test</span>(<span class="str">`E2E-INT-015 ${site.name} survives ${vendor} outage`</span>, <span class="kw">async</span> ({ page /* , fixtures */ }) => {
+    <span class="kw">await</span> page.<span class="fn">route</span>(pattern, r => r.<span class="fn">abort</span>());
+    <span class="cm">// addToCartAndReachCheckoutCta(...) then assert: PDP name/price shown,</span>
+    <span class="cm">// cart count +1, checkout loaded, no 'pageerror' events</span>
+  });
+}</pre>
+
+            <div class="gotcha-box">
+              <span class="gotcha-icon">⚠</span>
+              <div><strong>Two vendors need their own expectations.</strong> Without Fredhopper there is no PLP, so that case belongs with INT-006 (expect a handled empty state, not a purchase). Failing <code>createBraintreeClientToken</code> should hide or error the card and PayPal options while Afterpay stays available; check that at the payment step rather than at checkout entry. <strong>Cost:</strong> 9 vendors × 8 stores is 72 runs, so run the full set nightly on one AU and one NZ store, and all 8 weekly. <strong>Add a slow mode.</strong> A vendor that hangs for 20 seconds is the more realistic outage, so run each vendor twice: <code>abort()</code> and a delayed <code>continue()</code>. <strong>Prove each block fired.</strong> Count hits per route and require at least one; a block that never matched makes the test pass for the wrong reason, which is exactly how <code>NOISE_ROUTE_PATTERNS</code> went unnoticed.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INT-016 -->
+        <div class="scenario-card" id="int-016">
+          <div class="scenario-header">
+            <span class="scenario-id">INT-016</span>
+            <div>
+              <div class="scenario-title">Afterpay Messaging on PDP and Cart + Order-Limit Eligibility</div>
+              <div class="scenario-meta" style="margin-top:8px">
+                <span class="tag tag-p2">P2 High</span>
+                <span class="tag tag-all">All 8 sites</span>
+                <span class="tag tag-int">Boundary E</span>
+                <span class="tag tag-tier">Tier A + B</span>
+                <span class="tag" style="background:rgba(255,179,0,.1);color:var(--amber)">★★★☆☆ ROI</span>
+              </div>
+            </div>
+          </div>
+          <div class="scenario-body">
+            <p><code>storeConfig.afterpay</code> turns messaging on for the PDP and cart on all 8 stores, through Square's <code>square-placement</code> element and <code>placement-api.sandbox.afterpay.com</code>. The configured limits are a $1 minimum and a $2000 maximum, except Platypus NZ and Skechers NZ, which cap at $500. Tier A checks that the placement renders on both pages and shows an instalment amount consistent with the price. Tier B raises the cart quantity past <code>afterpay.maxOrderTotal</code> with <code>updateCartItems</code> and checks whether <code>afterpay</code> drops out of <code>getPaymentMethods</code> and <code>afterpay_gra</code> out of the radio list.</p>
+
+            <div class="alert alert-warn">
+              <span class="alert-icon">⚠</span>
+              <div>Behaviour above the limit isn't confirmed; Cash App Afterpay's messaging guide only says ineligible carts hide messaging. Treat the first run as discovery. Read the limits from <code>storeConfig</code>, not a constant, since NZ differs by brand ($500 vs $2000; confirm which is intended). GraphQL names the method <code>afterpay</code>; the radio adds the <code>_gra</code> suffix every GRA radio carries. The API suite's expected list for Platypus AU (<code>gra-test-data.ts</code>) has no Afterpay entry even though GraphQL returns it on every store sampled. The <code>square-placement</code> element documents <code>data-amount</code>, <code>data-currency</code> and <code>data-consumer-locale</code> attributes, which are easier to assert than rendered text. Don't assert the <code>iq.afterpay-beta.com</code> beacon: CSP blocks it everywhere.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Third-party catalog ── -->
+    <section class="section" id="catalog-3p">
+      <div class="section-header">
+        <div class="section-num">8</div>
+        <h2>Third-Party Scenario Catalog: INT-017 to INT-035</h2>
+        <p>The rest of the browser-testable vendor surface, one row per scenario. Expand a row into a full card when it is picked up for implementation.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Vendor</th><th>What the test checks</th><th>Brands</th><th>Tier</th><th>Priority</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>INT-017</strong></td><td>Qantas</td><td>Checkout shows "Earn N Qantas Points" and loads the Points Pay widget from <code>cdn.stg.qantasloyalty.com</code> only when <code>is_qantas_loyalty_enable</code> / <code>is_qantas_points_pay_enable</code> are true; both are absent on NZ. The recon saw 280 points on a $139.99 order. Confirm the earn rate with the business before asserting a formula.</td><td>AU ×4, NZ negative</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-018</strong></td><td>Bazaarvoice</td><td>PDP rating summary, reviews and Q&amp;A load from the staging deployment (<code>apps.bazaarvoice.com/deployments/{client}/{zone}</code>, <code>network-stg-a</code> beacon) with the brand's client name and zone from <code>storeConfig</code>; exactly one deployment zone loads per page (Skechers loads both <code>skx_gra</code> and <code>main_site</code> today); the PDP rating matches the PLP inline rating. Never submit a review or question. Extends <code>plp-rating-smoke.spec.ts</code>.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-019</strong></td><td>Shipping carriers</td><td>A cart just under <code>free_shipping_threshold</code> pays <code>carriers_flatrate_price</code>; at or over it, <code>freeshipping</code> appears; the UI radio count matches GraphQL. Methods returned today: <code>instore/pickup</code> and <code>flatrate</code> everywhere, <code>freeshipping</code> on most stores, and a same-day carrier (<code>codecarrierau/sddau</code>) on DRM AU that depends on time of day, so treat it as optional. Thresholds are 149.99, 149.999, 149.96, 150 and 200, and flat rates 12.99, 13 and 15; confirm the intended values first.</td><td>All 8</td><td>B</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-020</strong></td><td>Google Maps</td><td>The Click &amp; Collect tab at checkout finds stores by postcode within <code>carriers_in_store_pickup_search_radius</code> (50 km) with stock messages; <code>/stores</code> renders a map from the <code>stores</code> query.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-021</strong></td><td>SEKO</td><td><code>/create-returns-info</code> embeds the returns booking iframe from <code>seko_iframe_endpoint_guest</code> (<code>accentgrouptest.omniparcelreturns.com</code>) and the iframe origin is the test environment. Not rendered during the recon.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-022</strong></td><td>Vii</td><td>Footer gift card link opens the brand's Vii staging site; the checkout gift card field calls <code>getAppliedGiftCards</code>. Applying a card needs Vii test card numbers, which the repo doesn't have.</td><td>All 8 (Vans links to production today)</td><td>A link, C apply</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-023</strong></td><td>Bloomreach</td><td>The Vans acquisition popup renders and stays dismissed for the session; each brand loads its own webxp project; blocking <code>webxp</code> gives a stable control UI for other specs.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-024</strong></td><td>Adobe Launch + ACDL</td><td>The Tags library URL ends <code>-staging.min.js</code> (true on all 8 today); page events in <code>adobeDataLayer</code> reach an <code>smetrics.&lt;brand domain&gt;/ee/…</code> call with the same page name; <code>datalayer_env</code> is <code>stg</code>. <code>cart_add</code> fans out to GA4 <code>add_to_cart</code> and the AEP call. Sink the beacons so staging runs don't land in production reports. Don't hardcode the AEP region segment; it follows the runner's location.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-025</strong></td><td>Vendor bootstrap</td><td>One row per vendor config: FullStory org id is well formed (fails on PLA NZ today), New Relic loads an app id from an approved staging list, Zendesk subdomain matches brand and region, TrueFit staging config responds (fails on all 8 today). Find out whether the New Relic app ids staging reports to are the same production entities the Lighthouse dashboard's INP section reads; if so, automation traffic is skewing it.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-026</strong></td><td>CSP</td><td>No <code>securitypolicyviolation</code> event for vendors the brand means to run. Every store has at least one block today; Afterpay <code>iq</code> events are blocked on all 8. Full list in the defects table above.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-027</strong></td><td>Ad and session tags</td><td>After guest email and address entry, no plaintext email, phone or street appears in URLs or bodies sent to Meta, TikTok, Pinterest, Google Ads or FullStory. Forter, Bloomreach and Braintree receive customer data by design and are excluded. Reuse the patterns in <code>src/utils/redact.ts</code>.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-028</strong></td><td>CMS media</td><td>No staging page loads images from <code>admin-prod-*</code>, another brand's admin host or the other region's storefront.</td><td>All 8 (5 fail today)</td><td>A</td><td><span class="tag tag-p3">P3</span></td></tr>
+            <tr><td><strong>INT-029</strong></td><td>TrueFit</td><td>The PDP size-advisor entry point renders and the widget loads from the brand's staging CDN. Blocked until TrueFit's staging endpoint works.</td><td>All 8</td><td>A</td><td><span class="tag tag-p3">P3</span></td></tr>
+            <tr><td><strong>INT-030</strong></td><td>Zendesk</td><td>Messenger (<code>zE</code>) loads, opens, and its launcher doesn't cover the add-to-cart or checkout button at desktop and mobile widths.</td><td>All 8</td><td>A</td><td><span class="tag tag-p3">P3</span></td></tr>
+            <tr><td><strong>INT-031</strong></td><td>Marketing tags</td><td>A <code>cart_add</code> event also fires Meta <code>fbq</code> AddToCart, TikTok <code>ttq</code> and the Google Ads tag; Commission Factory and Unidays scripts load; the Foursixty gallery renders on home.</td><td>All 8 (TikTok not Vans; Unidays not DRM NZ)</td><td>A</td><td><span class="tag tag-p3">P3</span></td></tr>
+            <tr><td><strong>INT-032</strong></td><td>Third-party weight</td><td>Warn-level Lighthouse assertions on <code>third-party-summary</code> and <code>third-party-facades</code> (Vimeo, Zendesk) in <code>lighthouserc.js</code>, mirrored into the mobile and both Bitbucket configs per CLAUDE.md; scripts from public CDNs (<code>zoid@9.0.85</code> on <code>cdn.jsdelivr.net</code>, qrcodejs on <code>cdnjs</code>) carry an <code>integrity</code> attribute. Per-vendor request counts from INT-011 are trend data, not a gate.</td><td>All 8</td><td>A</td><td><span class="tag tag-p3">P3</span></td></tr>
+            <tr><td><strong>INT-033</strong></td><td>storeConfig contract</td><td>An API-project test that queries <code>storeConfig</code> once per store and checks every vendor field against typed per-store expectations: BV environment, client and zone; Afterpay sandbox script URL and limits; SEKO endpoint host; Forter site id; Fredhopper tracker key; Klaviyo, Qantas and Pay in 4 flags; Kleber. No browser and no side effects, so it catches config drift on every deploy. Never select <code>ewave_inventory_in_store_pickup_googleApiKey</code>.</td><td>All 8</td><td>B</td><td><span class="tag tag-p1">P1</span></td></tr>
+            <tr><td><strong>INT-034</strong></td><td>Order-success tags</td><td>Passive soft checks added to the existing opt-in order specs (E2E-PLAORD-001/002/003), so no new orders: the ACDL purchase event carries the order number, GA4 sends a purchase hit with the same transaction id, the Bazaarvoice conversion pixel goes to <code>network-stg-a</code>, and <code>forterToken</code> exists before <code>placeOrder</code>. Capture payloads on the first run before encoding them.</td><td>All 8</td><td>A</td><td><span class="tag tag-p2">P2</span></td></tr>
+            <tr><td><strong>INT-035</strong></td><td>Fastly / origin preflight</td><td>Before a suite, <code>GET /</code> and a minimal <code>storeConfig { store_code }</code> query per store with a short timeout. A 503 with Fastly's backend-error body, or a timeout, marks that store as environment-down and skips its tests with one reason instead of dozens of red results. Generalises the per-storefront health check already in <code>addToCartAndReachCheckoutCta()</code> Step 0.</td><td>All 8</td><td>B</td><td><span class="tag tag-p2">P2</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Back-office integrations ── -->
+    <section class="section" id="back-office">
+      <div class="section-header">
+        <div class="section-num">9</div>
+        <h2>Back-Office Integrations (Tier C): Not Testable From the Browser</h2>
+        <p>These run server-side or asynchronously. A browser test can trigger them but can't see the result without access to the vendor or AP21. They stay out of the automated suite until someone grants that access, the same call made for E2E-CART-009 when a promo depended on back-office config.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Integration</th><th>What would prove it works</th><th>Why the browser can't see it</th></tr></thead>
+          <tbody>
+            <tr><td>AP21 via Mulesoft</td><td>Customer, order, loyalty and stock changes land in AP21</td><td>Asynchronous over Anypoint MQ, with a 30-minute batch fallback; no AP21 access</td></tr>
+            <tr><td>Forter decision</td><td>Order status after Forter approves or declines</td><td>The decision is made after order placement, outside the session</td></tr>
+            <tr><td>Klaviyo (DRM, Vans) / Adobe Campaign (PLA, SKX)</td><td>Footer or checkout subscription appears in the ESP</td><td>Server-side, partly via an AP21 export batch. <code>storeConfig</code> shows Adobe Campaign newsletter inactive on all 8 stores, which contradicts the integration doc and needs an answer from Martech</td></tr>
+            <tr><td>Bazaarvoice review submission</td><td>Submitted review shows after moderation</td><td>Writes to BV and waits on moderation; forms may be protected by Turnstile or reCAPTCHA</td></tr>
+            <tr><td>Vii redemption and hold</td><td>Gift card balance drops when the order reaches Processing</td><td>Needs Vii test cards; redemption keys off order status</td></tr>
+            <tr><td>SEKO → AP21 returns</td><td>A booked return appears in My Account history</td><td>SEKO and AP21 sync directly, outside Adobe Commerce</td></tr>
+            <tr><td>Shippit quotes</td><td>Click &amp; Deliver offered for addresses near a store</td><td>Quoted server-side. The browser only sees the resulting methods (in-store pickup, flat rate, free shipping, and a same-day carrier on DRM AU); which of them Shippit priced isn't visible</td></tr>
+            <tr><td>Intelligent Reach feeds</td><td>Google Shopping, Meta, BV and TrueFit feeds carry the right products</td><td>Back-office XML transformation, mapping undocumented</td></tr>
+            <tr><td>Commission Factory conversion</td><td>Affiliate sale recorded</td><td>Needs the affiliate portal</td></tr>
+            <tr><td>Afterpay and Qantas Points Pay orders</td><td>Order completes with BNPL or points</td><td>Needs vendor sandbox buyer or member accounts the repo doesn't have</td></tr>
+            <tr><td>Fastly (staging edge)</td><td>Cache hits, no 503 <code>backend-read-error</code></td><td>Only response headers are visible; the 2026-07 CI incident came from the staging origin behind Fastly</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- ── Implementation ── -->
     <section class="section" id="setup">
       <div class="section-header">
-        <div class="section-num">6</div>
+        <div class="section-num">10</div>
         <h2>Test Setup Patterns</h2>
         <p>Reusable setup blocks that should appear in <code>beforeEach</code> for all integration tests.</p>
       </div>
@@ -1123,20 +1664,16 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
       <div class="pattern-grid">
         <div class="pattern-card">
           <h4>Route Noise Blocking</h4>
-          <p>Block these in <code>beforeEach</code> to reduce flakiness from slow third-party calls.</p>
-          <pre style="margin:0;font-size:11.5px"><span class="fn">test</span>.<span class="fn">beforeEach</span>(<span class="kw">async</span> ({ page }) => {
-  <span class="kw">for</span> (<span class="kw">const</span> pattern <span class="kw">of</span> [
-    <span class="str">'**/truefitcorp.com/**'</span>,    <span class="cm">// fails on staging</span>
-    <span class="str">'**/fullstory.com/**'</span>,       <span class="cm">// session recording</span>
-    <span class="str">'**/facebook.com/tr**'</span>,      <span class="cm">// FB pixel</span>
-    <span class="str">'**/taboola.com/**'</span>,         <span class="cm">// ads</span>
-    <span class="str">'**/paypal.com/**'</span>,          <span class="cm">// widget pre-load</span>
-    <span class="str">'**/analytics.google.com/**'</span>,<span class="cm">// GA4</span>
-    <span class="str">'**/demdex.net/**'</span>,          <span class="cm">// Adobe DMP</span>
-  ]) {
-    <span class="kw">await</span> page.<span class="fn">route</span>(pattern, r => r.<span class="fn">abort</span>());
-  }
-});</pre>
+          <p>Block only vendors the scenario doesn't test. Never block PayPal, Braintree, Afterpay or Square in payment scenarios, Adobe or GA in analytics scenarios, or anything in INT-011, which needs to see every request.</p>
+          <p><strong style="color:var(--amber)">The shared list doesn't block anything today.</strong> <code>AtcAnalyticsData.NOISE_ROUTE_PATTERNS</code> uses patterns like <code>**/truefitcorp.com/**</code>, which need a <code>/</code> right before the domain and so only match the bare domain. An offline check on Playwright 1.61.1 (2026-10-16) found they match none of the real hosts (<code>consumer-dev.truefitcorp.com</code>, <code>edge.fullstory.com</code>, <code>www.facebook.com/tr</code>, <code>cdn.taboola.com</code>). The subdomain form below matches. Changing the live file is a code change and waits for approval.</p>
+          <pre style="margin:0;font-size:11.5px"><span class="cm">// Subdomain-safe globs (verified offline against real vendor URLs)</span>
+<span class="kw">const</span> NOISE = [
+  <span class="str">'**/*.truefitcorp.com/**'</span>,  <span class="cm">// fails on staging anyway</span>
+  <span class="str">'**/*.fullstory.com/**'</span>,
+  <span class="str">'**/www.facebook.com/tr**'</span>,
+  <span class="str">'**/*.taboola.com/**'</span>,
+];
+<span class="kw">for</span> (<span class="kw">const</span> p <span class="kw">of</span> NOISE) <span class="kw">await</span> page.<span class="fn">route</span>(p, r => r.<span class="fn">abort</span>());</pre>
         </div>
         <div class="pattern-card">
           <h4>Vans Popup Guard</h4>
@@ -1159,28 +1696,29 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
         </div>
         <div class="pattern-card">
           <h4>GraphQL Mutation Interceptor</h4>
-          <p>Capture any GraphQL operation by name for assertion without mocking.</p>
-          <pre style="margin:0;font-size:11.5px"><span class="kw">async function</span> <span class="fn">interceptGql</span>(page: <span class="type">Page</span>, opName: <span class="type">string</span>) {
-  <span class="kw">let</span> payload: <span class="type">unknown</span> = <span class="kw">null</span>;
-  <span class="kw">await</span> page.<span class="fn">route</span>(
-    <span class="str">`**/graphql?**operationName=${opName}**`</span>,
-    <span class="kw">async</span> route => {
-      <span class="kw">const</span> res = <span class="kw">await</span> route.<span class="fn">fetch</span>();
-      payload = <span class="kw">await</span> res.<span class="fn">json</span>();
-      <span class="kw">await</span> route.<span class="fn">fulfill</span>({ response: res });
-    }
-  );
-  <span class="kw">return</span> { <span class="fn">get</span>: () => payload };
+          <p>Queries are GET with <code>operationName</code> in the URL; mutations are a bare <code>POST /graphql</code> with it only in the body. Match mutations on a substring of the body's <code>query</code>, pass everything else through. The working version is <code>createAddToCartCapture()</code> in <code>tests/ecommerce/integration/integration-helpers.ts</code>.</p>
+          <pre style="margin:0;font-size:11.5px"><span class="kw">async function</span> <span class="fn">captureMutation</span>(page: <span class="type">Page</span>, bodyMatch: <span class="type">string</span>) {
+  <span class="kw">const</span> state: { payload: <span class="type">unknown</span> } = { payload: <span class="kw">null</span> };
+  <span class="kw">await</span> page.<span class="fn">route</span>(<span class="str">'**/graphql*'</span>, <span class="kw">async</span> route => {
+    <span class="kw">const</span> req = route.<span class="fn">request</span>();
+    <span class="kw">const</span> body = req.<span class="fn">method</span>() === <span class="str">'POST'</span> ? req.<span class="fn">postDataJSON</span>() : <span class="kw">undefined</span>;
+    <span class="kw">if</span> (!body?.query?.<span class="fn">includes</span>(bodyMatch)) <span class="kw">return</span> route.<span class="fn">continue</span>();
+    <span class="kw">const</span> res = <span class="kw">await</span> route.<span class="fn">fetch</span>();
+    state.payload = <span class="kw">await</span> res.<span class="fn">json</span>();
+    <span class="kw">await</span> route.<span class="fn">fulfill</span>({ response: res });
+  });
+  <span class="kw">return</span> state;
 }
 
-<span class="cm">// Usage:</span>
-<span class="kw">const</span> mutation = <span class="kw">await</span> <span class="fn">interceptGql</span>(page, <span class="str">'addProductsToCart'</span>);
+<span class="cm">// Usage: field name varies, so read data positionally</span>
+<span class="kw">const</span> atc = <span class="kw">await</span> <span class="fn">captureMutation</span>(page, <span class="str">'ProductsToCart'</span>);
 <span class="kw">await</span> pdpPage.<span class="fn">addToCart</span>();
-<span class="kw">const</span> items = (mutation.<span class="fn">get</span>() <span class="kw">as</span> <span class="type">any</span>)?.data?.addProductsToCart?.cart?.items;</pre>
+<span class="kw">const</span> items = <span class="type">Object</span>.<span class="fn">values</span>((atc.payload <span class="kw">as</span> <span class="type">any</span>)?.data ?? {})[<span class="num">0</span>]?.cart?.items;</pre>
         </div>
         <div class="pattern-card">
           <h4>REST API Cart Seeding</h4>
           <p>Seed cart before checkout/promo tests — faster than UI ATC flow.</p>
+          <p style="color:var(--amber)">Unverified on GRA staging: the existing suites seed carts through GraphQL (<code>createCart</code>, add-to-cart mutation), not these REST endpoints. Prefer the GraphQL route until the REST one is confirmed.</p>
           <pre style="margin:0;font-size:11.5px"><span class="cm">// POST /rest/V1/guest-carts → cartId</span>
 <span class="cm">// POST /rest/V1/guest-carts/{cartId}/items</span>
 <span class="kw">async function</span> <span class="fn">seedGuestCart</span>(
@@ -1204,7 +1742,7 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
     <!-- ── Analytics ── -->
     <section class="section" id="analytics">
       <div class="section-header">
-        <div class="section-num">7</div>
+        <div class="section-num">11</div>
         <h2>Analytics Assertions (Adobe Client Data Layer)</h2>
         <p>All 8 sites use <strong>Adobe Client Data Layer 2.0.2</strong>. Use <code>getState()</code> for the current merged state — more reliable than scanning the array.</p>
       </div>
@@ -1224,10 +1762,10 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
 <span class="cm">// Login status</span>
 <span class="fn">expect</span>(dlState?.default?.user?.login_status).<span class="fn">toBe</span>(<span class="str">'logged_in'</span>);
 
-<span class="cm">// Event search (array scan — needed for event lookup)</span>
+<span class="cm">// Event lookup needs an array scan; GRA's add-to-cart event is 'cart_add', not GA4's 'add_to_cart'</span>
 <span class="kw">const</span> atcEvent = <span class="kw">await</span> page.<span class="fn">evaluate</span>(() =>
   ((window <span class="kw">as</span> <span class="type">any</span>).adobeDataLayer <span class="kw">as</span> <span class="type">any</span>[])
-    ?.<span class="fn">find</span>((e: <span class="type">any</span>) => e?.event === <span class="str">'add_to_cart'</span>)
+    ?.<span class="fn">find</span>((e: <span class="type">any</span>) => e?.event === <span class="str">'cart_add'</span>)
 );</pre>
 
       <div class="table-wrap" style="margin-top:20px">
@@ -1241,7 +1779,7 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
             <tr><td><code>dlState.default.site.env</code></td><td><code>"stg"</code></td><td>Confirms staging environment</td></tr>
             <tr><td><code>dlState.default.page.type</code></td><td><code>"home"</code> / <code>"category"</code> / <code>"product"</code></td><td>Page type verification</td></tr>
             <tr><td><code>dlState.default.user.login_status</code></td><td><code>"guest"</code> / <code>"logged_in"</code></td><td>Auth state assertion</td></tr>
-            <tr><td><code>dlState.default.site.version</code></td><td><code>"magento_2.4.6-p15 | pwa_9.0.1 | gra_10.0.26.1"</code></td><td>Platform version check</td></tr>
+            <tr><td><code>dlState.default.site.version</code></td><td><code>"magento_2.4.6-p15 | pwa_9.0.1 | gra_10.0.28.8"</code> (from <code>storeConfig.datalayer_version</code> on all 8 stores, 2026-10-16)</td><td>Platform version check</td></tr>
           </tbody>
         </table>
       </div>
@@ -1250,9 +1788,9 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
     <!-- ── Per-Brand Gotchas ── -->
     <section class="section" id="gotchas">
       <div class="section-header">
-        <div class="section-num">8</div>
-        <h2>Per-Brand Gotchas — Integration Test Impact</h2>
-        <p>Issues discovered via live browser investigation (2026-06-15). Must be handled in every test that touches the affected brand.</p>
+        <div class="section-num">12</div>
+        <h2>Per-Brand Gotchas: Integration Test Impact</h2>
+        <p>Found during live browser investigations on 2026-06-15 and 2026-10-16. Every test that touches the affected brand has to handle these.</p>
       </div>
 
       <div class="table-wrap">
@@ -1325,7 +1863,37 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
               <td><span class="brand-pill warn">Platypus AU</span></td>
               <td>TrueFit returns <code>ERR_FAILED</code> on staging</td>
               <td>Console errors on every page load — not a test failure, but pollutes logs</td>
-              <td>Add <code>**/truefitcorp.com/**</code> to the route block list in <code>beforeEach</code>.</td>
+              <td>Block <code>**/*.truefitcorp.com/**</code> in <code>beforeEach</code>. The older <code>**/truefitcorp.com/**</code> pattern never matches the subdomain hosts TrueFit actually uses.</td>
+            </tr>
+            <tr>
+              <td><span class="brand-pill warn">Platypus NZ</span></td>
+              <td>Search for "Nike" redirects to production <code>www.platypusshoes.co.nz/shop/nike</code></td>
+              <td>Everything after the search runs against production, and <code>searchResultUrlPattern</code> still passes</td>
+              <td>Assert the host as well as the path after any search. Covered by INT-011.</td>
+            </tr>
+            <tr>
+              <td><span class="brand-pill warn">Vans AU/NZ</span></td>
+              <td>Footer "Gift Cards" links to production <code>giftcards.vans.com.au</code></td>
+              <td>A gift card test following the link would act on the live Vii shop</td>
+              <td>Read the <code>href</code> and assert the host; never click through. Covered by INT-011.</td>
+            </tr>
+            <tr>
+              <td><span class="brand-pill warn">PLA NZ, SKX NZ</span></td>
+              <td>PLA NZ: add to cart ran but the cart badge stayed at 0. SKX NZ: no purchasable size among the first 10 MENS PLP products (both 2026-10-16)</td>
+              <td>Checkout-dependent scenarios (INT-012, INT-014, INT-016) can't reach the payment step</td>
+              <td>Seed the cart through GraphQL with a known in-stock SKU instead of the PLP scan.</td>
+            </tr>
+            <tr>
+              <td><span class="brand-pill warn">PLA AU, VAN AU/NZ</span></td>
+              <td>Cloudflare Turnstile loads on PLP and PDP, on exactly the stores where Vimeo video 715894328 returns 401</td>
+              <td>Most likely Vimeo's own bot check inside the embed rather than a GRA form; it doesn't block storefront clicks</td>
+              <td>Treat it as a Vimeo embed artifact. Re-check if it ever appears on a store without that video.</td>
+            </tr>
+            <tr>
+              <td><span class="brand-pill warn">All sites</span></td>
+              <td><code>getStoreConfigData</code> is the per-store switchboard for vendors</td>
+              <td>Hardcoded brand lists drift from config (Pay in 4, Qantas and Klaviyo all differ by store)</td>
+              <td>Capture <code>getStoreConfigData</code> once per test and derive expectations from its flags.</td>
             </tr>
           </tbody>
         </table>
@@ -1334,7 +1902,7 @@ softAssert.<span class="fn">toBeTruthy</span>(<span class="kw">await</span> cart
 
     <!-- Footer -->
     <footer class="footer">
-      <span>GRA Integration Test Strategy · Playwright TypeScript Framework · <strong>2026-06-15</strong></span>
+      <span>GRA Integration Test Strategy · Playwright TypeScript Framework · <strong>2026-06-15</strong>, third-party update <strong>2026-10-16</strong></span>
       <span>
         <a href="playwright-framework-intro.html">Framework Intro</a> ·
         <a href="../code-improvement/framework-patterns.html">Framework Patterns</a>

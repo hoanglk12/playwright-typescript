@@ -10,6 +10,7 @@ export class EcommercePDPPage extends BasePage {
   private readonly galleryImageSelector =
     '[class*="gallery"] img, .product-gallery img, .swiper-slide img, img[class*="product"], img[alt*="product"]';
   private readonly PDP_URL_PATTERN = /(\/product\/|\/p\/|\/pdp\/|\.html)/i;
+  private readonly reviewsContainerSelector = '[data-bv-show="reviews"]';
   // Colour swatches: .swiper-slide <a> links inside the container that owns the colorScroller controls.
   // :has() targets the swiper-container that directly contains a colorScroller-next button.
   private readonly colorScrollerContainerSelector =
@@ -64,6 +65,15 @@ export class EcommercePDPPage extends BasePage {
     await this.setupBloomreachHandler();
     await this.waits.waitForUrlMatches(this.PDP_URL_PATTERN, TIMEOUTS.PAGE_LOAD_SLOW);
     await this.productNameHeading.waitFor({ state: 'visible', timeout: TIMEOUTS.PAGE_LOAD });
+  }
+
+  // Bazaarvoice renders in an open shadow root: hasText pierces it, textContent() and evaluate() do not
+  async reviewSectionContains(pattern: RegExp): Promise<boolean> {
+    const count = await this.elements
+      .locator(this.reviewsContainerSelector)
+      .filter({ hasText: pattern })
+      .count();
+    return count > 0;
   }
 
   async getProductName(): Promise<string> {

@@ -314,6 +314,8 @@ The `window.dataLayer[0].default.site.version` string format: `"magento_2.4.6-p1
 ## 10. Recommended Automation Patterns
 
 ### Route blocking to reduce noise and flakiness
+
+> **Correction (2026-10-16):** the `**/<domain>/**` globs below only match the bare domain and miss the subdomain hosts vendors actually use (e.g. `consumer-dev.truefitcorp.com`, `edge.fullstory.com`). Use `**/*.<domain>/**`. See [[gra-third-party-recon-2026-10]] for the verified list and the current vendor inventory, which supersedes §3's host table.
 ```ts
 // In beforeEach or page object setup for cleaner runs:
 await page.route('**/truefitcorp.com/**', r => r.abort());       // TrueFit fails on staging anyway
