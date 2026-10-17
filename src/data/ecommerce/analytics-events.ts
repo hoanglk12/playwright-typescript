@@ -25,7 +25,9 @@ export interface AtcAnalyticsDataShape {
   ATC_MUTATION_BODY_MATCHER: string;
   /**
    * Third-party noise routes blocked during integration runs. Deliberately restricted to
-   * these 4 patterns only — do NOT extend this list. The real Bloomreach A/B experiment
+   * these 4 patterns only — do NOT extend this list. Each pattern names the vendor subdomain
+   * (`*.` or `www.`) because a glob with only the bare domain matches the apex host alone,
+   * never the subdomains the vendors actually serve from. The real Bloomreach A/B experiment
    * (api-accent.bloomreach.co/webxp) and the Attraqt search analytics beacon
    * (collect-ap2.attraqt.io) must run unmocked: INT-001 Boundary A/C rely on that real
    * traffic firing.
@@ -37,9 +39,9 @@ export const AtcAnalyticsData: AtcAnalyticsDataShape = {
   ATC_EVENT_NAMES: ['cart_add', 'add_to_cart'],
   ATC_MUTATION_BODY_MATCHER: 'ProductsToCart',
   NOISE_ROUTE_PATTERNS: [
-    '**/truefitcorp.com/**',
-    '**/fullstory.com/**',
-    '**/facebook.com/tr**',
-    '**/taboola.com/**',
+    '**/*.truefitcorp.com/**',
+    '**/*.fullstory.com/**',
+    '**/www.facebook.com/tr**',
+    '**/*.taboola.com/**',
   ],
 };

@@ -388,6 +388,7 @@ export async function ensureCartOverlayOpen(cartOverlayPage: EcommerceCartOverla
 
 /**
  * Fast in-loop check per product; post-loop waitForSizeButtonsToRender() covers async rendering lag.
+ * Products with sizes but a hidden Add to Cart (presale / members-only) are skipped.
  * An empty result means no purchasable product found; caller must test.skip().
  */
 export async function findProductWithAvailableSizes(
@@ -408,9 +409,10 @@ export async function findProductWithAvailableSizes(
     await pdpPage.waitForPdpLoad();
     await pdpPage.ensureNoOverlay();
     availableSizes = await pdpPage.getAvailableSizes();
-    if (availableSizes.length > 0) break;
+    if (availableSizes.length > 0 && (await pdpPage.hasVisibleAddToCart())) break;
+    availableSizes = [];
   }
-  if (availableSizes.length === 0) {
+  if (availableSizes.length === 0 && (await pdpPage.hasVisibleAddToCart())) {
     await pdpPage.waitForSizeButtonsToRender();
     availableSizes = await pdpPage.getAvailableSizes();
   }

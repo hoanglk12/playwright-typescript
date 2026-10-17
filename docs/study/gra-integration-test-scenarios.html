@@ -686,7 +686,7 @@
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Full coverage</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>△ Partial or known issue: DRM AU product count returns 0 (INT-008); PLA NZ search jumps to production and Vans gift-card links point at production (INT-011); checkout was unreachable during recon on PLA NZ (add to cart didn't register) and SKX NZ (no purchasable size) (INT-012, INT-014)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>△ Partial or known issue: DRM AU product count returns 0 (INT-008); PLA NZ search jumps to production and Vans gift-card links point at production (INT-011); checkout was unreachable during recon on PLA NZ (add to cart didn't register, likely because the product picker chose a members-only presale item; fixed in the shared picker 2026-10-17, recon not re-run) and SKX NZ (no purchasable size) (INT-012, INT-014)</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>— Not applicable</div>
       </div>
     </section>
@@ -1665,7 +1665,7 @@ softAssert.<span class="fn">toBeGreaterThan</span>(<span class="kw">await</span>
         <div class="pattern-card">
           <h4>Route Noise Blocking</h4>
           <p>Block only vendors the scenario doesn't test. Never block PayPal, Braintree, Afterpay or Square in payment scenarios, Adobe or GA in analytics scenarios, or anything in INT-011, which needs to see every request.</p>
-          <p><strong style="color:var(--amber)">The shared list doesn't block anything today.</strong> <code>AtcAnalyticsData.NOISE_ROUTE_PATTERNS</code> uses patterns like <code>**/truefitcorp.com/**</code>, which need a <code>/</code> right before the domain and so only match the bare domain. An offline check on Playwright 1.61.1 (2026-10-16) found they match none of the real hosts (<code>consumer-dev.truefitcorp.com</code>, <code>edge.fullstory.com</code>, <code>www.facebook.com/tr</code>, <code>cdn.taboola.com</code>). The subdomain form below matches. Changing the live file is a code change and waits for approval.</p>
+          <p><code>AtcAnalyticsData.NOISE_ROUTE_PATTERNS</code> uses the subdomain form below. Until 2026-10-17 it used patterns like <code>**/truefitcorp.com/**</code>, which need a <code>/</code> right before the domain, so they only matched the bare domain and blocked nothing. In an INT-001 Chromium run with traces on 2026-10-17, every TrueFit CDN and FullStory request was aborted on all 8 stores and no vendor request loaded; results matched the pre-fix run (6 pass, Skechers AU skip, Platypus NZ fail). Meta's <code>/tr</code> beacon sent no request in that run, so its pattern is only checked against Playwright's glob compiler. Taboola never appears on these storefronts.</p>
           <pre style="margin:0;font-size:11.5px"><span class="cm">// Subdomain-safe globs (verified offline against real vendor URLs)</span>
 <span class="kw">const</span> NOISE = [
   <span class="str">'**/*.truefitcorp.com/**'</span>,  <span class="cm">// fails on staging anyway</span>

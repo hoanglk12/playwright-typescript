@@ -23,6 +23,7 @@ export class EcommercePDPPage extends BasePage {
   // getByRole uses accessible name; storefronts render aria-label="Justify" on ATC buttons,
   // which overrides the visible text and breaks getByRole matching. Match by text content instead.
   private readonly addToCartBtnLocator = this.page.locator('button', { hasText: /add to (cart|bag)/i });
+  private readonly visibleAddToCartBtn = this.addToCartBtnLocator.filter({ visible: true });
   private readonly sizePatternSource = '^(US\\s+|UK\\s+|EU\\s+)?\\d+(\\.\\d+)?$';
   private readonly genderPatternSource =
     '\\b(mens?|womens?|male|female|us\\s+mens?|us\\s+womens?|uk\\s+mens?|uk\\s+womens?)\\b';
@@ -476,23 +477,29 @@ export class EcommercePDPPage extends BasePage {
       .catch(() => {});
   }
 
+  // Platypus presale products keep the ATC button in the DOM, enabled but hidden, and show
+  // guests a "Join Kicks Club" CTA in its place. isAddToCartEnabled() can't tell; this can.
+  async hasVisibleAddToCart(): Promise<boolean> {
+    return this.visibleAddToCartBtn
+      .first()
+      .waitFor({ state: 'visible', timeout: TIMEOUTS.ELEMENT_CLICKABLE })
+      .then(() => true)
+      .catch(() => false);
+  }
+
   async addToCart(): Promise<void> {
-    const buttons = this.addToCartBtnLocator;
-    await buttons.first().waitFor({ state: 'attached', timeout: TIMEOUTS.ELEMENT_VISIBLE }).catch(() => {});
-    const count = await buttons.count();
-    if (count === 0) {
-      throw new Error('addToCart: no Add to Cart / Add to Bag button found in DOM');
+    if (!(await this.hasVisibleAddToCart())) {
+      // A forced click on the hidden button lands on whatever covers it (the Join Kicks Club
+      // CTA on presale products), so no ATC request is sent and every downstream check fails.
+      throw new Error(
+        (await this.addToCartBtnLocator.count()) === 0
+          ? 'addToCart: no Add to Cart / Add to Bag button found in DOM'
+          : 'addToCart: Add to Cart button is in the DOM but hidden — product is likely not purchasable by a guest (e.g. presale)',
+      );
     }
-    for (let i = 0; i < count; i++) {
-      const btn = buttons.nth(i);
-      if (await btn.isVisible().catch(() => false)) {
-        // force: true bypasses sticky-header/overlay interception while still firing React
-        // synthetic events — same pattern as selectSize().
-        await btn.click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
-        return;
-      }
-    }
-    await buttons.first().click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
+    // force: true only skips the actionability wait; it does not get past an element covering
+    // the button.
+    await this.visibleAddToCartBtn.first().click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
   }
 
   async hasSizeValidationMessage(): Promise<boolean> {

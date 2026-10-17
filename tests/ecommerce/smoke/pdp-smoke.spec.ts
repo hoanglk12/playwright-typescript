@@ -414,7 +414,8 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         if (!sizeSelectorVisible) continue;
 
         availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0) break;
+        if (availableSizes.length > 0 && (await ecommercePDPPage.hasVisibleAddToCart())) break;
+        availableSizes = [];
       }
 
       if (availableSizes.length === 0) {
@@ -592,7 +593,8 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         if (!sizeSelectorVisible) continue;
 
         availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0) break;
+        if (availableSizes.length > 0 && (await ecommercePDPPage.hasVisibleAddToCart())) break;
+        availableSizes = [];
       }
 
       if (availableSizes.length === 0) {

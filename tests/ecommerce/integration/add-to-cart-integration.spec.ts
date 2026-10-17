@@ -179,7 +179,7 @@ test.describe('Ecommerce Add to Cart Integration @ecommerce @integration @regres
         atcEvent = await getAddToCartDataLayerEvent(page);
         softAssert.toBeTruthy(
           !!atcEvent,
-          `${site.name}: add_to_cart event should be present in adobeDataLayer or dataLayer`,
+          `${site.name}: cart_add event should be present in adobeDataLayer or dataLayer`,
         );
       });
 
@@ -193,7 +193,7 @@ test.describe('Ecommerce Add to Cart Integration @ecommerce @integration @regres
           atcEventContainsProductName(atcEvent, capturedName);
         softAssert.toBeTruthy(
           nameMatches,
-          `${site.name}: add_to_cart event product name should match the PDP product name ("${productName}")`,
+          `${site.name}: cart_add event product name should match the PDP product name ("${productName}")`,
         );
       });
     });
