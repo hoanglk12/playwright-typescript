@@ -2,11 +2,14 @@ name: Agent - Convention Review
 
 on:
   push:
-    branches: [main]
+    # TEMP branch test (revert before merging): this branch reviews f048897, which has a known pre-check finding.
+    branches: [main, feat/claude-agent-sdk-harness]
     paths:
       - 'src/pages/**'
       - 'tests/**'
       - 'src/data/**'
+      - '.github/workflows/agent-convention-review.yml'
+      - 'scripts/agents/**'
   workflow_dispatch:
     inputs:
       sha:
@@ -23,7 +26,7 @@ concurrency:
 jobs:
   review:
     # A dispatch from another branch would run that branch's code with the Claude token.
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/claude-agent-sdk-harness'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -52,8 +55,8 @@ jobs:
           if [ -n "$BASE" ] && ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then BASE=""; fi
           node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/agents/convention-reviewer/main.ts --sha "$SHA" --base "$BASE" --out agent-reports
         env:
-          SHA: ${{ inputs.sha || github.sha }}
-          BASE: ${{ github.event.before }}
+          SHA: ${{ inputs.sha || (github.ref_name == 'main' && github.sha) || 'f04889701dfc647f7062226a7321a9daf53bd27d' }}
+          BASE: ${{ github.ref_name == 'main' && github.event.before || '' }}
           AGENT_AUTH_MODE: subscription-oauth
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
@@ -126,4 +129,4 @@ jobs:
         run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/agents/harness/deliver.ts --agent review --target slack --report agent-reports/convention-review.json
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SHA: ${{ inputs.sha || github.sha }}
+          SHA: ${{ inputs.sha || (github.ref_name == 'main' && github.sha) || 'f04889701dfc647f7062226a7321a9daf53bd27d' }}
