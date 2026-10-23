@@ -17,10 +17,11 @@ process.stdin.on('end', () => {
   if (!isFileOp || !isTs) process.exit(0);
 
   const { spawnSync } = require('child_process');
+  const path = require('path');
   const result = spawnSync('npx', ['tsc', '--noEmit'], {
     encoding: 'utf8',
     shell: true,
-    cwd: process.cwd(),
+    cwd: path.resolve(__dirname, '..', '..'),
   });
 
   const tscOutput = ((result.stdout || '') + (result.stderr || '')).trim();

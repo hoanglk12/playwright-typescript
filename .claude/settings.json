@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/session-start-git-check.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-git-check.js\"",
             "timeout": 15,
             "statusMessage": "Checking for remote changes..."
           }
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/pre-tool-use.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use.js\"",
             "timeout": 10,
             "statusMessage": "Safety check..."
           }
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/user-prompt-submit.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt-submit.js\"",
             "timeout": 15,
             "statusMessage": "Preparing context..."
           }
@@ -116,7 +116,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/advisor-nudge.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/advisor-nudge.js\"",
             "timeout": 10,
             "statusMessage": "Checking for stuck loop..."
           }
@@ -128,21 +128,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "output=$(npx tsc --noEmit 2>&1); rc=$?; echo \"$output\"; [ $rc -ne 0 ] && exit 2 || exit 0",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" || exit 1; output=$(npx tsc --noEmit 2>&1); rc=$?; echo \"$output\"; [ $rc -ne 0 ] && exit 2 || exit 0",
             "timeout": 60,
             "statusMessage": "Final TypeScript check...",
             "asyncRewake": true
           },
           {
             "type": "command",
-            "command": "node -e \"const {spawnSync}=require('child_process');const s=spawnSync('git',['status','--porcelain'],{encoding:'utf8'});const all=(s.stdout||'').split('\\n').filter(l=>l.trim()).map(l=>l.slice(3).trim()).filter(f=>f.endsWith('.spec.ts'));const specs=all.filter(f=>{const isEcom=f.replace(/\\\\\\\\/g,'/').includes('/ecommerce/');return isEcom?!!process.env.GRA_TEST_PASSWORD:true;});if(!specs.length)process.exit(0);let failed=false;for(const f of specs.slice(0,3)){const r=spawnSync('npx',['playwright','test',f,'--reporter=list','--project=chromium'],{stdio:'inherit'});if(r.status!==0)failed=true;}process.exit(failed?2:0);\"",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node -e \"const {spawnSync}=require('child_process');const s=spawnSync('git',['status','--porcelain'],{encoding:'utf8'});const all=(s.stdout||'').split('\\n').filter(l=>l.trim()).map(l=>l.slice(3).trim()).filter(f=>f.endsWith('.spec.ts'));const specs=all.filter(f=>{const isEcom=f.replace(/\\\\\\\\/g,'/').includes('/ecommerce/');return isEcom?!!process.env.GRA_TEST_PASSWORD:true;});if(!specs.length)process.exit(0);let failed=false;for(const f of specs.slice(0,3)){const r=spawnSync('npx',['playwright','test',f,'--reporter=list','--project=chromium'],{stdio:'inherit'});if(r.status!==0)failed=true;}process.exit(failed?2:0);\"",
             "timeout": 300,
             "asyncRewake": true,
             "statusMessage": "Running changed spec tests..."
           },
           {
             "type": "command",
-            "command": "node scripts/sync-memory-to-vault.mjs 2>&1 || true",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/sync-memory-to-vault.mjs\" 2>&1 || true",
             "timeout": 30,
             "statusMessage": "Syncing memory vault..."
           },
@@ -154,7 +154,7 @@
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/vault-capture-nudge.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/vault-capture-nudge.js\"",
             "timeout": 15,
             "statusMessage": "Checking for uncaptured session lessons..."
           }
@@ -177,7 +177,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/post-tool-use-failure.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use-failure.js\"",
             "timeout": 30,
             "statusMessage": "Diagnosing write failure..."
           }
@@ -190,7 +190,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/post-tool-batch.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-batch.js\"",
             "timeout": 90,
             "statusMessage": "Batch TypeScript check..."
           }
