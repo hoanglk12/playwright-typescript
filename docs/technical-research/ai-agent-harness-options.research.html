@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI agent harness options</title>
+<style>
+  :root {
+    --bg: #F6F7FB; --surface: #FFFFFF; --surface-alt: #ECEEF7; --border: #DBDFEE;
+    --ink: #1B1E2B; --ink-soft: #565B72; --ink-faint: #8286A0;
+    --accent: #3B4FE0; --accent-soft: #E4E7FC;
+    --good: #1F8A5F; --good-soft: #DDF0E7;
+    --warn: #B4700A; --warn-soft: #F6E7D2;
+    --critical: #B3372A; --critical-soft: #F5DFDC;
+    --code-bg: #1B1E2B; --code-ink: #E7E9F5;
+    --shadow: 0 1px 2px rgba(27,30,43,0.06), 0 6px 16px rgba(27,30,43,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12141F; --surface: #191C29; --surface-alt: #212536; --border: #2E3348;
+      --ink: #E7E9F5; --ink-soft: #A3A8C2; --ink-faint: #6D7290;
+      --accent: #8B9AFF; --accent-soft: #23264A;
+      --good: #5BC898; --good-soft: #163227;
+      --warn: #E0A438; --warn-soft: #2E2515;
+      --critical: #E2695A; --critical-soft: #2E1B17;
+      --code-bg: #0C0E17; --code-ink: #DDE1F5;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141F; --surface: #191C29; --surface-alt: #212536; --border: #2E3348;
+    --ink: #E7E9F5; --ink-soft: #A3A8C2; --ink-faint: #6D7290;
+    --accent: #8B9AFF; --accent-soft: #23264A;
+    --good: #5BC898; --good-soft: #163227;
+    --warn: #E0A438; --warn-soft: #2E2515;
+    --critical: #E2695A; --critical-soft: #2E1B17;
+    --code-bg: #0C0E17; --code-ink: #DDE1F5;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 900px; margin: 0 auto; padding: 56px 16px 96px; }
+  .eyebrow {
+    font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12px; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 14px;
+  }
+  h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 680; letter-spacing: -0.01em; margin: 0 0 10px; text-wrap: balance; }
+  .subtitle { font-size: 16px; color: var(--ink-soft); max-width: 70ch; margin: 0 0 24px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 36px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+    padding: 5px 11px; border-radius: 100px; border: 1px solid var(--border);
+    color: var(--ink-soft); background: var(--surface);
+  }
+  .chip.hold { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+  .chip.rec { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin-bottom: 32px; box-shadow: var(--shadow);
+  }
+  .stat { background: var(--surface); padding: 18px 18px 16px; }
+  .stat-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px; }
+  .stat-value { font-size: 19px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  .stat-sub { font-size: 12.5px; color: var(--ink-faint); margin: 4px 0 0; }
+
+  .panel {
+    border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .panel.good { border-left-color: var(--good); background: var(--good-soft); }
+  .panel-title { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
+  .panel p, .panel li { font-size: 14.5px; }
+  .panel p { margin: 0 0 8px; max-width: none; }
+  .panel ul { margin: 0; padding-left: 20px; }
+  .panel li { margin-bottom: 5px; }
+
+  nav.toc {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; margin: 28px 0 44px;
+  }
+  nav.toc .toc-title { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 8px; font-weight: 700; }
+  nav.toc ol { margin: 0; padding-left: 0; list-style: none; columns: 2; column-gap: 28px; }
+  nav.toc li { margin-bottom: 4px; font-size: 14px; break-inside: avoid; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  .report h2 {
+    font-size: 13px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700;
+    color: var(--ink-soft); margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    scroll-margin-top: 16px;
+  }
+  .report h3 { font-size: 16px; font-weight: 650; margin: 28px 0 10px; }
+  .report p { margin: 0 0 14px; max-width: 74ch; }
+  .report ul, .report ol { margin: 0 0 14px; padding-left: 22px; max-width: 76ch; }
+  .report li { margin-bottom: 6px; }
+  .report li > ul { margin-top: 6px; }
+  .report hr { display: none; }
+  .report blockquote {
+    margin: 0 0 16px; padding: 14px 18px; border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 8px;
+  }
+  .report blockquote p { margin: 0; max-width: none; }
+  a { color: var(--accent); }
+
+  code { font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 0.9em; }
+  p code, li code, td code, h3 code { background: var(--surface-alt); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; font-size: 13px; line-height: 1.5; margin: 8px 0 14px;
+  }
+  pre code { background: none; padding: 0; color: inherit; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin: 0 0 18px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); background: var(--surface-alt); font-weight: 700; }
+  tr:last-child td { border-bottom: none; }
+  td { min-width: 120px; }
+
+  footer {
+    border-top: 1px solid var(--border); margin-top: 56px; padding-top: 20px; font-size: 12.5px; color: var(--ink-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  @media (max-width: 640px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    nav.toc ol { columns: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  .panel.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .report h4 { font-size: 14px; font-weight: 700; margin: 20px 0 8px; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="eyebrow">Agent automation &middot; Technical research report</p>
+  <h1>AI agent harness options</h1>
+  <p class="subtitle">Five ways to add an AI agent harness to this framework, each scored on where it would run and what it would be allowed to do. This is the earlier of two reports from 2026-10-23. Its recommendation was later replaced, but its findings on data egress, hooks and earlier decisions are what the approved plan cites as [P].</p>
+  <div class="meta-row">
+    <span class="chip hold"><span class="dot"></span>Recommendation replaced</span>
+    <span class="chip">Companion to the Agent SDK plan</span>
+    <span class="chip">5 options compared</span>
+    <span class="chip">2026-10-23</span>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <p class="stat-label">Options compared</p>
+      <p class="stat-value">5</p>
+      <p class="stat-sub">Headless CLI, Agent SDK, AI in tests, init-agents, eval harness</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Recommended here</p>
+      <p class="stat-value">Read-only triage</p>
+      <p class="stat-sub">Through <code>claude -p --bare</code>; later replaced</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Unsuitable</p>
+      <p class="stat-value">AI inside tests</p>
+      <p class="stat-sub">Same verdict as the 2026-07-25 report</p>
+    </div>
+    <div class="stat">
+      <p class="stat-label">Triage run on an API key (est.)</p>
+      <p class="stat-value">~$0.15-0.75</p>
+      <p class="stat-sub">Per run on Sonnet, capped at $1</p>
+    </div>
+  </div>
+
+  <div class="panel warn">
+    <p class="panel-title">What changed after this report</p>
+    <p>The approved <a href="claude-agent-sdk-harness.research.html">Claude Agent SDK plan</a> replaces this report's recommendation to run <code>claude -p --bare</code>. Bare mode doesn't read <code>CLAUDE_CODE_OAUTH_TOKEN</code>, so it can't run on a Claude subscription token. The rest of this report still stands: the current-state inventory, the never-send list, the hooks table and the earlier decisions are what the plan cites as [P].</p>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">How this was researched</p>
+    <p>Research only. No repo file was changed. The technical-research-agent read the repo and the official Claude Code, Agent SDK, GitHub and Stagehand/Midscene sources on 2026-10-23. It also read the npm registry and the Playwright 1.61.1 agent templates under <code>node_modules/playwright/lib/agents/</code>.</p>
+  </div>
+
+  <div class="panel good">
+    <p class="panel-title">Checked again by the main session (2026-10-23)</p>
+    <ul>
+      <li>The GitHub repo is public: the GitHub API returns <code>"visibility": "public"</code>.</li>
+      <li><code>.claude/settings.json:31</code> sets <code>defaultMode: "bypassPermissions"</code>.</li>
+      <li><code>init-agents</code> writes <code>.mcp.json</code> with a plain file write (<code>generateAgents.js:60</code>), so running it in place drops the <code>lightrag</code> server.</li>
+      <li>3 of 445 commits are pull request merges; the other 10 merge commits are local merges of <code>main</code>.</li>
+      <li><code>tests/seed.spec.ts</code> imports from <code>@playwright/test</code>, and <code>settings.local.json</code> still lists <code>enabledMcpjsonServers: ["playwright-test"]</code>.</li>
+      <li><code>playwright-with-slack.yml</code> and <code>api-restful-tests-with-slack.yml</code> both deploy monocart reports to Cloudflare Pages with <code>wrangler</code>.</li>
+      <li>Not checked again: prices, CLI and Action version numbers, and whether traces and screenshots are inside the public deploys.</li>
+    </ul>
+  </div>
+
+  <div class="panel warn">
+    <p class="panel-title">Before you commit this file</p>
+    <p><code>docs/technical-research/</code> is tracked by git, and the GitHub repo is public. This report lists redaction gaps, project allow rules, the never-send list for failure data, and what the public report sites already publish. Read those parts before you push, or keep the file uncommitted.</p>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <ol>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#current-state">Current state</a></li>
+      <li><a href="#scope">Scope</a></li>
+      <li><a href="#options">Options</a></li>
+      <li><a href="#comparison-matrix">Comparison matrix</a></li>
+      <li><a href="#recommended-approach">Recommended approach</a></li>
+      <li><a href="#risk-assessment">Risk assessment</a></li>
+      <li><a href="#implementation-steps-phases-0-2-only-for-technical-implementation-agent-after-user-approval-via-workflow-10">Implementation steps (Phases 0-2 only, for technical-implementation-agent after user approval via WORKFLOW-10)</a></li>
+      <li><a href="#validation">Validation</a></li>
+      <li><a href="#open-questions-for-the-user">Open questions for the user</a></li>
+      <li><a href="#sources-all-accessed-2026-10-23">Sources (all accessed 2026-10-23)</a></li>
+      <li><a href="#relevant-files">Relevant files</a></li>
+    </ol>
+  </nav>
+
+  <main class="report">
+<h2 id="summary">Summary</h2>
+<p><strong>What &quot;harness&quot; means here.</strong> A non-interactive runner that starts an LLM agent with:</p>
+<ul>
+<li>a fixed task</li>
+<li>an explicit tool allowlist and denylist</li>
+<li>a pinned permission mode</li>
+<li>turn and budget caps</li>
+<li>a JSON output schema</li>
+<li>deterministic pre- and post-processing</li>
+</ul>
+<p>That lets it run from a script or from CI with nobody at the keyboard. Today every agent in this repo runs only inside interactive Claude Code sessions on one Windows machine.</p>
+<h4>Bottom line</h4>
+<ul>
+<li><strong>Worth doing, but narrowly: a read-only failure-triage harness.</strong><ul>
+<li>Build it as a local script first, then run it in CI only when a test workflow fails.</li>
+<li>It reuses the <code>devops-cicd-specialist</code> 8-category taxonomy.</li>
+<li>Estimated cost is $0.15 to $0.75 per run on Sonnet 5.5.</li>
+<li>It touches no framework code: no changes to <code>playwright.config.ts</code>, <code>api.config.ts</code>, <code>base-test.ts</code> or any helper.</li>
+</ul>
+</li>
+<li><strong>Two non-code decisions block it.</strong><ul>
+<li>An org-sanctioned model credential (Anthropic API, Bedrock or Vertex).</li>
+<li>Written approval to send redacted staging failure data to that provider.</li>
+<li>Neither is confirmed today.</li>
+</ul>
+</li>
+<li><strong>Not now: write-capable agents in CI</strong> (healer, generator or architect opening PRs). They depend on five per-machine tools that aren&#39;t in the repo, and nobody has measured how often they actually fix things.</li>
+<li><strong>Unsuitable: AI running inside the tests</strong> (Stagehand, Midscene, ZeroStep, auto-playwright). This confirms the 2026-07-25 rejection again.</li>
+<li><strong>Option 4 (refresh <code>init-agents</code>): don&#39;t run it in place.</strong> It overwrites <code>.mcp.json</code>, which drops <code>lightrag</code>, and it overwrites the customised agents. The drift that matters is in installed dependencies, not in the prompt text.</li>
+<li><strong>Option 5 (eval harness): build it locally</strong>, alongside Phase 1, as the gate before anything moves to CI.</li>
+</ul>
+<h4>Two facts change the risk picture</h4>
+<ol>
+<li>The GitHub repo is <strong>public</strong>, on a personal account. Anything a CI harness writes to run logs or <code>$GITHUB_STEP_SUMMARY</code> is public.</li>
+<li>Failure reports are already deployed to <strong>public</strong> Cloudflare Pages sites. <code>redact.ts</code> says so itself.</li>
+</ol>
+<p>So the new exposure isn&#39;t that failure data leaves the runner; it already does. The new exposure is:</p>
+<ul>
+<li>(a) unredacted material reaching a model provider: traces, screenshots, video, <code>error-context.md</code>, <code>.auth/</code>, <code>.env*</code></li>
+<li>(b) model output putting data back out in public places</li>
+</ul>
+<h2 id="current-state">Current state</h2>
+<h3>Confirmed facts (verified this session)</h3>
+<h4>Dependencies and existing AI usage</h4>
+<ul>
+<li><code>@playwright/test</code> and <code>playwright</code> are 1.61.1 (installed). <code>typescript</code> is ^5.9.3 with <code>strict: true</code> and <code>module: NodeNext</code>. Node is 22.18.0 locally, and CI pins 22.</li>
+<li>No AI SDK is in <code>package.json</code>.</li>
+<li>No workflow under <code>.github/workflows/</code> (8 files), nor <code>bitbucket-pipelines.yml</code>, <code>.gitlab-ci.yml</code>, <code>.circleci/config.yml</code> or <code>azure-pipelines.yml</code>, calls an LLM.</li>
+</ul>
+<h4>Repo visibility and contributors</h4>
+<ul>
+<li><code>hoanglk12/playwright-typescript</code> is <strong>public</strong> on a personal (User) account, default branch <code>main</code>.</li>
+<li>Only 3 of 445 commits are PR merges; nearly everything is pushed straight to <code>main</code>. Two human authors.</li>
+<li>There is one earlier Claude cloud-session PR (#2, 2026-06-01, docs only).</li>
+</ul>
+<h4>Permission settings</h4>
+<ul>
+<li><code>.claude/settings.json</code> sets <code>permissions.defaultMode: &quot;bypassPermissions&quot;</code>.</li>
+<li>Current docs say a project-level <code>bypassPermissions</code> &quot;doesn&#39;t take effect … and the session starts in Manual mode&quot; for terminal sessions.</li>
+<li>Its allow list includes <code>Bash(npx playwright test *)</code>, <code>Bash(gh api *)</code>, <code>Bash(gh repo *)</code> and several <code>mcp__vercel__*</code>, <code>mcp__atlassian__*</code> and <code>mcp__playwright-test__*</code> tools.</li>
+</ul>
+<h4>MCP servers</h4>
+<ul>
+<li><code>.mcp.json</code> defines only <code>lightrag</code> (uvx, localhost:9621).</li>
+<li>The <code>playwright-test</code> server was added by <code>init-agents</code> in 80cc522 (2026-04-22) and removed from <code>.mcp.json</code> in 9df8632 (2026-06-03).</li>
+<li>It now exists only in the user-scope <code>~/.claude.json</code> as <code>cmd /c npx playwright run-test-mcp-server --headless</code>. That is Windows-only syntax.</li>
+<li><code>.claude/settings.local.json</code> still lists <code>enabledMcpjsonServers: [&quot;playwright-test&quot;]</code>, but there is no such entry in <code>.mcp.json</code> (stale).</li>
+<li><code>github</code> (a local <code>github-mcp-server.exe</code>), <code>context7</code> and <code>codebase-memory-mcp</code> are also user-scope or per-machine only.</li>
+</ul>
+<h4>Other per-machine dependencies</h4>
+<ul>
+<li><code>playwright-cli</code> is a <strong>global</strong> install (<code>@playwright/cli</code> 0.1.11 installed; latest is 0.1.22, published 2026-09-28) and is not in <code>package.json</code>. The healer, planner and generator all depend on it.</li>
+<li><code>/code-simplifier</code> (the CLAUDE.md §7 gate) dispatches <code>code-simplifier@claude-plugins-official</code>, a <strong>user-level plugin</strong>.</li>
+<li>A user-level plugin PreToolUse hook (<code>check-jira-scope.sh</code>, <code>onFailure: block</code>) timed out and blocked this session&#39;s LightRAG health check. That is proof that user-level hooks affect agent runs.</li>
+</ul>
+<p><strong>Agent tool grants that matter for a read-only CI run</strong></p>
+<ul>
+<li><code>devops-cicd-specialist</code> has <code>mcp__github__actions_run_trigger</code> (a write: it re-runs workflows) and unrestricted <code>Bash</code>.</li>
+<li><code>qa-code-reviewer</code> has <code>Edit</code>.</li>
+<li>The healer and <code>technical-debt-fixer</code> both list <code>advisor</code>, and their loop-contract stop action calls it.</li>
+</ul>
+<p><strong>Playwright 1.61.1 <code>init-agents</code></strong> (read from <code>node_modules/playwright/lib/agents/generateAgents.js</code>)</p>
+<ul>
+<li><code>--loop=claude</code> writes <code>.claude/agents/playwright-test-{planner,generator,healer}.md</code> <strong>and</strong> <code>.mcp.json</code> with a plain <code>fs.writeFile</code>. Nothing merges or checks for existing files.</li>
+<li><code>--prompts</code> additionally writes <code>.claude/prompts/</code> with four templates: coverage, heal, generate and plan.</li>
+<li><code>--debug [mode]</code> accepts <code>inspector|cli</code> and implies <code>--headed --workers=1 --timeout=0</code> (<code>program.js:176</code>).</li>
+</ul>
+<h4>Failure data and redaction</h4>
+<ul>
+<li><code>redact.ts</code> is a key denylist plus JWT, email, card-number and URL-secret regexes.</li>
+<li>It has no entry for order numbers, cart IDs, IP addresses, or personal names in free text.</li>
+<li>It covers only <code>api-verbose-failure-context.json</code>, <code>console-failure-context.log</code> and <code>test-steps.log</code>.</li>
+<li>Traces (<code>TRACE_MODE</code> defaults to <code>on-first-retry</code>), screenshots (<code>only-on-failure</code>), video (<code>retain-on-failure</code>) and <code>error-context.md</code> are not redacted.</li>
+<li>Public Cloudflare Pages already receives the monocart reports.</li>
+<li>The 2026-05-19 report (<code>research-cloudflare-pages-video-25mb.html</code>) confirms failure videos under 25 MiB are deployed. Traces and screenshots are probably deployed too, but I didn&#39;t check file by file.</li>
+</ul>
+<h3>Prior decisions to hold options against</h3>
+<ul>
+<li><strong>Pi Coding Agent was rejected (2026-08-28)</strong> because it has no permission system, sandbox or approval prompt (<code>memory-vault/20-memory/project/pi-coding-agent-evaluation.md</code>). That note cites <code>scripts/council/dispatch.mjs</code> and an &quot;LLM Council&quot; CLAUDE.md section. <strong>Neither exists in this repo.</strong> I treat &quot;never wired into CI&quot; only as a prior position.</li>
+<li>Runtime self-healing (2026-07-25, <code>docs/technical-research/ai-self-healing-tests-feasibility.html</code>). Full LLM auto-heal (Option E) was rejected outright. &quot;LLM diagnostic, suggestion-only&quot; (Option D) was deferred because the helper layer has no test context.</li>
+<li>LangSmith: &quot;Option A default (local JSONL), B pilot (vendor policy blocked)&quot;. This appears only in <code>.remember/archive.md</code> and <code>.remember/today-2026-10-01.done.md</code>; there is no vault note.</li>
+<li><strong>A &quot;Playwright Agent Eval Harness&quot; was researched on 2026-10-01</strong>, concluding &quot;Option B (phased, local-first); blocking billing, Phase scope, 7 open Qs&quot;. It too appears only in <code>.remember/</code>. There is no report under <code>docs/technical-research/</code>.</li>
+<li><strong>LightRAG&#39;s LLM endpoint is ShopAIKey</strong>, a third-party gateway (<code>lightrag-eval.md</code>, <code>.remember/archive.md</code>).</li>
+</ul>
+<h3>Gaps</h3>
+<ol>
+<li>No non-interactive entry point exists. Everything assumes a human-driven Claude Code session.</li>
+<li>Agent prompts depend on infrastructure that exists only on this machine: the <code>playwright-test</code> MCP, <code>github</code> MCP, <code>codebase-memory-mcp</code>, <code>playwright-cli</code>, the code-simplifier plugin, and the LightRAG server.</li>
+<li>The hooks assume a local developer. LightRAG sync and recall, vault-capture nudges and the Stop-time spec runner have no CI guard.</li>
+<li>Nothing measures agent quality: healer fix rate, reviewer precision, triage accuracy.</li>
+</ol>
+<h3>Assumptions (not verified)</h3>
+<ul>
+<li>Whether a project-level <code>defaultMode: &quot;bypassPermissions&quot;</code> is honoured by <code>claude -p</code> isn&#39;t stated in the docs. The recommendation below doesn&#39;t depend on it: every invocation pins the mode explicitly.</li>
+<li>Branch protection on <code>main</code> could not be checked (<code>gh</code> isn&#39;t installed in this shell).</li>
+<li>The cost figures are estimates; see each option.</li>
+<li>Node 22.18&#39;s default type stripping would let a <code>.mjs</code> script import <code>src/utils/redact.ts</code>. Not tested; it is a validation step.</li>
+</ul>
+<h2 id="scope">Scope</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Files, configs and workflows it would touch</th>
+<th>Shared-config impact</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. Headless Claude Code in CI</td>
+<td>New <code>.github/workflows/agent-triage.yml</code>; a bundle-upload step in <code>playwright-with-slack.yml</code> and <code>api-restful-tests-with-slack.yml</code>; harness prompt, schema and settings under <code>scripts/agents/triage/</code>; <code>package.json</code> scripts; <code>.gitignore</code>; repo secret. The Action variant (if used later) would also need CI guards in 5-6 <code>.claude/hooks/*</code> and the inline Stop hook in <code>.claude/settings.json</code></td>
+<td>None on <code>playwright.config.ts</code>, <code>api.config.ts</code>, <code>base-test.ts</code> or helpers. Medium on CI YAML</td>
+</tr>
+<tr>
+<td>2. Agent SDK harness</td>
+<td>Option 1&#39;s files, plus <code>package.json</code> devDependency <code>@anthropic-ai/claude-agent-sdk</code>, <code>scripts/agents/*.ts</code>, and a <code>tsconfig.json</code> include or a separate tsconfig (the current <code>include</code> is only <code>src/**</code>, <code>tests/**</code>, so <code>npm run lint</code> would not type-check scripts)</td>
+<td>Same as 1, plus lockfile churn (the SDK ships native optional binaries)</td>
+</tr>
+<tr>
+<td>3. AI inside tests</td>
+<td><code>package.json</code>, <strong><code>src/config/base-test.ts</code></strong> (new fixture), <code>playwright.config.ts</code> / <code>src/config/environment.ts</code> (model env), page objects or specs, <code>.env.*</code>, every UI workflow (model secret)</td>
+<td><strong>High.</strong> Touches <code>base-test.ts</code>, which every UI test and all 13 ecommerce fixtures depend on</td>
+</tr>
+<tr>
+<td>4. Refresh native test agents</td>
+<td><code>.claude/agents/playwright-test-*.md</code> (overwritten), <strong><code>.mcp.json</code> (overwritten, <code>lightrag</code> lost)</strong>, <code>.claude/prompts/</code> (new with <code>--prompts</code>), <code>.claude/settings.json</code> allowlist, <code>tests/seed.spec.ts</code>, <code>specs/</code></td>
+<td>Medium, and destructive if run in place</td>
+</tr>
+<tr>
+<td>5. Agent eval harness</td>
+<td><code>scripts/agents/eval/*</code> or <code>scripts/agents/triage/golden.json</code>, <code>package.json</code> scripts, <code>.claude/.state/agent-eval-runs/</code> (gitignored); possibly the SDK dependency later</td>
+<td>None on framework code</td>
+</tr>
+</tbody></table></div>
+<h2 id="options">Options</h2>
+<p>How each option is placed:</p>
+<ul>
+<li>Where it runs: interactive local, scripted local, or CI.</li>
+<li>What it may do: read-only, or write.</li>
+</ul>
+<h3>Option 1: Headless Claude Code (<code>claude -p</code> or <code>anthropics/claude-code-action</code>)</h3>
+<p><strong>Placement.</strong> Scripted local or CI; read-only or write. <strong>Recommended slice: CI, read-only, raw CLI with <code>--bare</code>.</strong></p>
+<h4>Verified capabilities</h4>
+<ul>
+<li>Versions: Claude Code CLI 2.1.309 (npm, needs Node ≥22.0.0). <code>anthropics/claude-code-action</code> latest is v1.0.259 (2026-10-22), used as <code>@v1</code>.</li>
+<li>Headless flags:<ul>
+<li><code>-p</code></li>
+<li><code>--output-format json|stream-json</code></li>
+<li><code>--json-schema</code> (result arrives in <code>structured_output</code>)</li>
+<li><code>--allowedTools</code> (auto-approves; does <em>not</em> restrict on its own)</li>
+<li><code>--disallowedTools</code></li>
+<li><code>--permission-mode default|acceptEdits|plan|dontAsk|auto|bypassPermissions</code></li>
+<li><code>--permission-prompts none</code> (v2.1.259+)</li>
+<li><code>--max-turns</code></li>
+<li><code>--max-budget-usd</code></li>
+<li><code>--settings</code>, <code>--mcp-config</code>, <code>--agents</code>, <code>--append-system-prompt-file</code></li>
+</ul>
+</li>
+<li>Since v2.1.302, <code>-p</code> runs with no mode set start in Manual.</li>
+<li><strong><code>--bare</code></strong> skips hooks, skills, commands, subagents, plugins, MCP servers, auto memory and CLAUDE.md. The docs call it &quot;the recommended mode for scripted and SDK calls&quot; and say it &quot;will become the default for <code>-p</code> in a future release&quot;.<ul>
+<li><strong>Without <code>--bare</code>, <code>-p</code> runs the project&#39;s <code>.claude/settings.json</code> hooks and connects <code>.mcp.json</code> servers, with no trust dialog.</strong></li>
+<li>Bare mode never reads OAuth or keychain credentials. It needs <code>ANTHROPIC_API_KEY</code> or Bedrock, Vertex or Foundry credentials.</li>
+</ul>
+</li>
+<li>In <code>dontAsk</code>, calls covered by <code>permissions.allow</code> rules still run. A <strong>non-bare</strong> run in this repo therefore inherits <code>Bash(npx playwright test *)</code> (a staging test run) and <code>Bash(gh api *)</code> (arbitrary GitHub API writes).</li>
+<li>Action specifics:<ul>
+<li>On PRs it restores <code>.claude/</code>, <code>.mcp.json</code>, <code>CLAUDE.md</code> and <code>.husky/</code> from the base branch. A raw CLI step does not.</li>
+<li>It checks that issue or PR triggers come from users with write access, and rejects bots.</li>
+<li>It makes a best-effort scrub of secrets from subprocess environments.</li>
+<li>It commits to a new branch and does not open PRs automatically for <code>@claude</code> mentions.</li>
+<li>The official Claude GitHub App&#39;s permission set is broad (Actions, Contents, Workflows and Repository hooks all read/write) and can only be accepted as a whole. A custom app or a job-scoped <code>github_token</code> is the narrower alternative.</li>
+<li>Bedrock, Vertex and Foundry are supported via OIDC.</li>
+</ul>
+</li>
+<li>&quot;Reusing the existing agents&quot; works only in part. Bare mode doesn&#39;t load <code>.claude/agents</code>; they must be passed with <code>--agents</code>. Their <code>tools:</code> lines name MCP servers that won&#39;t exist in CI, and two of them hold write tools (see Current state).</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>No new package dependency. The CLI is installed only in the CI job</td>
+<td>CLI churn: several behavioural changes in recent minor versions (2.1.286 bare limits, 2.1.302 default mode). The version must be pinned</td>
+</tr>
+<tr>
+<td>One flag set covers budget, turn cap, schema output, permission mode and deny rules</td>
+<td>Non-bare runs inherit risky allow rules and hooks; bare runs lose CLAUDE.md, so context must be fed explicitly</td>
+</tr>
+<tr>
+<td><code>--bare</code> gives the same result on every machine and ignores hooks or plugins from <code>~/.claude</code></td>
+<td>Agent prompts must be distilled for headless use: they tell the agent to call <code>gh</code>, GitHub MCP and <code>advisor</code></td>
+</tr>
+<tr>
+<td>The Action protects <code>.claude/</code> from PR-head tampering and has a ready-made PR-review flow</td>
+<td>PR review has almost no value here (3 PR merges in 445 commits)</td>
+</tr>
+<tr>
+<td>Standard GitHub-hosted runners are free for public repos</td>
+<td>Output in a public repo&#39;s logs or step summary is public</td>
+</tr>
+</tbody></table></div>
+<p><strong>Cost (rough, Sonnet 5.5 at $2 input / $10 output / $2.50 5-minute cache write / $0.10 cache read per MTok)</strong></p>
+<ul>
+<li>Read-only triage: about 8-15 turns, context growing to 60-90k tokens and mostly cache reads, 3-10k output tokens. <strong>About $0.15-$0.75 per run; cap with <code>--max-budget-usd 1</code>.</strong></li>
+<li>Opus 5.5 ($4 / $20) roughly doubles that.</li>
+<li>About 27 pushes a month (82 commits in 90 days) across the UI and API workflows, at an unknown failure rate, comes to <strong>about $8-$32 a month</strong> at the cap.</li>
+<li>PR review with the Opus reviewer: its prompt is about 9k tokens plus CLAUDE.md at about 13k, so <strong>$0.50-$2.50 per PR</strong>.</li>
+<li>CI minutes: free (public repo, standard runners).</li>
+</ul>
+<h4>Fit with prior decisions</h4>
+<ul>
+<li>Clears the Pi bar only if the permission mode, deny rules and budget are pinned. It departs from the &quot;never in CI&quot; position; the case for doing so rests on read-only access plus the input allowlist described under Risk assessment.</li>
+</ul>
+<h3>Option 2: Claude Agent SDK scripted harness (TypeScript)</h3>
+<p><strong>Placement.</strong> Scripted local or CI; read-only or write. <strong>Recommended slice: deferred. Adopt it when the eval harness (Option 5) grows to cover write-capable agents.</strong></p>
+<h4>Verified capabilities</h4>
+<ul>
+<li>Package <code>@anthropic-ai/claude-agent-sdk</code> 0.3.309 (published 2026-10-22), Node ≥18.</li>
+<li>License &quot;SEE LICENSE IN README.md&quot;: Anthropic terms, not an OSI license.</li>
+<li>It bundles a native Claude Code binary as an optional platform dependency.</li>
+<li><code>query()</code> options:<ul>
+<li><code>allowedTools</code>, and <code>disallowedTools</code> (scoped denies apply even in <code>bypassPermissions</code>)</li>
+<li><code>permissionMode</code> (default, acceptEdits, bypassPermissions, plan, dontAsk, auto)</li>
+<li><code>canUseTool</code></li>
+<li>programmatic <code>hooks</code> (these also fire inside subagents)</li>
+<li><code>maxTurns</code>, <code>maxBudgetUsd</code></li>
+<li><code>outputFormat: { type: &#39;json_schema&#39; }</code></li>
+<li><code>agents</code>, <code>mcpServers</code>, <code>strictMcpConfig</code>, <code>settingSources</code></li>
+</ul>
+</li>
+<li>Result messages carry <code>total_cost_usd</code>, <code>num_turns</code>, <code>usage</code>, <code>permission_denials</code> and <code>structured_output</code>. Error subtypes are <code>error_max_turns</code>, <code>error_max_budget_usd</code>, <code>error_during_execution</code> and <code>error_max_structured_output_retries</code>.</li>
+<li><strong>Loading behaviour</strong><ul>
+<li>Omitting <code>settingSources</code> loads user, project and local settings: CLAUDE.md, <code>.claude/settings.json</code> hooks, <code>.claude/agents</code>, commands and skills.</li>
+<li><code>[]</code> disables all of that.</li>
+<li><code>~/.claude.json</code> and auto memory (<code>~/.claude/projects/&lt;project&gt;/memory/</code>) are read <strong>regardless</strong>. Disable auto memory with <code>CLAUDE_CODE_DISABLE_AUTO_MEMORY=1</code>.</li>
+</ul>
+</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>In-process <code>canUseTool</code> and PreToolUse callbacks can enforce file-path rules on what the agent reads and log every denial</td>
+<td>New dependency with a non-OSI license and 0.x release churn; both are vendor-review items</td>
+</tr>
+<tr>
+<td>Typed results; cost and turn capture without parsing CLI JSON</td>
+<td>Scripts aren&#39;t type-checked by <code>npm run lint</code> without a tsconfig change; there is no <code>tsx</code>/<code>ts-node</code> in the repo</td>
+</tr>
+<tr>
+<td>Works the same way locally and in CI; a natural base for Option 5</td>
+<td>The default <code>settingSources</code> silently pulls in this repo&#39;s hooks and the user&#39;s plugins. Every call must pass <code>[]</code></td>
+</tr>
+<tr>
+<td></td>
+<td>For read-only triage it adds almost nothing over <code>claude -p --bare</code></td>
+</tr>
+</tbody></table></div>
+<p><strong>Cost:</strong> same token costs as Option 1. Effort is higher: dependency, tsconfig, a runner and tests.</p>
+<p><strong>Fit:</strong> neutral. It is the right vehicle once the eval harness covers the healer.</p>
+<h3>Option 3: AI inside tests (Stagehand, Midscene.js, ZeroStep, auto-playwright)</h3>
+<p><strong>Placement.</strong> Runs inside every test execution, locally and in CI. It is effectively write-at-runtime: locators or actions get decided by a model during the run, with no review.</p>
+<h4>Verified facts</h4>
+<ul>
+<li><code>@browserbasehq/stagehand</code> is 4.3.0, MIT, published 2026-10-23. The documented Playwright integration has Stagehand own the browser while Playwright attaches via <code>chromium.connectOverCDP</code>, then calls <code>act</code> and <code>extract</code> with a model key.</li>
+<li><code>@midscene/web</code> is 1.16.5, MIT, published 2026-10-22, with peer <code>@playwright/test ^1.45</code>. It plugs in through <code>PlaywrightAiFixture</code> via <code>test.extend</code>, exposes <code>aiTap</code>, <code>aiQuery</code> and <code>aiAssert</code>, takes its model from <code>MIDSCENE_MODEL_*</code> env vars, works from screenshots, and has a &quot;Cache AI plans &amp; DOM locators&quot; page.</li>
+<li><code>@zerostep/playwright</code> 0.1.5 was last published 2023-12-08. <code>auto-playwright</code> 1.16.1 was last published 2025-05-01. Both look unmaintained.</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Natural-language steps are quick to write for exploratory flows</td>
+<td>Bypasses the POM and the CLAUDE.md locator rules (private readonly fields, semantic locators, no hierarchical selectors) entirely</td>
+</tr>
+<tr>
+<td>Midscene has a caching layer</td>
+<td>Nondeterministic by design, which undermines a QA framework&#39;s reason to exist</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Egress on every run, not just failures</strong>: DOM or screenshots of staging pages for 526 UI tests on 2 browsers on every push</td>
+</tr>
+<tr>
+<td></td>
+<td>Cost scales with tests × steps × runs</td>
+</tr>
+<tr>
+<td></td>
+<td>One shared page object serves 8 storefronts; a runtime heal from one brand&#39;s DOM is applied to all 8 with no cross-brand check (the July report&#39;s own rejection reason)</td>
+</tr>
+<tr>
+<td></td>
+<td>Requires a <code>base-test.ts</code> fixture (high impact)</td>
+</tr>
+<tr>
+<td></td>
+<td>Stagehand&#39;s CDP integration (my inference) doesn&#39;t cover the Firefox project</td>
+</tr>
+</tbody></table></div>
+<p><strong>Cost:</strong> unbounded in practice. It is per-step model calls across the whole suite.</p>
+<p><strong>Fit:</strong> directly contradicts the 2026-07-25 decision. Nothing has changed since then that would reopen it.</p>
+<h4>Verdict: unsuitable</h4>
+<h3>Option 4: Playwright native test agents (<code>npx playwright init-agents</code>)</h3>
+<p><strong>Placement.</strong> Interactive local (already adopted); write.</p>
+<p><strong>Verified drift.</strong> The repo&#39;s three agents no longer resemble the 1.61.1 templates.</p>
+<ul>
+<li><strong>Upstream 1.61.1 templates</strong><ul>
+<li>The healer drives the MCP tools <code>test_run</code>, <code>test_debug</code>, <code>browser_snapshot</code> and <code>browser_generate_locator</code>.</li>
+<li>The healer is told to &quot;continue this process until the test runs successfully&quot;: no bound. It may also call <code>test.fixme()</code> whenever it judges the test correct.</li>
+<li>The planner&#39;s tool <code>browser_run_code</code> was renamed <code>browser_run_code_unsafe</code>, and <code>browser_network_request</code> was added.</li>
+</ul>
+</li>
+<li><strong>Repo versions</strong><ul>
+<li>Use Bash with <code>--debug=cli</code> and the global <code>playwright-cli</code>, plus <code>scripts/dom-inspector.mjs</code>.</li>
+<li>Keep only the <code>verify_*</code> and <code>wait_for</code> MCP tools.</li>
+<li>Add the framework rules, the CLAUDE.md §4 loop contract and the cross-storefront output contract.</li>
+</ul>
+</li>
+<li><code>tests/seed.spec.ts</code> is the generated default and imports from <code>@playwright/test</code>, which breaks the repo&#39;s import rule.</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A refresh would pick up the two upstream tool-name changes and, with <code>--prompts</code>, four prompt templates</td>
+<td>Running it in place <strong>overwrites the customised agents</strong> (losing the loop contract, framework rules and cross-storefront contract) <strong>and <code>.mcp.json</code></strong> (dropping <code>lightrag</code>)</td>
+</tr>
+<tr>
+<td>Shows what upstream now considers baseline</td>
+<td>The renamed tools aren&#39;t used by the repo&#39;s agents anyway; the prompt templates overlap <code>/write-tests</code> and <code>/fix-test</code></td>
+</tr>
+<tr>
+<td></td>
+<td>It doesn&#39;t fix the real gap: the MCP server is user-scope and Windows-only, <code>playwright-cli</code> is global, and <code>--debug=cli</code> implies headed mode (CI would need xvfb)</td>
+</tr>
+</tbody></table></div>
+<p><strong>Cost:</strong> none in tokens. A few minutes for a scratch-directory diff.</p>
+<p><strong>Fit:</strong> neutral.</p>
+<p><strong>Verdict:</strong> don&#39;t refresh in place. If wanted, run it in a scratch copy and hand-port anything useful. The worthwhile work is a list of what each agent needs installed (part of Phase 0).</p>
+<h3>Option 5: Agent eval harness (golden-task regression)</h3>
+<p><strong>Placement.</strong> Scripted local, read-only towards the repo. It runs agents inside a disposable work copy to measure them.</p>
+<h4>Basis</h4>
+<ul>
+<li>The 2026-10-01 research (Option B, phased, local-first) and the LangSmith decision (&quot;Option A, local JSONL&quot;) both point local-first.</li>
+<li><code>scripts/eval-lightrag.mjs</code> is a ready methodology template: golden set, saved runs, <code>--rescore</code>, <code>--compare</code> with McNemar, Wilson intervals.</li>
+</ul>
+<h4>Candidate golden tasks, easiest first</h4>
+<ul>
+<li>Triage classification. Labelled historical <code>results.json</code> failures; metric is category agreement.</li>
+<li>Reviewer seeded defects. Diffs that plant known violations (inline locator, <code>@playwright/test</code> import, magic timeout, <code>waitForTimeout</code>, hierarchical selector); metrics are precision and recall.</li>
+<li>Healer seeded breakages. Done in a git worktree; metrics are fix rate, convention compliance via <code>npm run lint</code> plus the reviewer, and loop-contract adherence. Healer tasks against live staging can&#39;t be repeated reliably. A stable target (recorded or static pages) is an open design problem.</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Turns &quot;should agents run in CI?&quot; into a measured decision</td>
+<td>Needs the same credential and billing approval as everything else; that is what blocked it on 2026-10-01</td>
+</tr>
+<tr>
+<td>Local-first, controlled inputs, low egress</td>
+<td>Golden sets need human labelling effort</td>
+</tr>
+<tr>
+<td>Reuses an existing, proven eval methodology</td>
+<td>Repeated runs are needed (nondeterminism), which multiplies cost</td>
+</tr>
+<tr>
+<td>Gives a fix-rate baseline before any write-capable automation</td>
+<td></td>
+</tr>
+</tbody></table></div>
+<p><strong>Cost:</strong> about $10-$60 per full eval run (for example 25 triage items × ~$0.40 × 2 repeats ≈ $20; 15 reviewer items × ~$1.50 ≈ $22).</p>
+<p><strong>Fit:</strong> consistent with every prior decision. <strong>Recommended, scoped to triage first.</strong></p>
+<h3>What a write-capable path would require (deferred; included because the brief asks)</h3>
+<h4>Loop contract (CLAUDE.md §4), headless version</h4>
+<ul>
+<li>Bound: 3 fix-then-verify cycles per failing test, plus whole-run <code>--max-turns</code> and <code>--max-budget-usd</code>.</li>
+<li>Convergence check: computed by the harness, not the model. Compare the failure signature (Step 0b type + failing step + locator/assertion) taken from <code>results.json</code> across iterations.</li>
+<li>Carried state: a JSON state file in the job workspace, keyed by test ID: iteration, previous signature, change made.</li>
+<li>Stop action: the <code>advisor()</code> replacement. Write the per-iteration log as an artifact, exit non-zero, and open or update an issue or draft-PR comment labelled for a human. Never <code>test.fixme()</code>.<ul>
+<li>The advisor <em>is</em> available in <code>-p</code> and the SDK (v2.1.260+), but only on the direct Anthropic API: not Bedrock, Vertex or Foundry.</li>
+<li>It is also off when <code>DISABLE_TELEMETRY</code> or <code>CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC</code> is set, which are exactly the variables you&#39;d set to harden CI.</li>
+<li>So the stop action can&#39;t depend on it.</li>
+</ul>
+</li>
+</ul>
+<h4><code>/code-simplifier</code> gate (§7)</h4>
+<ul>
+<li>Install <code>code-simplifier@claude-plugins-official</code> in CI (Action <code>plugin_marketplaces</code>/<code>plugins</code>, or <code>--plugin-dir</code>).</li>
+<li>Pass the exact file list the agent reports.</li>
+<li>Keep the snapshot-then-rollback-if-<code>npm run lint</code>-fails behaviour from <code>.claude/commands/code-simplifier.md</code>.</li>
+<li>Fail open.</li>
+<li>Read-only phases touch no <code>.ts</code>, so the gate doesn&#39;t apply to them.</li>
+</ul>
+<h4>Approval gate</h4>
+<ul>
+<li>Output must be a <strong>draft PR</strong> and never a push to <code>main</code>.</li>
+<li>PRs created with the default <code>GITHUB_TOKEN</code> don&#39;t trigger CI, so an app token is needed.</li>
+<li>Branch protection on <code>main</code> is unverified.</li>
+<li><code>bitbucket-mirror.yml</code> force-pushes <code>main</code> to the Bitbucket mirror on every push, so anything merged propagates.</li>
+</ul>
+<p><strong>Still unavailable in the repo or on CI runners</strong></p>
+<ul>
+<li><code>playwright-test</code> MCP: only a Windows command exists.</li>
+<li><code>@playwright/cli</code>: global install.</li>
+<li>xvfb for <code>--debug=cli</code>.</li>
+<li>Staging credentials for <code>dom-inspector.mjs</code> and the 8-brand cross-storefront check.</li>
+<li><code>codebase-memory-mcp</code>.</li>
+</ul>
+<h2 id="comparison-matrix">Comparison matrix</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option (slice)</th>
+<th>Value</th>
+<th>Risk</th>
+<th>Effort</th>
+<th>Egress exposure</th>
+<th>Determinism</th>
+<th>Fit with prior decisions</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1: read-only CI triage, bare CLI</td>
+<td>Medium-High</td>
+<td>Medium</td>
+<td>Low-Medium</td>
+<td>Medium (allowlisted, redacted inputs only)</td>
+<td>Low-Medium (schema-constrained)</td>
+<td>Departs from the &quot;no CI&quot; stance; defensible with controls</td>
+</tr>
+<tr>
+<td>1: PR review via Action</td>
+<td>Low (about 1 PR every few months)</td>
+<td>Medium</td>
+<td>Low</td>
+<td>Low (diff of public code)</td>
+<td>Low</td>
+<td>Neutral</td>
+</tr>
+<tr>
+<td>1/2: write-capable CI heal → PR</td>
+<td>Unproven</td>
+<td>High</td>
+<td>High</td>
+<td>High (live staging, traces)</td>
+<td>Low</td>
+<td>Only acceptable as draft PR; not yet</td>
+</tr>
+<tr>
+<td>2: SDK harness</td>
+<td>Medium (as the eval vehicle)</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Same as 1</td>
+<td>Same as 1</td>
+<td>Neutral</td>
+</tr>
+<tr>
+<td>3: AI inside tests</td>
+<td>Low</td>
+<td>High</td>
+<td>High</td>
+<td>Very high (every run)</td>
+<td>Very low</td>
+<td>Contradicts the 2026-07-25 rejection</td>
+</tr>
+<tr>
+<td>4: refresh <code>init-agents</code></td>
+<td>Very low</td>
+<td>Medium (overwrites files)</td>
+<td>Low</td>
+<td>None</td>
+<td>n/a</td>
+<td>Neutral</td>
+</tr>
+<tr>
+<td>5: eval harness, local</td>
+<td>High (it is the gate)</td>
+<td>Low</td>
+<td>Medium</td>
+<td>Low-Medium (curated corpus)</td>
+<td>Measured</td>
+<td>Consistent with the local-first decisions</td>
+</tr>
+</tbody></table></div>
+<h2 id="recommended-approach">Recommended approach</h2>
+<p>Read-only before write. Local before CI. Each gate is a concrete artifact or decision.</p>
+<ol>
+<li><strong>Phase 0: prerequisites, no model calls.</strong><ul>
+<li>User decisions: credential and egress approval (see Open questions).</li>
+<li>Then build the deterministic <strong>triage bundle builder</strong> (allowlist, fails closed) and the harness config (prompt, schema, deny-rule settings).</li>
+<li>Optionally, a short provisioning list explaining why write-capable CI is deferred.</li>
+<li><em>Gate to Phase 1:</em> credential approved in writing <strong>and</strong> the bundle builder passes the planted-secret test (see Validation).</li>
+</ul>
+</li>
+<li><strong>Phase 1: scripted local, read-only triage</strong> using <code>claude --bare -p</code> from an npm script, <strong>plus a minimal Option 5 triage eval</strong> run alongside it.<ul>
+<li><em>Gate to Phase 2:</em> agreement at or above a user-chosen threshold on at least 20 labelled past failures, across at least 2 repeat runs; zero permission escapes in the negative tests; median cost under the cap.</li>
+</ul>
+</li>
+<li><strong>Phase 2: CI read-only triage</strong> on <code>workflow_run</code> failure (same-repo runs only) and <code>workflow_dispatch</code>. Output goes to the step summary, which is treated as public, and an artifact.<ul>
+<li><em>Gate to anything further:</em> about 4 weeks of runs with no redaction-scan hits, cost inside budget, and the user judging the briefings useful.</li>
+</ul>
+</li>
+<li><strong>Deferred: write-capable CI</strong> (healer → draft PR). Revisit only after the eval harness measures a healer fix rate on seeded breakages and the dependencies above are provisioned.</li>
+<li><strong>Not recommended now: a PR-review job.</strong> PRs are almost never used. Revisit if the workflow moves to PRs.</li>
+<li>Option 4: no in-place refresh. A scratch diff is optional.</li>
+<li>Unsuitable: Option 3.</li>
+</ol>
+<p><strong>Why the CLI and not the SDK for Phases 1-2.</strong> <code>claude -p --bare</code> already gives budget and turn caps, schema output, a pinned permission mode, deny rules via <code>--settings</code>, and isolation from hooks and plugins. It needs no <code>package.json</code> dependency and no tsconfig change. The SDK becomes worth it when evals need in-process hooks or <code>canUseTool</code>, which means the healer.</p>
+<p><strong>How this relates to the July report.</strong> The triage harness is the after-the-fact, out-of-process form of the deferred &quot;Option D: LLM diagnostic, suggestion-only&quot;. Its blocker was that &quot;the helper layer has no test context&quot;. That doesn&#39;t apply here, because the harness reads the failure-context attachments those fixtures now produce, after the run, and never changes a test result.</p>
+<h2 id="risk-assessment">Risk assessment</h2>
+<h3>1. Egress (highest priority)</h3>
+<h4>Baseline today</h4>
+<ul>
+<li>Redacted API, console and step logs, plus failure videos (and probably traces and screenshots), already go to public Cloudflare Pages.</li>
+<li>The repo and its run logs are public.</li>
+</ul>
+<p><strong>What must be true before any artifact leaves the runner</strong></p>
+<ol>
+<li>A sanctioned credential, and written egress approval naming the data classes:<ul>
+<li>redacted staging failure messages</li>
+<li>redacted API, console and step logs</li>
+<li>public source code</li>
+</ul>
+</li>
+<li>Only this allowlist is sent:<ul>
+<li><code>failures.json</code>, built from <code>results.json</code> with error text truncated to about 2,000 characters and passed through <code>redactSensitiveText</code></li>
+<li><code>test-steps.log</code>, <code>api-verbose-failure-context.json</code>, <code>console-failure-context.log</code> (all already redacted at source; redact again as a safety layer)</li>
+<li>tracked source files (already public)</li>
+</ul>
+</li>
+<li>Never sent: <code>trace.zip</code>, screenshots, video, <code>error-context.md</code> (an unredacted page snapshot), HTML or monocart reports, raw <code>results.json</code>, stdout logs, <code>.auth/</code> storage states, <code>.env*</code>, <code>tests/manual/</code>, <code>.remember/</code>, <code>.claude/.state/</code>.</li>
+<li>The bundle builder <strong>fails closed</strong>:<ul>
+<li>any non-allowlisted file present → exit 1</li>
+<li>any JWT, email or card-number hit after redaction → exit 1</li>
+<li>it writes a manifest of what was included and what was excluded</li>
+</ul>
+</li>
+<li>The harness workdir contains <strong>only tracked files plus the bundle</strong>: <code>git archive HEAD</code> locally; in CI, a separate job with no staging secrets that downloads only the bundle artifact. Deny rules are a second layer.</li>
+<li><strong>Model output is treated as public.</strong> Schema fields are length-capped, the model is told never to quote payload values, and every string is redacted again before it is written anywhere. A CI step fails the job if any redaction pattern matches the summary.</li>
+<li>Credential terms:<ul>
+<li>Do <strong>not</strong> use a personal <code>CLAUDE_CODE_OAUTH_TOKEN</code>. Consumer plans have a training opt-in and 30-day or 5-year retention.</li>
+<li>Commercial API, Team or Enterprise: no training, 30-day standard retention; ZDR only by Enterprise arrangement.</li>
+<li>Bedrock or Vertex keep data in your cloud account, but there is no advisor.</li>
+<li>ShopAIKey&#39;s terms are unknown. It should not be assumed sanctioned for CI.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Known redaction gaps.</strong> <code>redact.ts</code> matches no order numbers, cart IDs, IP addresses, or personal names in free text. Those can appear in assertion messages (&quot;Expected: …&quot;).</p>
+<h3>2. Inherited configuration and hooks</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Hook (event)</th>
+<th>Effect in a headless run</th>
+<th>Risk</th>
+<th>Guard needed</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>session-start-git-check.js</code> (SessionStart)</td>
+<td><code>git fetch</code> up to 8 s; exits at once with no upstream (detached checkout)</td>
+<td>Low</td>
+<td>None with <code>--bare</code></td>
+</tr>
+<tr>
+<td><code>user-prompt-submit.js</code> (UserPromptSubmit)</td>
+<td>LightRAG POST fails fast; injects git state and a keyword <strong>routing instruction</strong> (&quot;fix&quot; → invoke <code>playwright-test-healer</code>); appends to <code>.claude/.state/lightrag-recall-log.jsonl</code></td>
+<td>Medium: can steer a task towards a write agent</td>
+<td>Skip on <code>CI</code> or a harness env var (only needed for non-bare or Action use)</td>
+</tr>
+<tr>
+<td><code>pre-tool-use.js</code> (PreToolUse Bash)</td>
+<td>Blocks <code>rm -rf</code>, force-push to main, Percy, lhci, prod runs</td>
+<td>Beneficial</td>
+<td>Not loaded in bare mode; supply it again via harness <code>--settings</code> if Bash is ever allowed</td>
+</tr>
+<tr>
+<td><code>sync-memory.js</code>, <code>lightrag-sync-status.js</code></td>
+<td>Vault-to-LightRAG sync, up to 120 s</td>
+<td>Low</td>
+<td>Skip in CI</td>
+</tr>
+<tr>
+<td>prettier and YAML PostToolUse</td>
+<td>Formatting and validation</td>
+<td>Useful in write mode</td>
+<td>Keep</td>
+</tr>
+<tr>
+<td><code>advisor-nudge.js</code></td>
+<td>Writes <code>.claude/.state</code>; tells the agent to &quot;call advisor() now&quot;</td>
+<td>Medium: the tool may not exist (Bedrock/Vertex, telemetry off)</td>
+<td>Skip in CI</td>
+</tr>
+<tr>
+<td>Stop: <code>tsc --noEmit</code> (asyncRewake, exit 2)</td>
+<td>Up to 60 s; can wake the agent again</td>
+<td>Low (read-only)</td>
+<td>Keep for write mode only</td>
+</tr>
+<tr>
+<td>Stop: changed-spec runner</td>
+<td>Runs up to 3 changed specs; ecommerce specs run when <code>GRA_TEST_PASSWORD</code> is set (it is in CI)</td>
+<td><strong>High in write mode:</strong> live staging runs, 300 s, can block Stop</td>
+<td>Skip in CI; the harness owns verification</td>
+</tr>
+<tr>
+<td>Stop: <code>sync-memory-to-vault.mjs</code></td>
+<td>A no-op, deprecated per <code>memory-vault/.claude/CLAUDE.md</code></td>
+<td>None</td>
+<td>Remove separately</td>
+</tr>
+<tr>
+<td>Stop: <code>vault-capture-nudge.js</code></td>
+<td>Returns <code>decision: block</code> when the advisor was called or an agent or CLAUDE.md file was edited</td>
+<td><strong>High in write mode:</strong> an extra paid turn and vault writes from CI</td>
+<td>Skip in CI</td>
+</tr>
+<tr>
+<td>User-level plugin hooks (e.g. <code>check-jira-scope.sh</code>)</td>
+<td>Observed blocking a tool call in this session</td>
+<td>Medium for local scripted runs</td>
+<td><code>--bare</code> or <code>settingSources: []</code></td>
+</tr>
+</tbody></table></div>
+<p><strong>Project allow rules</strong> (<code>npx playwright test</code>, <code>gh api</code>) still auto-approve under <code>dontAsk</code> in non-bare runs. <code>--bare</code> avoids them.</p>
+<p><strong>Recommended phases need no hook edits</strong>, because bare mode loads none. Guards only become necessary if the Action (which loads project settings) or a non-bare run is adopted.</p>
+<h3>3. Breaking changes and vendor</h3>
+<ul>
+<li>CLI churn: v2.1.286 tightened bare mode, v2.1.302 changed the <code>-p</code> default mode, and bare is slated to become the <code>-p</code> default. Pin the CLI version in CI, and have the runner refuse anything older than 2.1.302.</li>
+<li>The SDK is pre-1.0 with a non-OSI license.</li>
+<li><code>claude-code-action</code> releases often (v1.0.258 and v1.0.259 came out the same day). Pin to a commit SHA if it is ever used.</li>
+<li>Prompt duplication: the harness prompt copies the <code>devops-cicd-specialist</code> taxonomy, which already appears again in <code>/check-ci</code>. It needs a mirror note, the same convention as the <code>.bitbucket.js</code> copies.</li>
+</ul>
+<h3>4. Security (other than egress)</h3>
+<ul>
+<li>Prompt injection: staging page text and API errors flow into the bundle.<ul>
+<li>The read-only harness has no Bash, write, network or GitHub-write tools, so injection can at worst distort the summary.</li>
+<li>Restrict to same-repo upstream runs, because <code>workflow_run</code> executes with base-repo secrets.</li>
+<li>Never check out an untrusted head SHA into the workspace root (Action security doc).</li>
+</ul>
+</li>
+<li>Cost abuse: prevented by the same-repo filter, <code>concurrency</code>, <code>timeout-minutes</code> and <code>--max-budget-usd</code>.</li>
+</ul>
+<h3>5. Rollback</h3>
+<ul>
+<li>Phases 0-1: delete <code>scripts/agents/</code>, the npm scripts and the <code>.gitignore</code> entries. No framework, test or config files are touched.</li>
+<li>Phase 2:<ul>
+<li>Delete <code>agent-triage.yml</code> and the bundle-upload steps.</li>
+<li>Delete the repo secret <strong>and revoke the key in the Console</strong>; deleting the secret alone leaves the key valid.</li>
+<li>Artifacts expire with their retention setting (7 days).</li>
+</ul>
+</li>
+</ul>
+<h3>6. Side effects</h3>
+<ul>
+<li>Phase 2 changes to the test workflows: a few seconds per failed run and one extra small artifact.</li>
+<li>Pre-existing findings, outside this scope but worth recording:<ul>
+<li>Failure videos (and probably traces and screenshots, unredacted) are already published to public Cloudflare Pages. This is worth a separate WORKFLOW-8 security review.</li>
+<li><code>settings.local.json</code> holds a stale <code>enabledMcpjsonServers</code> entry.</li>
+<li><code>technical-research-agent.md</code> lists <code>mcp__context7__get-library-docs</code>, while the allowlist and the actual tool are <code>mcp__context7__query-docs</code>. <code>query-docs</code> wasn&#39;t even exposed in this session.</li>
+<li><code>tests/seed.spec.ts</code> imports from <code>@playwright/test</code>.</li>
+<li>The Stop hook still runs the deprecated <code>sync-memory-to-vault.mjs</code>.</li>
+<li>The project-level <code>defaultMode: &quot;bypassPermissions&quot;</code> probably does nothing in current Claude Code (per docs, for terminal sessions).</li>
+</ul>
+</li>
+</ul>
+<h2 id="implementation-steps-phases-0-2-only-for-technical-implementation-agent-after-user-approval-via-workflow-10">Implementation steps (Phases 0-2 only, for <code>technical-implementation-agent</code> after user approval via WORKFLOW-10)</h2>
+<h3>Phase 0</h3>
+<h4>P0-1 (user)</h4>
+<p>Record the credential and egress decision (Open questions 1-3). Don&#39;t implement P0-2 onwards until it exists; per CLAUDE.md §2 there should be no code without a consumer.</p>
+<h4>P0-2. Bundle builder</h4>
+<p><code>scripts/agents/build-triage-bundle.mjs</code>.</p>
+<p><em>Inputs and outputs</em></p>
+<ul>
+<li>Input: <code>--results &lt;path&gt;</code> (repeatable; for example <code>test-results/results.json</code>, <code>api-results/results.json</code>).</li>
+<li>Output directory: <code>agent-bundle/</code>.</li>
+</ul>
+<p><em>Behaviour</em></p>
+<ul>
+<li>Collect results with status <code>failed</code>, <code>timedOut</code> or <code>interrupted</code>, plus flaky ones (passed only after a retry).</li>
+<li>Write <code>failures.json</code>, one record per test: <code>testId, title, project, file, line, status, retry, errorMessage</code>. <code>errorMessage</code> is <code>redactSensitiveText(msg).slice(0, 2000)</code>, keeping only the top stack frame&#39;s file and line.</li>
+<li>Copy only attachments named <code>test-steps.log</code>, <code>api-verbose-failure-context.json</code> or <code>console-failure-context.log</code>. Redact them again.</li>
+<li>Write <code>manifest.json</code> listing every attachment seen, whether it was included or excluded, and why.</li>
+</ul>
+<p><em>Fail-closed checks</em></p>
+<ul>
+<li>Any file outside the allowlist present in the output directory → exit 1.</li>
+<li>Any JWT, email or card-pattern hit after redaction → exit 1.</li>
+</ul>
+<p><em>Reuse, don&#39;t copy</em></p>
+<ul>
+<li>Import <code>src/utils/redact.ts</code>; don&#39;t copy its regexes.</li>
+<li>First verify that the import works on Node 22.18:<pre><code>node -e &quot;import(&#39;./src/utils/redact.ts&#39;).then(m=&gt;console.log(typeof m.redactSensitiveText))&quot;
+</code></pre>
+</li>
+<li>If it doesn&#39;t, choose a type-checked alternative and say which in the report. Don&#39;t fork the regexes.</li>
+</ul>
+<h4>P0-3. Harness config</h4>
+<p><code>scripts/agents/triage/</code></p>
+<ul>
+<li><code>prompt.md</code><ul>
+<li>The 8 categories (TIMEOUT, SELECTOR_STALE, ASSERTION, NETWORK, AUTH, FLAKY, ENV_CONFIG, INFRA), copied from <code>devops-cicd-specialist.md</code>, with a mirror note.</li>
+<li>Rules: read-only; cite file:line; never quote payload values; output must match the schema.</li>
+<li>Do not append the whole of CLAUDE.md. It contains advisor, vault and simplifier instructions that are wrong for a headless run.</li>
+</ul>
+</li>
+<li><code>schema.json</code><ul>
+<li><code>failures[]</code>: <code>testId</code>, <code>category</code> (enum), <code>confidence</code> (low, med, high), <code>evidence</code> (≤300 characters), <code>suspectedFile</code>, <code>suggestedAction</code> (enum: <code>heal-candidate | env-action | flaky-review | needs-human</code>).</li>
+<li><code>summary</code> (≤1,000 characters).</li>
+</ul>
+</li>
+<li><code>settings.json</code><ul>
+<li><code>permissions.deny</code>: <code>Bash</code>, <code>Edit</code>, <code>Write</code>, <code>MultiEdit</code>, <code>NotebookEdit</code>, <code>WebFetch</code>, <code>WebSearch</code>, <code>Agent</code>.</li>
+<li>Also <code>Read(...)</code> denies for <code>.env*</code>, <code>.auth/**</code>, <code>test-results/**</code>, <code>api-results/**</code>, <code>playwright-report/**</code>, <code>api-report/**</code>, <code>monocart-*/**</code>, <code>**/*.zip</code>, <code>**/*.png</code>, <code>**/*.webm</code>, <code>tests/manual/**</code>, <code>.remember/**</code>, <code>.claude/.state/**</code>.</li>
+<li>Confirm the path-pattern semantics against the permissions docs; Validation covers this.</li>
+</ul>
+</li>
+</ul>
+<h4>P0-4. <code>.gitignore</code></h4>
+<p>add <code>agent-bundle/</code>, <code>agent-reports/</code>, <code>.agent-work/</code>.</p>
+<h4>P0-5 (optional, docs)</h4>
+<p>A short provisioning list for the deferred write path: playwright-test MCP Linux config, a pinned <code>@playwright/cli</code>, xvfb, the code-simplifier plugin, codebase-memory, and staging credentials.</p>
+<h3>Phase 1</h3>
+<h4>P1-1. Runner</h4>
+<p><code>scripts/agents/run-triage.mjs</code></p>
+<p><em>Preflight</em></p>
+<ul>
+<li>Check <code>claude --version</code> is at least 2.1.302; refuse otherwise.</li>
+</ul>
+<p><em>Work copy</em></p>
+<ul>
+<li>Create <code>.agent-work/&lt;runId&gt;/</code> with <code>git archive HEAD | tar -x</code> (tracked files only).</li>
+<li>Copy <code>agent-bundle/</code> into it.</li>
+</ul>
+<p><em>Invocation</em></p>
+<pre><code>claude --bare -p &quot;&lt;task referencing ./agent-bundle&gt;&quot; \
+  --settings scripts/agents/triage/settings.json \
+  --append-system-prompt-file scripts/agents/triage/prompt.md \
+  --allowedTools &quot;Read,Grep,Glob&quot; \
+  --disallowedTools &quot;Bash,Edit,Write,MultiEdit,WebFetch,WebSearch&quot; \
+  --permission-mode dontAsk --permission-prompts none \
+  --max-turns 15 --max-budget-usd 1 --model sonnet \
+  --output-format json --json-schema &quot;&lt;schema.json contents&gt;&quot;
+</code></pre>
+<ul>
+<li>Use cwd = the work copy.</li>
+<li>Set env: provider credential, <code>CLAUDE_CODE_DISABLE_AUTO_MEMORY=1</code>, <code>CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1</code>. That last one disables the advisor, which is acceptable for read-only use.</li>
+</ul>
+<p><em>Post-processing</em></p>
+<ul>
+<li>Exit non-zero if <code>is_error</code>, if <code>structured_output</code> is missing, or if the subtype is not <code>success</code>.</li>
+<li>Redact every string field again.</li>
+<li>Write <code>agent-reports/triage-&lt;runId&gt;.json</code> and <code>.md</code>.</li>
+<li>Log <code>total_cost_usd</code>, <code>num_turns</code> and <code>permission_denials</code>.</li>
+<li>Never run without <code>--bare</code>.</li>
+</ul>
+<h4>P1-2. <code>package.json</code> scripts</h4>
+<p><code>agent:bundle</code>, <code>agent:triage</code>.</p>
+<h4>P1-3. Minimal triage eval</h4>
+<ul>
+<li><code>scripts/agents/triage/golden.json</code>: at least 20 historical failures, labelled by the user.</li>
+<li><code>agent:triage:eval</code>: runs P1-1 per item, scores category agreement, saves runs to <code>.claude/.state/agent-eval-runs/</code> following <code>eval-lightrag.mjs</code> conventions.</li>
+<li>Reuse its statistics helpers only if they&#39;re already exported. Don&#39;t refactor <code>eval-lightrag.mjs</code> without asking.</li>
+</ul>
+<h3>Phase 2</h3>
+<h4>P2-1. Bundle steps in the test workflows</h4>
+<ul>
+<li>In the reporting job of <code>playwright-with-slack.yml</code> and <code>api-restful-tests-with-slack.yml</code> (the one that already downloads shard results), add: when tests failed, run <code>npm run agent:bundle</code>, then upload <code>agent-bundle-${{ github.run_id }}</code> with <code>retention-days: 7</code>.</li>
+<li>Ask before also changing <code>playwright.yml</code> or <code>api-restful-tests.yml</code>.</li>
+</ul>
+<h4>P2-2. New workflow</h4>
+<p><code>.github/workflows/agent-triage.yml</code></p>
+<p><em>Triggers</em></p>
+<ul>
+<li><code>workflow_run</code> on those two workflows, <code>types: [completed]</code>.</li>
+<li><code>workflow_dispatch</code>, with a <code>run_id</code> input.</li>
+</ul>
+<p><em>Job settings</em></p>
+<ul>
+<li>Job <code>if</code>: <code>conclusion == &#39;failure&#39;</code> and <code>workflow_run.head_repository.full_name == github.repository</code>.</li>
+<li><code>permissions: { contents: read, actions: read }</code></li>
+<li><code>timeout-minutes: 10</code></li>
+<li><code>concurrency: agent-triage-${{ github.event.workflow_run.id }}</code></li>
+</ul>
+<p><em>Steps</em></p>
+<ol>
+<li>Check out the default branch only.</li>
+<li><code>actions/setup-node</code>, Node 22.</li>
+<li><code>npm i -g @anthropic-ai/claude-code@&lt;pinned&gt;</code>.</li>
+<li>Download the upstream bundle with <code>actions/download-artifact</code> (<code>run-id</code> plus <code>github-token</code>).</li>
+<li>Run <code>agent:triage</code>.</li>
+<li>Run a redaction-pattern scan of the outputs; fail the job on any match.</li>
+<li>Append the rendered summary to <code>$GITHUB_STEP_SUMMARY</code>.</li>
+<li>Upload <code>agent-reports/</code> (7 days).</li>
+</ol>
+<p><em>Constraints</em></p>
+<ul>
+<li>Only secret: the model credential, or OIDC for Bedrock/Vertex.</li>
+<li>No <code>GRA_TEST_PASSWORD</code>, no <code>.env</code>.</li>
+</ul>
+<h4>P2-3 (user)</h4>
+<p>Add the secret or OIDC configuration.</p>
+<h4>P2-4</h4>
+<p>Leave GitLab, CircleCI, Azure and Bitbucket untouched. Bitbucket&#39;s free tier is 50 minutes a month and is already spent on Lighthouse.</p>
+<h2 id="validation">Validation</h2>
+<h3>Phase 0</h3>
+<ul>
+<li>Feed the bundle builder a fixture <code>results.json</code> with planted secrets: a JWT, an email, a 16-digit card number, a <code>password</code> key, a <code>?token=</code> URL, plus <code>trace.zip</code>, <code>.png</code>, <code>.webm</code> and <code>error-context.md</code> attachments.</li>
+<li>Expect:<ul>
+<li>none of the secrets survive</li>
+<li>the excluded attachments appear in <code>manifest.json</code> as excluded</li>
+<li>an extra file dropped into the output directory makes it exit 1</li>
+</ul>
+</li>
+<li><code>npm run lint</code> passes.</li>
+</ul>
+<h3>Phase 1, negative tests</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Instruct the harness to…</th>
+<th>Expected result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Read <code>.env.example</code> or a path under <code>.auth/</code></td>
+<td><code>permission_denials</code> non-empty and no content returned</td>
+</tr>
+<tr>
+<td>Run <code>npx playwright test</code></td>
+<td>Denied</td>
+</tr>
+<tr>
+<td>Write a file</td>
+<td>Denied</td>
+</tr>
+</tbody></table></div>
+<h4>Phase 1, other checks</h4>
+<ul>
+<li>No hooks fire: no new files under <code>.claude/.state/</code> and no new line in <code>lightrag-recall-log.jsonl</code>.</li>
+<li><code>structured_output</code> validates against the schema.</li>
+<li>Cost and turns are logged and stay under the caps.</li>
+<li>Golden-set agreement meets the user&#39;s threshold across at least 2 repeat runs.</li>
+</ul>
+<h3>Phase 2</h3>
+<ul>
+<li><code>workflow_dispatch</code> against a known failed run produces a summary.</li>
+<li>The run log shows only <code>contents: read</code> and <code>actions: read</code>.</li>
+<li>The redaction scan step passes, and fails when a planted string is injected.</li>
+<li>A simulated fork-originated upstream run causes the job to be skipped.</li>
+<li><code>total_cost_usd</code> appears in the log.</li>
+<li>Artifact retention is 7 days.</li>
+</ul>
+<h2 id="open-questions-for-the-user">Open questions for the user</h2>
+<ol>
+<li>Credentials. Is there an organisation-sanctioned Anthropic API key, AWS Bedrock or Google Vertex account for CI? A personal subscription token is not acceptable. Is ShopAIKey sanctioned for this use? (I assume not.)</li>
+<li>Vendor and egress policy. Does the policy that blocked LangSmith also cover Anthropic? Who at Accent Group signs off on sending redacted staging failure data, and for which data classes?</li>
+<li>Budget. What monthly token ceiling, and what per-run <code>--max-budget-usd</code>? I suggest $1.</li>
+<li>Triggers. Triage on UI failures, API failures, or both? <code>main</code> only, or same-repo PR branches too?</li>
+<li>Output destination. The step summary (public), Slack (private), Teams, or artifact only?</li>
+<li>Phase 1 gate. What triage agreement threshold should the labelled set reach? Who labels the 20 or more historical failures?</li>
+<li><code>error-context.md</code>. It is the most useful diagnostic artifact (CLAUDE.md §5), but it is unredacted. May a redacted version join the allowlist later?</li>
+<li>Branch protection. Is <code>main</code> protected? This is a hard prerequisite for any future write path, given the Bitbucket force-push mirror.</li>
+<li>Repo visibility. Will the repo stay public on a personal account? This shapes both the egress posture and the CI-minute cost.</li>
+<li>Model. Sonnet (cheaper) or Opus for triage?</li>
+<li>Eval harness. Should the 2026-10-01 eval-harness work be resumed as the vehicle for the Phase 1 gate?</li>
+<li>Pre-existing exposure. Do you want a separate WORKFLOW-8 security review of what the public Cloudflare Pages report sites already publish (videos, and probably traces and screenshots)?</li>
+</ol>
+<h2 id="sources-all-accessed-2026-10-23">Sources (all accessed 2026-10-23)</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Type</th>
+<th>Reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Agent SDK TypeScript reference</td>
+<td>Official docs</td>
+<td><a href="https://code.claude.com/docs/en/agent-sdk/typescript">https://code.claude.com/docs/en/agent-sdk/typescript</a></td>
+<td>Options, settingSources default, result subtypes, HookEvent list</td>
+</tr>
+<tr>
+<td>Agent SDK: Claude Code features</td>
+<td>Official docs</td>
+<td><a href="https://code.claude.com/docs/en/agent-sdk/claude-code-features">https://code.claude.com/docs/en/agent-sdk/claude-code-features</a></td>
+<td>What <code>settingSources</code> loads; what it does not control</td>
+</tr>
+<tr>
+<td>Headless / <code>claude -p</code></td>
+<td>Official docs</td>
+<td><a href="https://code.claude.com/docs/en/headless">https://code.claude.com/docs/en/headless</a></td>
+<td><code>--bare</code>, <code>dontAsk</code>, <code>--permission-prompts</code>, <code>--json-schema</code>, <code>--max-budget-usd</code></td>
+</tr>
+<tr>
+<td>Permission modes</td>
+<td>Official docs</td>
+<td><a href="https://code.claude.com/docs/en/permission-modes">https://code.claude.com/docs/en/permission-modes</a></td>
+<td>Project <code>bypassPermissions</code> ignored (terminal sessions); root/sudo; modes</td>
+</tr>
+<tr>
+<td>GitHub Actions</td>
+<td>Official docs</td>
+<td><a href="https://code.claude.com/docs/en/github-actions">https://code.claude.com/docs/en/github-actions</a></td>
+<td>Action inputs, auth, App permissions, costs</td>
+</tr>
+<tr>
+<td>claude-code-action security</td>
+<td>Official repo</td>
+<td><a href="https://github.com/anthropics/claude-code-action/blob/main/docs/security.md">https://github.com/anthropics/claude-code-action/blob/main/docs/security.md</a></td>
+<td>Base-branch config restore, <code>workflow_run</code> and <code>pull_request_target</code> guidance</td>
+</tr>
+<tr>
+<td>claude-code-action releases</td>
+<td>GitHub API</td>
+<td><a href="https://api.github.com/repos/anthropics/claude-code-action/releases">https://api.github.com/repos/anthropics/claude-code-action/releases</a></td>
+<td>v1.0.259, 2026-10-22</td>
+</tr>
+<tr>
+<td>Advisor tool</td>
+<td>Official docs</td>
+<td><a href="https://code.claude.com/docs/en/advisor.md">https://code.claude.com/docs/en/advisor.md</a></td>
+<td>Anthropic API only; <code>-p</code>/SDK from v2.1.260; off when flag fetching is disabled</td>
+</tr>
+<tr>
+<td>Data usage</td>
+<td>Official docs</td>
+<td><a href="https://code.claude.com/docs/en/data-usage.md">https://code.claude.com/docs/en/data-usage.md</a></td>
+<td>Retention and training by account type; telemetry</td>
+</tr>
+<tr>
+<td>Pricing</td>
+<td>Official docs</td>
+<td><a href="https://platform.claude.com/docs/en/about-claude/pricing">https://platform.claude.com/docs/en/about-claude/pricing</a></td>
+<td>Sonnet 5.5 and Opus 5.5 rates</td>
+</tr>
+<tr>
+<td>npm registry</td>
+<td>Package metadata</td>
+<td><code>npm view</code> for @anthropic-ai/claude-agent-sdk, @anthropic-ai/claude-code, @browserbasehq/stagehand, @midscene/web, @zerostep/playwright, auto-playwright, @playwright/cli</td>
+<td>Versions, licenses, publish dates, engines</td>
+</tr>
+<tr>
+<td>Stagehand Playwright integration</td>
+<td>Official docs</td>
+<td><a href="https://docs.stagehand.dev/v3/integrations/playwright">https://docs.stagehand.dev/v3/integrations/playwright</a></td>
+<td>Integration over CDP</td>
+</tr>
+<tr>
+<td>Stagehand v3 changelog</td>
+<td>Vendor changelog</td>
+<td><a href="https://browserbase.com/changelog/canonical-stagehand">https://browserbase.com/changelog/canonical-stagehand</a></td>
+<td>v3 context (search result)</td>
+</tr>
+<tr>
+<td>Midscene Playwright integration</td>
+<td>Official docs</td>
+<td><a href="https://midscenejs.com/integrate-with-playwright.html">https://midscenejs.com/integrate-with-playwright.html</a></td>
+<td><code>PlaywrightAiFixture</code>, model env vars</td>
+</tr>
+<tr>
+<td>GitHub Actions billing</td>
+<td>Official docs</td>
+<td><a href="https://docs.github.com/en/actions/concepts/billing-and-usage">https://docs.github.com/en/actions/concepts/billing-and-usage</a></td>
+<td>Standard runners free on public repos</td>
+</tr>
+<tr>
+<td>Repo visibility</td>
+<td>GitHub API</td>
+<td><a href="https://api.github.com/repos/hoanglk12/playwright-typescript">https://api.github.com/repos/hoanglk12/playwright-typescript</a></td>
+<td>public, User-owned</td>
+</tr>
+<tr>
+<td>Context7</td>
+<td>MCP</td>
+<td><code>/websites/code_claude_en_agent-sdk</code> (resolved)</td>
+<td><code>query-docs</code> wasn&#39;t exposed in this session, so I used WebFetch on the same official docs</td>
+</tr>
+<tr>
+<td>Playwright 1.61.1 agent templates</td>
+<td>Local package</td>
+<td><code>node_modules/playwright/lib/agents/</code> (generateAgents.js, *.agent.md, *.prompt.md), <code>program.js:176</code></td>
+<td>init-agents overwrite behaviour; <code>--debug=cli</code></td>
+</tr>
+</tbody></table></div>
+<h2 id="relevant-files">Relevant files</h2>
+<h4>Project instructions and configs</h4>
+<ul>
+<li><code>CLAUDE.md</code></li>
+<li><code>docs/ARCHITECTURE.md</code></li>
+<li><code>.claude/settings.json</code></li>
+<li><code>.claude/settings.local.json</code></li>
+<li><code>.mcp.json</code></li>
+<li><code>playwright.config.ts</code></li>
+<li><code>api.config.ts</code></li>
+<li><code>package.json</code></li>
+</ul>
+<h4>Hooks</h4>
+<ul>
+<li><code>.claude/hooks/user-prompt-submit.js</code></li>
+<li><code>.claude/hooks/vault-capture-nudge.js</code></li>
+<li><code>.claude/hooks/advisor-nudge.js</code></li>
+<li><code>.claude/hooks/pre-tool-use.js</code></li>
+<li><code>.claude/hooks/lightrag-sync-status.js</code></li>
+</ul>
+<h4>Agents and commands</h4>
+<ul>
+<li><code>.claude/agents/devops-cicd-specialist.md</code></li>
+<li><code>.claude/agents/qa-code-reviewer.md</code></li>
+<li><code>.claude/agents/playwright-test-healer.md</code></li>
+<li><code>.claude/agents/playwright-test-planner.md</code></li>
+<li><code>.claude/agents/playwright-test-generator.md</code></li>
+<li><code>.claude/commands/code-simplifier.md</code></li>
+<li><code>.claude/commands/check-ci.md</code></li>
+</ul>
+<h4>Failure data, tests and CI</h4>
+<ul>
+<li><code>src/utils/redact.ts</code></li>
+<li><code>src/config/environment.ts</code></li>
+<li><code>tests/seed.spec.ts</code></li>
+<li><code>.github/workflows/playwright-with-slack.yml</code></li>
+<li><code>.github/workflows/api-restful-tests-with-slack.yml</code></li>
+<li><code>scripts/eval-lightrag.mjs</code></li>
+</ul>
+<h4>Prior research and decisions</h4>
+<ul>
+<li><code>docs/technical-research/ai-self-healing-tests-feasibility.html</code></li>
+<li><code>docs/technical-research/research-cloudflare-pages-video-25mb.html</code></li>
+<li><code>memory-vault/20-memory/project/pi-coding-agent-evaluation.md</code></li>
+<li><code>memory-vault/20-memory/project/lightrag-eval.md</code></li>
+<li><code>memory-vault/20-memory/project/loop-engineering-research.md</code></li>
+<li><code>.remember/archive.md</code></li>
+<li><code>.remember/today-2026-10-01.done.md</code></li>
+</ul>
+<h4>Playwright package internals</h4>
+<ul>
+<li><code>node_modules/playwright/lib/agents/generateAgents.js</code></li>
+</ul>
+<p>If implementation is wanted, it goes through <code>qa-orchestrator</code> WORKFLOW-10, after your explicit approval of a phase. Nothing in this report authorises implementation.</p>
+
+  </main>
+
+  <footer>
+    <span>Technical research report &middot; technical-research-agent &middot; AI agent harness options</span>
+    <span>Research only. Recommendation replaced by the Agent SDK plan.</span>
+  </footer>
+</div>
+</body>
+</html>
