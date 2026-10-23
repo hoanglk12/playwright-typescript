@@ -18,7 +18,7 @@ const ALL_ZEROS = /^0+$/;
 const FENCE_ID_BYTES = 8;
 export const NEVER_SEND_PATHSPECS: readonly string[] = [':(exclude,glob)**/.env*', ':(exclude,glob)**/.auth/**'];
 const PINNED_DIFF_PREFIXES: readonly string[] = ['--src-prefix=a/', '--dst-prefix=b/'];
-const DIFF_TRUNCATION_NOTICE = '\n[diff truncated at the size cap]';
+export const DIFF_TRUNCATION_NOTICE = '\n[diff truncated at the size cap]';
 const LINE_NUMBER_WIDTH = 4;
 
 export interface ReviewToolContext {
@@ -105,7 +105,9 @@ function numberDiffLine(line: DiffLine): string {
 
 export function renderDiff(diff: string): string {
   const rendered = Array.from(walkDiff(diff), numberDiffLine).join('\n');
-  return rendered.length > MAX_DIFF_CHARS ? rendered.slice(0, MAX_DIFF_CHARS) + DIFF_TRUNCATION_NOTICE : rendered;
+  if (rendered.length <= MAX_DIFF_CHARS) return rendered;
+  const lastWholeLineEnd = Math.max(0, rendered.lastIndexOf('\n', MAX_DIFF_CHARS));
+  return rendered.slice(0, lastWholeLineEnd) + DIFF_TRUNCATION_NOTICE;
 }
 
 function capFindings(findings: readonly ConventionFinding[]): ConventionFinding[] {

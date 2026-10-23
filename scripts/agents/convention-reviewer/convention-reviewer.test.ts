@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, afterEach, describe, it, mock } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { AGENT_DELIVERY_REGISTRY, prepareDelivery, runDelivery } from '../harness/deliver.ts';
+import type { FetchLike } from '../harness/deliver.ts';
 import {
   CONVENTION_REVIEWER_MAX_BUDGET_USD,
   CONVENTION_REVIEWER_MAX_TURNS,
@@ -60,6 +62,7 @@ import { inert, renderConventionMarkdown } from './render.ts';
 import { CONVENTION_RULES, ConventionFindingSchema, ConventionReviewOutputSchema } from './schema.ts';
 import type { ConventionFinding, ConventionReviewOutput, ConventionRule } from './schema.ts';
 import {
+  DIFF_TRUNCATION_NOTICE,
   REVIEW_PATH_PREFIXES,
   createReviewTools,
   fenceUntrusted,
@@ -511,7 +514,7 @@ describe('markdown inertness', () => {
       summary: hostile,
       findings: [finding({ suggestion: `${hostile}\n# heading\n- item` })],
     };
-    for (const target of ['github-commit-comment', 'slack'] as const) {
+    for (const target of ['github-commit-comment', 'github-issue'] as const) {
       const { body } = renderConventionMarkdown(output, target);
       assert.ok(!body.includes(']('), 'no link syntax');
       assert.ok(!/(?<!\\)!\[/.test(body), 'no unescaped image syntax');
@@ -588,6 +591,40 @@ describe('tools', () => {
     } finally {
       cleanup();
     }
+  });
+
+  it('truncates the rendered diff at a line boundary, within the cap plus the notice', () => {
+    const line = '+x'.repeat(40);
+    const lines = Array.from({ length: 2000 }, () => line);
+    const diff = ['+++ b/src/data/x.ts', '@@ -0,0 +1,2000 @@', ...lines].join('\n');
+
+    const rendered = renderDiff(diff);
+    assert.ok(rendered.endsWith(DIFF_TRUNCATION_NOTICE));
+    assert.ok(rendered.length <= MAX_DIFF_CHARS + DIFF_TRUNCATION_NOTICE.length);
+    const keptText = rendered.slice(0, -DIFF_TRUNCATION_NOTICE.length);
+    const kept = keptText.split('\n');
+    for (const keptLine of kept.slice(2)) assert.match(keptLine, /^\+ *\d+ \| x(\+x){39}$/);
+    assert.ok(MAX_DIFF_CHARS - keptText.length <= kept[2].length, 'drops at most the one partial line');
+  });
+
+  it('leaves a diff at exactly the cap untruncated', () => {
+    const header = ['+++ b/src/data/x.ts', '@@ -0,0 +1 @@'].join('\n');
+    const prefix = `${renderDiff(header)}\n+   1 | `;
+    const diff = `${header}\n+${'a'.repeat(MAX_DIFF_CHARS - prefix.length)}`;
+    const rendered = renderDiff(diff);
+    assert.equal(rendered.length, MAX_DIFF_CHARS);
+    assert.ok(!rendered.includes(DIFF_TRUNCATION_NOTICE));
+  });
+
+  it('keeps a whole last line that ends exactly at the cap', () => {
+    const header = ['+++ b/src/data/x.ts', '@@ -0,0 +1,2 @@'].join('\n');
+    const prefix = `${renderDiff(header)}\n+   1 | `;
+    const firstLine = 'a'.repeat(MAX_DIFF_CHARS - prefix.length);
+    assert.equal(renderDiff(`${header}\n+${firstLine}\n+a`), `${prefix}${firstLine}${DIFF_TRUNCATION_NOTICE}`);
+  });
+
+  it('reduces a diff with no line break before the cap to the notice alone', () => {
+    assert.equal(renderDiff('a'.repeat(MAX_DIFF_CHARS + 1)), DIFF_TRUNCATION_NOTICE);
   });
 
   it('numbers each hunk line with the new-file line the pre-checks use, CRLF included', () => {
@@ -1185,5 +1222,165 @@ describe('main CLI', () => {
     for (const call of errors.mock.calls) {
       assert.match(String(call.arguments[0]), /must be (an integer|a number) above 0 and at most/);
     }
+  });
+});
+
+describe('review report delivery to Slack', () => {
+  const slackEnv = { SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/x' };
+
+  async function reportFile(report: AgentRunReport<unknown>): Promise<string> {
+    const path = join(await tempDir('review-deliver-'), 'report.json');
+    await writeFile(path, JSON.stringify(report));
+    return path;
+  }
+
+  function args(path: string, agent = 'review'): string[] {
+    return ['--report', path, '--agent', agent, '--target', 'slack'];
+  }
+
+  function makeFetch(): { fetchImpl: FetchLike; calls: () => number; request: () => { url: string; body: string } } {
+    let last = { url: '', body: '' };
+    const spy = mock.fn<FetchLike>(async (url, init) => {
+      last = { url, body: String(init.body) };
+      return { ok: true, status: 200 };
+    });
+    return { fetchImpl: spy, calls: () => spy.mock.callCount(), request: () => last };
+  }
+
+  const withFinding = (): AgentRunReport<ConventionReviewOutput> =>
+    fakeReport({ output: { summary: 'One issue.', findings: [finding()] } });
+
+  it('registers the reviewer under the agent name its report carries', () => {
+    const prepared = prepareDelivery(AGENT_DELIVERY_REGISTRY, 'review', 'slack', withFinding());
+    assert.ok(prepared.ok);
+    assert.equal(prepared.skipReason, undefined);
+    assert.match(prepared.message.title, /^Convention review: 1 finding$/);
+  });
+
+  it('posts a review with findings to the Slack webhook', async () => {
+    const http = makeFetch();
+    const path = await reportFile(withFinding());
+    assert.equal(await runDelivery(args(path), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
+    assert.equal(http.calls(), 1);
+    assert.equal(http.request().url, slackEnv.SLACK_WEBHOOK_URL);
+    const payload = JSON.parse(http.request().body) as { text: string; unfurl_links: boolean; unfurl_media: boolean };
+    assert.ok(payload.text.startsWith('*Convention review: 1 finding*'));
+    assert.ok(payload.text.includes(finding().file));
+    assert.equal(payload.unfurl_links, false);
+    assert.equal(payload.unfurl_media, false);
+  });
+
+  it('escapes mention and link syntax in plain-text fields, not only inside code spans', async () => {
+    const output: ConventionReviewOutput = {
+      summary: '<!channel> see <https://evil.example|here>',
+      findings: [finding({ suggestion: '<@U123> <!here>', file: 'tests/<!subteam^S1>.ts' })],
+    };
+    const http = makeFetch();
+    assert.equal(await runDelivery(args(await reportFile(fakeReport({ output }))), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
+    assert.ok(!(JSON.parse(http.request().body) as { text: string }).text.includes('<'));
+  });
+
+  it('renders Slack-native text: bold severity lines, no backslash escapes, no ### headings', async () => {
+    const output: ConventionReviewOutput = {
+      summary: 'Two issues (see below) with `ticks`.',
+      findings: [
+        finding({ severity: 'critical', evidence: 'a `b` <!channel> <https://evil.example|click>' }),
+        finding({ severity: 'warning', suggestion: 'Use [a] * b_c' }),
+      ],
+    };
+    const http = makeFetch();
+    const path = await reportFile(fakeReport({ output }));
+    assert.equal(await runDelivery(args(path), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
+    const text = (JSON.parse(http.request().body) as { text: string }).text;
+    assert.ok(!text.includes('\\'), 'no backslash escapes');
+    assert.ok(!text.includes('###'));
+    assert.ok(text.includes('*critical (1)*\n- '));
+    assert.ok(text.includes('*warning (1)*\n- '));
+    assert.ok(text.includes("`a 'b' &lt;!channel&gt; &lt;https://evil.example|click&gt;`"));
+    assert.ok(!text.includes('<!channel>') && !text.includes('<https://evil.example'));
+  });
+
+  describe('commit and run header', () => {
+    const runEnv = {
+      ...slackEnv,
+      SHA: 'abcdef1234567890abcdef1234567890abcdef12',
+      GITHUB_SERVER_URL: 'https://github.com',
+      GITHUB_REPOSITORY: 'owner/repo',
+      GITHUB_RUN_ID: '12345',
+    };
+
+    async function postedText(env: Record<string, string>): Promise<string> {
+      const http = makeFetch();
+      const path = await reportFile(withFinding());
+      assert.equal(await runDelivery(args(path), env, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
+      return (JSON.parse(http.request().body) as { text: string }).text;
+    }
+
+    it('leads with the short sha and an unescaped run link when the env is valid', async () => {
+      const text = await postedText(runEnv);
+      assert.ok(text.startsWith('Commit `abcdef1` - <https://github.com/owner/repo/actions/runs/12345|workflow run>\n*Convention review'));
+    });
+
+    it('omits the header, without failing delivery or echoing the value, when a value is invalid', async () => {
+      for (const bad of [
+        { SHA: 'zz--x' },
+        { SHA: `${runEnv.SHA}\n` },
+        { GITHUB_RUN_ID: '12a' },
+        { GITHUB_RUN_ID: '12345\n' },
+        { GITHUB_RUN_ID: '12345|x' },
+        { GITHUB_SERVER_URL: 'http://github.com' },
+        { GITHUB_SERVER_URL: 'https://github.com|x' },
+        { GITHUB_SERVER_URL: 'https://github.com>' },
+        { GITHUB_SERVER_URL: 'https://github.com\n' },
+        { GITHUB_REPOSITORY: 'a b' },
+        { GITHUB_REPOSITORY: 'owner/repo|<!channel>' },
+        { GITHUB_REPOSITORY: 'owner/repo\n' },
+      ]) {
+        const text = await postedText({ ...runEnv, ...bad });
+        assert.ok(text.startsWith('*Convention review'));
+        assert.ok(!text.includes(Object.values(bad)[0]));
+      }
+    });
+  });
+
+  it('skips a review with zero findings: exit 0, nothing posted, credentials not read', async () => {
+    const http = makeFetch();
+    const log = mock.method(console, 'log', () => undefined);
+    const path = await reportFile(fakeReport());
+    const prepared = prepareDelivery(AGENT_DELIVERY_REGISTRY, 'review', 'slack', fakeReport());
+    assert.ok(prepared.ok);
+    assert.equal(prepared.skipReason, 'nothing to report');
+    const noCredentialReads = new Proxy<Record<string, string | undefined>>({}, {
+      get: (_target, key) => {
+        if (key === 'SLACK_WEBHOOK_URL') throw new Error('credential read on the skip path');
+        return undefined;
+      },
+    });
+    assert.equal(await runDelivery(args(path), noCredentialReads, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
+    assert.equal(http.calls(), 0);
+    assert.deepEqual(log.mock.calls.map((call) => call.arguments[0]), ['not delivered: nothing to report']);
+  });
+
+  it('refuses a run that did not succeed even when findings are present', async () => {
+    mock.method(console, 'error', () => undefined);
+    const http = makeFetch();
+    const path = await reportFile({ ...withFinding(), outcome: 'usage-exhausted' });
+    assert.equal(await runDelivery(args(path), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 1);
+    assert.equal(http.calls(), 0);
+  });
+
+  it('sanitises a secret out of the posted text and refuses a mismatched agent', async () => {
+    mock.method(console, 'error', () => undefined);
+    const http = makeFetch();
+    const leaky = fakeReport({
+      output: { summary: 'One issue.', findings: [finding({ evidence: `token ${PLANTED_JWT}` })] },
+    });
+    assert.equal(await runDelivery(args(await reportFile(leaky)), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
+    assert.equal(http.calls(), 1);
+    assert.ok(!http.request().body.includes(PLANTED_JWT));
+
+    const mismatch = fakeReport({ agent: 'other', output: withFinding().output });
+    assert.equal(await runDelivery(args(await reportFile(mismatch)), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 1);
+    assert.equal(http.calls(), 1);
   });
 });

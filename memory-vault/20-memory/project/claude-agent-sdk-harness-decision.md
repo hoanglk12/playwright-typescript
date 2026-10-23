@@ -114,4 +114,35 @@ Plan in one line: a small harness layer in a nested package `scripts/agents/` (S
     - Also at P2 prep: the line prefix adds about 7 characters per diff line, so `MAX_DIFF_CHARS` (60k) now covers roughly 10% fewer lines. The golden diffs are too small to show this.
     - The golden-label decisions above.
     - P2 still waits on D1 and D2.
+- **Credential and delivery decided 2026-10-23:** CI uses a `setup-token` from the user's **personal** Claude subscription, not the Away Digital Team seat. The user chose not to seek answers to D1–D3. D4: the reviewer posts to **Slack**.
+  - D2 no longer applies, because no Away Digital seat is involved. No claude.ai organisation exists either, so no server-managed settings can be fetched.
+  - D1 still applies to a personal subscription. The plan rates its terms as the weakest footing for an SDK harness in CI (consumer terms, and limits that "assume ordinary, individual usage"). The user accepted that risk for their own account.
+  - Per the plan's auth table, a personal token serves only the public-code (E1) agents: P2 Reviewer, P4 Mirror-Parity and P6 Upgrade Impact.
+    - It requires the training opt-out to be confirmed.
+    - It must never carry Accent Group data. So P3 Triage and P5 Flaky stay off on this token: dropping D3 does not unblock them.
+  - The V1.x live checks ran on the Team-seat token. Before P2, run one local smoke run on the personal token. Its usage windows also differ from the Team seat's V1.9 figures.
+  - Slack delivery already exists in `deliver.ts` (`slack` target, `escapeForSlack`, webhook prefix check). P2 registers the reviewer in `AGENT_DELIVERY_REGISTRY` with that target.
+    - The user chose the **same channel as the test results**, so P2 reuses the existing `SLACK_WEBHOOK_URL` repo secret. No new webhook is needed.
+    - The user confirmed the training opt-out and a personal `setup-token`. The personal smoke run (`agent-reports/personal-smoke`) was reported done, but no report exists in the ACER clone.
+- **P2 built 2026-10-23** (via `/implement`, then `/code-simplifier`, `qa-code-reviewer` and `devops-cicd-specialist`):
+  - **Workflow:** `.github/workflows/agent-convention-review.yml` has two jobs.
+    - The `review` job has `contents: read`, the token only in the Review step's env, and runs only when `github.ref == main`, so a dispatch from another branch can't run that branch's code with the token.
+    - The `deliver` job has `permissions: {}` and only `SLACK_WEBHOOK_URL`.
+    - Untrusted inputs reach scripts only through `env:`.
+    - The step summary shows counts only and is non-fatal.
+    - The artifact name is passed as a job output, so "re-run failed jobs" on `deliver` still finds it.
+    - A force-pushed `before` that no longer exists falls back to `SHA^`.
+  - **Delivery:** the reviewer is registered as `review` in `AGENT_DELIVERY_REGISTRY` (with `isEmpty`). Zero findings means exit 0 and no post.
+    - The Slack-native renderer uses bold severity lines and single-backtick spans, with no backslash escapes.
+    - `escapeForSlack` runs after rendering, so model text can't form `<!channel>` or `<url|text>`.
+    - A header shows the short SHA and a run link, built only from validated env. It is omitted if any value is invalid.
+    - `unfurl_links`/`unfurl_media` are `false`.
+  - **Code moves:** `codeSpan` moved to `harness/markdown.ts` (unchanged) to break a runtime import cycle. `renderDiff` cuts at the last line boundary before the cap.
+  - **Unchanged by P2:** model input under the cap and GitHub rendering are byte-identical (checked by diff against 7c6d0c0), so no re-eval is needed.
+  - **Tests:** 206 offline tests pass and lint is clean. The new boundary test was mutation-checked: it fails on a `MAX_DIFF_CHARS - 1` off-by-one.
+  - **Open:**
+    - V0.3 and the Slack post are proven only by the first CI run. A separate temporary commit lets a push to this branch run the workflow against `f048897`, which has one `wrong-test-import` pre-check finding, so a post is certain. Revert that commit before merging. `b567e71` won't do for this: it always returns 0 findings, so nothing posts.
+    - No Slack alert on a failed review; the red run is the only signal. That's the user's call.
+    - Optional hardening: a GitHub Environment restricted to `main` for the token (stronger than the `if:` guard against another workflow), a discriminated `PrepareResult`, a Slack-specific text cap below 40k.
+    - If the repo goes private, `deliver` needs `contents: read` for its sparse checkout.
   - This working tree is the one that passed. Any later change to the reviewer code needs another eval. A golden-label change only needs an offline rescore.

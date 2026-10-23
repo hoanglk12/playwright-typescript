@@ -1,0 +1,129 @@
+name: Agent - Convention Review
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/**'
+      - 'tests/**'
+      - 'src/data/**'
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit to review'
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: agent-convention-review-${{ inputs.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    # A dispatch from another branch would run that branch's code with the Claude token.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      has_report: ${{ steps.report.outputs.has_report }}
+      artifact: ${{ steps.report.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scripts/agents/package-lock.json
+
+      - name: Install agent harness
+        run: npm ci --prefix scripts/agents --ignore-scripts
+
+      - name: Review
+        run: |
+          # After a force-push the old tip is gone; an empty base makes main.ts review against SHA^.
+          if [ -n "$BASE" ] && ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then BASE=""; fi
+          node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/agents/convention-reviewer/main.ts --sha "$SHA" --base "$BASE" --out agent-reports
+        env:
+          SHA: ${{ inputs.sha || github.sha }}
+          BASE: ${{ github.event.before }}
+          AGENT_AUTH_MODE: subscription-oauth
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+      - name: Step summary (counts only)
+        if: always()
+        continue-on-error: true
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            if (!fs.existsSync("agent-reports/run-log.json")) process.exit(0);
+            const log = JSON.parse(fs.readFileSync("agent-reports/run-log.json", "utf8"));
+            const f = log.findings ?? {};
+            const lines = [
+              "## Convention review",
+              "- Outcome: " + log.outcome,
+              "- Findings kept: " + f.kept + " (pre-check " + f.precheck + ", model " + f.model + ")",
+              "- Findings dropped: " + f.droppedByValidation + " by validation, " + f.droppedByCap + " by cap",
+              "- Turns: " + log.numTurns,
+              "- Estimated cost: $" + Number(log.costUsdEstimate ?? 0).toFixed(4),
+            ];
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          '
+
+      - name: Detect report
+        id: report
+        if: always()
+        run: |
+          echo "artifact=convention-review-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          if [ -f agent-reports/convention-review.json ]; then
+            echo "has_report=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_report=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.report.outputs.has_report == 'true'
+        with:
+          name: ${{ steps.report.outputs.artifact }}
+          path: agent-reports/
+          retention-days: 7
+
+  deliver:
+    needs: review
+    if: needs.review.outputs.has_report == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/agents
+            src/utils
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install agent harness (no platform binary)
+        run: npm ci --prefix scripts/agents --omit=optional --ignore-scripts
+
+      - uses: actions/download-artifact@v8
+        with:
+          # The review job's own attempt: re-running deliver alone bumps run_attempt but keeps this output.
+          name: ${{ needs.review.outputs.artifact }}
+          path: agent-reports
+
+      - name: Post to Slack
+        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/agents/harness/deliver.ts --agent review --target slack --report agent-reports/convention-review.json
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SHA: ${{ inputs.sha || github.sha }}

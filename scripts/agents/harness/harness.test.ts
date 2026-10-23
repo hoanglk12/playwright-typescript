@@ -11,7 +11,6 @@ import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import {
   AGENT_DELIVERY_REGISTRY,
-  codeSpan,
   prepareDelivery,
   runDelivery,
 } from './deliver.ts';
@@ -27,6 +26,7 @@ import {
   MAX_STDERR_TAIL_CHARS,
   TEMP_DIR_RM_MAX_RETRIES,
 } from './limits.ts';
+import { codeSpan } from './markdown.ts';
 import {
   appendStderr,
   buildQueryOptions,

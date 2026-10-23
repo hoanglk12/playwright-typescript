@@ -1,16 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import type { z } from 'zod';
+import { renderConventionMarkdown } from '../convention-reviewer/render.ts';
+import { ConventionReviewOutputSchema } from '../convention-reviewer/schema.ts';
+import type { ConventionReviewOutput } from '../convention-reviewer/schema.ts';
 import { isEntryPoint } from './entry-point.ts';
 import { DELIVERY_HTTP_TIMEOUT_MS, MAX_RENDERED_CHARS } from './limits.ts';
 import { hasLeak, sanitizeDeep } from './sanitize.ts';
+import { SHA_PATTERN } from './tracked-files.ts';
 import type { AgentRunReport } from './types.ts';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 const SLACK_WEBHOOK_PREFIX = 'https://hooks.slack.com/';
 const REPO_PATTERN = /^[\w.-]+\/[\w.-]+$/;
-const SHA_PATTERN = /^[0-9a-fA-F]{7,64}$/;
-const LINE_BREAKS = /\s*[\r\n]\s*/g;
+const SERVER_URL_PATTERN = /^https:\/\/[\w.-]+(:\d+)?$/;
+const RUN_ID_PATTERN = /^\d+$/;
+const SHORT_SHA_LENGTH = 7;
 
 const DELIVERY_TARGETS = ['github-commit-comment', 'github-issue', 'slack'] as const;
 export type DeliveryTarget = (typeof DELIVERY_TARGETS)[number];
@@ -23,13 +28,20 @@ export interface RenderedMessage {
 export interface AgentDeliverySpec {
   schema: z.ZodType<unknown>;
   render: (output: unknown, target: DeliveryTarget) => RenderedMessage;
+  isEmpty?: (output: unknown) => boolean;
 }
 
 export type DeliveryRegistry = Readonly<Record<string, AgentDeliverySpec>>;
 
-export const AGENT_DELIVERY_REGISTRY: DeliveryRegistry = {};
+export const AGENT_DELIVERY_REGISTRY: DeliveryRegistry = {
+  review: {
+    schema: ConventionReviewOutputSchema,
+    render: (output, target) => renderConventionMarkdown(output as ConventionReviewOutput, target),
+    isEmpty: (output) => (output as ConventionReviewOutput).findings.length === 0,
+  },
+};
 
-export type PrepareResult = { ok: true; message: RenderedMessage } | { ok: false; reason: string };
+export type PrepareResult = { ok: true; message: RenderedMessage; skipReason?: string } | { ok: false; reason: string };
 
 export interface DeliveryRequest {
   url: string;
@@ -38,16 +50,6 @@ export interface DeliveryRequest {
 }
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<{ ok: boolean; status: number }>;
-
-export function codeSpan(text: string): string {
-  // Block structure is parsed before code spans, so a line break inside the span could start a heading or list.
-  const collapsed = text.replace(LINE_BREAKS, ' ');
-  const longestRun = Math.max(0, ...(collapsed.match(/`+/g) ?? []).map((run) => run.length));
-  const fence = '`'.repeat(longestRun + 1);
-  const needsPadding = collapsed.startsWith('`') || collapsed.endsWith('`');
-  const content = needsPadding ? ` ${collapsed} ` : collapsed;
-  return `${fence}${content}${fence}`;
-}
 
 function escapeForSlack(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -71,7 +73,8 @@ export function prepareDelivery(
   const parsed = spec.schema.safeParse(report.output);
   if (!parsed.success) return { ok: false, reason: 'report output failed schema validation' };
 
-  const rendered = spec.render(sanitizeDeep(parsed.data), target);
+  const data = sanitizeDeep(parsed.data);
+  const rendered = spec.render(data, target);
   if (hasLeak(`${rendered.title}\n${rendered.body}`)) {
     return { ok: false, reason: 'leak detected in rendered message' };
   }
@@ -80,7 +83,19 @@ export function prepareDelivery(
   return {
     ok: true,
     message: { title: title.slice(0, MAX_RENDERED_CHARS), body: body.slice(0, MAX_RENDERED_CHARS) },
+    skipReason: spec.isEmpty?.(data) ? 'nothing to report' : undefined,
   };
+}
+
+function buildSlackHeader(env: Record<string, string | undefined>): string {
+  const sha = env.SHA ?? '';
+  const server = env.GITHUB_SERVER_URL ?? '';
+  const repo = env.GITHUB_REPOSITORY ?? '';
+  const runId = env.GITHUB_RUN_ID ?? '';
+  if (!SHA_PATTERN.test(sha) || !SERVER_URL_PATTERN.test(server) || !REPO_PATTERN.test(repo) || !RUN_ID_PATTERN.test(runId)) {
+    return '';
+  }
+  return `Commit \`${sha.slice(0, SHORT_SHA_LENGTH)}\` - <${server}/${repo}/actions/runs/${runId}|workflow run>\n`;
 }
 
 export function buildRequest(
@@ -94,7 +109,12 @@ export function buildRequest(
     return {
       url,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: `*${message.title}*\n${message.body}` }),
+      // Slack still auto-links a bare URL in model text; no unfurl keeps it from fetching a preview into the channel.
+      body: JSON.stringify({
+        text: `${buildSlackHeader(env)}*${message.title}*\n${message.body}`,
+        unfurl_links: false,
+        unfurl_media: false,
+      }),
     };
   }
 
@@ -157,6 +177,11 @@ export async function runDelivery(
   if (!prepared.ok) {
     console.error(`not delivered: ${prepared.reason}`);
     return 1;
+  }
+
+  if (prepared.skipReason !== undefined) {
+    console.log(`not delivered: ${prepared.skipReason}`);
+    return 0;
   }
 
   let request: DeliveryRequest;
