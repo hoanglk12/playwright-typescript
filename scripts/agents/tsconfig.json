@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "declaration": false,
+    "paths": {}
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["./node_modules"]
+}

@@ -1,0 +1,18 @@
+diff --git a/src/pages/ecommerce/ecommerce-promo-list-page.ts b/src/pages/ecommerce/ecommerce-promo-list-page.ts
+new file mode 100644
+index 0000000..364785b
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-promo-list-page.ts
+@@ -0,0 +1,12 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommercePromoListPage extends BasePage {
++  private readonly secondItemSelector = 'div.promo-list > ul > li:nth-child(2) > a';
++
++  constructor(page: Page) { super(page); }
++
++  async openSecondPromo(): Promise<void> {
++    await this.elements.clickElement(this.secondItemSelector);
++  }
++}

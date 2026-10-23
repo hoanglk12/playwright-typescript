@@ -1,0 +1,21 @@
+diff --git a/tests/ecommerce/search-results.spec.ts b/tests/ecommerce/search-results.spec.ts
+new file mode 100644
+index 0000000..ea3c947
+--- /dev/null
++++ b/tests/ecommerce/search-results.spec.ts
+@@ -0,0 +1,15 @@
++import { test, expect } from '@playwright/test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Search results @ecommerce @regression', () => {
++  test.only('E2E-SEARCH-030 - Results appear', async ({ page, ecommerceSearchPage }) => {
++    const logger = createTestLogger('E2E-SEARCH-030 results appear');
++
++    logger.step('Step 1 - Search');
++    await ecommerceSearchPage.search('boots');
++    await page.waitForTimeout(2000);
++
++    logger.step('Step 2 - Assert results');
++    expect(await ecommerceSearchPage.getResultCount()).toBeGreaterThan(0);
++  });
++});

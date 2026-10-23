@@ -1,0 +1,39 @@
+diff --git a/src/data/ecommerce/store-locator-data.ts b/src/data/ecommerce/store-locator-data.ts
+new file mode 100644
+index 0000000..00b8063
+--- /dev/null
++++ b/src/data/ecommerce/store-locator-data.ts
+@@ -0,0 +1,9 @@
++export interface StoreLocatorDataShape {
++  COMPANY_NAME: string;
++  REGIONS: string[];
++}
++
++export const StoreLocatorData: StoreLocatorDataShape = {
++  COMPANY_NAME: 'Accent',
++  REGIONS: ['AU', 'NZ'],
++};
+diff --git a/tests/ecommerce/store-locator.spec.ts b/tests/ecommerce/store-locator.spec.ts
+new file mode 100644
+index 0000000..56b6cfa
+--- /dev/null
++++ b/tests/ecommerce/store-locator.spec.ts
+@@ -0,0 +1,18 @@
++import { test, expect } from '@config/base-test';
++import { StoreLocatorData } from '../../src/data/ecommerce/store-locator-data';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++// Docs: https://example.test/docs/store-locator
++test.describe('Only logged in stores @ecommerce @regression', () => {
++  test('E2E-STORE-001 - Company stores are listed', async ({ ecommerceHelpSupportPage }) => {
++    const logger = createTestLogger('E2E-STORE-001 company stores listed');
++    const anyOf = StoreLocatorData.REGIONS;
++
++    logger.step('Step 1 - Open store locator');
++    await ecommerceHelpSupportPage.openStoreLocator();
++
++    logger.step('Step 2 - Assert region and company');
++    expect(anyOf).toContain(await ecommerceHelpSupportPage.getRegion());
++    expect(await ecommerceHelpSupportPage.getCompanyName()).toBe(StoreLocatorData.COMPANY_NAME);
++  });
++});

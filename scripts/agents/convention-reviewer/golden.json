@@ -1,0 +1,364 @@
+{
+  "cases": [
+    {
+      "id": "defect-import-playwright-test",
+      "kind": "defect",
+      "diff": "golden/defect-import-playwright-test.diff",
+      "expected": [
+        {
+          "rule": "wrong-test-import",
+          "file": "tests/ecommerce/checkout-flow.spec.ts",
+          "line": 1,
+          "check": "playwright-test-import"
+        }
+      ]
+    },
+    {
+      "id": "defect-import-playwright-test-alias",
+      "kind": "defect",
+      "diff": "golden/defect-import-playwright-test-alias.diff",
+      "expected": [
+        {
+          "rule": "wrong-test-import",
+          "file": "tests/ecommerce/wishlist-badge.spec.ts",
+          "line": 1,
+          "check": "playwright-test-import"
+        }
+      ]
+    },
+    {
+      "id": "defect-import-base-test-in-api",
+      "kind": "defect",
+      "diff": "golden/defect-import-base-test-in-api.diff",
+      "expected": [
+        {
+          "rule": "wrong-test-import",
+          "file": "tests/api/widgets-api.spec.ts",
+          "line": 1,
+          "check": "api-base-test-import"
+        }
+      ]
+    },
+    {
+      "id": "defect-fixed-sleep",
+      "kind": "defect",
+      "diff": "golden/defect-fixed-sleep.diff",
+      "expected": [
+        {
+          "rule": "fixed-sleep",
+          "file": "tests/ecommerce/home-banner.spec.ts",
+          "line": 10,
+          "check": "fixed-sleep"
+        }
+      ]
+    },
+    {
+      "id": "defect-magic-timeout-spec",
+      "kind": "defect",
+      "diff": "golden/defect-magic-timeout-spec.diff",
+      "expected": [
+        {
+          "rule": "magic-timeout",
+          "file": "tests/ecommerce/home-heading.spec.ts",
+          "line": 12,
+          "check": "numeric-timeout"
+        }
+      ]
+    },
+    {
+      "id": "defect-magic-timeout-page",
+      "kind": "defect",
+      "diff": "golden/defect-magic-timeout-page.diff",
+      "expected": [
+        {
+          "rule": "magic-timeout",
+          "file": "src/pages/ecommerce/ecommerce-promo-page.ts",
+          "line": 10,
+          "check": "numeric-timeout"
+        }
+      ]
+    },
+    {
+      "id": "defect-test-only",
+      "kind": "defect",
+      "diff": "golden/defect-test-only.diff",
+      "expected": [
+        {
+          "rule": "other",
+          "file": "tests/ecommerce/home-search.spec.ts",
+          "line": 5,
+          "check": "test-only"
+        }
+      ]
+    },
+    {
+      "id": "defect-console-log",
+      "kind": "defect",
+      "diff": "golden/defect-console-log.diff",
+      "expected": [
+        {
+          "rule": "other",
+          "file": "tests/ecommerce/plp-count.spec.ts",
+          "line": 10,
+          "check": "console-log"
+        }
+      ]
+    },
+    {
+      "id": "defect-gra-serial-mode",
+      "kind": "defect",
+      "diff": "golden/defect-gra-serial-mode.diff",
+      "expected": [
+        {
+          "rule": "other",
+          "file": "tests/api/gra-wishlist.spec.ts",
+          "line": 4,
+          "check": "gra-serial-mode"
+        }
+      ]
+    },
+    {
+      "id": "defect-emoji-comment",
+      "kind": "defect",
+      "diff": "golden/defect-emoji-comment.diff",
+      "expected": [
+        {
+          "rule": "comment-smell",
+          "file": "src/pages/ecommerce/ecommerce-sale-page.ts",
+          "line": 10,
+          "check": "comment-emoji"
+        }
+      ]
+    },
+    {
+      "id": "defect-explicit-any",
+      "kind": "defect",
+      "diff": "golden/defect-explicit-any.diff",
+      "expected": [
+        {
+          "rule": "other",
+          "file": "src/data/ecommerce/label-data.ts",
+          "line": 11,
+          "check": "explicit-any"
+        }
+      ]
+    },
+    {
+      "id": "defect-multiple-precheck-rules",
+      "kind": "defect",
+      "diff": "golden/defect-multiple-precheck-rules.diff",
+      "expected": [
+        {
+          "rule": "wrong-test-import",
+          "file": "tests/ecommerce/search-results.spec.ts",
+          "line": 1,
+          "check": "playwright-test-import"
+        },
+        {
+          "rule": "other",
+          "file": "tests/ecommerce/search-results.spec.ts",
+          "line": 5,
+          "check": "test-only"
+        },
+        {
+          "rule": "fixed-sleep",
+          "file": "tests/ecommerce/search-results.spec.ts",
+          "line": 10,
+          "check": "fixed-sleep"
+        }
+      ]
+    },
+    {
+      "id": "defect-inline-locator",
+      "kind": "defect",
+      "diff": "golden/defect-inline-locator.diff",
+      "expected": [
+        {
+          "rule": "inline-locator",
+          "file": "src/pages/ecommerce/ecommerce-promo-cta-page.ts",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "defect-hierarchical-selector",
+      "kind": "defect",
+      "diff": "golden/defect-hierarchical-selector.diff",
+      "expected": [
+        {
+          "rule": "hierarchical-selector",
+          "file": "src/pages/ecommerce/ecommerce-promo-list-page.ts",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "id": "defect-inline-locator-style-call",
+      "kind": "defect",
+      "diff": "golden/defect-inline-locator-style-call.diff",
+      "expected": [
+        {
+          "rule": "inline-locator",
+          "file": "src/pages/ecommerce/ecommerce-sale-badge-page.ts",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "defect-inline-locator-method-body",
+      "kind": "defect",
+      "diff": "golden/defect-inline-locator-method-body.diff",
+      "expected": [
+        {
+          "rule": "inline-locator",
+          "file": "src/pages/ecommerce/ecommerce-store-finder-page.ts",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "id": "defect-hierarchical-selector-table",
+      "kind": "defect",
+      "diff": "golden/defect-hierarchical-selector-table.diff",
+      "expected": [
+        {
+          "rule": "hierarchical-selector",
+          "file": "src/pages/ecommerce/ecommerce-order-summary-page.ts",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "id": "defect-hierarchical-selector-nav",
+      "kind": "defect",
+      "diff": "golden/defect-hierarchical-selector-nav.diff",
+      "expected": [
+        {
+          "rule": "hierarchical-selector",
+          "file": "src/pages/ecommerce/ecommerce-mega-menu-page.ts",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "id": "defect-non-semantic-locator",
+      "kind": "defect",
+      "diff": "golden/defect-non-semantic-locator.diff",
+      "expected": [
+        {
+          "rule": "non-semantic-locator",
+          "file": "src/pages/ecommerce/ecommerce-newsletter-page.ts",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "id": "defect-soft-assertion-on-precondition",
+      "kind": "defect",
+      "diff": "golden/defect-soft-assertion-on-precondition.diff",
+      "expected": [
+        {
+          "rule": "soft-vs-hard-assertion",
+          "file": "tests/ecommerce/plp-filter.spec.ts",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "defect-untyped-data-export",
+      "kind": "defect",
+      "diff": "golden/defect-untyped-data-export.diff",
+      "expected": [
+        {
+          "rule": "unnamed-data-interface",
+          "file": "src/data/ecommerce/promo-data.ts",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "defect-restating-comment",
+      "kind": "defect",
+      "diff": "golden/defect-restating-comment.diff",
+      "expected": [
+        {
+          "rule": "comment-smell",
+          "file": "src/pages/ecommerce/ecommerce-checkout-cta-page.ts",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "clean-ui-spec",
+      "kind": "clean",
+      "diff": "golden/clean-ui-spec.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-page-object",
+      "kind": "clean",
+      "diff": "golden/clean-page-object.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-data-module",
+      "kind": "clean",
+      "diff": "golden/clean-data-module.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-gra-api-spec",
+      "kind": "clean",
+      "diff": "golden/clean-gra-api-spec.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-non-gra-api-serial",
+      "kind": "clean",
+      "diff": "golden/clean-non-gra-api-serial.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-import-type-page",
+      "kind": "clean",
+      "diff": "golden/clean-import-type-page.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-named-timeout",
+      "kind": "clean",
+      "diff": "golden/clean-named-timeout.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-near-miss-text",
+      "kind": "clean",
+      "diff": "golden/clean-near-miss-text.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-soft-assertions-independent",
+      "kind": "clean",
+      "diff": "golden/clean-soft-assertions-independent.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-data-generator",
+      "kind": "clean",
+      "diff": "golden/clean-data-generator.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-why-comment",
+      "kind": "clean",
+      "diff": "golden/clean-why-comment.diff",
+      "expected": []
+    },
+    {
+      "id": "clean-semantic-page-object",
+      "kind": "clean",
+      "diff": "golden/clean-semantic-page-object.diff",
+      "expected": []
+    }
+  ]
+}

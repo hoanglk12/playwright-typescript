@@ -1,0 +1,20 @@
+diff --git a/tests/ecommerce/account-modal.spec.ts b/tests/ecommerce/account-modal.spec.ts
+new file mode 100644
+index 0000000..f525e9e
+--- /dev/null
++++ b/tests/ecommerce/account-modal.spec.ts
+@@ -0,0 +1,14 @@
++import { test, expect } from '@config/base-test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Account modal @ecommerce @smoke', () => {
++  test('E2E-ACCOUNT-001 - Modal opens', async ({ ecommerceAccountModalPage }) => {
++    const logger = createTestLogger('E2E-ACCOUNT-001 modal opens');
++
++    logger.step('Step 1 - Open the modal');
++    await ecommerceAccountModalPage.openModal();
++
++    logger.step('Step 2 - Assert it is visible');
++    expect(await ecommerceAccountModalPage.isModalVisible()).toBeTruthy();
++  });
++});

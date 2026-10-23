@@ -1,0 +1,18 @@
+diff --git a/src/pages/ecommerce/ecommerce-mega-menu-page.ts b/src/pages/ecommerce/ecommerce-mega-menu-page.ts
+new file mode 100644
+index 0000000..7fa4c3b
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-mega-menu-page.ts
+@@ -0,0 +1,12 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommerceMegaMenuPage extends BasePage {
++  private readonly subcategoryLinksSelector = 'nav.mega-menu > div > ul > li > ul > li > a';
++
++  constructor(page: Page) { super(page); }
++
++  async getSubcategoryNames(): Promise<string[]> {
++    return this.dom.getAllTextContents(this.subcategoryLinksSelector);
++  }
++}

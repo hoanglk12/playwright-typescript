@@ -1,0 +1,23 @@
+diff --git a/tests/api/gra-wishlist.spec.ts b/tests/api/gra-wishlist.spec.ts
+new file mode 100644
+index 0000000..4e32140
+--- /dev/null
++++ b/tests/api/gra-wishlist.spec.ts
+@@ -0,0 +1,17 @@
++import { apiTest as test, expect } from '../../src/api/ApiTest';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe.configure({ mode: 'serial' });
++
++test.describe('GRA wishlist API @api @regression', () => {
++  test('TC_01 - Should list wishlist items', async ({ apiClientExt }) => {
++    const logger = createTestLogger('TC_01 Should list wishlist items');
++
++    logger.step('Step 1 - GET /wishlist');
++    const response = await apiClientExt.getWithWrapper('/wishlist');
++
++    logger.step('Step 2 - Assert response');
++    await response.assertStatus(200);
++    expect(response.isSuccess()).toBeTruthy();
++  });
++});

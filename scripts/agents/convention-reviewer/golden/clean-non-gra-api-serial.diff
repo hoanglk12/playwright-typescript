@@ -1,0 +1,23 @@
+diff --git a/tests/api/objects-widgets.spec.ts b/tests/api/objects-widgets.spec.ts
+new file mode 100644
+index 0000000..ab21ec9
+--- /dev/null
++++ b/tests/api/objects-widgets.spec.ts
+@@ -0,0 +1,17 @@
++import { apiTest as test, expect } from '../../src/api/ApiTest';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe.configure({ mode: 'serial' });
++
++test.describe('Objects widgets API @api @regression', () => {
++  test('TC_01 - Should create a widget', async ({ apiClientExt }) => {
++    const logger = createTestLogger('TC_01 Should create a widget');
++
++    logger.step('Step 1 - POST /objects');
++    const response = await apiClientExt.postWithWrapper('/objects', { name: 'widget' });
++
++    logger.step('Step 2 - Assert response');
++    await response.assertStatus(200);
++    expect(response.isSuccess()).toBeTruthy();
++  });
++});

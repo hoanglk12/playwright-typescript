@@ -1,0 +1,20 @@
+diff --git a/src/data/ecommerce/gift-data.ts b/src/data/ecommerce/gift-data.ts
+new file mode 100644
+index 0000000..0cb0475
+--- /dev/null
++++ b/src/data/ecommerce/gift-data.ts
+@@ -0,0 +1,14 @@
++export interface GiftCardData {
++  title: string;
++  minimumAmount: number;
++}
++
++export interface GiftDataShape {
++  DEFAULT_CARD: GiftCardData;
++  PREMIUM_CARD: GiftCardData;
++}
++
++export const GiftData: GiftDataShape = {
++  DEFAULT_CARD: { title: 'Gift card', minimumAmount: 20 },
++  PREMIUM_CARD: { title: 'Premium gift card', minimumAmount: 100 },
++};

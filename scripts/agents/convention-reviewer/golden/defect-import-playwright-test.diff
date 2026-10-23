@@ -1,0 +1,20 @@
+diff --git a/tests/ecommerce/checkout-flow.spec.ts b/tests/ecommerce/checkout-flow.spec.ts
+new file mode 100644
+index 0000000..8098576
+--- /dev/null
++++ b/tests/ecommerce/checkout-flow.spec.ts
+@@ -0,0 +1,14 @@
++import { test, expect } from '@playwright/test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Checkout flow @ecommerce @smoke', () => {
++  test('E2E-CHECKOUT-001 - Shows the payment step', async ({ ecommerceCheckoutPage }) => {
++    const logger = createTestLogger('E2E-CHECKOUT-001 payment step');
++
++    logger.step('Step 1 - Open checkout');
++    await ecommerceCheckoutPage.navigateToPage();
++
++    logger.step('Step 2 - Assert payment step');
++    expect(await ecommerceCheckoutPage.isPaymentStepVisible()).toBeTruthy();
++  });
++});

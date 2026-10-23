@@ -1,0 +1,18 @@
+diff --git a/src/data/ecommerce/review-data.ts b/src/data/ecommerce/review-data.ts
+new file mode 100644
+index 0000000..ed6e211
+--- /dev/null
++++ b/src/data/ecommerce/review-data.ts
+@@ -0,0 +1,12 @@
++import { faker } from '../faker';
++
++export interface ReviewData {
++  author: string;
++  rating: number;
++}
++
++export class ReviewTestDataGenerator {
++  static generateReview(): ReviewData {
++    return { author: faker.person.fullName(), rating: faker.number.int({ min: 1, max: 5 }) };
++  }
++}

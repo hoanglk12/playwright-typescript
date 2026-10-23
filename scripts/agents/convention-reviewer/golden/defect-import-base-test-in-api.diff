@@ -1,0 +1,21 @@
+diff --git a/tests/api/widgets-api.spec.ts b/tests/api/widgets-api.spec.ts
+new file mode 100644
+index 0000000..67a9ef6
+--- /dev/null
++++ b/tests/api/widgets-api.spec.ts
+@@ -0,0 +1,15 @@
++import { test, expect } from '@config/base-test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Widgets API @api @regression', () => {
++  test('TC_01 - Should fetch widget by ID', async ({ apiClientExt }) => {
++    const logger = createTestLogger('TC_01 Should fetch widget by ID');
++
++    logger.step('Step 1 - GET /widgets/1');
++    const response = await apiClientExt.getWithWrapper('/widgets/1');
++
++    logger.step('Step 2 - Assert response');
++    await response.assertStatus(200);
++    expect(await response.extract('id')).toBe(1);
++  });
++});

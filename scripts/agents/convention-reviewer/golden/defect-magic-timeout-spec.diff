@@ -1,0 +1,20 @@
+diff --git a/tests/ecommerce/home-heading.spec.ts b/tests/ecommerce/home-heading.spec.ts
+new file mode 100644
+index 0000000..a474c58
+--- /dev/null
++++ b/tests/ecommerce/home-heading.spec.ts
+@@ -0,0 +1,14 @@
++import { test, expect } from '@config/base-test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Home heading @ecommerce @smoke', () => {
++  test('E2E-HOME-011 - Heading is visible', async ({ ecommerceHomePage }) => {
++    const logger = createTestLogger('E2E-HOME-011 heading visible');
++
++    logger.step('Step 1 - Open home page');
++    await ecommerceHomePage.navigateToHomePage();
++
++    logger.step('Step 2 - Assert heading');
++    await expect(ecommerceHomePage.heading).toBeVisible({ timeout: 15000 });
++  });
++});

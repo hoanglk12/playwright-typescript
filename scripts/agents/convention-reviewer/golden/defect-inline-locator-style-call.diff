@@ -1,0 +1,22 @@
+diff --git a/src/pages/ecommerce/ecommerce-sale-badge-page.ts b/src/pages/ecommerce/ecommerce-sale-badge-page.ts
+new file mode 100644
+index 0000000..ac7bc15
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-sale-badge-page.ts
+@@ -0,0 +1,16 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommerceSaleBadgePage extends BasePage {
++  private readonly badgeLabel = this.page.getByText('Sale', { exact: true });
++
++  constructor(page: Page) { super(page); }
++
++  async getBadgeColour(): Promise<string> {
++    return this.style.getElementBackgroundColorHex('[data-testid="sale-badge"]');
++  }
++
++  async isBadgeVisible(): Promise<boolean> {
++    return this.badgeLabel.isVisible();
++  }
++}

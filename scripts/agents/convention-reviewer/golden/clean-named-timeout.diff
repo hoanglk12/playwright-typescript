@@ -1,0 +1,21 @@
+diff --git a/tests/ecommerce/home-cta.spec.ts b/tests/ecommerce/home-cta.spec.ts
+new file mode 100644
+index 0000000..e8c389e
+--- /dev/null
++++ b/tests/ecommerce/home-cta.spec.ts
+@@ -0,0 +1,15 @@
++import { test, expect } from '@config/base-test';
++import { TIMEOUTS } from '../../src/constants/timeouts';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Home CTA @ecommerce @smoke', () => {
++  test('E2E-HOME-020 - CTA is visible', async ({ ecommerceHomePage }) => {
++    const logger = createTestLogger('E2E-HOME-020 CTA visible');
++
++    logger.step('Step 1 - Open home');
++    await ecommerceHomePage.navigateToHomePage();
++
++    logger.step('Step 2 - Assert CTA');
++    await expect(ecommerceHomePage.cta).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
++  });
++});

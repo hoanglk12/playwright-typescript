@@ -1,0 +1,20 @@
+diff --git a/tests/ecommerce/wishlist-badge.spec.ts b/tests/ecommerce/wishlist-badge.spec.ts
+new file mode 100644
+index 0000000..7037b2a
+--- /dev/null
++++ b/tests/ecommerce/wishlist-badge.spec.ts
+@@ -0,0 +1,14 @@
++import { test as base, expect } from '@playwright/test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++base.describe('Wishlist badge @ecommerce @regression', () => {
++  base('E2E-WISHLIST-004 - Badge starts empty', async ({ ecommerceWishlistPage }) => {
++    const logger = createTestLogger('E2E-WISHLIST-004 badge starts empty');
++
++    logger.step('Step 1 - Open wishlist');
++    await ecommerceWishlistPage.navigateToPage();
++
++    logger.step('Step 2 - Assert badge');
++    expect(await ecommerceWishlistPage.getBadgeCount()).toBe(0);
++  });
++});

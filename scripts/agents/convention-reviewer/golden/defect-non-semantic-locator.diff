@@ -1,0 +1,18 @@
+diff --git a/src/pages/ecommerce/ecommerce-newsletter-page.ts b/src/pages/ecommerce/ecommerce-newsletter-page.ts
+new file mode 100644
+index 0000000..c53ee4d
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-newsletter-page.ts
+@@ -0,0 +1,12 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommerceNewsletterPage extends BasePage {
++  private readonly subscribeSelector = '.btn.btn-primary.subscribe';
++
++  constructor(page: Page) { super(page); }
++
++  async subscribe(): Promise<void> {
++    await this.elements.clickElement(this.subscribeSelector);
++  }
++}

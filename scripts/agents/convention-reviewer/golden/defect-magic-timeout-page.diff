@@ -1,0 +1,18 @@
+diff --git a/src/pages/ecommerce/ecommerce-promo-page.ts b/src/pages/ecommerce/ecommerce-promo-page.ts
+new file mode 100644
+index 0000000..212eb8f
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-promo-page.ts
+@@ -0,0 +1,12 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommercePromoPage extends BasePage {
++  private readonly promoBannerSelector = '[data-testid="promo-banner"]';
++
++  constructor(page: Page) { super(page); }
++
++  async waitForPromoBanner(): Promise<void> {
++    await this.waits.waitForElementVisible(this.promoBannerSelector, { timeout: 8000 });
++  }
++}

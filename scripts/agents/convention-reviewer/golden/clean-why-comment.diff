@@ -1,0 +1,20 @@
+diff --git a/src/pages/ecommerce/ecommerce-store-page.ts b/src/pages/ecommerce/ecommerce-store-page.ts
+new file mode 100644
+index 0000000..5cc3381
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-store-page.ts
+@@ -0,0 +1,14 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommerceStorePage extends BasePage {
++  private readonly storeLinkSelector = '[data-testid="store-link"]';
++
++  constructor(page: Page) { super(page); }
++
++  async openStore(): Promise<void> {
++    // The link is re-rendered after the geo-IP banner resolves, so a click before that lands on a stale node.
++    await this.waits.waitForPageLoad();
++    await this.elements.clickElement(this.storeLinkSelector);
++  }
++}

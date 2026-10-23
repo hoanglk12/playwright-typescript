@@ -1,0 +1,22 @@
+diff --git a/src/pages/ecommerce/ecommerce-promo-cta-page.ts b/src/pages/ecommerce/ecommerce-promo-cta-page.ts
+new file mode 100644
+index 0000000..efb06f0
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-promo-cta-page.ts
+@@ -0,0 +1,16 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommercePromoCtaPage extends BasePage {
++  private readonly promoHeading = this.page.getByRole('heading', { name: 'Promotions' });
++
++  constructor(page: Page) { super(page); }
++
++  async clickPromoCta(): Promise<void> {
++    await this.elements.clickElement('[data-testid="promo-cta"]');
++  }
++
++  async isHeadingVisible(): Promise<boolean> {
++    return this.promoHeading.isVisible();
++  }
++}

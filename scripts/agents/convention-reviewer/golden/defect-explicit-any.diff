@@ -1,0 +1,19 @@
+diff --git a/src/data/ecommerce/label-data.ts b/src/data/ecommerce/label-data.ts
+new file mode 100644
+index 0000000..27957c5
+--- /dev/null
++++ b/src/data/ecommerce/label-data.ts
+@@ -0,0 +1,13 @@
++export interface LabelData {
++  prefix: string;
++  suffix: string;
++}
++
++export const LabelDefaults: LabelData = {
++  prefix: 'Item',
++  suffix: 'Label',
++};
++
++export function toLabel(value: any): string {
++  return LabelDefaults.prefix + ' ' + String(value) + ' ' + LabelDefaults.suffix;
++}

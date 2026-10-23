@@ -1,0 +1,23 @@
+diff --git a/src/pages/ecommerce/ecommerce-returns-page.ts b/src/pages/ecommerce/ecommerce-returns-page.ts
+new file mode 100644
+index 0000000..fcad7ec
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-returns-page.ts
+@@ -0,0 +1,17 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommerceReturnsPage extends BasePage {
++  private readonly returnsLink = this.page.getByRole('link', { name: 'Returns' });
++  private readonly policyText = this.page.getByText('Free returns within 30 days');
++
++  constructor(page: Page) { super(page); }
++
++  async openReturns(): Promise<void> {
++    await this.returnsLink.click();
++  }
++
++  async isPolicyVisible(): Promise<boolean> {
++    return this.policyText.isVisible();
++  }
++}

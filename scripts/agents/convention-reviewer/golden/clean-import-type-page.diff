@@ -1,0 +1,25 @@
+diff --git a/tests/ecommerce/helper-usage.spec.ts b/tests/ecommerce/helper-usage.spec.ts
+new file mode 100644
+index 0000000..d1cb1a6
+--- /dev/null
++++ b/tests/ecommerce/helper-usage.spec.ts
+@@ -0,0 +1,19 @@
++import type { Page } from '@playwright/test';
++import { test, expect } from '@config/base-test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++async function currentPath(page: Page): Promise<string> {
++  return new URL(page.url()).pathname;
++}
++
++test.describe('Helper usage @ecommerce @smoke', () => {
++  test('E2E-HELPER-001 - Path starts at root', async ({ page, ecommerceHomePage }) => {
++    const logger = createTestLogger('E2E-HELPER-001 path starts at root');
++
++    logger.step('Step 1 - Open home');
++    await ecommerceHomePage.navigateToHomePage();
++
++    logger.step('Step 2 - Assert path');
++    expect(await currentPath(page)).toBe('/');
++  });
++});

@@ -1,0 +1,21 @@
+diff --git a/tests/ecommerce/home-banner.spec.ts b/tests/ecommerce/home-banner.spec.ts
+new file mode 100644
+index 0000000..8b04383
+--- /dev/null
++++ b/tests/ecommerce/home-banner.spec.ts
+@@ -0,0 +1,15 @@
++import { test, expect } from '@config/base-test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Home banner @ecommerce @smoke', () => {
++  test('E2E-HOME-010 - Banner is visible', async ({ page, ecommerceHomePage }) => {
++    const logger = createTestLogger('E2E-HOME-010 banner visible');
++
++    logger.step('Step 1 - Open home page');
++    await ecommerceHomePage.navigateToHomePage();
++    await page.waitForTimeout(3000);
++
++    logger.step('Step 2 - Assert banner');
++    expect(await ecommerceHomePage.isBannerVisible()).toBeTruthy();
++  });
++});

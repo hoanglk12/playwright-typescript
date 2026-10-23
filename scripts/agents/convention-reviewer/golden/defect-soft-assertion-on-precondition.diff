@@ -1,0 +1,23 @@
+diff --git a/tests/ecommerce/plp-filter.spec.ts b/tests/ecommerce/plp-filter.spec.ts
+new file mode 100644
+index 0000000..27a5fab
+--- /dev/null
++++ b/tests/ecommerce/plp-filter.spec.ts
+@@ -0,0 +1,17 @@
++import { test, expect } from '@config/base-test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('PLP filter @ecommerce @regression', () => {
++  test('E2E-PLP-040 - Filter narrows the results', async ({ ecommercePLPPage, softAssert }) => {
++    const logger = createTestLogger('E2E-PLP-040 filter narrows results');
++
++    logger.step('Step 1 - Read the unfiltered count');
++    const initialCount = await ecommercePLPPage.getProductCount();
++    softAssert.toBeGreaterThan(initialCount, 0, 'Initial product count');
++
++    logger.step('Step 2 - Apply a filter and compare');
++    await ecommercePLPPage.applyFirstFilter();
++    const filteredCount = await ecommercePLPPage.getProductCount();
++    expect(filteredCount).toBeLessThan(initialCount);
++  });
++});

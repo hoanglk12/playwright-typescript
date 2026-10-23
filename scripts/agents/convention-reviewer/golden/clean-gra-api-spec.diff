@@ -1,0 +1,21 @@
+diff --git a/tests/api/gra-categories.spec.ts b/tests/api/gra-categories.spec.ts
+new file mode 100644
+index 0000000..19a4c39
+--- /dev/null
++++ b/tests/api/gra-categories.spec.ts
+@@ -0,0 +1,15 @@
++import { apiTest as test, expect } from '../../src/api/ApiTest';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('GRA categories API @api @regression', () => {
++  test('TC_01 - Should list categories', async ({ apiClientExt }) => {
++    const logger = createTestLogger('TC_01 Should list categories');
++
++    logger.step('Step 1 - GET /categories');
++    const response = await apiClientExt.getWithWrapper('/categories');
++
++    logger.step('Step 2 - Assert response');
++    await response.assertStatus(200);
++    expect(response.isSuccess()).toBeTruthy();
++  });
++});

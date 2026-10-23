@@ -1,0 +1,19 @@
+diff --git a/src/pages/ecommerce/ecommerce-checkout-cta-page.ts b/src/pages/ecommerce/ecommerce-checkout-cta-page.ts
+new file mode 100644
+index 0000000..1f62e40
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-checkout-cta-page.ts
+@@ -0,0 +1,13 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommerceCheckoutCtaPage extends BasePage {
++  private readonly submitSelector = '[data-testid="checkout-submit"]';
++
++  constructor(page: Page) { super(page); }
++
++  async clickSubmit(): Promise<void> {
++    // Click the submit button
++    await this.elements.clickElement(this.submitSelector);
++  }
++}

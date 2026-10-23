@@ -1,0 +1,18 @@
+diff --git a/src/pages/ecommerce/ecommerce-order-summary-page.ts b/src/pages/ecommerce/ecommerce-order-summary-page.ts
+new file mode 100644
+index 0000000..4b095c0
+--- /dev/null
++++ b/src/pages/ecommerce/ecommerce-order-summary-page.ts
+@@ -0,0 +1,12 @@
++import { Page } from '@playwright/test';
++import { BasePage } from '../base-page';
++
++export class EcommerceOrderSummaryPage extends BasePage {
++  private readonly firstLinePriceSelector = 'table.order-lines > tbody > tr:first-child > td:last-child';
++
++  constructor(page: Page) { super(page); }
++
++  async getFirstLinePrice(): Promise<string> {
++    return this.elements.getText(this.firstLinePriceSelector);
++  }
++}

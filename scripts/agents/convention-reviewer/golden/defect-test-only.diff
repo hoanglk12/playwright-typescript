@@ -1,0 +1,20 @@
+diff --git a/tests/ecommerce/home-search.spec.ts b/tests/ecommerce/home-search.spec.ts
+new file mode 100644
+index 0000000..988b5e1
+--- /dev/null
++++ b/tests/ecommerce/home-search.spec.ts
+@@ -0,0 +1,14 @@
++import { test, expect } from '@config/base-test';
++import { createTestLogger } from '../../src/utils/test-logger';
++
++test.describe('Home search @ecommerce @smoke', () => {
++  test.only('E2E-HOME-012 - Search box accepts text', async ({ ecommerceSearchPage }) => {
++    const logger = createTestLogger('E2E-HOME-012 search box');
++
++    logger.step('Step 1 - Type a query');
++    await ecommerceSearchPage.typeQuery('boots');
++
++    logger.step('Step 2 - Assert value');
++    expect(await ecommerceSearchPage.getQuery()).toBe('boots');
++  });
++});
