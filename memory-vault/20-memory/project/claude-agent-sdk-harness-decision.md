@@ -140,8 +140,12 @@ Plan in one line: a small harness layer in a nested package `scripts/agents/` (S
   - **Code moves:** `codeSpan` moved to `harness/markdown.ts` (unchanged) to break a runtime import cycle. `renderDiff` cuts at the last line boundary before the cap.
   - **Unchanged by P2:** model input under the cap and GitHub rendering are byte-identical (checked by diff against 7c6d0c0), so no re-eval is needed.
   - **Tests:** 206 offline tests pass and lint is clean. The new boundary test was mutation-checked: it fails on a `MAX_DIFF_CHARS - 1` off-by-one.
+  - **First CI run passed 2026-10-23** (run 39968820008 on this branch). A temporary commit, `768ffd0`, now reverted, let a push run the workflow against `f048897`. That commit has a known `wrong-test-import` pre-check finding, so a post was certain; `b567e71` always returns 0 findings, so nothing would post.
+    - V0.3 passed: `npm ci` on ubuntu installed 106 packages, or 104 with `--omit=optional`.
+    - The personal token worked in CI: `findings=11` (pre-check 1, model 10), $0.083, 4 turns, 34s.
+    - The Slack post landed in the test-results channel, and the user checked it.
+    - Leak check on the job log (489 lines): both secrets appear only as `***`. There is no `sk-ant` string, webhook URL, rule id or evidence/suggestion text, so findings reach only Slack and the 7-day artifact.
   - **Open:**
-    - V0.3 and the Slack post are proven only by the first CI run. A separate temporary commit lets a push to this branch run the workflow against `f048897`, which has one `wrong-test-import` pre-check finding, so a post is certain. Revert that commit before merging. `b567e71` won't do for this: it always returns 0 findings, so nothing posts.
     - No Slack alert on a failed review; the red run is the only signal. That's the user's call.
     - Optional hardening: a GitHub Environment restricted to `main` for the token (stronger than the `if:` guard against another workflow), a discriminated `PrepareResult`, a Slack-specific text cap below 40k.
     - If the repo goes private, `deliver` needs `contents: read` for its sparse checkout.
