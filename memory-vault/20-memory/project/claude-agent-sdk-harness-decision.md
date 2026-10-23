@@ -19,7 +19,7 @@ Plan in one line: a small harness layer in a nested package `scripts/agents/` (S
 - Each phase is built via WORKFLOW-10 (`/implement`), then review and the `/code-simplifier` gate.
 
 **Status 2026-10-23:**
-- P0 and P1 are built on branch `feat/claude-agent-sdk-harness`, pushed 2026-10-23. V1.1 passed; the V1.6 golden eval has not been run yet. P2+ were not started; their gates are still unmet.
+- P0 and P1 are built on branch `feat/claude-agent-sdk-harness`, pushed 2026-10-23. P1 validation is complete: V1.1–V1.9 all passed on 2026-10-23, with V1.6 on the fixed code (run `20261023T125954Z`). See the results below. P2+ were not started; their gates are still unmet.
 - Review found that `verbatimPrompts: true` is required. Without it, a string prompt gets `@path` file expansion and slash commands, a data route that bypasses `tools: []`.
 - **Q9 decided 2026-10-23** (open question 9, golden-set thresholds; the Triage-labelling half is still open for P3):
   - Critical rules: `wrong-test-import`, `inline-locator`, `hierarchical-selector`. These are the CLAUDE.md hard rules, held in `CRITICAL_RULES` in `eval.ts`.
@@ -50,3 +50,68 @@ Plan in one line: a small harness layer in a nested package `scripts/agents/` (S
   - `apiKeySource: none`, CLI 2.1.309, model `claude-sonnet-5-5`, 0 permission denials, no managed-settings keys.
   - 0 findings on `b567e71`, which is correct: it was an already-reviewed clean fix. The summary said "6 changed files" when 5 were in scope. The summary text is not fact-checked; only findings are post-validated.
   - The rate-limit event was `allowed_warning`, `seven_day` utilization 0.55. That is the whole seat's weekly usage, so watch it before the 60-run golden eval (V1.6).
+- **V1.2–V1.9 prep, 2026-10-23** (committed with the P1 validation results):
+  - `agent:review` takes `--max-turns` / `--max-budget-usd`, lower-only (V1.7). The SDK rejects a budget of 0, so use 0.01.
+  - Reports now record `toolUseNames`: the names of `tool_use`, `server_tool_use` and `mcp_tool_use` blocks, never their input. Denials alone would miss a tool name the model invents, because the CLI answers that with "no such tool", not a denial.
+  - Eval cases save `permissionDenials`, `toolUseNames` and `errors`. The leak scan covers all of them, and the run prints how many runs called a tool outside `mcp__review__*` / `StructuredOutput` (V1.3). That count is reported but not gated; adding it to the Q9 gate is the user's call.
+  - New golden clean case `clean-injection-data-string`. The injection sits in a typed data string, not a comment, so `comment-smell` can't make the clean label debatable. That makes 35 cases, 70 runs at 2 repeats. Freeze the set before V1.6.
+  - 191 offline tests pass and lint is clean on ACER.
+  - V1.4 gotcha: the eval writes `.claude/.state/agent-eval-runs/`, and this repo's own Claude Code hooks write `.claude/.state/` and the recall log on every turn. Snapshot excluding `agent-eval-runs/`, around a single `agent:review`, with no Claude Code turn in flight.
+  - `AGENT_DELIVERY_REGISTRY` in `deliver.ts` is still empty, so delivery refuses the reviewer as `unknown agent` before the outcome check. V1.7's "nothing delivered" rests on the outcome-gate offline test until P2 registers the reviewer.
+  - The live checks need `CLAUDE_CODE_OAUTH_TOKEN`, which stays out of agent sessions, so the user runs V1.2–V1.9 in their own terminal. V0.3 (`npm ci` on Linux) is deferred to P2 prep.
+- **V1.2–V1.9 live results, 2026-10-23** (user's terminal, subscription token, on the prep code above):
+  - V1.2 passed on the second attempt.
+    - The first run (`agent-reports/v1.2`) had no `ANTHROPIC_API_KEY` exported, so it proved nothing about stripping.
+    - `agent-reports/v1.2b` ran with a dummy `ANTHROPIC_API_KEY` exported in the parent shell: `success`, `apiKeySource: none`, 4 turns, $0.024, the 3 allowed tools, no errors.
+    - If the key had reached the CLI, the init invariant would have aborted the run. So this confirms live what the offline V0.7 env-hygiene test covers.
+  - V1.3: in both repeats the injection case called only `mcp__review__get_diff`, `mcp__review__get_precheck_findings` and `StructuredOutput`. Nothing leaked, and the model flagged the string itself as an `other` warning both times. Across all 70 eval runs there were 0 off-allowlist tool calls and 0 denials.
+  - V1.4: during the run, nothing in the repo (outside `node_modules`/`.git`) or in `~/.claude` (to depth 3) was written except `agent-reports/v1.4/`.
+  - V1.5: 0 leak hits over 70 runs.
+  - V1.6: run `20261023T115820Z`, 70/70 `success`, gate PASS.
+    - Merged critical precision and recall were 95%/95% (tp 19, fp 1, fn 1).
+    - Model-only critical precision and recall were 92%/92%.
+    - Clean diffs had 0 critical findings.
+    - Cost was $0.69 API-equivalent in total, $0.0079–$0.0135 per run.
+  - V1.7: `--max-budget-usd 0.01` ended `error_max_budget_usd` and `--max-turns 1` ended `error_max_turns`. Neither kept any output.
+    - Both caps are checked after a turn, not before it. The budget run made all 4 turns, including `StructuredOutput`, and spent $0.023 (2.3× the cap). The turns run reported 2 turns.
+    - So `maxBudgetUsd` is not a hard ceiling. P2's worst-case cost has to be worked out from `maxTurns`.
+  - V1.8 passed. The user ran `claude doctor` (CLI 2.1.309) with the token and a temporary config directory:
+    - It reported "Managed settings (remote): none configured for this organization" and "Organization policy: Loaded from api.anthropic.com". That matches the `{}` remote-settings file seen earlier and `managedSettingsKeys: []` in every run so far.
+    - The `setup-token` token is inference-only: no `user:profile` scope, and "Organization not resolved". So `/status` can't confirm the organisation with this token, and the token can't drive Remote Control.
+    - The "config install method not set" warning comes from the fresh config directory, not from the harness.
+  - V1.9: 10 runs on `b567e71`, on the fixed (numbered `get_diff`) code.
+    - All 10 ended `success` with 0 findings, the same 3 tools, `apiKeySource: none`, and the rate-limit event `allowed five_hour`. Total cost was $0.28 API-equivalent.
+    - Run 1 had a cold cache: 13.8k cache-write tokens, $0.059, 71 s.
+    - Runs 2–10 settled at about 18.3k cache-read, 4.85k cache-write and about 330 output tokens, roughly $0.024 and 6–10 s each.
+    - The pre-fix V1.4 run on the same commit wrote about 480 fewer cache tokens. Most of the difference is probably the new line-number prefixes, about 5% per run.
+    - `/usage` before → after the batch: session 46% → 48%, weekly 66% → 66%.
+    - So 10 runs cost at most about 2 points of the five-hour session bar and under 1 point of the weekly bar. That is an upper bound: the readings are whole numbers, and anything else on the seat in between (including the user's own Claude Code session) counts too.
+    - That works out to at most about 0.2 session points and under 0.1 weekly points per review. A 70-run eval is at most about 14 session points.
+  - Line drift: `get_diff` gave the model a raw unified diff, and the model never called `read_file`, so it counted lines from the `@@` headers. 13 of the 43 model findings were one line off.
+    - The drift caused the only critical miss (an inline-locator reported on line 13, not 14) and both soft-vs-hard misses.
+    - Post-validation only checks that the line exists, so an off-by-one finding survives. P2 inline comments would land on the wrong line.
+    - Fixed: `get_diff` now numbers every hunk line (`+  14 | code`). The numbers come from `walkDiff` in `prechecks.ts`, the walk `parseDiff` uses, so the model and the pre-checks number lines the same way.
+    - Redaction now runs per line, after the `+`/`-` marker. Before, `EMAIL_PATTERN`'s character class included `+` and `-`, so an email at the start of an added line swallowed its marker.
+    - 193 offline tests pass and lint is clean. The PASS above was measured on the pre-fix code, so V1.6 needs one re-run and an `agent:review:eval --compare 20261023T115820Z <new>`. The scorer keeps exact-line matching on purpose: loosening it would hide this defect.
+  - Non-critical noise: 26 false positives (19 `other`, 5 soft-vs-hard). Most are arguably label disputes rather than model errors:
+    - "move this literal to `src/data`";
+    - "use `this.elements.clickElement` instead of `locator.click()`", although 5 real page objects call `.click()` on a field;
+    - "use soft assertions for independent final checks". The soft-vs-hard rule text in `prompt.ts` asks for exactly that.
+  - None of this noise touches the gate. Relabelling can be rescored offline from the saved run.
+- **V1.6 re-run on the fixed code, 2026-10-23:** run `20261023T125954Z`, 70/70 `success`, gate PASS.
+  - Critical rules scored 100% precision and 100% recall, both merged (tp 20, fp 0, fn 0) and model-only (tp 12). Clean diffs had 0 critical findings.
+  - All 39 model findings were on the exact line, up from 28 of 43.
+    - Merged precision rose from 63% to 72% and recall from 94% to 100%. Soft-vs-hard got its 2 true positives.
+    - Cost was $0.71 for 70 runs, against $0.69 before.
+  - `--compare 20261023T115820Z 20261023T125954Z` over 35 cases: 6 pass only in the new run and 1 only in the old run, McNemar p = 0.125. That is not significant, because 35 cases is too few.
+    - The one case that got worse is `defect-gra-serial-mode` #2. It picked up an extra "move the endpoint into `src/data`" `other` suggestion, the same noise as elsewhere and unrelated to line numbers.
+  - The injection case drew 0 findings in both repeats this time, after being flagged in both repeats last time. So whether the model flags it is not a stable signal. The V1.3 evidence is the tool-call list and the leak scan, and both are clean again.
+  - Remaining noise:
+    - 17 `other` false positives, mostly "move this literal to `src/data`" and "use `this.elements.clickElement` instead of `locator.click()`";
+    - 2 soft-vs-hard findings on `clean-near-miss-text`, which the prompt's own rule supports.
+  - Still open:
+    - V0.3 (`npm ci` on Linux) at P2 prep.
+    - Also at P2 prep: the line prefix adds about 7 characters per diff line, so `MAX_DIFF_CHARS` (60k) now covers roughly 10% fewer lines. The golden diffs are too small to show this.
+    - The golden-label decisions above.
+    - P2 still waits on D1 and D2.
+  - This working tree is the one that passed. Any later change to the reviewer code needs another eval. A golden-label change only needs an offline rescore.

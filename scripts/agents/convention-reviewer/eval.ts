@@ -6,10 +6,10 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { isEntryPoint } from '../harness/entry-point.ts';
 import { credentialVarFor, parseAuthMode } from '../harness/env.ts';
-import { CONVENTION_EVAL_DEFAULT_REPEATS } from '../harness/limits.ts';
+import { CONVENTION_EVAL_DEFAULT_REPEATS, EXTRA_ALLOWED_TOOLS } from '../harness/limits.ts';
 import { hasLeak } from '../harness/sanitize.ts';
 import type { AuthMode, ModelTokenUsage } from '../harness/types.ts';
-import { reviewCommit } from './main.ts';
+import { REVIEW_AGENT_NAME, reviewCommit } from './main.ts';
 import type { PrecheckId } from './prechecks.ts';
 import type { ConventionFinding, ConventionRule } from './schema.ts';
 
@@ -96,6 +96,9 @@ export interface EvalCaseRun extends KindedScores {
   modelFindings: ConventionFinding[];
   costUsd: number;
   modelUsage: Record<string, ModelTokenUsage>;
+  permissionDenials: number;
+  toolUseNames: string[];
+  errors: string[];
   leak: boolean;
 }
 
@@ -121,6 +124,8 @@ export interface EvalRun {
   totalCostUsd: number;
   harnessFailures: number;
   leakHits: number;
+  permissionDenials: number;
+  offAllowlistRuns: number;
 }
 
 export interface McNemarResult {
@@ -134,6 +139,11 @@ export interface CaseRepo {
   dir: string;
   sha: string;
   cleanup: () => void;
+}
+
+// V1.3 evidence: anything the model called besides the review server's tools and the CLI's own StructuredOutput.
+export function offAllowlistTools(names: readonly string[]): string[] {
+  return names.filter((name) => !name.startsWith(`mcp__${REVIEW_AGENT_NAME}__`) && !EXTRA_ALLOWED_TOOLS.includes(name));
 }
 
 export function wilson(p: number, n: number, z: number = WILSON_Z): [number, number] {
@@ -399,6 +409,9 @@ export async function runLiveEval(options: LiveEvalOptions): Promise<EvalRun> {
         const findings = reviewed?.findings ?? [];
         const modelFindings = reviewed?.modelFindings ?? [];
         const outcome = reviewed?.report.outcome ?? 'empty-diff';
+        const summary = reviewed?.report.output?.summary ?? '';
+        const toolUseNames = reviewed?.report.toolUseNames ?? [];
+        const errors = reviewed?.report.errors ?? [];
         cases.push({
           caseId: goldenCase.id,
           kind: goldenCase.kind,
@@ -409,9 +422,14 @@ export async function runLiveEval(options: LiveEvalOptions): Promise<EvalRun> {
           ...scoreSources(goldenCase.expected, findings, modelFindings),
           costUsd: reviewed?.report.costUsdEstimate ?? 0,
           modelUsage: reviewed?.report.modelUsage ?? {},
-          leak: hasLeak(JSON.stringify([findings, modelFindings])),
+          permissionDenials: reviewed?.report.permissionDenials ?? 0,
+          toolUseNames,
+          errors,
+          leak: hasLeak(JSON.stringify([summary, findings, modelFindings, toolUseNames, errors])),
         });
-        console.log(`${goldenCase.id} #${repeat}: ${outcome}, ${findings.length} finding(s)`);
+        const offAllowlist = offAllowlistTools(toolUseNames);
+        const called = offAllowlist.length > 0 ? `, off-allowlist tool calls: ${offAllowlist.join(', ')}` : '';
+        console.log(`${goldenCase.id} #${repeat}: ${outcome}, ${findings.length} finding(s)${called}`);
       } finally {
         repo.cleanup();
       }
@@ -429,6 +447,8 @@ export async function runLiveEval(options: LiveEvalOptions): Promise<EvalRun> {
     totalCostUsd: cases.reduce((sum, entry) => sum + entry.costUsd, 0),
     harnessFailures: cases.filter((entry) => entry.outcome !== 'success').length,
     leakHits: cases.filter((entry) => entry.leak).length,
+    permissionDenials: cases.reduce((sum, entry) => sum + entry.permissionDenials, 0),
+    offAllowlistRuns: cases.filter((entry) => offAllowlistTools(entry.toolUseNames).length > 0).length,
   };
 }
 
@@ -523,7 +543,10 @@ export async function runEvalCli(argv: readonly string[], root: string, env: Nod
     const run = await runLiveEval({ repeats, authMode, ruleRoot: root });
     const path = saveRun(run, root);
     console.log(formatEvalReport(run));
-    console.log(`cost $${run.totalCostUsd.toFixed(4)}, harness failures ${run.harnessFailures}, leak hits ${run.leakHits}`);
+    console.log(
+      `cost $${run.totalCostUsd.toFixed(4)}, harness failures ${run.harnessFailures}, leak hits ${run.leakHits}, ` +
+        `permission denials ${run.permissionDenials}, runs with off-allowlist tool calls ${run.offAllowlistRuns}`,
+    );
     const gate = evaluateGate(run);
     console.log(formatGate(gate));
     console.log(`saved ${path}`);

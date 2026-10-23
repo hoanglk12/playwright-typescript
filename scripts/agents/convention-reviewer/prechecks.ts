@@ -28,6 +28,10 @@ export interface ParsedDiff {
   files: ReadonlySet<string>;
 }
 
+export type DiffLine =
+  | { kind: 'added' | 'context'; raw: string; file: string | undefined; newLine: number }
+  | { kind: 'removed' | 'meta'; raw: string; file: string | undefined };
+
 interface SplitLine {
   code: string;
   comment: string | undefined;
@@ -151,10 +155,8 @@ function headerPath(raw: string): string | undefined {
   return path.slice(2);
 }
 
-export function parseDiff(diff: string): ParsedDiff {
-  const addedLines: AddedLine[] = [];
-  const files = new Set<string>();
-  let currentFile: string | undefined;
+export function* walkDiff(diff: string): Generator<DiffLine> {
+  let file: string | undefined;
   let oldRemaining = 0;
   let newRemaining = 0;
   let newLine = 0;
@@ -163,31 +165,35 @@ export function parseDiff(diff: string): ParsedDiff {
     if (oldRemaining > 0 || newRemaining > 0) {
       const marker = raw[0];
       if (marker === '+') {
-        if (currentFile !== undefined) addedLines.push({ file: currentFile, line: newLine, text: raw.slice(1) });
+        yield { kind: 'added', raw, file, newLine };
         newLine += 1;
         newRemaining -= 1;
         continue;
       }
       if (marker === '-') {
+        yield { kind: 'removed', raw, file };
         oldRemaining -= 1;
         continue;
       }
       if (marker === ' ' || raw === '') {
+        yield { kind: 'context', raw, file, newLine };
         oldRemaining -= 1;
         newRemaining -= 1;
         newLine += 1;
         continue;
       }
-      if (marker === '\\') continue;
+      if (marker === '\\') {
+        yield { kind: 'meta', raw, file };
+        continue;
+      }
       oldRemaining = 0;
       newRemaining = 0;
     }
 
     if (raw.startsWith('diff --git ')) {
-      currentFile = undefined;
+      file = undefined;
     } else if (raw.startsWith('+++ ')) {
-      currentFile = headerPath(raw.slice(4));
-      if (currentFile !== undefined) files.add(currentFile);
+      file = headerPath(raw.slice(4));
     } else {
       const hunk = HUNK_HEADER.exec(raw);
       if (hunk !== null) {
@@ -196,6 +202,17 @@ export function parseDiff(diff: string): ParsedDiff {
         newLine = Number(hunk[2]);
       }
     }
+    yield { kind: 'meta', raw, file };
+  }
+}
+
+export function parseDiff(diff: string): ParsedDiff {
+  const addedLines: AddedLine[] = [];
+  const files = new Set<string>();
+  for (const line of walkDiff(diff)) {
+    if (line.file === undefined) continue;
+    files.add(line.file);
+    if (line.kind === 'added') addedLines.push({ file: line.file, line: line.newLine, text: line.raw.slice(1) });
   }
   return { addedLines, files };
 }

@@ -673,6 +673,40 @@ describe('query options and stderr handling', () => {
     assert.equal(state.result?.permissionDenials, 1);
   });
 
+  it('records the name of every tool call the model makes but never its input', () => {
+    const turn = asMessage({
+      type: 'assistant',
+      message: {
+        content: [
+          { type: 'text', text: 'checking' },
+          { type: 'tool_use', id: 'toolu_1', name: 'Bash', input: { command: 'secret-input' } },
+          { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_fetch', input: { url: 'secret-input' } },
+          { type: 'mcp_tool_use', id: 'mcptoolu_1', name: 'mcp__review__read_file', server_name: 'review', input: {} },
+        ],
+      },
+    });
+    const { state } = processMessage(createStreamState(), turn, ctx);
+    assert.deepEqual(state.toolUseNames, ['Bash', 'web_fetch', 'mcp__review__read_file']);
+    assert.ok(!JSON.stringify(state).includes('secret-input'));
+  });
+
+  it('reports each called tool once and scrubs the names like every other field', async () => {
+    const call = (name: string): SDKMessage =>
+      asMessage({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_1', name, input: {} }] } });
+    const stream = streamOf([
+      initMessage(),
+      call('mcp__review__read_file'),
+      call('mcp__review__read_file'),
+      call(`x${OPAQUE_CREDENTIAL}`),
+      resultMessage(),
+    ]);
+    const consumed = await consumeStream(stream, ctx, () => undefined);
+    const report = buildReport(testSpec, { ...reportInputs(consumed), secrets: [OPAQUE_CREDENTIAL] });
+    assert.equal(report.toolUseNames.length, 2);
+    assert.equal(report.toolUseNames[0], 'mcp__review__read_file');
+    assert.ok(!JSON.stringify(report.toolUseNames).includes(OPAQUE_CREDENTIAL));
+  });
+
   it('emits the output schema as draft-07, the only meta-schema the CLI validator resolves', () => {
     const format = buildQueryOptions(testSpec, server, run).outputFormat;
     assert.equal(format?.schema.$schema, 'http://json-schema.org/draft-07/schema#');
@@ -796,6 +830,7 @@ describe('delivery gate', () => {
       numTurns: 1,
       modelUsage: {},
       permissionDenials: 0,
+      toolUseNames: [],
       managedSettingsKeys: [],
       durationMs: 1,
       errors: [],

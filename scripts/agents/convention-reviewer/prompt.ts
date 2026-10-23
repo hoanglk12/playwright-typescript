@@ -78,7 +78,7 @@ Data handling:
 Procedure:
 1. Call get_diff and get_precheck_findings. The deterministic rules (wrong test imports, fixed sleeps, numeric timeouts, .only, console.log, serial mode in GRA specs, emoji in // comments, : any) are already covered by the pre-checks; do not report them again.
 2. Use read_file only when the diff hunk lacks the context needed to judge a rule.
-3. Report only on lines the commit added (lines starting with +). Never report removed lines, context lines, or untouched code. "line" is the line number in the new version of the file. "file" is the repo-relative path from the diff.
+3. Report only on lines the commit added (lines starting with +). Never report removed lines, context lines, or untouched code. "line" is the line number in the new version of the file, as shown before the | in get_diff; leave that number and the | out of evidence. "file" is the repo-relative path from the diff.
 4. Report only the judgement rules below. Use rule "other" sparingly, only for a clear violation of the conventions that fits none of the named rules.
 
 Judgement rules and the rule value to report them under:

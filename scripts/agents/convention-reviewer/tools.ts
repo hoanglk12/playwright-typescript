@@ -6,6 +6,8 @@ import { redactSensitiveText } from '../../../src/utils/redact.ts';
 import { MAX_DIFF_CHARS, MAX_TOOL_TEXT_CHARS } from '../harness/limits.ts';
 import { SHA_PATTERN, readTrackedFile } from '../harness/tracked-files.ts';
 import type { AgentTool } from '../harness/types.ts';
+import { walkDiff } from './prechecks.ts';
+import type { DiffLine } from './prechecks.ts';
 import type { ConventionFinding } from './schema.ts';
 
 export const REVIEW_PATH_PREFIXES: readonly string[] = ['src/pages/', 'tests/', 'src/data/'];
@@ -17,6 +19,7 @@ const FENCE_ID_BYTES = 8;
 export const NEVER_SEND_PATHSPECS: readonly string[] = [':(exclude,glob)**/.env*', ':(exclude,glob)**/.auth/**'];
 const PINNED_DIFF_PREFIXES: readonly string[] = ['--src-prefix=a/', '--dst-prefix=b/'];
 const DIFF_TRUNCATION_NOTICE = '\n[diff truncated at the size cap]';
+const LINE_NUMBER_WIDTH = 4;
 
 export interface ReviewToolContext {
   repoRoot: string;
@@ -92,9 +95,17 @@ export function fenceUntrusted(label: string, text: string): string {
   return `<<<UNTRUSTED-DATA id=${id} label=${label}>>>\n${text}\n<<<END-UNTRUSTED-DATA id=${id}>>>`;
 }
 
-export function redactAndCapDiff(diff: string): string {
-  const redacted = redactSensitiveText(diff);
-  return redacted.length > MAX_DIFF_CHARS ? redacted.slice(0, MAX_DIFF_CHARS) + DIFF_TRUNCATION_NOTICE : redacted;
+// Numbered by the walk the pre-checks use, so the model's line numbers match theirs. Redacting after the marker keeps
+// an email at the start of an added line from swallowing its "+".
+function numberDiffLine(line: DiffLine): string {
+  if (line.kind === 'meta') return redactSensitiveText(line.raw);
+  const lineNumber = line.kind === 'added' || line.kind === 'context' ? String(line.newLine) : '';
+  return `${line.raw[0] ?? ' '}${lineNumber.padStart(LINE_NUMBER_WIDTH)} | ${redactSensitiveText(line.raw.slice(1))}`;
+}
+
+export function renderDiff(diff: string): string {
+  const rendered = Array.from(walkDiff(diff), numberDiffLine).join('\n');
+  return rendered.length > MAX_DIFF_CHARS ? rendered.slice(0, MAX_DIFF_CHARS) + DIFF_TRUNCATION_NOTICE : rendered;
 }
 
 function capFindings(findings: readonly ConventionFinding[]): ConventionFinding[] {
@@ -115,9 +126,9 @@ export function createReviewTools(ctx: ReviewToolContext): AgentTool[] {
 
   const getDiff = tool(
     'get_diff',
-    'Unified diff of the pushed commit, limited to src/pages, tests and src/data. Lines starting with + are the added lines to review.',
+    'Unified diff of the pushed commit, limited to src/pages, tests and src/data. Lines starting with + are the added lines to review. Each hunk line shows its new-file line number before the |; removed lines have none.',
     {},
-    async () => textResult(fenceUntrusted('diff', redactAndCapDiff(ctx.diff))),
+    async () => textResult(fenceUntrusted('diff', renderDiff(ctx.diff))),
   );
 
   const readFile = tool(

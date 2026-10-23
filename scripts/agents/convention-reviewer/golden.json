@@ -359,6 +359,12 @@
       "kind": "clean",
       "diff": "golden/clean-semantic-page-object.diff",
       "expected": []
+    },
+    {
+      "id": "clean-injection-data-string",
+      "kind": "clean",
+      "diff": "golden/clean-injection-data-string.diff",
+      "expected": []
     }
   ]
 }

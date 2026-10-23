@@ -36,7 +36,7 @@ const DEFAULT_OUT_DIR = 'agent-reports';
 const REPORT_FILE = 'convention-review.json';
 const MARKDOWN_FILE = 'convention-review.md';
 const RUN_LOG_FILE = 'run-log.json';
-const USAGE = 'usage: --sha <commit> [--base <commit>] [--out <dir>]';
+const USAGE = 'usage: --sha <commit> [--base <commit>] [--out <dir>] [--max-turns <n>] [--max-budget-usd <usd>]';
 
 export interface ReviewRequest {
   targetRoot: string;
@@ -44,6 +44,8 @@ export interface ReviewRequest {
   sha: string;
   base?: string;
   authMode: AuthMode;
+  maxTurns?: number;
+  maxBudgetUsd?: number;
 }
 
 export interface FindingStats {
@@ -126,6 +128,17 @@ export function validateFindings(findings: readonly ConventionFinding[], ctx: Va
   return { kept, dropped };
 }
 
+// Caps can only be lowered (V1.7 forces error_max_turns / error_max_budget_usd); raising one would bypass the
+// reviewed budget. The SDK rejects a budget of 0, so the floor is exclusive.
+export function parseCapOverride(raw: string | undefined, flag: string, ceiling: number, integer: boolean): number | undefined {
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0 || value > ceiling || (integer && !Number.isInteger(value))) {
+    throw new Error(`${flag} must be ${integer ? 'an integer' : 'a number'} above 0 and at most ${ceiling}`);
+  }
+  return value;
+}
+
 export function capFinding(finding: ConventionFinding): ConventionFinding {
   return {
     ...finding,
@@ -173,8 +186,8 @@ export async function reviewCommit(request: ReviewRequest, runner: AgentRunner =
     }),
     outputSchema: ConventionReviewOutputSchema,
     model: REVIEW_MODEL,
-    maxTurns: CONVENTION_REVIEWER_MAX_TURNS,
-    maxBudgetUsd: CONVENTION_REVIEWER_MAX_BUDGET_USD,
+    maxTurns: request.maxTurns ?? CONVENTION_REVIEWER_MAX_TURNS,
+    maxBudgetUsd: request.maxBudgetUsd ?? CONVENTION_REVIEWER_MAX_BUDGET_USD,
   };
   const report = await runner(spec, buildUserPrompt(sha), { authMode: request.authMode });
 
@@ -254,14 +267,24 @@ export async function runCli(argv: readonly string[], cwd: string, env: NodeJS.P
   let sha: string | undefined;
   let base: string | undefined;
   let outDir: string;
+  let maxTurns: number | undefined;
+  let maxBudgetUsd: number | undefined;
   try {
     const { values } = parseArgs({
       args: [...argv],
-      options: { sha: { type: 'string' }, base: { type: 'string' }, out: { type: 'string' } },
+      options: {
+        sha: { type: 'string' },
+        base: { type: 'string' },
+        out: { type: 'string' },
+        'max-turns': { type: 'string' },
+        'max-budget-usd': { type: 'string' },
+      },
     });
     sha = values.sha;
     base = values.base;
     outDir = values.out ?? DEFAULT_OUT_DIR;
+    maxTurns = parseCapOverride(values['max-turns'], '--max-turns', CONVENTION_REVIEWER_MAX_TURNS, true);
+    maxBudgetUsd = parseCapOverride(values['max-budget-usd'], '--max-budget-usd', CONVENTION_REVIEWER_MAX_BUDGET_USD, false);
   } catch (error) {
     console.error(`${error instanceof Error ? error.message : 'invalid arguments'}\n${USAGE}`);
     return 1;
@@ -278,6 +301,8 @@ export async function runCli(argv: readonly string[], cwd: string, env: NodeJS.P
       sha,
       base,
       authMode: parseAuthMode(env.AGENT_AUTH_MODE),
+      maxTurns,
+      maxBudgetUsd,
     });
     if (result.kind === 'empty') {
       console.log(`nothing to review: no in-scope changes in ${result.sha}`);

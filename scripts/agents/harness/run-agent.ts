@@ -30,6 +30,7 @@ const REMOTE_SETTINGS_FILE = 'remote-settings.json';
 const UNPARSEABLE_SETTINGS_KEY = '<unparseable>';
 export const UNREADABLE_SETTINGS_KEY = '<unreadable>';
 const FATAL_ASSISTANT_ERRORS: readonly string[] = ['authentication_failed', 'oauth_org_not_allowed'];
+const TOOL_CALL_BLOCK_TYPES: readonly string[] = ['tool_use', 'server_tool_use', 'mcp_tool_use'];
 // Built-ins that settingSources: [] leaves loaded (V1.1). Plugins can carry hooks, so they are switched off
 // rather than allowlisted. Managed policy settings outrank these flag settings; the init check still catches that.
 export const ISOLATION_SETTINGS = {
@@ -58,6 +59,7 @@ export interface StreamState {
   resolvedModel?: string;
   rateLimit?: RateLimitSummary;
   errors: string[];
+  toolUseNames: string[];
   result?: ResultSnapshot;
 }
 
@@ -92,7 +94,14 @@ function errorMessage(error: unknown): string {
 }
 
 export function createStreamState(): StreamState {
-  return { initChecked: false, errors: [] };
+  return { initChecked: false, errors: [], toolUseNames: [] };
+}
+
+// Names only: a tool call's input can carry model output.
+function toolCallNames(blocks: readonly { type: string; name?: unknown }[] | undefined): string[] {
+  return (blocks ?? []).flatMap((block) =>
+    TOOL_CALL_BLOCK_TYPES.includes(block.type) && typeof block.name === 'string' ? [block.name] : [],
+  );
 }
 
 export function processMessage(state: StreamState, message: SDKMessage, ctx: ProcessContext): ProcessResult {
@@ -123,8 +132,11 @@ export function processMessage(state: StreamState, message: SDKMessage, ctx: Pro
     return exhausted ? { state: next, abort: 'usage-exhausted' } : { state: next };
   }
 
-  if (message.type === 'assistant' && message.error !== undefined) {
-    const next: StreamState = { ...state, errors: [...state.errors, `assistant error: ${message.error}`] };
+  if (message.type === 'assistant') {
+    const names = toolCallNames(message.message?.content);
+    const called: StreamState = names.length > 0 ? { ...state, toolUseNames: [...state.toolUseNames, ...names] } : state;
+    if (message.error === undefined) return { state: called };
+    const next: StreamState = { ...called, errors: [...called.errors, `assistant error: ${message.error}`] };
     const fatal = FATAL_ASSISTANT_ERRORS.includes(message.error);
     return fatal ? { state: next, abort: 'auth-failed' } : { state: next };
   }
@@ -313,6 +325,9 @@ export function buildReport<TOutput>(spec: AgentSpec<TOutput>, inputs: ReportInp
     numTurns: state.result?.numTurns ?? 0,
     modelUsage: state.result?.modelUsage ?? {},
     permissionDenials: state.result?.permissionDenials ?? 0,
+    toolUseNames: [...new Set(state.toolUseNames)].map((name) =>
+      sanitizeText(scrubSecrets(name, secrets), MAX_OUTPUT_FIELD_CHARS),
+    ),
     apiKeySource: state.apiKeySource,
     claudeCodeVersion: state.claudeCodeVersion,
     resolvedModel: state.resolvedModel,

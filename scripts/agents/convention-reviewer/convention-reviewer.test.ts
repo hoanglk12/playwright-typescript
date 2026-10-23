@@ -32,6 +32,7 @@ import {
   isCaseCorrect,
   loadGolden,
   mcnemar,
+  offAllowlistTools,
   readGoldenDiff,
   runEvalCli,
   scoreCase,
@@ -45,6 +46,7 @@ import type { CaseRepo, CaseScore, CriticalSummary, EvalRun, ExpectedFinding } f
 import {
   capFinding,
   mergeFindings,
+  parseCapOverride,
   renderReviewMarkdown,
   reviewCommit,
   runCli,
@@ -62,6 +64,7 @@ import {
   createReviewTools,
   fenceUntrusted,
   getScopedDiff,
+  renderDiff,
   resolveBase,
   resolveSha,
 } from './tools.ts';
@@ -157,6 +160,7 @@ function fakeReport(
     numTurns: 3,
     modelUsage: {},
     permissionDenials: 0,
+    toolUseNames: [],
     apiKeySource: 'none',
     claudeCodeVersion: '0.0.0-test',
     resolvedModel: 'test-model',
@@ -420,6 +424,19 @@ describe('reviewCommit with a stubbed agent runner', () => {
     }
   });
 
+  it('passes lowered caps from the request to the agent spec', async () => {
+    const repo = caseRepoFor('defect-fixed-sleep');
+    try {
+      const calls: RunnerCall[] = [];
+      const request = { targetRoot: repo.dir, ruleRoot: REPO_ROOT, sha: repo.sha, authMode: 'subscription-oauth' as const };
+      await reviewCommit({ ...request, maxTurns: 1, maxBudgetUsd: 0.01 }, fakeRunner(fakeReport(), calls));
+      assert.equal(calls[0].maxTurns, 1);
+      assert.equal(calls[0].maxBudgetUsd, 0.01);
+    } finally {
+      repo.cleanup();
+    }
+  });
+
   it('reports an empty review without calling the runner', async () => {
     const { dir, sha } = await makeRepoWithCommit({ 'docs/notes.md': 'docs only\n' });
     const calls: RunnerCall[] = [];
@@ -554,7 +571,7 @@ describe('tools', () => {
       assert.equal(isError, false);
       assert.match(text, /^<<<UNTRUSTED-DATA id=[0-9a-f]{16} label=diff>>>/);
       assert.match(text, /<<<END-UNTRUSTED-DATA id=[0-9a-f]{16}>>>$/);
-      assert.ok(text.includes('+    await page.waitForTimeout(3000);'));
+      assert.ok(text.includes('+  10 |     await page.waitForTimeout(3000);'));
     } finally {
       cleanup();
     }
@@ -571,6 +588,42 @@ describe('tools', () => {
     } finally {
       cleanup();
     }
+  });
+
+  it('numbers each hunk line with the new-file line the pre-checks use, CRLF included', () => {
+    const diff = [
+      'diff --git a/tests/x.spec.ts b/tests/x.spec.ts',
+      '--- a/tests/x.spec.ts',
+      '+++ b/tests/x.spec.ts',
+      '@@ -1,3 +1,3 @@',
+      ' const a = 1;',
+      '-const b = 2;',
+      '+const b = 3;',
+      ' const c = 4;',
+      '@@ -20,2 +20,3 @@',
+      ' const t = 20;',
+      '+const u = 21;',
+      ' const v = 22;',
+    ].join('\r\n');
+    assert.deepEqual(renderDiff(diff).split('\n').slice(4), [
+      '    1 | const a = 1;',
+      '-     | const b = 2;',
+      '+   2 | const b = 3;',
+      '    3 | const c = 4;',
+      '@@ -20,2 +20,3 @@',
+      '   20 | const t = 20;',
+      '+  21 | const u = 21;',
+      '   22 | const v = 22;',
+    ]);
+    assert.deepEqual(
+      parseDiff(diff).addedLines.map((added) => added.line),
+      [2, 21],
+    );
+  });
+
+  it('keeps the + marker when redaction rewrites the start of an added line', () => {
+    const diff = ['+++ b/src/data/x.ts', '@@ -0,0 +1 @@', '+someone@example.com'].join('\n');
+    assert.ok(renderDiff(diff).includes('+   1 | [REDACTED-EMAIL]'));
   });
 
   it('uses a different fence id per call so content cannot close it', () => {
@@ -780,6 +833,13 @@ describe('schema', () => {
 });
 
 describe('eval scoring', () => {
+  it('flags every tool call outside the review server and StructuredOutput (V1.3)', () => {
+    assert.deepEqual(
+      offAllowlistTools(['mcp__review__read_file', 'StructuredOutput', 'Bash', 'mcp__other__x', 'mcp__reviewer__x']),
+      ['Bash', 'mcp__other__x', 'mcp__reviewer__x'],
+    );
+  });
+
   const expected: ExpectedFinding[] = [
     { rule: 'fixed-sleep', file: 'a.ts', line: 3 },
     { rule: 'inline-locator', file: 'b.ts' },
@@ -843,6 +903,8 @@ describe('eval scoring', () => {
       totalCostUsd: 0,
       harnessFailures: 0,
       leakHits: 0,
+      permissionDenials: 0,
+      offAllowlistRuns: 0,
       cases: Object.entries(passes).map(([caseId, passed]) => ({
         caseId,
         kind: 'defect',
@@ -856,6 +918,9 @@ describe('eval scoring', () => {
         score: scoreFor(passed),
         costUsd: 0,
         modelUsage: {},
+        permissionDenials: 0,
+        toolUseNames: [],
+        errors: [],
         leak: false,
       })),
     });
@@ -1095,5 +1160,30 @@ describe('main CLI', () => {
   it('reports usage errors in-process', async () => {
     mock.method(console, 'error', () => undefined);
     assert.equal(await runCli([], process.cwd(), {}), 1);
+  });
+
+  it('accepts cap overrides only at or below the defaults (V1.7)', async () => {
+    assert.equal(parseCapOverride(undefined, '--max-turns', CONVENTION_REVIEWER_MAX_TURNS, true), undefined);
+    assert.equal(parseCapOverride('1', '--max-turns', CONVENTION_REVIEWER_MAX_TURNS, true), 1);
+    assert.equal(parseCapOverride('0.01', '--max-budget-usd', CONVENTION_REVIEWER_MAX_BUDGET_USD, false), 0.01);
+
+    const errors = mock.method(console, 'error', () => undefined);
+    const rejected = [
+      ['--max-turns', String(CONVENTION_REVIEWER_MAX_TURNS + 1)],
+      ['--max-turns', '0'],
+      ['--max-turns', '1.5'],
+      ['--max-budget-usd', String(CONVENTION_REVIEWER_MAX_BUDGET_USD + 0.01)],
+      ['--max-budget-usd', '0'],
+      ['--max-budget-usd=-1'],
+      ['--max-budget-usd', 'Infinity'],
+      ['--max-budget-usd', 'abc'],
+    ];
+    for (const args of rejected) {
+      assert.equal(await runCli(['--sha', 'abc1234', ...args], process.cwd(), {}), 1, `${args.join(' ')} must fail`);
+    }
+    assert.equal(errors.mock.calls.length, rejected.length);
+    for (const call of errors.mock.calls) {
+      assert.match(String(call.arguments[0]), /must be (an integer|a number) above 0 and at most/);
+    }
   });
 });

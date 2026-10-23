@@ -48,6 +48,7 @@ export interface AgentRunReport<TOutput> {
   numTurns: number;
   modelUsage: Record<string, ModelTokenUsage>;
   permissionDenials: number;
+  toolUseNames: string[];
   apiKeySource?: string;
   claudeCodeVersion?: string;
   resolvedModel?: string;
