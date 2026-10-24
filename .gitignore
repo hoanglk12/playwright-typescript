@@ -176,3 +176,6 @@ temp_healer.md
 memory-vault/.obsidian/workspace.json
 memory-vault/.obsidian/workspace-mobile.json
 .aider*
+# Claude agent harness outputs
+agent-reports/
+agent-bundle/
