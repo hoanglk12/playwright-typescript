@@ -3,7 +3,7 @@ name: claude-agent-sdk-harness-decision
 description: "2026-10-23 user approved all phases (P0-P6) of a Claude Agent SDK harness + read-only CI agents plan, authenticated with a Claude Code subscription token; CI phases still gated on external decisions D1-D3"
 type: project
 tags: [memory, project, ai-agents, ci]
-last_verified: 2026-10-23
+last_verified: 2026-10-24
 ---
 
 On 2026-10-23 the user approved all phases (P0-P6) of the plan in `docs/technical-research/claude-agent-sdk-harness.research.html` (companion: `ai-agent-harness-options.research.html`, cited there as [P]). Both files were exported uncommitted; the repo is public and both catalogue redaction gaps, so review before pushing. No implementation had started at approval time.
@@ -145,7 +145,7 @@ Plan in one line: a small harness layer in a nested package `scripts/agents/` (S
     - The personal token worked in CI: `findings=11` (pre-check 1, model 10), $0.083, 4 turns, 34s.
     - The Slack post landed in the test-results channel, and the user checked it.
     - Leak check on the job log (489 lines): both secrets appear only as `***`. There is no `sk-ant` string, webhook URL, rule id or evidence/suggestion text, so findings reach only Slack and the 7-day artifact.
-  - **Slack Block Kit format built 2026-10-24** (uncommitted at time of writing). The user picked the "full evidence" board on the design canvas https://claude.ai/artifact/2xX55s1XYAKS4EWqsHr87m.
+  - **Slack Block Kit format built 2026-10-24**, committed in `1bb9db0`. The user picked the "full evidence" board on the design canvas https://claude.ai/artifact/2xX55s1XYAKS4EWqsHr87m.
     - **Layout:**
       - A header, then fields for Commit (with its subject), Branch, Findings and Files.
       - The summary, then "View workflow run" and "View commit" buttons, matching `playwright-with-slack.yml`.
@@ -170,7 +170,12 @@ Plan in one line: a small harness layer in a nested package `scripts/agents/` (S
       - The real `f048897` report renders to 25 blocks, the longest 431 characters, and passes the check.
       - GitHub markdown output is byte-identical to before, checked on the real report and a hostile sample.
       - Model input is unchanged, so no re-eval is needed.
-    - **Not yet seen in a real channel.** That needs a CI run, either through another temporary branch trigger or a dispatch after the merge.
+    - **Seen in the real channel 2026-10-24:** run 40087070102, through the temporary trigger `6687114`, reverted right after.
+      - It reviewed `f048897` and found 10 findings (pre-check 1, model 9) for $0.047 in 4 turns. Slack accepted the 24-block payload; a rejected layout fails the step with HTTP 400.
+      - The user checked the post and approved it. Whether Slack folded the attachments behind "Show more" was not reported.
+      - The job log shows both secrets only as `***`, with no finding text.
+      - A branch test now needs the SHA override in three places (Review, Detect report, Slack step). With one missing, the post pairs one commit's link with another commit's subject.
+      - On a branch run the Branch field shows the branch name, because it comes from `GITHUB_REF_NAME`.
   - **Open:**
     - No Slack alert on a failed review; the red run is the only signal. That's the user's call.
     - Optional hardening: a GitHub Environment restricted to `main` for the token (stronger than the `if:` guard against another workflow).
