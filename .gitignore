@@ -54,6 +54,7 @@ test-summary.txt
 /html-report/
 /api-report/
 /api-results/
+/agent-reports
 
 # Authentication states
 .auth/
