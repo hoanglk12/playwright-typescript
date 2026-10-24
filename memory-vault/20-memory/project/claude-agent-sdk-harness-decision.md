@@ -145,8 +145,34 @@ Plan in one line: a small harness layer in a nested package `scripts/agents/` (S
     - The personal token worked in CI: `findings=11` (pre-check 1, model 10), $0.083, 4 turns, 34s.
     - The Slack post landed in the test-results channel, and the user checked it.
     - Leak check on the job log (489 lines): both secrets appear only as `***`. There is no `sk-ant` string, webhook URL, rule id or evidence/suggestion text, so findings reach only Slack and the 7-day artifact.
+  - **Slack Block Kit format built 2026-10-24** (uncommitted at time of writing). The user picked the "full evidence" board on the design canvas https://claude.ai/artifact/2xX55s1XYAKS4EWqsHr87m.
+    - **Layout:**
+      - A header, then fields for Commit (with its subject), Branch, Findings and Files.
+      - The summary, then "View workflow run" and "View commit" buttons, matching `playwright-with-slack.yml`.
+      - One coloured attachment per severity, grouped by file in first-seen order and sorted by line.
+      - Every `line N` and file path links to the file at the reviewed commit.
+      - Evidence sits in its own code block, and the `other` rule is hidden.
+    - **Design:**
+      - The agent's `renderSlack` builds the blocks.
+      - `findSlackProblem` in `harness/slack.ts` is the central check, which no longer depends on each renderer escaping:
+        - every `<` must open a link to the repo URL plus `/`, compared after `new URL()` normalisation, so `../` and `%2e%2e` can't escape the repo;
+        - button URLs face the same check;
+        - no raw `<` or `>` may remain;
+        - the leak check runs on the visible text with the link URLs stripped. That avoids a false positive from the card-number pattern, which would fire on a run id once it reaches 13 digits.
+        - entities are decoded before the leak check, because `&amp;token=` slips past the URL-secret pattern. A test proved the gap before the fix.
+      - Text is capped after escaping: path 300, suggestion 1000, evidence 700, summary 2900, link URL 800. A 20-finding worst case stays at ≤48 blocks with every block ≤3000 characters.
+    - **Workflow:**
+      - The review job outputs `subject`, read with `git log -1 --format=%s` behind a hex-SHA guard, because a dispatch `sha` starting with `-` would otherwise become a git option.
+      - `deliver` gets it as the `COMMIT_SUBJECT` env value; the branch comes from the default `GITHUB_REF_NAME`.
+    - **Verified offline:**
+      - 209 tests pass and lint is clean.
+      - Two security mutations were each caught: no URL normalisation, and no dot-segment guard.
+      - The real `f048897` report renders to 25 blocks, the longest 431 characters, and passes the check.
+      - GitHub markdown output is byte-identical to before, checked on the real report and a hostile sample.
+      - Model input is unchanged, so no re-eval is needed.
+    - **Not yet seen in a real channel.** That needs a CI run, either through another temporary branch trigger or a dispatch after the merge.
   - **Open:**
     - No Slack alert on a failed review; the red run is the only signal. That's the user's call.
-    - Optional hardening: a GitHub Environment restricted to `main` for the token (stronger than the `if:` guard against another workflow), a discriminated `PrepareResult`, a Slack-specific text cap below 40k.
+    - Optional hardening: a GitHub Environment restricted to `main` for the token (stronger than the `if:` guard against another workflow).
     - If the repo goes private, `deliver` needs `contents: read` for its sparse checkout.
   - This working tree is the one that passed. Any later change to the reviewer code needs another eval. A golden-label change only needs an offline rescore.

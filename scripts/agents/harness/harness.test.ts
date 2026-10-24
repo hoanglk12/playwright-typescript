@@ -27,6 +27,8 @@ import {
   TEMP_DIR_RM_MAX_RETRIES,
 } from './limits.ts';
 import { codeSpan } from './markdown.ts';
+import { findSlackProblem, slackPlain } from './slack.ts';
+import type { SlackMessage } from './slack.ts';
 import {
   appendStderr,
   buildQueryOptions,
@@ -813,9 +815,22 @@ describe('delivery gate', () => {
     summary: string;
   }
   const schema = z.object({ summary: z.string() });
+  const slackMessage = (text: string): SlackMessage => ({
+    text: 'Fake agent',
+    blocks: [{ type: 'section', text: { type: 'mrkdwn', text } }],
+    attachments: [],
+  });
   const registry: DeliveryRegistry = {
-    fake: { schema, render: (output) => ({ title: 'Fake agent', body: codeSpan((output as Summary).summary) }) },
-    leaky: { schema, render: () => ({ title: 'Leaky renderer', body: `token ${PLANTED_JWT}` }) },
+    fake: {
+      schema,
+      render: (output) => ({ title: 'Fake agent', body: codeSpan((output as Summary).summary) }),
+      renderSlack: (output) => slackMessage(slackPlain((output as Summary).summary, 1000)),
+    },
+    leaky: {
+      schema,
+      render: () => ({ title: 'Leaky renderer', body: `token ${PLANTED_JWT}` }),
+      renderSlack: () => slackMessage(`token ${PLANTED_JWT}`),
+    },
   };
   const env = { GITHUB_TOKEN: 'gh-test-token', REPO: 'owner/repo', SHA: 'abcdef1234567' };
   const slackEnv = { SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/x' };
@@ -902,7 +917,7 @@ describe('delivery gate', () => {
     const slack = makeFetch();
     const path = await reportFile(report({ output: { summary: hostile } }));
     assert.equal(await runDelivery(deliveryArgs(path, 'fake', 'slack'), slackEnv, registry, slack.fetchImpl), 0);
-    const text = (JSON.parse(slack.lastBody()) as { text: string }).text;
+    const text = slack.lastBody();
     for (const raw of ['<!channel>', '<!here>', '<@U123>']) assert.ok(!text.includes(raw), `${raw} must be escaped`);
     assert.ok(text.includes('&lt;!channel&gt;'));
     assert.ok(text.includes(`&lt;@${ZERO_WIDTH_SPACE}U123&gt;`));
@@ -913,6 +928,34 @@ describe('delivery gate', () => {
     const body = (JSON.parse(github.lastBody()) as { body: string }).body;
     assert.ok(!body.includes('&lt;') && !body.includes('&amp;'));
     assert.ok(body.includes('a & b'));
+  });
+
+  it('refuses Slack markup a renderer left live or pointed outside the repository', async () => {
+    const repoUrl = 'https://github.com/owner/repo';
+    const refused = [
+      slackMessage('<!channel> hi'),
+      slackMessage('<https://evil.example/x|x>'),
+      slackMessage('<https://github.com/owner/repo-evil/x|x>'),
+      slackMessage('<https://github.com/owner/repo/blob/abc/../../../evil/repo|x>'),
+      slackMessage('<https://github.com/owner/repo/blob/abc/%2e%2e/%2e%2e/%2e%2e/evil/repo|x>'),
+      {
+        ...slackMessage('ok'),
+        blocks: [{ type: 'actions', elements: [{ type: 'button', text: { type: 'plain_text', text: 'x' }, url: 'https://evil.example/' }] }],
+      } satisfies SlackMessage,
+    ];
+    for (const message of refused) assert.notEqual(findSlackProblem(message, repoUrl), undefined, JSON.stringify(message));
+    const repoLink = slackMessage(`<${repoUrl}/blob/abc/tests/a%20b.ts#L3|line 3>`);
+    assert.equal(findSlackProblem(repoLink, repoUrl), undefined);
+    assert.notEqual(findSlackProblem(repoLink, undefined), undefined, 'no repo context means no links at all');
+
+    const escapedSecret = slackMessage(slackPlain('https://x.test/?a=1&token=abc123', 1000));
+    assert.equal(findSlackProblem(escapedSecret, repoUrl), 'leak detected in rendered message', 'escaping must not hide a leak');
+
+    const http = makeFetch();
+    const path = await reportFile(report());
+    const live: DeliveryRegistry = { fake: { ...registry.fake, renderSlack: () => slackMessage('<!channel>') } };
+    assert.equal(await runDelivery(deliveryArgs(path, 'fake', 'slack'), slackEnv, live, http.fetchImpl), 1);
+    assert.equal(http.calls(), 0);
   });
 
   it('delivers nothing for a run that did not succeed', async () => {

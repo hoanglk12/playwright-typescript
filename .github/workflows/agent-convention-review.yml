@@ -31,6 +31,7 @@ jobs:
     outputs:
       has_report: ${{ steps.report.outputs.has_report }}
       artifact: ${{ steps.report.outputs.artifact }}
+      subject: ${{ steps.report.outputs.subject }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -82,11 +83,17 @@ jobs:
         if: always()
         run: |
           echo "artifact=convention-review-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          # A dispatch sha starting with "-" would reach git as an option.
+          if [[ "$SHA" =~ ^[0-9a-fA-F]{7,64}$ ]]; then
+            echo "subject=$(git log -1 --format=%s "$SHA" 2>/dev/null | tr -d '\r')" >> "$GITHUB_OUTPUT"
+          fi
           if [ -f agent-reports/convention-review.json ]; then
             echo "has_report=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_report=false" >> "$GITHUB_OUTPUT"
           fi
+        env:
+          SHA: ${{ inputs.sha || github.sha }}
 
       - uses: actions/upload-artifact@v7
         if: always() && steps.report.outputs.has_report == 'true'
@@ -127,3 +134,4 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SHA: ${{ inputs.sha || github.sha }}
+          COMMIT_SUBJECT: ${{ needs.review.outputs.subject }}

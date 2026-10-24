@@ -14,10 +14,12 @@ import {
   MAX_DIFF_CHARS,
   MAX_EVIDENCE_CHARS,
   MAX_FINDINGS,
+  MAX_PATH_CHARS,
   MAX_SUGGESTION_CHARS,
   MAX_SUMMARY_CHARS,
   MAX_TOOL_TEXT_CHARS,
 } from '../harness/limits.ts';
+import type { SlackBlock, SlackMessage } from '../harness/slack.ts';
 import { listTrackedFiles } from '../harness/tracked-files.ts';
 import type { AgentRunReport, AgentSpec } from '../harness/types.ts';
 import {
@@ -58,9 +60,9 @@ import {
 import type { AgentRunner, CompletedReview, ReviewResult } from './main.ts';
 import { PRECHECK_IDS, parseDiff, runPrechecks, toFinding } from './prechecks.ts';
 import { RULE_SOURCES, buildSystemPrompt, extractSection, loadRuleText } from './prompt.ts';
-import { inert, renderConventionMarkdown } from './render.ts';
+import { inert, renderConventionMarkdown, renderConventionSlack } from './render.ts';
 import { CONVENTION_RULES, ConventionFindingSchema, ConventionReviewOutputSchema } from './schema.ts';
-import type { ConventionFinding, ConventionReviewOutput, ConventionRule } from './schema.ts';
+import type { ConventionFinding, ConventionReviewOutput, ConventionRule, ConventionSeverity } from './schema.ts';
 import {
   DIFF_TRUNCATION_NOTICE,
   REVIEW_PATH_PREFIXES,
@@ -500,9 +502,10 @@ describe('markdown rendering', () => {
   };
 
   it('renders evidence literally for every target, without decoding entities', () => {
-    for (const target of ['github-commit-comment', 'slack'] as const) {
-      assert.ok(renderConventionMarkdown(output, target).body.includes('`a &lt;b&gt; &amp; c <d> & e`'));
-    }
+    assert.ok(renderConventionMarkdown(output).body.includes('`a &lt;b&gt; &amp; c <d> & e`'));
+    // Slack decodes entities once, so the escaped form displays the evidence exactly as the model wrote it.
+    const slackSections = renderConventionSlack(output, {}).attachments.flatMap((attachment) => attachment.blocks);
+    assert.ok(JSON.stringify(slackSections).includes('```a &amp;lt;b&amp;gt; &amp;amp; c &lt;d&gt; &amp; e```'));
   });
 });
 
@@ -514,18 +517,16 @@ describe('markdown inertness', () => {
       summary: hostile,
       findings: [finding({ suggestion: `${hostile}\n# heading\n- item` })],
     };
-    for (const target of ['github-commit-comment', 'github-issue'] as const) {
-      const { body } = renderConventionMarkdown(output, target);
-      assert.ok(!body.includes(']('), 'no link syntax');
-      assert.ok(!/(?<!\\)!\[/.test(body), 'no unescaped image syntax');
-      assert.ok(!/(?<!\\)<img/.test(body), 'no raw html tag');
-      const unexpectedBlockStart = body
-        .split('\n')
-        .filter((line) => /^\s*(#|-\s|>)/.test(line))
-        .filter((line) => !line.startsWith('### ') && !line.startsWith('- `') && !line.startsWith('  - evidence: `'));
-      assert.deepEqual(unexpectedBlockStart, []);
-      assert.ok(!body.startsWith('#'));
-    }
+    const { body } = renderConventionMarkdown(output);
+    assert.ok(!body.includes(']('), 'no link syntax');
+    assert.ok(!/(?<!\\)!\[/.test(body), 'no unescaped image syntax');
+    assert.ok(!/(?<!\\)<img/.test(body), 'no raw html tag');
+    const unexpectedBlockStart = body
+      .split('\n')
+      .filter((line) => /^\s*(#|-\s|>)/.test(line))
+      .filter((line) => !line.startsWith('### ') && !line.startsWith('- `') && !line.startsWith('  - evidence: `'));
+    assert.deepEqual(unexpectedBlockStart, []);
+    assert.ok(!body.startsWith('#'));
   });
 
   it('flattens whitespace and escapes every markdown-active character', () => {
@@ -1250,97 +1251,205 @@ describe('review report delivery to Slack', () => {
   const withFinding = (): AgentRunReport<ConventionReviewOutput> =>
     fakeReport({ output: { summary: 'One issue.', findings: [finding()] } });
 
+  const runEnv = {
+    ...slackEnv,
+    SHA: 'abcdef1234567890abcdef1234567890abcdef12',
+    GITHUB_SERVER_URL: 'https://github.com',
+    GITHUB_REPOSITORY: 'owner/repo',
+    GITHUB_RUN_ID: '12345',
+    GITHUB_REF_NAME: 'main',
+    COMMIT_SUBJECT: '`feat: add E2E-CART-010 promo code field test and hasPromoCodeField method`',
+  };
+  const repoUrl = 'https://github.com/owner/repo';
+  const blobUrl = `${repoUrl}/blob/${runEnv.SHA}`;
+
+  function allBlocks(message: SlackMessage): SlackBlock[] {
+    return [...message.blocks, ...message.attachments.flatMap((attachment) => attachment.blocks)];
+  }
+
+  function mrkdwnTexts(message: SlackMessage): string[] {
+    return [
+      message.text,
+      ...allBlocks(message).flatMap((block) => {
+        if (block.type === 'section') return 'fields' in block ? block.fields.map((field) => field.text) : [block.text.text];
+        return block.type === 'context' ? block.elements.map((element) => element.text) : [];
+      }),
+    ];
+  }
+
+  function sectionTexts(blocks: readonly SlackBlock[]): string[] {
+    return blocks.flatMap((block) => (block.type === 'section' && 'text' in block ? [block.text.text] : []));
+  }
+
+  async function post(output: ConventionReviewOutput, env: Record<string, string> = runEnv): Promise<SlackMessage> {
+    const http = makeFetch();
+    assert.equal(await runDelivery(args(await reportFile(fakeReport({ output }))), env, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
+    assert.equal(http.calls(), 1);
+    assert.equal(http.request().url, slackEnv.SLACK_WEBHOOK_URL);
+    return JSON.parse(http.request().body) as SlackMessage;
+  }
+
   it('registers the reviewer under the agent name its report carries', () => {
     const prepared = prepareDelivery(AGENT_DELIVERY_REGISTRY, 'review', 'slack', withFinding());
     assert.ok(prepared.ok);
     assert.equal(prepared.skipReason, undefined);
-    assert.match(prepared.message.title, /^Convention review: 1 finding$/);
+    assert.ok(prepared.message.target === 'slack');
+    assert.equal(prepared.message.slack.text, 'Convention review: 1 finding');
   });
 
-  it('posts a review with findings to the Slack webhook', async () => {
-    const http = makeFetch();
-    const path = await reportFile(withFinding());
-    assert.equal(await runDelivery(args(path), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
-    assert.equal(http.calls(), 1);
-    assert.equal(http.request().url, slackEnv.SLACK_WEBHOOK_URL);
-    const payload = JSON.parse(http.request().body) as { text: string; unfurl_links: boolean; unfurl_media: boolean };
-    assert.ok(payload.text.startsWith('*Convention review: 1 finding*'));
-    assert.ok(payload.text.includes(finding().file));
-    assert.equal(payload.unfurl_links, false);
-    assert.equal(payload.unfurl_media, false);
-  });
-
-  it('escapes mention and link syntax in plain-text fields, not only inside code spans', async () => {
-    const output: ConventionReviewOutput = {
-      summary: '<!channel> see <https://evil.example|here>',
-      findings: [finding({ suggestion: '<@U123> <!here>', file: 'tests/<!subteam^S1>.ts' })],
-    };
-    const http = makeFetch();
-    assert.equal(await runDelivery(args(await reportFile(fakeReport({ output }))), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
-    assert.ok(!(JSON.parse(http.request().body) as { text: string }).text.includes('<'));
-  });
-
-  it('renders Slack-native text: bold severity lines, no backslash escapes, no ### headings', async () => {
-    const output: ConventionReviewOutput = {
-      summary: 'Two issues (see below) with `ticks`.',
-      findings: [
-        finding({ severity: 'critical', evidence: 'a `b` <!channel> <https://evil.example|click>' }),
-        finding({ severity: 'warning', suggestion: 'Use [a] * b_c' }),
+  it('posts Block Kit with commit fields, buttons and a coloured attachment per severity', async () => {
+    const file = finding().file;
+    const commitUrl = `${repoUrl}/commit/${runEnv.SHA}`;
+    assert.deepEqual(await post(withFinding().output as ConventionReviewOutput), {
+      text: 'Convention review: 1 finding',
+      blocks: [
+        { type: 'header', text: { type: 'plain_text', text: 'Convention review: 1 finding' } },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Commit*\n<${commitUrl}|abcdef1> 'feat: add E2E-CART-010 promo code field test and hasPromoCodeField method'` },
+            { type: 'mrkdwn', text: '*Branch*\nmain' },
+            { type: 'mrkdwn', text: '*Findings*\n1 warning' },
+            { type: 'mrkdwn', text: '*Files*\n1' },
+          ],
+        },
+        { type: 'section', text: { type: 'mrkdwn', text: 'One issue.' } },
+        {
+          type: 'actions',
+          elements: [
+            { type: 'button', text: { type: 'plain_text', text: 'View workflow run' }, url: `${repoUrl}/actions/runs/12345` },
+            { type: 'button', text: { type: 'plain_text', text: 'View commit' }, url: commitUrl },
+          ],
+        },
       ],
-    };
-    const http = makeFetch();
-    const path = await reportFile(fakeReport({ output }));
-    assert.equal(await runDelivery(args(path), slackEnv, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
-    const text = (JSON.parse(http.request().body) as { text: string }).text;
-    assert.ok(!text.includes('\\'), 'no backslash escapes');
-    assert.ok(!text.includes('###'));
-    assert.ok(text.includes('*critical (1)*\n- '));
-    assert.ok(text.includes('*warning (1)*\n- '));
-    assert.ok(text.includes("`a 'b' &lt;!channel&gt; &lt;https://evil.example|click&gt;`"));
-    assert.ok(!text.includes('<!channel>') && !text.includes('<https://evil.example'));
+      attachments: [
+        {
+          color: '#ECB22E',
+          blocks: [
+            { type: 'section', text: { type: 'mrkdwn', text: '*Warning · 1 finding in 1 file*' } },
+            { type: 'section', text: { type: 'mrkdwn', text: `*<${blobUrl}/${file}|${file}>*` } },
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `<${blobUrl}/${file}#L5|line 5>  \`inline-locator\`\nHoist the locator to a private readonly field.\n\`\`\`await page.locator('.x').click();\`\`\``,
+              },
+            },
+            { type: 'context', elements: [{ type: 'mrkdwn', text: 'Line links open the file at the reviewed commit.' }] },
+          ],
+        },
+      ],
+      unfurl_links: false,
+      unfurl_media: false,
+    });
   });
 
-  describe('commit and run header', () => {
-    const runEnv = {
-      ...slackEnv,
-      SHA: 'abcdef1234567890abcdef1234567890abcdef12',
-      GITHUB_SERVER_URL: 'https://github.com',
-      GITHUB_REPOSITORY: 'owner/repo',
-      GITHUB_RUN_ID: '12345',
-    };
+  it('groups by severity then file, sorts lines, and hides the uninformative "other" rule', async () => {
+    const page = 'src/pages/ecommerce/checkout-page.ts';
+    const spec = 'tests/ecommerce/cart.spec.ts';
+    const message = await post({
+      summary: 'Several issues.',
+      findings: [
+        finding({ severity: 'suggestion', file: spec, line: 3, rule: 'comment-smell' }),
+        finding({ severity: 'critical', file: page, line: 30 }),
+        finding({ severity: 'warning', file: spec, line: 9, rule: 'other' }),
+        finding({ severity: 'critical', file: spec, line: 1, rule: 'wrong-test-import' }),
+        finding({ severity: 'critical', file: page, line: 12 }),
+      ],
+    });
+    assert.deepEqual(message.attachments.map((attachment) => attachment.color), ['#E01E5A', '#ECB22E', '#1D9BD1']);
+    const critical = sectionTexts(message.attachments[0].blocks);
+    assert.equal(critical[0], '*Critical · 3 findings in 2 files*');
+    assert.deepEqual(
+      critical.slice(1).map((text) => text.split('\n')[0]),
+      [
+        `*<${blobUrl}/${page}|${page}>*`,
+        `<${blobUrl}/${page}#L12|line 12>  \`inline-locator\``,
+        `<${blobUrl}/${page}#L30|line 30>  \`inline-locator\``,
+        `*<${blobUrl}/${spec}|${spec}>*`,
+        `<${blobUrl}/${spec}#L1|line 1>  \`wrong-test-import\``,
+      ],
+    );
+    assert.equal(sectionTexts(message.attachments[1].blocks)[2].split('\n')[0], `<${blobUrl}/${spec}#L9|line 9>`);
+    assert.ok(mrkdwnTexts(message).includes('*Findings*\n3 critical, 1 warning, 1 suggestion'));
+    assert.ok(mrkdwnTexts(message).includes('*Files*\n2'));
+  });
 
-    async function postedText(env: Record<string, string>): Promise<string> {
-      const http = makeFetch();
-      const path = await reportFile(withFinding());
-      assert.equal(await runDelivery(args(path), env, AGENT_DELIVERY_REGISTRY, http.fetchImpl), 0);
-      return (JSON.parse(http.request().body) as { text: string }).text;
+  it('escapes mention and link syntax in every model- and commit-written field', async () => {
+    const hostile = '<!channel> <@U123> <!here> <!subteam^S1> <https://evil.example|click> `tick`';
+    const message = await post(
+      { summary: hostile, findings: [finding({ suggestion: hostile, evidence: hostile, file: 'tests/<!subteam^S1>.ts' })] },
+      { ...runEnv, COMMIT_SUBJECT: `${hostile} @here` },
+    );
+    const repoLink = /<https:\/\/github\.com\/owner\/repo\/[^<>|\s]+\|[^<>]*>/g;
+    for (const text of mrkdwnTexts(message)) {
+      assert.ok(!/[<>]/.test(text.replace(repoLink, '')), `live markup left in: ${text}`);
+      assert.ok(!text.includes('`tick`'), 'model backticks cannot open code spans');
     }
+    assert.ok(mrkdwnTexts(message).some((text) => text.includes(`&lt;!channel&gt; &lt;@${ZERO_WIDTH_SPACE}U123&gt;`)));
+    assert.ok(mrkdwnTexts(message)[0] === 'Convention review: 1 finding');
+    assert.ok(!JSON.stringify(message).includes('@here'), 'plain mentions are neutralised too');
+  });
 
-    it('leads with the short sha and an unescaped run link when the env is valid', async () => {
-      const text = await postedText(runEnv);
-      assert.ok(text.startsWith('Commit `abcdef1` - <https://github.com/owner/repo/actions/runs/12345|workflow run>\n*Convention review'));
-    });
+  it('builds links only from valid env values, drops just the part that needs a bad one, and never echoes it', async () => {
+    const cases: Array<[Record<string, string>, string]> = [
+      [{ SHA: 'zz--x' }, '/commit/'],
+      [{ SHA: `${runEnv.SHA}\n` }, '/blob/'],
+      [{ GITHUB_RUN_ID: '12a' }, '/actions/runs/'],
+      [{ GITHUB_RUN_ID: '12345\n' }, '/actions/runs/'],
+      [{ GITHUB_RUN_ID: '12345|x' }, '/actions/runs/'],
+      [{ GITHUB_SERVER_URL: 'http://github.com' }, 'https://'],
+      [{ GITHUB_SERVER_URL: 'https://github.com|x' }, 'https://'],
+      [{ GITHUB_SERVER_URL: 'https://github.com>' }, 'https://'],
+      [{ GITHUB_SERVER_URL: 'https://github.com\n' }, 'https://'],
+      [{ GITHUB_REPOSITORY: 'a b' }, 'https://'],
+      [{ GITHUB_REPOSITORY: 'owner/repo|<!channel>' }, 'https://'],
+      [{ GITHUB_REPOSITORY: 'owner/repo\n' }, 'https://'],
+      [{ GITHUB_REF_NAME: 'main\n' }, '*Branch*'],
+      [{ GITHUB_REF_NAME: 'a|b' }, '*Branch*'],
+    ];
+    for (const [bad, gone] of cases) {
+      const message = await post(withFinding().output as ConventionReviewOutput, { ...runEnv, ...bad });
+      const posted = JSON.stringify(message);
+      assert.ok(!posted.includes(gone), `${JSON.stringify(bad)} should drop ${gone}`);
+      assert.ok(!posted.includes(JSON.stringify(Object.values(bad)[0]).slice(1, -1)), `${JSON.stringify(bad)} echoed`);
+      assert.ok(posted.includes('Convention review: 1 finding'));
+    }
+    const noRepo = await post(withFinding().output as ConventionReviewOutput, { ...runEnv, GITHUB_REPOSITORY: 'a b' });
+    assert.ok(mrkdwnTexts(noRepo).some((text) => text.startsWith("*Commit*\n`abcdef1` 'feat")));
+    assert.ok(!allBlocks(noRepo).some((block) => block.type === 'actions' || block.type === 'context'));
+  });
 
-    it('omits the header, without failing delivery or echoing the value, when a value is invalid', async () => {
-      for (const bad of [
-        { SHA: 'zz--x' },
-        { SHA: `${runEnv.SHA}\n` },
-        { GITHUB_RUN_ID: '12a' },
-        { GITHUB_RUN_ID: '12345\n' },
-        { GITHUB_RUN_ID: '12345|x' },
-        { GITHUB_SERVER_URL: 'http://github.com' },
-        { GITHUB_SERVER_URL: 'https://github.com|x' },
-        { GITHUB_SERVER_URL: 'https://github.com>' },
-        { GITHUB_SERVER_URL: 'https://github.com\n' },
-        { GITHUB_REPOSITORY: 'a b' },
-        { GITHUB_REPOSITORY: 'owner/repo|<!channel>' },
-        { GITHUB_REPOSITORY: 'owner/repo\n' },
-      ]) {
-        const text = await postedText({ ...runEnv, ...bad });
-        assert.ok(text.startsWith('*Convention review'));
-        assert.ok(!text.includes(Object.values(bad)[0]));
-      }
-    });
+  it('refuses a file path that would resolve outside the commit, by leaving it unlinked', async () => {
+    const message = await post({ summary: 'x', findings: [finding({ file: 'tests/../../other/repo.ts' })] });
+    assert.ok(!JSON.stringify(message).includes('/blob/'));
+    assert.ok(mrkdwnTexts(message).includes('*tests/../../other/repo.ts*'));
+  });
+
+  it('keeps every block inside Slack limits at the findings cap, even when every character needs an entity', async () => {
+    const severities: readonly ConventionSeverity[] = ['critical', 'warning', 'suggestion'];
+    const dense = '&<>'.repeat(400);
+    const findings = Array.from({ length: MAX_FINDINGS }, (_, index) =>
+      finding({
+        severity: severities[index % severities.length],
+        file: `tests/${'&'.repeat(MAX_PATH_CHARS - 20)}${index}.ts`,
+        line: 100_000 + index,
+        suggestion: dense.slice(0, MAX_SUGGESTION_CHARS),
+        evidence: dense.slice(0, MAX_EVIDENCE_CHARS),
+      }),
+    );
+    const message = await post({ summary: dense.slice(0, MAX_SUMMARY_CHARS), findings });
+    assert.ok(allBlocks(message).length <= 50, `${allBlocks(message).length} blocks`);
+    for (const text of mrkdwnTexts(message)) {
+      assert.ok(text.length <= 3000, `${text.length} characters`);
+      assert.ok(text.trim() !== '');
+    }
+  });
+
+  it('leaves out blocks that would be empty', async () => {
+    const message = await post({ summary: '   ', findings: [finding({ evidence: '', suggestion: '' })] });
+    for (const text of mrkdwnTexts(message)) assert.ok(text.trim() !== '');
+    assert.ok(!JSON.stringify(message).includes('```'));
   });
 
   it('skips a review with zero findings: exit 0, nothing posted, credentials not read', async () => {

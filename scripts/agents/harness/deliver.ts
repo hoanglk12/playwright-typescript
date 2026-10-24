@@ -1,12 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import type { z } from 'zod';
-import { renderConventionMarkdown } from '../convention-reviewer/render.ts';
+import { renderConventionMarkdown, renderConventionSlack } from '../convention-reviewer/render.ts';
 import { ConventionReviewOutputSchema } from '../convention-reviewer/schema.ts';
 import type { ConventionReviewOutput } from '../convention-reviewer/schema.ts';
 import { isEntryPoint } from './entry-point.ts';
 import { DELIVERY_HTTP_TIMEOUT_MS, MAX_RENDERED_CHARS } from './limits.ts';
-import { hasLeak, sanitizeDeep } from './sanitize.ts';
+import { hasLeak, sanitizeDeep, sanitizeText } from './sanitize.ts';
+import { findSlackProblem } from './slack.ts';
+import type { SlackContext, SlackMessage } from './slack.ts';
 import { SHA_PATTERN } from './tracked-files.ts';
 import type { AgentRunReport } from './types.ts';
 
@@ -15,10 +17,13 @@ const SLACK_WEBHOOK_PREFIX = 'https://hooks.slack.com/';
 const REPO_PATTERN = /^[\w.-]+\/[\w.-]+$/;
 const SERVER_URL_PATTERN = /^https:\/\/[\w.-]+(:\d+)?$/;
 const RUN_ID_PATTERN = /^\d+$/;
-const SHORT_SHA_LENGTH = 7;
+const BRANCH_PATTERN = /^[\w./-]{1,100}$/;
+const MAX_REPO_URL_CHARS = 200;
+const MAX_COMMIT_SUBJECT_CHARS = 200;
 
 const DELIVERY_TARGETS = ['github-commit-comment', 'github-issue', 'slack'] as const;
 export type DeliveryTarget = (typeof DELIVERY_TARGETS)[number];
+export type GitHubTarget = Exclude<DeliveryTarget, 'slack'>;
 
 export interface RenderedMessage {
   title: string;
@@ -27,7 +32,8 @@ export interface RenderedMessage {
 
 export interface AgentDeliverySpec {
   schema: z.ZodType<unknown>;
-  render: (output: unknown, target: DeliveryTarget) => RenderedMessage;
+  render: (output: unknown, target: GitHubTarget) => RenderedMessage;
+  renderSlack: (output: unknown, context: SlackContext) => SlackMessage;
   isEmpty?: (output: unknown) => boolean;
 }
 
@@ -36,12 +42,15 @@ export type DeliveryRegistry = Readonly<Record<string, AgentDeliverySpec>>;
 export const AGENT_DELIVERY_REGISTRY: DeliveryRegistry = {
   review: {
     schema: ConventionReviewOutputSchema,
-    render: (output, target) => renderConventionMarkdown(output as ConventionReviewOutput, target),
+    render: (output) => renderConventionMarkdown(output as ConventionReviewOutput),
+    renderSlack: (output, context) => renderConventionSlack(output as ConventionReviewOutput, context),
     isEmpty: (output) => (output as ConventionReviewOutput).findings.length === 0,
   },
 };
 
-export type PrepareResult = { ok: true; message: RenderedMessage; skipReason?: string } | { ok: false; reason: string };
+export type PreparedMessage = { target: 'slack'; slack: SlackMessage } | ({ target: GitHubTarget } & RenderedMessage);
+
+export type PrepareResult = { ok: true; message: PreparedMessage; skipReason?: string } | { ok: false; reason: string };
 
 export interface DeliveryRequest {
   url: string;
@@ -51,12 +60,27 @@ export interface DeliveryRequest {
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<{ ok: boolean; status: number }>;
 
-function escapeForSlack(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 function isDeliveryTarget(value: string): value is DeliveryTarget {
   return DELIVERY_TARGETS.some((target) => target === value);
+}
+
+// Only values that pass these patterns reach a link; any other value drops just the part that needs it.
+export function buildSlackContext(env: Record<string, string | undefined>): SlackContext {
+  const server = env.GITHUB_SERVER_URL ?? '';
+  const repo = env.GITHUB_REPOSITORY ?? '';
+  const sha = env.SHA ?? '';
+  const runId = env.GITHUB_RUN_ID ?? '';
+  const branch = env.GITHUB_REF_NAME ?? '';
+  const subject = env.COMMIT_SUBJECT ?? '';
+  const repoUrl = `${server}/${repo}`;
+  const validRepoUrl = SERVER_URL_PATTERN.test(server) && REPO_PATTERN.test(repo) && repoUrl.length <= MAX_REPO_URL_CHARS;
+  return {
+    repoUrl: validRepoUrl ? repoUrl : undefined,
+    sha: SHA_PATTERN.test(sha) ? sha : undefined,
+    runUrl: validRepoUrl && RUN_ID_PATTERN.test(runId) ? `${repoUrl}/actions/runs/${runId}` : undefined,
+    branch: BRANCH_PATTERN.test(branch) ? branch : undefined,
+    subject: subject.trim() === '' ? undefined : sanitizeText(subject, MAX_COMMIT_SUBJECT_CHARS),
+  };
 }
 
 export function prepareDelivery(
@@ -64,6 +88,7 @@ export function prepareDelivery(
   agent: string,
   target: DeliveryTarget,
   report: AgentRunReport<unknown>,
+  slackContext: SlackContext = {},
 ): PrepareResult {
   if (!Object.hasOwn(registry, agent)) return { ok: false, reason: `unknown agent: ${agent}` };
   const spec = registry[agent];
@@ -74,47 +99,34 @@ export function prepareDelivery(
   if (!parsed.success) return { ok: false, reason: 'report output failed schema validation' };
 
   const data = sanitizeDeep(parsed.data);
+  const skipReason = spec.isEmpty?.(data) ? 'nothing to report' : undefined;
+  if (target === 'slack') {
+    const slack = spec.renderSlack(data, slackContext);
+    const problem = findSlackProblem(slack, slackContext.repoUrl);
+    if (problem !== undefined) return { ok: false, reason: problem };
+    return { ok: true, message: { target, slack }, skipReason };
+  }
+
   const rendered = spec.render(data, target);
   if (hasLeak(`${rendered.title}\n${rendered.body}`)) {
     return { ok: false, reason: 'leak detected in rendered message' };
   }
-  const title = target === 'slack' ? escapeForSlack(rendered.title) : rendered.title;
-  const body = target === 'slack' ? escapeForSlack(rendered.body) : rendered.body;
   return {
     ok: true,
-    message: { title: title.slice(0, MAX_RENDERED_CHARS), body: body.slice(0, MAX_RENDERED_CHARS) },
-    skipReason: spec.isEmpty?.(data) ? 'nothing to report' : undefined,
+    message: { target, title: rendered.title.slice(0, MAX_RENDERED_CHARS), body: rendered.body.slice(0, MAX_RENDERED_CHARS) },
+    skipReason,
   };
 }
 
-function buildSlackHeader(env: Record<string, string | undefined>): string {
-  const sha = env.SHA ?? '';
-  const server = env.GITHUB_SERVER_URL ?? '';
-  const repo = env.GITHUB_REPOSITORY ?? '';
-  const runId = env.GITHUB_RUN_ID ?? '';
-  if (!SHA_PATTERN.test(sha) || !SERVER_URL_PATTERN.test(server) || !REPO_PATTERN.test(repo) || !RUN_ID_PATTERN.test(runId)) {
-    return '';
-  }
-  return `Commit \`${sha.slice(0, SHORT_SHA_LENGTH)}\` - <${server}/${repo}/actions/runs/${runId}|workflow run>\n`;
-}
-
-export function buildRequest(
-  target: DeliveryTarget,
-  message: RenderedMessage,
-  env: Record<string, string | undefined>,
-): DeliveryRequest {
-  if (target === 'slack') {
+export function buildRequest(message: PreparedMessage, env: Record<string, string | undefined>): DeliveryRequest {
+  if (message.target === 'slack') {
     const url = env.SLACK_WEBHOOK_URL ?? '';
     if (!url.startsWith(SLACK_WEBHOOK_PREFIX)) throw new Error('SLACK_WEBHOOK_URL is missing or invalid');
     return {
       url,
       headers: { 'content-type': 'application/json' },
       // Slack still auto-links a bare URL in model text; no unfurl keeps it from fetching a preview into the channel.
-      body: JSON.stringify({
-        text: `${buildSlackHeader(env)}*${message.title}*\n${message.body}`,
-        unfurl_links: false,
-        unfurl_media: false,
-      }),
+      body: JSON.stringify({ ...message.slack, unfurl_links: false, unfurl_media: false }),
     };
   }
 
@@ -128,7 +140,7 @@ export function buildRequest(
     'content-type': 'application/json',
   };
 
-  if (target === 'github-issue') {
+  if (message.target === 'github-issue') {
     return {
       url: `${GITHUB_API_BASE}/repos/${repo}/issues`,
       headers,
@@ -173,7 +185,7 @@ export async function runDelivery(
     return 1;
   }
 
-  const prepared = prepareDelivery(registry, agent, target, report);
+  const prepared = prepareDelivery(registry, agent, target, report, buildSlackContext(env));
   if (!prepared.ok) {
     console.error(`not delivered: ${prepared.reason}`);
     return 1;
@@ -186,7 +198,7 @@ export async function runDelivery(
 
   let request: DeliveryRequest;
   try {
-    request = buildRequest(target, prepared.message, env);
+    request = buildRequest(prepared.message, env);
   } catch (error) {
     console.error(error instanceof Error ? error.message : 'invalid delivery configuration');
     return 1;

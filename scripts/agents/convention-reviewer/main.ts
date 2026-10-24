@@ -248,7 +248,7 @@ export function renderReviewMarkdown(result: CompletedReview): string {
     summary: `The model review did not complete (outcome: ${result.report.outcome}); only deterministic pre-check findings are listed.`,
     findings: result.findings,
   };
-  const { title, body } = renderConventionMarkdown(output, 'github-commit-comment');
+  const { title, body } = renderConventionMarkdown(output);
   return `**${title}**\n\n${body}\n`;
 }
 
