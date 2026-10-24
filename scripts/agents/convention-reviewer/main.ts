@@ -1,10 +1,11 @@
-import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { parseCapOverride } from '../harness/caps.ts';
 import { isEntryPoint } from '../harness/entry-point.ts';
 import { parseAuthMode } from '../harness/env.ts';
+import { repoToplevel } from '../harness/git.ts';
 import {
   CONVENTION_REVIEWER_MAX_BUDGET_USD,
   CONVENTION_REVIEWER_MAX_TURNS,
@@ -29,6 +30,8 @@ import {
   resolveBase,
   resolveSha,
 } from './tools.ts';
+
+export { parseCapOverride };
 
 export const REVIEW_AGENT_NAME = 'review';
 export const REVIEW_MODEL = 'sonnet';
@@ -103,10 +106,6 @@ export interface RunLog {
   errors: string[];
 }
 
-export function repoToplevel(cwd: string): string {
-  return execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd, encoding: 'utf8' }).trim();
-}
-
 export function validateFindings(findings: readonly ConventionFinding[], ctx: ValidationContext): ValidationResult {
   const kept: ConventionFinding[] = [];
   const dropped: ConventionFinding[] = [];
@@ -126,17 +125,6 @@ export function validateFindings(findings: readonly ConventionFinding[], ctx: Va
     else kept.push(finding);
   }
   return { kept, dropped };
-}
-
-// Caps can only be lowered (V1.7 forces error_max_turns / error_max_budget_usd); raising one would bypass the
-// reviewed budget. The SDK rejects a budget of 0, so the floor is exclusive.
-export function parseCapOverride(raw: string | undefined, flag: string, ceiling: number, integer: boolean): number | undefined {
-  if (raw === undefined) return undefined;
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value <= 0 || value > ceiling || (integer && !Number.isInteger(value))) {
-    throw new Error(`${flag} must be ${integer ? 'an integer' : 'a number'} above 0 and at most ${ceiling}`);
-  }
-  return value;
 }
 
 export function capFinding(finding: ConventionFinding): ConventionFinding {

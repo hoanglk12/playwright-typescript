@@ -3,6 +3,7 @@ import { hasLeak } from './sanitize.ts';
 export interface SlackMrkdwn {
   type: 'mrkdwn';
   text: string;
+  verbatim?: boolean;
 }
 
 export interface SlackPlainText {

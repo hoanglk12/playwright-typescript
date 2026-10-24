@@ -16,7 +16,7 @@ function redactHarnessCredentials(text: string): string {
   return HARNESS_CREDENTIAL_PATTERNS.reduce((acc, pattern) => acc.replace(pattern, SECRET_PLACEHOLDER), text);
 }
 
-function redactAll(text: string): string {
+export function redactText(text: string): string {
   return redactHarnessCredentials(redactSensitiveText(text));
 }
 
@@ -37,7 +37,7 @@ function mapStrings<T>(value: T, transform: (text: string) => string): T {
 }
 
 export function sanitizeText(text: string, maxChars: number): string {
-  const cleaned = neutralizeMentions(redactAll(text));
+  const cleaned = neutralizeMentions(redactText(text));
   if (cleaned.length <= maxChars) return cleaned;
   return cleaned.slice(0, Math.max(0, maxChars - TRUNCATION_SUFFIX.length)) + TRUNCATION_SUFFIX;
 }
@@ -47,7 +47,7 @@ export function sanitizeDeep<T>(value: T, maxChars: number = MAX_OUTPUT_FIELD_CH
 }
 
 export function hasLeak(text: string): boolean {
-  return redactAll(text) !== text;
+  return redactText(text) !== text;
 }
 
 export function scrubSecrets(text: string, secrets: readonly string[]): string {
@@ -55,7 +55,7 @@ export function scrubSecrets(text: string, secrets: readonly string[]): string {
   for (const secret of secrets) {
     if (secret !== '') scrubbed = scrubbed.replaceAll(secret, SECRET_PLACEHOLDER);
   }
-  return redactAll(scrubbed);
+  return redactText(scrubbed);
 }
 
 export function scrubSecretsDeep<T>(value: T, secrets: readonly string[]): T {

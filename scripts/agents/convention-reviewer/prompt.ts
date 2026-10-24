@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MAX_EVIDENCE_CHARS, MAX_FINDINGS, MAX_SUGGESTION_CHARS, MAX_SUMMARY_CHARS } from '../harness/limits.ts';
+import { extractSection } from '../harness/markdown.ts';
+
+export { extractSection };
 
 export interface RuleSource {
   file: string;
@@ -14,48 +17,6 @@ export const RULE_SOURCES: readonly RuleSource[] = [
   },
   { file: 'CLAUDE.md', headings: ['## Soft Assertions', '## Adding a New Page Object'] },
 ];
-
-const HEADING_LINE = /^(#{1,6})\s/;
-const FENCE_LINE = /^\s*```/;
-const HEADING_TERMINATOR = /^[\s.:]/;
-
-function headingLevel(line: string): number | undefined {
-  const match = HEADING_LINE.exec(line);
-  return match === null ? undefined : match[1].length;
-}
-
-export function extractSection(markdown: string, heading: string): string {
-  const lines = markdown.split(/\r?\n/);
-  const level = headingLevel(`${heading} `);
-  if (level === undefined) throw new Error(`invalid heading: ${heading}`);
-
-  let inFence = false;
-  let start = -1;
-  let end = lines.length;
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (FENCE_LINE.test(line)) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence) continue;
-    if (start === -1) {
-      const rest = line.slice(heading.length);
-      if (line.startsWith(heading) && (rest === '' || HEADING_TERMINATOR.test(rest))) start = index;
-    } else {
-      const current = headingLevel(line);
-      if (current !== undefined && current <= level) {
-        end = index;
-        break;
-      }
-    }
-  }
-
-  if (start === -1) throw new Error(`rule heading not found: "${heading}"`);
-  const section = lines.slice(start, end).join('\n').trim();
-  if (section.split('\n').length < 2) throw new Error(`rule section is empty: "${heading}"`);
-  return section;
-}
 
 export function loadRuleText(ruleRoot: string): string {
   const parts: string[] = [];

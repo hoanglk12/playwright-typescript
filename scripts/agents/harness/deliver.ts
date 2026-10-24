@@ -4,6 +4,9 @@ import type { z } from 'zod';
 import { renderConventionMarkdown, renderConventionSlack } from '../convention-reviewer/render.ts';
 import { ConventionReviewOutputSchema } from '../convention-reviewer/schema.ts';
 import type { ConventionReviewOutput } from '../convention-reviewer/schema.ts';
+import { renderParityMarkdown, renderParitySlack } from '../mirror-parity/render.ts';
+import { MirrorParityOutputSchema, needsAction } from '../mirror-parity/schema.ts';
+import type { MirrorParityOutput } from '../mirror-parity/schema.ts';
 import { isEntryPoint } from './entry-point.ts';
 import { DELIVERY_HTTP_TIMEOUT_MS, MAX_RENDERED_CHARS } from './limits.ts';
 import { hasLeak, sanitizeDeep, sanitizeText } from './sanitize.ts';
@@ -45,6 +48,12 @@ export const AGENT_DELIVERY_REGISTRY: DeliveryRegistry = {
     render: (output) => renderConventionMarkdown(output as ConventionReviewOutput),
     renderSlack: (output, context) => renderConventionSlack(output as ConventionReviewOutput, context),
     isEmpty: (output) => (output as ConventionReviewOutput).findings.length === 0,
+  },
+  'mirror-parity': {
+    schema: MirrorParityOutputSchema,
+    render: (output) => renderParityMarkdown(output as MirrorParityOutput),
+    renderSlack: (output, context) => renderParitySlack(output as MirrorParityOutput, context),
+    isEmpty: (output) => !(output as MirrorParityOutput).pairs.some(needsAction),
   },
 };
 

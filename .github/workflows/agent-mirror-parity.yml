@@ -1,0 +1,144 @@
+name: Agent - Mirror Parity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lighthouserc.js'
+      - 'lighthouserc.bitbucket.js'
+      - 'lighthouserc.mobile.js'
+      - 'lighthouserc.mobile.bitbucket.js'
+      - 'scripts/generate-lhci-index.js'
+      - 'scripts/generate-lhci-index.bitbucket.js'
+      - '.claude/agents/devops-cicd-specialist.md'
+      - '.claude/commands/check-ci.md'
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit to check'
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: agent-mirror-parity-${{ inputs.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    # A dispatch from another branch would run that branch's code with the Claude token.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      has_report: ${{ steps.report.outputs.has_report }}
+      artifact: ${{ steps.report.outputs.artifact }}
+      subject: ${{ steps.report.outputs.subject }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: scripts/agents/package-lock.json
+
+      - name: Install agent harness
+        run: npm ci --prefix scripts/agents --ignore-scripts
+
+      - name: Check mirror parity
+        run: |
+          # A dispatch sha starting with "-" would reach git as an option.
+          if ! [[ "$SHA" =~ ^[0-9a-fA-F]{7,64}$ ]]; then echo "SHA must be a hex commit id" >&2; exit 1; fi
+          # After a force-push the old tip is gone; an empty base makes main.ts check against SHA^.
+          if [ -n "$BASE" ] && ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then BASE=""; fi
+          node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/agents/mirror-parity/main.ts --sha "$SHA" --base "$BASE" --out agent-reports
+        env:
+          SHA: ${{ inputs.sha || github.sha }}
+          BASE: ${{ github.event.before }}
+          AGENT_AUTH_MODE: subscription-oauth
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+      - name: Step summary (counts only)
+        if: always()
+        continue-on-error: true
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            if (!fs.existsSync("agent-reports/run-log.json")) process.exit(0);
+            const log = JSON.parse(fs.readFileSync("agent-reports/run-log.json", "utf8"));
+            const c = log.statusCounts ?? {};
+            const lines = [
+              "## Mirror parity",
+              "- Outcome: " + log.outcome,
+              "- Pairs checked: " + (log.candidates ?? []).length + " (both sides changed, skipped: " + (log.bothSidesChanged ?? []).length + ")",
+              "- Needs mirror: " + c["needs-mirror"] + ", unclear: " + c["unclear"],
+              "- In sync: " + c["in-sync"] + ", intentional divergence: " + c["intentional-divergence"],
+              "- Turns: " + log.numTurns,
+              "- Estimated cost: $" + Number(log.costUsdEstimate ?? 0).toFixed(4),
+            ];
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          '
+
+      - name: Detect report
+        id: report
+        if: always()
+        run: |
+          echo "artifact=mirror-parity-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          if [[ "$SHA" =~ ^[0-9a-fA-F]{7,64}$ ]]; then
+            echo "subject=$(git log -1 --format=%s "$SHA" 2>/dev/null | tr -d '\r')" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -f agent-reports/mirror-parity.json ]; then
+            echo "has_report=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_report=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          SHA: ${{ inputs.sha || github.sha }}
+
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.report.outputs.has_report == 'true'
+        with:
+          name: ${{ steps.report.outputs.artifact }}
+          path: agent-reports/
+          retention-days: 7
+
+  deliver:
+    needs: check
+    if: needs.check.outputs.has_report == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/agents
+            src/utils
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install agent harness (no platform binary)
+        run: npm ci --prefix scripts/agents --omit=optional --ignore-scripts
+
+      - uses: actions/download-artifact@v8
+        with:
+          # The check job's own attempt: re-running deliver alone bumps run_attempt but keeps this output.
+          name: ${{ needs.check.outputs.artifact }}
+          path: agent-reports
+
+      - name: Post to Slack
+        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/agents/harness/deliver.ts --agent mirror-parity --target slack --report agent-reports/mirror-parity.json
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SHA: ${{ inputs.sha || github.sha }}
+          COMMIT_SUBJECT: ${{ needs.check.outputs.subject }}
