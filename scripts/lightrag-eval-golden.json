@@ -42,6 +42,8 @@
     { "note": "lightrag-agent-scoping-2026-08-05.md", "question": "Which agents are allowed to query LightRAG?", "facts": ["qa-orchestrator", "vault-updater|memory-vault-curator"] },
     { "note": "lightrag-mcp-adapter-dependency-risk.md", "question": "What broke the lightrag-mcp adapter and how was it fixed?", "facts": ["mcp ?< ?2"] },
     { "note": "lightrag-sync-lifecycle.md", "question": "Does knowledge in the memory vault get synced to LightRAG automatically when a session ends?", "facts": ["Stop", "PostToolUse"] },
+    { "note": "lightrag-sync-lifecycle.md", "question": "How does the vault sync notice an edit that keeps a note's length the same?", "facts": ["content_hash|md5", "kv_store_doc_status"] },
+    { "note": "prompt-hook-ignores-pasted-content.md", "question": "Why did the prompt hook send 'git push, check error' to the error-debugger skill, and what does that route need now?", "facts": ["test noun", "routingText|skill-name|slash"] },
     { "note": "lightrag-token-secret-rotation.md", "question": "Why must the LightRAG TOKEN_SECRET be hex and how long is it?", "facts": ["for /f|metacharacter", "64"] },
     { "note": "lightrag-vault-parsed-dir-false-alarm.md", "question": "What is the __parsed__ directory in the memory vault?", "facts": ["duplicate|frozen"] },
     { "note": "loop-engineering-research.md", "question": "What is the status of the loop engineering increments?", "facts": ["Increment A", "Increment B"] },

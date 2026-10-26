@@ -305,7 +305,8 @@ const ROUTING_RULES = [
     type: 'skill',
     name: '/ts-strict-mode',
     reason: 'TypeScript strict mode patterns requested',
-    keywords: ['strict mode', 'typescript strict', 'no any', 'strict null'],
+    // "strict mode violation" is Playwright's locator error, not TypeScript's strict mode
+    keywords: ['strict mode(?! violation)', 'typescript strict', 'no any', 'strict null'],
   },
   {
     type: 'skill',
@@ -347,14 +348,35 @@ const ROUTING_RULES = [
     type: 'skill',
     name: '/error-debugger',
     reason: 'error, exception, or crash detected',
-    keywords: ['\\berror\\b', 'exception', 'stack trace', '\\bcrash\\b'],
+    // A bare "error" also describes git, hooks and CI ("git push, check error"): 3 of 3 real prompts
+    // it routed here on 2026-10-26 were not test failures. Only next to a test noun, and not as
+    // part of a hyphenated name such as error-handling-smoke.spec.ts.
+    keywords: [
+      '\\b\\w*errors?\\b(?!-)[^!?\\n]{0,60}\\b(tests?|specs?|E2E-\\w+-\\d+|TC_\\d+)\\b',
+      '\\b(tests?|specs?|E2E-\\w+-\\d+|TC_\\d+)\\b[^!?\\n]{0,60}\\b\\w*errors?\\b(?!-)',
+      'TimeoutError',
+      'Test timeout of \\d+ms exceeded',
+      'strict mode violation',
+      'exception',
+      'stack trace',
+      '\\bcrash\\b',
+    ],
   },
 ];
 
+// A /skill name in a prompt is either a command the harness already ran or a skill being talked
+// about ("troubleshoot /error-debugger"); neither should route by the words in its name.
+const SLASH_COMMAND_RE = /(^|\s)\/[a-z][\w:-]*(?=$|[\s,.;:!?)])/gi;
+
+function routingText(prompt) {
+  return prompt.replace(SLASH_COMMAND_RE, '$1');
+}
+
 function resolveRoutingTarget(prompt) {
+  const text = routingText(prompt);
   for (const rule of ROUTING_RULES) {
     for (const kw of rule.keywords) {
-      if (new RegExp(kw, 'i').test(prompt)) {
+      if (new RegExp(kw, 'i').test(text)) {
         return { type: rule.type, name: rule.name, reason: rule.reason };
       }
     }

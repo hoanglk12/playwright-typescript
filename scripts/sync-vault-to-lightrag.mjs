@@ -1,15 +1,20 @@
 // Syncs vault notes to LightRAG.
 // For new files: inserts via POST /documents/text (bypasses file-tracker).
-// For changed files: deletes old doc then re-inserts.
+// For changed files, and docs whose indexing failed: deletes old doc then re-inserts.
 // Uses POST /documents/text with file_source — the only reliable insert path
 // (scan misses changed files; MCP insert_document omits required file_source field).
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, basename } from 'path';
 import { fileURLToPath } from 'url';
+import { md5, readIndexSnapshot, UNPREDICTABLE_HASH } from './lightrag-doc-status.mjs';
 
 const PROJECT_ROOT = join(fileURLToPath(import.meta.url), '..', '..');
 const VAULT_DIR = join(PROJECT_ROOT, 'memory-vault', '20-memory');
+const WORKING_DIR = process.env.LIGHTRAG_WORKING_DIR ?? join(PROJECT_ROOT, '.lightrag');
 const LIGHTRAG_URL = 'http://localhost:9621';
+// A failed doc blocks its own re-insert (409) until it's deleted, so it's retried here. At most hourly
+// unless the note changed: a doc that fails every time would otherwise re-index after every turn.
+const RETRY_FAILED_AFTER_MS = 60 * 60 * 1000;
 
 function getVaultFiles(dir) {
   const results = [];
@@ -34,7 +39,11 @@ async function insertDoc(text, fileSource) {
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${txt.slice(0, 120)}`);
+    const err = new Error(`${res.status} ${txt.slice(0, 120)}`);
+    // A 409 either names an existing doc ("already contains 'x.md' (Status: pending)") or says the
+    // pipeline is busy deleting. Only a failed existing doc needs attention; the rest clear up.
+    err.retryLater = res.status === 409 && txt.match(/\(Status: (\w+)\)/)?.[1] !== 'failed';
+    throw err;
   }
   return res.json();
 }
@@ -48,6 +57,20 @@ async function deleteDoc(docId) {
     body: JSON.stringify({ doc_ids: [docId] }),
   });
   return res.ok;
+}
+
+async function waitForIdle(maxMs) {
+  for (const end = Date.now() + maxMs; Date.now() < end; ) {
+    try {
+      const hr = await fetch(`${LIGHTRAG_URL}/health`, { signal: AbortSignal.timeout(5000) });
+      const hj = await hr.json();
+      if (!hj.pipeline_destructive_busy && !hj.pipeline_busy) return true;
+    } catch {
+      return false;
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  return false;
 }
 
 async function main() {
@@ -94,16 +117,28 @@ async function main() {
     );
     return;
   }
-  const processed = docs.filter((d) => d.status === 'processed');
-  const lrMap = new Map(
-    processed.map((d) => [d.file_path, { id: d.id, contentLength: d.content_length }])
-  );
+  const byStatus = (status) => new Map(docs.filter((d) => d.status === status).map((d) => [d.file_path, d]));
+  const processed = byStatus('processed');
+  const failed = byStatus('failed');
   // WHY: the end-of-turn Stop hook runs seconds after the PostToolUse hook inserted a note,
   // while it is still being indexed. Re-inserting it then fails with 409 "already contains".
-  // Failed docs are deliberately not skipped — their 409 is a real error worth reporting.
   const inFlight = new Set(
     docs.filter((d) => d.status !== 'processed' && d.status !== 'failed').map((d) => d.file_path)
   );
+  const snapshot = readIndexSnapshot(WORKING_DIR);
+
+  // The API reports only content_length, which misses an edit that keeps the length (a date, a
+  // status word). The doc-status store on disk has md5 of the indexed text; it's used whenever its
+  // record is as new as the live doc, since the store can trail the server by an indexing batch.
+  function isChanged(file, doc) {
+    const saved = snapshot?.docs.get(file.name);
+    if (saved?.hash && saved.updatedAt === doc.updated_at && !UNPREDICTABLE_HASH.test(file.content)) {
+      return md5(file.content.trim()) !== saved.hash;
+    }
+    // LightRAG strips 1–2 chars (trailing newline/CRLF) when storing, so without a hash a length
+    // within 2 chars counts as unchanged.
+    return Math.abs(doc.content_length - file.contentLength) > 2;
+  }
 
   // Walk vault files
   let vaultFiles;
@@ -122,22 +157,31 @@ async function main() {
 
   // Separate unchanged from files that need work
   const toInsert = [];
-  const toUpdate = [];
+  let toUpdate = [];
 
   for (const file of vaultFiles) {
     if (inFlight.has(file.name)) {
       inProgress++;
       continue;
     }
-    const existing = lrMap.get(file.name);
-    // WHY: LightRAG strips 1–2 chars (trailing newline/CRLF) when storing, so stored
-    // content_length is always 1–2 less than the raw file length. Tolerance prevents
-    // every file appearing as "changed" on every sync run, which causes batch-delete
-    // races and 409 errors on re-insert.
-    if (existing && Math.abs(existing.contentLength - file.contentLength) <= 2) {
-      unchanged++;
-    } else if (existing) {
-      toUpdate.push({ file, existing });
+    const existing = processed.get(file.name);
+    const failedDoc = failed.get(file.name);
+    if (existing) {
+      if (isChanged(file, existing)) toUpdate.push({ file, existing });
+      else unchanged++;
+    } else if (failedDoc) {
+      const reason = (failedDoc.error_msg ?? 'no error message').slice(0, 100);
+      const retryAt = Date.parse(failedDoc.updated_at) + RETRY_FAILED_AFTER_MS;
+      const retryDue = !Number.isFinite(retryAt) || Date.now() >= retryAt;
+      if (retryDue || isChanged(file, failedDoc)) {
+        console.log(`  Retrying failed: ${file.name} (${reason})`);
+        toUpdate.push({ file, existing: failedDoc });
+      } else {
+        console.log(
+          `  Error inserting ${file.name}: indexing failed (${reason}); retry after ${new Date(retryAt).toISOString().slice(11, 16)}Z`
+        );
+        errors++;
+      }
     } else {
       toInsert.push({ file });
     }
@@ -146,23 +190,23 @@ async function main() {
   // Pass 1 — delete all stale docs before any inserts (LightRAG delete is async)
   const deleteIds = toUpdate.map((u) => u.existing.id);
   if (deleteIds.length > 0) {
+    // A delete sent while the pipeline is busy is refused with HTTP 200 and status "busy".
+    await waitForIdle(20000);
     const res = await fetch(`${LIGHTRAG_URL}/documents/delete_document`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ doc_ids: deleteIds }),
     });
-    if (!res.ok) {
-      console.log(`  Batch delete warning (${res.status}) — proceeding anyway`);
-    }
-    // Poll until LightRAG finishes the delete pipeline before re-inserting
-    for (let i = 0; i < 30; i++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      try {
-        const hr = await fetch(`${LIGHTRAG_URL}/health`, { signal: AbortSignal.timeout(5000) });
-        const hj = await hr.json();
-        const busy = hj.pipeline_destructive_busy || hj.pipeline_busy;
-        if (!busy) break;
-      } catch { break; }
+    const body = await res.json().catch(() => ({}));
+    if (body.status === 'deletion_started') {
+      // Re-inserting before the background delete finishes would 409 on the old doc
+      await waitForIdle(60000);
+    } else {
+      console.log(
+        `  Delete refused (${body.status ?? res.status}) — ${toUpdate.length} update(s) left for the next sync`
+      );
+      inProgress += toUpdate.length;
+      toUpdate = [];
     }
   }
 
@@ -179,6 +223,13 @@ async function main() {
         inserted++;
       }
     } catch (e) {
+      // A concurrent sync (the PostToolUse and Stop hooks overlap) inserted it first, or a delete
+      // is still running. The next sync inserts anything still missing.
+      if (e.retryLater) {
+        console.log(`  Deferred: ${file.name} (${e.message.slice(0, 100)})`);
+        inProgress++;
+        continue;
+      }
       console.log(`  Error inserting ${file.name}: ${e.message}`);
       errors++;
     }

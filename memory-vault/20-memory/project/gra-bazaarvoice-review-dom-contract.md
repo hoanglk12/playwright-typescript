@@ -1,11 +1,11 @@
 ---
 name: gra-bazaarvoice-review-dom-contract
-description: GRA Bazaarvoice review widgets (PLP inline rating + PDP review section) — stable hooks, and two traps where data-bv-ready / "out of 5 stars" pass for unrated products
+description: GRA Bazaarvoice review widgets (PLP inline rating, PDP review section, write-a-review form) — stable hooks, unrated-product traps, and the fill() trap that silently drops review text on submit
 metadata:
   type: project
 type: project
 tags: [memory, project, ecommerce, bazaarvoice, reviews]
-last_verified: 2026-10-16
+last_verified: 2026-10-26
 ---
 
 Live-verified 2026-10-16 while implementing E2E-REV-002 (`tests/ecommerce/smoke/pdp-review-smoke.spec.ts`).
@@ -43,4 +43,29 @@ A rated Platypus AU card holds 2 anchors (promo badge "USE: KBC30" + product lin
 `clickProductCard(index)` indexes `[data-product-id] a` (anchors, not cards), so a card index ≠ anchor index —
 use the card-scoped `clickFirstRatedProductCard()` instead.
 
-Related: [[gra-storefront-tech-notes]], [[gra-third-party-recon-2026-10]], [[ecommerce-pdp-page-gotchas]], [[gra-search-dom-contract]]
+## Write-a-review form (E2E-REV-008)
+Live-verified 2026-10-26 (Platypus AU and Vans AU submitted; DM AU and Skechers AU checked without submitting). The user approved
+automating real submits on BV staging that day, overriding the discovery report's "manual only" status.
+- **Entry:** on rated PDPs, the reviews section has five `role="button"` divs, "Select to rate the item with N stars".
+  Clicking one opens the form with that rating pre-selected (seen on Vans, DM and Skechers AU). The other entry, "Write a review"
+  (`button.bv_war_button`), sits under the `aria-hidden` `role="button"` rating-summary wrapper, so `getByRole` can't find it
+  and `getByText` can. Vans has no working "Write a review", so try the star buttons first.
+- **Dialog:** `getByRole('dialog')` filtered by "My Review". Its close button renders seconds before the fields, so wait on a field.
+- **Fields:** textboxes named "Review." / "Review Title." / "Nickname." / "Email."; rating radios `#bv-ips-star-rating-1..5`.
+  The terms checkbox only toggles by clicking `label[for="sps-termsAndConditions-checkbox"]`. Clicking the styled div does nothing.
+- **Trap: `fill()` is not seen by BV on review text and title.** The DOM holds the value, but BV submits without it.
+  Platypus accepted a rating-only review. Vans (title required) blocked submit with "Required: Review Title."
+  `clear()` + `pressSequentially()` works. Nickname and email take `fill()`, but type every field anyway.
+- **Network:** a POST to `apps-stg.bazaarvoice.com/.../initiateSubmit.json` fires when the form opens, then
+  `progressiveSubmit.json` fires on Submit. Its body has `submissionFields.{rating, reviewtext, title, usernickname,
+  hostedauthentication_authenticationemail, agreedtotermsandconditions}`. On success the response is
+  `{response:{hasErrors:false, response:{submissionId, isFormComplete:true}}}`. These give a deterministic pass/fail.
+  Assert on the request payload, because a DOM check misses the `fill()` trap.
+- **Limits** (from the response `fields`): reviewtext min 50, title max 50, nickname min 4. Required fields are rating, nickname,
+  email and terms; Vans also requires title.
+- **UI after submit:** an `aria-live` span says "Your response was submitted successfully for Your reviews." Step 1 then
+  shows Completed, and the optional steps (images, personal info, product rating) follow. The review is final at step 1.
+- **Recon submissions to reject in BV moderation:** `r212868-en_17930215LxkoV0cLQK` (Platypus AU, rating-only) and
+  `r227976_1__17930218mkKLR0xsd5` (Vans AU).
+
+Related: [[gra-storefront-tech-notes]], [[gra-third-party-recon-2026-10]], [[ecommerce-pdp-page-gotchas]], [[gra-search-dom-contract]], [[gra-braintree-payment]]

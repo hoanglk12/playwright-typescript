@@ -20,11 +20,12 @@
 // Exits 1 when the golden set is invalid or out of date with the vault, a vault note is missing,
 // failed or stale in LightRAG, or LightRAG errors instead of answering. Quality numbers are
 // reported, never enforced.
-import { createHash, randomInt } from 'crypto';
+import { randomInt } from 'crypto';
 import { execFileSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { basename, join, relative, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { md5, readIndexSnapshot, UNPREDICTABLE_HASH } from './lightrag-doc-status.mjs';
 
 const PROJECT_ROOT = join(fileURLToPath(import.meta.url), '..', '..');
 const VAULT_DIR = join(PROJECT_ROOT, 'memory-vault', '20-memory');
@@ -77,7 +78,6 @@ const overrides = [
 const matchesHook = !overrides.length;
 const repeat = Math.max(1, Number(option('--repeat', 1)) || 1);
 
-const md5 = text => createHash('md5').update(text).digest('hex');
 const share = (n, d) => (d ? Math.round((100 * n) / d) : 0);
 const pct = (n, d) => (d ? `${n}/${d} (${share(n, d)}%)` : '0/0');
 
@@ -179,34 +179,6 @@ function validateGolden(golden, vault) {
   return { problems, weak, uncovered };
 }
 
-// The API reports content_length only, which misses an edit that keeps the length (a date, a status
-// word). LightRAG's working dir keeps md5 of the stored text: the note after sanitize_text_for_encoding
-// (strip, html.unescape, control characters removed). Without entities or control characters that is
-// md5(trim()); for other notes the stored hash can't be predicted, so they are reported as unverified.
-const UNPREDICTABLE_HASH =
-  /&(#x?[0-9a-f]+|[a-z][a-z0-9]*);|&(amp|lt|gt|quot|nbsp|copy|reg|not)|[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u0085\ufeff]/i;
-
-function readIndexSnapshot() {
-  const file = join(WORKING_DIR, 'kv_store_doc_status.json');
-  if (!existsSync(file)) return null;
-  try {
-    const docs = new Map();
-    for (const [id, d] of Object.entries(JSON.parse(readFileSync(file, 'utf8')))) {
-      if (docs.get(d.file_path)?.status === 'processed' && d.status !== 'processed') continue;
-      docs.set(d.file_path, {
-        id,
-        status: d.status,
-        hash: d.content_hash,
-        length: d.content_length,
-        updatedAt: d.updated_at,
-      });
-    }
-    return { savedAt: statSync(file).mtime, docs };
-  } catch {
-    return null;
-  }
-}
-
 async function fetchIndexStatus() {
   const res = await fetch(`${LIGHTRAG_URL}/documents/paginated`, {
     method: 'POST',
@@ -257,21 +229,12 @@ function reportIndex(vault, { api, snapshot }) {
         doc.status !== 'processed' ||
         (live && (live.id !== doc.id || live.updated_at !== doc.updatedAt));
       if (lagging || !doc.hash || UNPREDICTABLE_HASH.test(vault.get(n))) unverified.push(n);
-      else if (md5(vault.get(n).trim()) !== doc.hash) {
-        // sync-vault-to-lightrag.mjs compares lengths with a 2-char tolerance, so it never re-syncs these.
-        const syncBlind = Math.abs(vault.get(n).trim().length - doc.length) <= 2;
-        stale.push({ name: n, id: doc.id, syncBlind });
-      }
+      else if (md5(vault.get(n).trim()) !== doc.hash) stale.push(n);
     }
     console.log(
       `  Content: ${processed.length - stale.length - unverified.length} match the vault exactly, ${stale.length} stale, ${unverified.length} not verifiable`
     );
-    for (const s of stale) {
-      const fix = s.syncBlind
-        ? `same length, so sync:vault won't pick it up: delete doc ${s.id}, then sync`
-        : 'run npm run sync:vault';
-      console.log(`  STALE     ${s.name} (LightRAG holds an older version; ${fix})`);
-    }
+    for (const n of stale) console.log(`  STALE     ${n} (LightRAG holds an older version; run npm run sync:vault)`);
   } else {
     console.log(`  Content not checked: no ${join(WORKING_DIR, 'kv_store_doc_status.json')}`);
   }
@@ -809,7 +772,7 @@ async function main() {
     return failed;
   }
 
-  const snapshot = readIndexSnapshot();
+  const snapshot = readIndexSnapshot(WORKING_DIR);
   if (flag('--offline')) {
     if (snapshot) failed = reportIndex(vault, { snapshot }) || failed;
     else console.log(`\nIndex not checked: no LightRAG working dir at ${WORKING_DIR}`);
