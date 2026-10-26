@@ -53,6 +53,7 @@
     { "note": "windows-ci-timeout-shard-fix.md", "question": "Why was the Windows UI CI job getting cancelled and how was it fixed?", "facts": ["USERPROFILE|cache path", "shard"] },
     { "note": "user_profile.md", "question": "What operating system does the user work on, and what interaction style do they prefer?", "facts": ["Windows 11", "terse"] },
     { "note": "lightrag-eval.md", "question": "How do I measure how well LightRAG recall works?", "facts": ["eval-lightrag", "eval:lightrag:recall"] },
+    { "note": "slide-deck-toolchain-acer-machine.md", "question": "How do I check how a slide deck renders on the ACER machine?", "facts": ["PowerPoint", "LibreOffice"] },
     { "note": "ecommerce-auth-modal-gotchas.md", "style": "task", "question": "Write a smoke test that opens the account sign-in modal from the header on Platypus AU", "facts": ["addLocatorHandler"] },
     { "note": "ecommerce-utilities-smoke-spec.md", "style": "task", "question": "Add a Track Order test for Dr. Martens NZ to the utilities smoke spec", "facts": ["footer"] },
     { "note": "gra-api-testing.md", "style": "task", "question": "Create a GRA API spec that reads the signed-in customer's wishlist", "facts": ["signInAndStoreToken"] },
@@ -75,6 +76,6 @@
     { "note": null, "style": "near-miss", "question": "What does the E2E-CART-012 test check, and on which storefronts does it run?", "absent": ["E2E-CART-012"] },
     { "note": null, "style": "near-miss", "question": "What is the staging URL of the Platypus Singapore storefront?", "absent": ["singapore"] },
     { "note": null, "style": "near-miss", "question": "Why did the framework move its HTML reporting from monocart to Allure?", "absent": ["allure"] },
-    { "note": null, "style": "near-miss", "question": "Which Cypress version did the ecommerce smoke suite use before Playwright?", "absent": ["cypress"] }
+    { "note": null, "style": "near-miss", "question": "Which WebdriverIO version did the ecommerce smoke suite use before Playwright?", "absent": ["webdriver\\.?io"] }
   ]
 }
