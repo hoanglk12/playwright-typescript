@@ -35,7 +35,8 @@ function collectToolUses(node, out) {
     for (const item of node) collectToolUses(item, out);
     return;
   }
-  if (node.type === 'tool_use' && typeof node.name === 'string') {
+  // advisor runs server-side, so transcripts log it as server_tool_use, not tool_use
+  if ((node.type === 'tool_use' || node.type === 'server_tool_use') && typeof node.name === 'string') {
     out.push(node);
   }
   for (const key of Object.keys(node)) {

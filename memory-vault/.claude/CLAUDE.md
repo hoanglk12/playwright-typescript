@@ -33,7 +33,7 @@ The PostToolUse hook auto-syncs any vault `.md` write to LightRAG immediately.
 Automatic: happens on every vault write via the PostToolUse hook and at session end via the Stop hook.
 Manual: `npm run sync:vault` (or directly, `node scripts/sync-vault-to-lightrag.mjs`) from the project root.
 
-**Do NOT run** `node scripts/sync-memory-to-vault.mjs` — it is a no-op (deprecated). Note that `npm run sync-memory` in `package.json` still chains this deprecated script before the real sync — use `npm run sync:vault` instead, which runs only the real sync.
+**Do NOT run** `node scripts/sync-memory-to-vault.mjs` — it is a no-op (deprecated). `npm run sync-memory` no longer calls it; it now runs the same real sync as `npm run sync:vault`.
 
 ## Searching the vault
 

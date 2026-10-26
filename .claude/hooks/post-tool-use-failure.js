@@ -36,6 +36,14 @@ process.stdin.on('end', () => {
     errors ? `\nCurrent TypeScript errors:\n${errors}` : '\n(No TypeScript errors found)',
   ];
 
-  process.stdout.write(JSON.stringify({ systemMessage: lines.join('\n') }));
+  const output = { systemMessage: lines.join('\n') };
+  // Claude already sees the tool's own error, so only the TypeScript errors are worth adding.
+  if (errors) {
+    output.hookSpecificOutput = {
+      hookEventName: 'PostToolUseFailure',
+      additionalContext: `Current TypeScript errors (npx tsc --noEmit):\n${errors}`,
+    };
+  }
+  process.stdout.write(JSON.stringify(output));
   process.exit(0);
 });

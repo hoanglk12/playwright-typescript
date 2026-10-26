@@ -4,7 +4,7 @@ description: "PostToolUse hook that nudges Claude to call advisor() when stuck i
 type: project
 tags: [memory, project]
 source_session: da3c13e7-e43f-48e9-8c8e-a045c7cfd24c
-last_verified: 2026-10-25
+last_verified: 2026-10-26
 ---
 
 A `PostToolUse` hook (`advisor-nudge.js`) detects stuck debugging loops and injects `additionalContext` telling Claude to call `advisor()`.
@@ -19,7 +19,7 @@ A `PostToolUse` hook (`advisor-nudge.js`) detects stuck debugging loops and inje
 3. `notified` clears after 10 minutes (`EXPIRY_MS`).
 4. **Every real user message resets the state (added 2026-10-26).** `resetAdvisorNudge()` in `user-prompt-submit.js` deletes `advisor-nudge-{session_id}.json`, but not for `<task-notification>` turns or "This session is being continued…" summaries, which are automated. Why: on 2026-10-26 it fired "edited user-prompt-submit.js 3× over 14 minutes", and those were three separate, successful user requests. A stuck loop is Claude retrying on its own within one turn; a user reply is itself the check. In a sandbox test, 3 edits across 3 user turns stay silent, while 3 edits within one turn over 4 minutes still nudge.
 
-**advisor() does NOT reset it.** advisor runs server-side (`server_tool_use`, ids `srvtoolu_…`; 17/33 transcripts checked 2026-10-25, 0 as a client `tool_use`), so it never reaches PostToolUse. The `tool_name === 'advisor'` branch and the `advisor` in the matcher are kept only in case advisor ever becomes a client tool.
+**advisor() does NOT reset it.** advisor runs server-side (`server_tool_use`, ids `srvtoolu_…`; 17/33 transcripts checked 2026-10-25, 0 as a client `tool_use`), so it never reaches PostToolUse. The `tool_name === 'advisor'` reset branch and the `advisor` matcher entry were removed on 2026-10-26 as dead code; don't add them back unless advisor becomes a client tool, which would show as `tool_use` with a `toolu_…` id in transcripts. The same `server_tool_use` fact broke `vault-capture-nudge.js`, which only counted `tool_use` and so never saw an advisor call; it now accepts both.
 
 **False positive that drove the rework (2026-10-25):** before the rework, a single session-wide `firstSignalTs` was set by the first edit of the session and never cleared, because the advisor reset couldn't fire. So 4 planned edits to one file sent in one batch, 6 minutes after an unrelated 8-edit batch on `settings.json`, hit "edited 3× over 6 minutes", right after an advisor call. A fake-clock simulation (old vs new, run from the scratchpad) confirmed the old hook fires there and the new one doesn't, while genuine edit/test loops still fire at the same moment.
 
@@ -29,7 +29,7 @@ A `PostToolUse` hook (`advisor-nudge.js`) detects stuck debugging loops and inje
 
 **Files:**
 - Hook: `.claude/hooks/advisor-nudge.js`
-- Settings entry: `.claude/settings.json` PostToolUse matcher `Bash|Edit|MultiEdit|Write|advisor`, timeout 10s
+- Settings entry: `.claude/settings.json` PostToolUse matcher `Bash|Edit|MultiEdit|Write`, timeout 10s
 - State dir: `.claude/.state/` (gitignored)
 
 **Complement:** CLAUDE.md Section 5 ("When to Call advisor() Immediately") documents 7 immediate-trigger patterns that bypass the hook entirely — situations where calling advisor before any iteration is the right call.

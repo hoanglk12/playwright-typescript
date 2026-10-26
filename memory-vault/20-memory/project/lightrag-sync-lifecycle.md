@@ -3,7 +3,7 @@ name: lightrag-sync-lifecycle
 description: "What pushes vault notes into LightRAG and when (PostToolUse on vault write + Stop hook after every turn, both via lightrag-sync-status.js with a visible systemMessage), what never reaches it (.remember/, auto-memory seed, anything not written as a vault note), and the remaining gaps"
 type: project
 tags: [memory, project, lightrag]
-last_verified: 2026-09-27
+last_verified: 2026-10-26
 ---
 
 **Sync is automatic. Capture isn't.** A note gets into LightRAG automatically once it's written to the vault, but nothing writes it for you.
@@ -38,7 +38,6 @@ LightRAG's `input_directory` is `memory-vault/20-memory/` only. These are never 
 - **Stuck docs are silent.** If the server dies mid-indexing, a doc can stay `pending` or `processing`. The script skips in-flight docs on every run, and the last-sync record keeps advancing, so neither message ever mentions it. It's unconfirmed whether LightRAG 1.5.7 resumes such docs on restart. If recall misses a note you know was written, check its status with `POST /documents/paginated`.
 - **A `failed:` message repeats every turn** until the failed doc is deleted with `DELETE /documents/delete_document` and body `{"doc_ids":["<id>"]}`. Never call bare `DELETE /documents`, which wipes the store. The next sync then re-inserts the note.
 - **The sync never deletes.** A removed or renamed note stays in LightRAG as an orphan. `mcp-away-profile-config.md` was one as of 2026-09-27.
-- The Stop hook still calls `scripts/sync-memory-to-vault.mjs` with a relative path. It's a deprecated no-op, so a crash there doesn't matter.
 - Claude Code may snapshot hooks at session start, so `settings.json` hook edits can need a `/hooks` review or a restart to take effect.
 
 Related: [[memory-vault-authority]], [[lightrag-token-secret-rotation]]

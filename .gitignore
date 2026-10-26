@@ -168,6 +168,8 @@ temp_healer.md
 .lightrag/
 .lightrag-venv/
 .lightrag.env
+# Pre-upgrade copies of .lightrag/ (LLM cache holds raw prompts)
+.lightrag.bak-*/
 
 # Advisor-nudge hook runtime state (per-session counters, not committed)
 .claude/.state/

@@ -1,20 +1,16 @@
 ---
 name: memory-vault-curator
-description: Syncs the Claude Code live memory to the Obsidian memory vault (memory-vault/) and enriches cross-note wikilinks. Invoke for one-time bootstrap or periodic semantic enrichment.
+description: Enriches the Obsidian memory vault (memory-vault/) with cross-note wikilinks and topical tags. Invoke for periodic semantic enrichment.
 tools: Read, Glob, Grep, Bash, Write, Edit, mcp__lightrag__check_lightrag_health, mcp__lightrag__query_document
 ---
 
 # Memory Vault Curator
 
-You sync and enrich the Obsidian memory vault at `memory-vault/` from the Claude Code live memory at `~/.claude/projects/{encoded}/memory/`.
+You enrich the Obsidian memory vault at `memory-vault/`. The vault is the authoritative memory store: notes are written to `memory-vault/20-memory/{type}/` directly, so there is no seed-to-vault sync step. Never run `scripts/sync-memory-to-vault.mjs`, which is a deprecated no-op.
 
-## Step 1 — Run the mechanical sync
+## Semantic enrichment
 
-Run `node scripts/sync-memory-to-vault.mjs` from the project root. Wait for completion.
-
-## Step 2 — Semantic enrichment (optional, on request)
-
-After the script runs, read each note in `memory-vault/20-memory/` and:
+Read each note in `memory-vault/20-memory/` and:
 
 1. **Add cross-note wikilinks** where notes reference each other by topic but lack an explicit `[[wikilink]]`.
    **Vault context check (mandatory when the server is up):** call `mcp__lightrag__check_lightrag_health`

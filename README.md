@@ -126,7 +126,7 @@ playwright-typescript/
 │
 ├── scripts/
 │   ├── bulk-ingest-jira.mjs        # Bulk-ingest GRA Jira Stories + Epics → vault
-│   ├── sync-memory-to-vault.mjs    # Syncs live memory → memory-vault/
+│   ├── sync-memory-to-vault.mjs    # Deprecated no-op (notes are written to memory-vault/ directly)
 │   ├── sync-vault-to-lightrag.mjs # Syncs vault notes to LightRAG knowledge graph
 │   └── init-memory-from-vault.mjs # Bootstrap live memory from vault (new machine)
 │

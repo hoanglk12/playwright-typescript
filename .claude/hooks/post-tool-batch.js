@@ -43,7 +43,12 @@ process.stdin.on('end', () => {
       .join('\n');
     const count = tscOutput.split('\n').filter(l => /error TS\d+/.test(l)).length;
     const msg = `${label}: ${count} error${count !== 1 ? 's' : ''}\n${errors}`;
-    process.stdout.write(JSON.stringify({ systemMessage: msg }));
+    // systemMessage only reaches the user. Exit 2 isn't an option here: for PostToolBatch it
+    // stops the agentic loop instead of showing stderr to Claude.
+    process.stdout.write(JSON.stringify({
+      systemMessage: msg,
+      hookSpecificOutput: { hookEventName: 'PostToolBatch', additionalContext: msg },
+    }));
   } else {
     process.stdout.write(JSON.stringify({ systemMessage: `${label}: ✓` }));
   }

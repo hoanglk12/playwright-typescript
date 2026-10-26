@@ -55,7 +55,7 @@ function collectVaultFiles(dir) {
 async function main() {
   if (!existsSync(MEMORY_SUBDIR)) {
     console.error(`  Vault not found at ${MEMORY_SUBDIR}`);
-    console.error('  Run: node scripts/sync-memory-to-vault.mjs first to populate the vault.');
+    console.error('  memory-vault/ is tracked in git. Restore it with: git checkout -- memory-vault');
     process.exit(1);
   }
 

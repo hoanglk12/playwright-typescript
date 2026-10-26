@@ -28,15 +28,14 @@ The vault is pre-configured for wikilinks (`memory-vault/.obsidian/app.json`). N
 
 ## Ongoing sync
 
-**Automatic:** Every memory write triggers the PostToolUse hook which runs `sync-memory-to-vault.mjs`. The vault stays current without manual intervention.
-
-The Stop hook also runs `sync-memory-to-vault.mjs` + `sync-vault-to-lightrag.mjs` at session end for a final full sync.
+**Automatic:** Claude writes notes directly to `memory-vault/20-memory/{type}/`. Each vault write triggers the PostToolUse hook (`sync-memory.js`), which pushes the vault to LightRAG. The Stop hook (`lightrag-sync-status.js`) runs the same sync after every turn to catch anything left over.
 
 **Manual:**
 ```powershell
-node scripts/sync-memory-to-vault.mjs    # live memory → vault
-node scripts/sync-vault-to-lightrag.mjs  # vault → LightRAG
+npm run sync:vault   # vault → LightRAG (node scripts/sync-vault-to-lightrag.mjs)
 ```
+
+`scripts/sync-memory-to-vault.mjs` is a deprecated no-op. Don't run it.
 
 ## Vault structure
 
@@ -69,10 +68,9 @@ No MCP server or Obsidian app needs to be running for Claude to use the vault.
 ## Memory flow
 
 ```
-Claude session writes → ~/.claude/projects/.../memory/
-    ↓ PostToolUse hook (sync-memory-to-vault.mjs)
-memory-vault/20-memory/{type}/
-    ↓ Stop hook (sync-vault-to-lightrag.mjs)
+Claude session writes → memory-vault/20-memory/{type}/
+    ↓ PostToolUse hook (sync-memory.js) + Stop hook (lightrag-sync-status.js)
+    ↓ both run scripts/sync-vault-to-lightrag.mjs
 LightRAG knowledge graph
 ```
 

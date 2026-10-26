@@ -5,7 +5,7 @@ const path = require('path');
 // Tunable constants
 const THRESHOLD = 3;                  // repetitions of the same signature before nudging
 const TIME_FLOOR_MS = 90 * 1000;     // 90s floor — suppresses fast intentional TDD re-runs
-const EXPIRY_MS = 10 * 60 * 1000;   // 10 min — ends a nudged episode; see the advisor branch below
+const EXPIRY_MS = 10 * 60 * 1000;   // 10 min — ends a nudged episode (advisor() is server-side and never reaches this hook)
 const BATCH_WINDOW_MS = 30 * 1000;  // repeats this close to the last counted one are one batched change, not a retry
                                     // (slow PostToolUse hooks between batched edits can stretch a batch past 10s)
 const STALE_GAP_MS = 10 * 60 * 1000; // a signature idle this long starts counting from zero
@@ -50,13 +50,6 @@ process.stdin.on('end', () => {
   const toolName = input.tool_name || '';
   const toolInput = input.tool_input || {};
 
-  // advisor currently runs server-side (server_tool_use), so it never reaches PostToolUse and this
-  // branch doesn't fire — EXPIRY_MS is what actually ends an episode. Kept for a client-side advisor.
-  if (toolName === 'advisor') {
-    clearState(sessionId);
-    process.exit(0);
-  }
-
   // Only track test runs (Bash) and file edits (Edit/MultiEdit/Write)
   if (!['Bash', 'Edit', 'MultiEdit', 'Write'].includes(toolName)) {
     process.exit(0);
@@ -65,7 +58,7 @@ process.stdin.on('end', () => {
   const state = loadState(sessionId);
   const now = Date.now();
 
-  // Auto-expiry: clear notified flag after EXPIRY_MS in case advisor tool didn't fire
+  // Auto-expiry: clear the notified flag after EXPIRY_MS
   if (state.notified && state.notifiedAt && (now - state.notifiedAt) > EXPIRY_MS) {
     clearState(sessionId);
     process.exit(0);

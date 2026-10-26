@@ -85,6 +85,7 @@ process.stdin.on('end', async () => {
   const isContinuation = prompt.startsWith('This session is being continued from a previous conversation');
   const isUserMessage = !isNotification && !isContinuation;
   if (isUserMessage) resetAdvisorNudge(input.session_id);
+  pruneSessionState();
 
   // Fire LightRAG query immediately so it runs in parallel with git/section work below
   const lrQueryPromise =
@@ -115,7 +116,9 @@ process.stdin.on('end', async () => {
   // Step 1 — Always: live git state + last test run
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
   const log = git(['log', '--oneline', '-3'], cwd);
-  const statusOut = git(['status', '--short'], cwd);
+  // A plain `git status` rewrites the index under .git/index.lock; killed by the hook timeout,
+  // it leaves the lock behind and every later `git add` fails.
+  const statusOut = git(['--no-optional-locks', 'status', '--short'], cwd);
   const dirtyCount =
     statusOut === null ? 'unknown (git status failed)' : statusOut.split('\n').filter(l => l.trim()).length;
 
@@ -457,6 +460,22 @@ const TEST_INTENT_RE = /\b(tests?|scenarios?|specs?|automate|automation|coverage
 function resetAdvisorNudge(sessionId) {
   try {
     fs.unlinkSync(path.join(__dirname, '..', '.state', `advisor-nudge-${sessionId || 'default'}.json`));
+  } catch {}
+}
+
+// Nothing deletes a session's state file when the session ends, so they piled up (107 by 2026-10-26).
+const SESSION_STATE_RE = /^(advisor-nudge|vault-capture-nudge)-.+\.json$/;
+const SESSION_STATE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function pruneSessionState() {
+  const dir = path.join(__dirname, '..', '.state');
+  const cutoff = Date.now() - SESSION_STATE_MAX_AGE_MS;
+  try {
+    for (const name of fs.readdirSync(dir)) {
+      if (!SESSION_STATE_RE.test(name)) continue;
+      const file = path.join(dir, name);
+      if (fs.statSync(file).mtimeMs < cutoff) fs.unlinkSync(file);
+    }
   } catch {}
 }
 

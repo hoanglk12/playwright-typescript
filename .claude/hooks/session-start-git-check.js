@@ -37,7 +37,8 @@ process.stdin.on('end', () => {
   if (!behind) process.exit(0);
 
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd) || 'HEAD';
-  const dirty = !!git(['status', '--porcelain'], cwd);
+  // --no-optional-locks: a status killed by the hook timeout must not leave .git/index.lock behind.
+  const dirty = !!git(['--no-optional-locks', 'status', '--porcelain'], cwd);
 
   let msg = `${branch} is ${plural(behind)} behind ${upstream}`;
   if (ahead) msg += ` and ${plural(ahead)} ahead (diverged)`;

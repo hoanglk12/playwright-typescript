@@ -50,6 +50,8 @@ last_verified: 2026-10-26
   - **The filter has gaps.** `noInfoPattern` misses the curly apostrophe in "don’t", "I'm sorry", "Could you please clarify" and "Based on the provided context, there is no".
   - **The eval doesn't answer this.** The golden-set eval measures answers to well-formed questions, not whether real prompts get useful recall.
 
+- **2026-10-26: recall still times out after the server restart, so a restart isn't the fix.** The LLM had been moved to the Claude endpoint, which rejects LightRAG's `json_object` keyword-extraction call (HTTP 400), so `.lightrag.env` went back to ShopAIKey `gpt-4.1-mini`. The 9621 server was restarted at 17:09, and `/health` confirmed that config. All 6 recalls that queried it over the next 3.3 hours still timed out at 9s. One real question measured 11.2s for the full answer and 4.9s for `only_need_context`. The cause is latency against the 9s budget, not configuration. `lightrag-recall-config.json` was left unchanged, per the tuning rule below.
+
 **How to apply:**
 - Don't claim LightRAG makes agents faster until a with/without trial shows it.
 - After adding a vault note, add a golden question for it, plus a task-style prompt if the note says how to do something. The eval lists uncovered notes as `NO QUESTION`.

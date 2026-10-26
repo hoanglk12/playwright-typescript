@@ -9,6 +9,8 @@
     { "note": "ecommerce-pdp-page-gotchas.md", "question": "How does the cart overlay page object detect whether the mini cart is open or closed?", "facts": ["opacity"] },
     { "note": "feedback_preferences.md", "question": "How should beforeAll handle the customer token and cart in PLA API specs?", "facts": ["fresh", "generateCustomerToken"] },
     { "note": "honest-judgment-over-scope-compliance.md", "question": "After the user picks a scope in AskUserQuestion, should I just build it as chosen?", "facts": ["conflict"] },
+    { "note": "hooks-never-spawn-npx.md", "question": "Why does a Claude Code hook script fail when it starts a tool with spawnSync('npx') on Windows, and what should it do instead?", "facts": ["ENOENT|npx\\.cmd", "execPath|entry ?point|require"] },
+    { "note": "inline-node-hooks-no-backticks.md", "question": "Why did the inline node -e SubagentStop hook in settings.json crash with a SyntaxError, and how should an inline hook script build its strings?", "facts": ["backtick|template literal|command substitution", "concatenat|with `?\\+|\\+`? operator"] },
     { "note": "lightrag-uv-managed-venv.md", "question": "How do I install a Python package into the LightRAG venv?", "facts": ["uv pip install"] },
     { "note": "memory_vault_authority.md", "question": "Where should Claude write memory notes, and which sync script must never be run?", "facts": ["20-memory", "sync-memory-to-vault"] },
     { "note": "playwright-161-and-helper-migration.md", "question": "What changed about isVisible with a timeout option in Playwright 1.61, and what replaces it?", "facts": ["deprecat"] },

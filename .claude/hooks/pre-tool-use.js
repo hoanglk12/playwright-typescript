@@ -12,7 +12,15 @@ process.stdin.on('end', () => {
   if (!cmd) process.exit(0);
 
   const reason = evaluate(cmd);
-  if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+  if (reason) {
+    process.stdout.write(JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'deny',
+        permissionDecisionReason: reason,
+      },
+    }));
+  }
   process.exit(0);
 });
 
@@ -34,9 +42,10 @@ const DESTRUCTIVE = [
        + 'Use "npm run clean" or "npx rimraf <path>" instead.',
   },
   {
-    // PowerShell Remove-Item -Recurse -Force
-    re: /Remove-Item\b.*-Recurse.*-Force|Remove-Item\b.*-Force.*-Recurse/i,
-    msg: 'BLOCKED: "Remove-Item -Recurse -Force" is irreversible.\n'
+    // Remove-Item or an alias with recurse + force switches, any order or abbreviation
+    // (Remove-Item -Recurse -Force, rm -r -fo, ri -Recurse -Force, rd /s /q, rm -r -f)
+    re: /\b(?:Remove-Item|ri|rm|rmdir|rd|del|erase)\b(?=.*\s(?:-r\w*|\/s)\b)(?=.*\s(?:-f|-fo\w*|\/q)\b)/i,
+    msg: 'BLOCKED: recursive forced delete (Remove-Item -Recurse -Force, rd /s /q) is irreversible.\n'
        + 'Use "npm run clean" or rimraf instead.',
   },
   {
