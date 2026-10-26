@@ -163,24 +163,21 @@ With:
 import { apiTest as test, expect } from '../../src/api/ApiTest';
 ```
 
-Also verify the file has `test.describe.configure({ mode: 'serial' })` (if not, apply DEBT-003
-fix too).
-
 If the file uses the `page` fixture (a browser-page object), it is a misplaced UI-mocking test.
 In that case, do NOT change the import — instead note in your report that the file must be
 relocated to `tests/ecommerce/` and blocked from this fix.
 
 ---
 
-#### DEBT-003 — Missing serial-mode declaration in API specs
+#### DEBT-003 — Serial-mode declaration in API specs
 
-For each affected spec file, add directly after the last import line:
+**Never add** `test.describe.configure({ mode: 'serial' })` to an API spec. Since 2026-06-11 API specs
+use default mode: `fullyParallel: false` in `api.config.ts` already runs each file's tests in order,
+and serial mode only adds cascade-skips (see CLAUDE.md § API Tests → Execution Mode).
 
-```ts
-test.describe.configure({ mode: 'serial' });
-```
-
-Must appear **outside** all `test.describe` blocks, at module top-level.
+If the report flags a `gra-*.spec.ts` that **declares** serial mode, remove that line. If removing it
+exposes a test that relies on state created by an earlier *test*, move that setup into `beforeAll`.
+Leave the legacy `restful-booker.spec.ts` / `objects-crud.spec.ts` declarations alone.
 
 ---
 

@@ -3,7 +3,7 @@ name: test-conventions
 description: "Test naming patterns, tag placement, serial mode rules, and the no-rename policy"
 type: feedback
 tags: [memory, feedback]
-last_verified: 2026-06-12
+last_verified: 2026-10-26
 ---
 
 ## Test Naming Patterns
@@ -51,9 +51,11 @@ test.describe('Feature Name', () => {
 
 ## Serial Mode Rules
 
-**GRA API specs (`pla-*.spec.ts`):** Do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential ordering is guaranteed by `fullyParallel: false` in `api.config.ts`. Serial mode causes cascade-skips on failure — one failed test skips all subsequent ones, hiding signal.
+**GRA API specs (`gra-*.spec.ts`):** Do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential ordering is guaranteed by `fullyParallel: false` in `api.config.ts`. Serial mode causes cascade-skips on failure — one failed test skips all subsequent ones, hiding signal.
 
-**Non-GRA API specs** (`restful-booker.spec.ts`, `objects-crud.spec.ts`): retain `test.describe.configure({ mode: 'serial' })` — these specs have inter-test state dependencies.
+**All other API specs** use default mode too (dummyjson, `security-posture`). Setup that later tests depend on goes in `beforeAll`, not in an earlier test: after a failure Playwright's replacement worker re-runs `beforeAll` but not the tests that already ran (see the comment at `gra-cart-minicart.spec.ts:119`). Only the legacy `restful-booker.spec.ts` / `objects-crud.spec.ts` still declare serial mode. Neither strictly needs it — `restful-booker` creates its booking in `beforeAll`, and `objects-crud` only collects IDs — but leave them as they are.
+
+**Rule drift fixed 2026-10-26:** commit `c7a32a7` (2026-06-11) moved GRA to default mode but updated only the two CLAUDE.md files. "Serial mode mandatory in every API spec" survived in about 12 agent/skill/command/hook files until 2026-10-26. The worst of them: `technical-debt-agent` 7a flagged all 21 non-serial specs as Critical, and `technical-debt-fixer` DEBT-003 would have re-added serial mode.
 
 **Ecommerce smoke specs:** Do NOT use serial mode. All 6 smoke specs use plain `test.describe` (serial mode removed 2026-06-07). Each test gets its own browser context via test-scoped fixtures — no shared state, so serial adds only cascade-skip risk with no benefit.
 
@@ -64,7 +66,7 @@ test.describe('Feature Name', () => {
 | Context | Import from |
 |---|---|
 | UI test files | `@config/base-test` |
-| GRA API specs (`pla-*.spec.ts`) | `./gra-test` (as `graTest`) |
+| GRA API specs (`gra-*.spec.ts`, plus `security-posture.spec.ts`, which also runs per brand) | `./gra-test` (as `graTest` — adds the `site`/`siteState` fixtures) |
 | Non-GRA API specs | `../../src/api/ApiTest` (as `apiTest`) |
 | **Never** | `@playwright/test` directly in test files |
 

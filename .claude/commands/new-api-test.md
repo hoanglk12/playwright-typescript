@@ -12,6 +12,9 @@ Then create the file following these non-negotiable rules:
 
 **Import block — CRITICAL (wrong imports break fixture resolution):**
 ```ts
+// GRA spec (gra-*.spec.ts, or anything run once per GRA brand+region) — graTest adds the site/siteState fixtures:
+import { graTest as test, expect, softExpect } from './gra-test';
+// Any other API spec:
 import { apiTest as test, expect } from '../../src/api/ApiTest';
 import { AuthType } from '../../src/api/ApiClient';  // only if custom auth needed
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -19,12 +22,7 @@ import { MyData } from '../../src/data/my-data';  // create this module
 ```
 NEVER use `@config/base-test` or `@playwright/test` in files under tests/api/.
 
-**Serial mode — depends on spec type:**
-- **GRA spec files (`gra-*.spec.ts`)** — do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential execution is already guaranteed by `fullyParallel: false` in `api.config.ts`; serial mode causes cascade-skips on failure that hide test signal.
-- **Non-GRA specs** (e.g. `restful-booker.spec.ts`, `objects-crud.spec.ts`) — may add it as the first statement outside imports:
-```ts
-test.describe.configure({ mode: 'serial' });
-```
+**Execution mode:** do NOT add `test.describe.configure({ mode: 'serial' })` — not to GRA spec files (`gra-*.spec.ts`), and not to any other new spec. Sequential execution is already guaranteed by `fullyParallel: false` in `api.config.ts`; serial mode only causes cascade-skips on failure that hide test signal. Put setup that later tests depend on in `beforeAll`. (Only the legacy `restful-booker.spec.ts` / `objects-crud.spec.ts` still declare it.)
 
 **Test structure:**
 - Tags in `test.describe()` name string: `@api @regression` or `@api @graphql`

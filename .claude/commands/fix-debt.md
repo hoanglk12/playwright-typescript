@@ -61,10 +61,10 @@ Invoke the **technical-debt-fixer** agent with:
 - The resolved scope (comma-separated DEBT IDs or named phase/severity)
 - The content of `TECH_DEBT_REPORT.md` (pass the full relevant sections so the agent has exact file paths and remediation recipes)
 - A reminder of the top framework rules:
-  - Import in UI tests: `@config/base-test`; in API tests: `../../src/api/ApiTest`
+  - Import in UI tests: `@config/base-test`; in GRA API specs: `graTest` from `./gra-test`; in other API specs: `../../src/api/ApiTest`
   - Page classes: extend `BasePage`, use helpers, never call `this.page.*` directly
   - Locators: `private readonly` class fields, `getByRole` preferred
-  - API specs: `test.describe.configure({ mode: 'serial' })` mandatory
+  - API specs: default mode — never add `test.describe.configure({ mode: 'serial' })` (CLAUDE.md § API Tests → Execution Mode)
 
 ---
 

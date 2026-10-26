@@ -3,7 +3,7 @@ name: lightrag-eval
 description: "How to measure LightRAG recall quality (npm run eval:lightrag: golden set, index freshness, saved runs with rescore/compare/diagnose) and real-world recall (npm run eval:lightrag:recall); 2026-09-28 baseline: 48/50 answers correct but only 54% delivered inside the 9s recall budget"
 type: project
 tags: [memory, project, lightrag]
-last_verified: 2026-10-06
+last_verified: 2026-10-26
 ---
 
 ## Tools (added 2026-09-28, extended 2026-10-06)
@@ -43,7 +43,15 @@ last_verified: 2026-10-06
 - **2026-10-06: an outage scored as perfect abstention.** The eval did not check the HTTP status, so a 500 counted as "declined" on every unanswerable question. It now stops after the first 5xx or three errors in a row. ShopAIKey returned 401 (invalid token) on 2026-10-02, which left `fixture-registry.md` failed in the index, and 403 (quota) on 2026-10-06. Once the key works, `POST /documents/reprocess_failed` retries failed docs.
 - **Delivered-rate swings are mostly latency noise.** The median answer time sits right at the 9s budget, so a question flips between delivered and late on jitter alone. A few points of difference between two single runs means nothing. Use `--repeat` and `--compare`, and act only on changes McNemar calls real.
 
+- **2026-10-26: no evidence yet that LightRAG speeds up test writing.** Transcripts on the ACER machine (26 Sep to 26 Oct; older ones are pruned after 30 days) show:
+  - **One test run queried it.** Only the E2E-AUTH-009 orchestrator run on 22 Oct called LightRAG. The query took 35s and the answer said it had nothing on that ID; a brand-new test ID can't have a note yet. The general sign-in gotchas it returned never reached the architect's handoff.
+  - **Two runs skipped it.** The E2E-REV-002 and INT-001 orchestrator runs on 16 Oct never called LightRAG, even though the check is mandatory.
+  - **Recall injections were mostly filler.** Of the 12 recall injections from 2 to 24 Oct, 2 were useful, 1 partly relevant, 1 wrong and 8 filler ("Could you please clarify…") added to prompts like "yes, commit it".
+  - **The filter has gaps.** `noInfoPattern` misses the curly apostrophe in "don’t", "I'm sorry", "Could you please clarify" and "Based on the provided context, there is no".
+  - **The eval doesn't answer this.** The golden-set eval measures answers to well-formed questions, not whether real prompts get useful recall.
+
 **How to apply:**
+- Don't claim LightRAG makes agents faster until a with/without trial shows it.
 - After adding a vault note, add a golden question for it, plus a task-style prompt if the note says how to do something. The eval lists uncovered notes as `NO QUESTION`.
 - To tune recall, change one setting with `--param`, `--mode` or `--timeout`, run with `--compare prev`, then confirm with a week of `eval:lightrag:recall` output. Change `lightrag-recall-config.json` only after that.
 

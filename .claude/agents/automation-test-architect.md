@@ -30,7 +30,7 @@ You do not have the `Skill` tool. Instead, `Read` the relevant file(s) directly 
 - Accessibility test → `testing-patterns/accessibility.md`
 - Forms/validation, drag-drop, file upload → `testing-patterns/forms-validation.md`, `testing-patterns/drag-drop.md`, `testing-patterns/file-operations.md`
 
-This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI) / `../../src/api/ApiTest` (API).
+This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI), `./gra-test` (GRA API specs: `gra-*.spec.ts`, `security-posture.spec.ts`) or `../../src/api/ApiTest` (other API specs).
 
 ---
 
@@ -302,7 +302,10 @@ API tests are fundamentally different from UI tests. Do NOT apply POM or helper-
 ### Critical Import Difference
 
 ```ts
-// API tests — ALWAYS
+// GRA API specs (gra-*.spec.ts, security-posture.spec.ts) — graTest adds the per-brand site/siteState fixtures
+import { graTest as test, expect, softExpect } from './gra-test';
+
+// All other API specs
 import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
@@ -311,12 +314,11 @@ import { createTestLogger } from '../../src/utils/test-logger';
 import { test, expect } from '@config/base-test';
 ```
 
-### Serial Mode — Mandatory in Every API Spec
+### Execution Mode — No Serial Mode in API Specs
 
-```ts
-// At top of file, outside all test.describe blocks
-test.describe.configure({ mode: 'serial' });
-```
+Do **not** add `test.describe.configure({ mode: 'serial' })`. `fullyParallel: false` in `api.config.ts` already runs each file's tests in order; serial mode only adds cascade-skips (one failure skips the rest of the file). This is a hard rule for `gra-*.spec.ts`.
+
+Put setup that later tests depend on in `beforeAll`, not in an earlier test — after a failure the replacement worker re-runs `beforeAll` but not the tests that already ran. The legacy `restful-booker.spec.ts` / `objects-crud.spec.ts` keep their existing declaration.
 
 ### No Page Objects in API Tests
 
@@ -339,8 +341,6 @@ API tests use service/client fixtures directly — never instantiate page object
 import { apiTest as test, expect } from '../../src/api/ApiTest';
 import { MyApiData } from '../../src/data/my-api-data';
 import { createTestLogger } from '../../src/utils/test-logger';
-
-test.describe.configure({ mode: 'serial' });
 
 test.describe('Resource API @api @regression', () => {
   test('TC_01 - Should fetch resource by ID', async ({ apiClientExt }) => {
@@ -378,8 +378,6 @@ test.describe('Resource API @api @regression', () => {
 import { apiTest as test, expect } from '../../src/api/ApiTest';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { MyGqlData } from '../../src/data/my-gql-data';
-
-test.describe.configure({ mode: 'serial' });
 
 test.describe('User GraphQL API @api @graphql', () => {
   test('TC_01 - Should query user by ID', async ({ graphqlClient }) => {
@@ -459,8 +457,8 @@ export const MyApiData: MyApiDataShape = {
 - Do NOT string-interpolate GraphQL variables: use the `variables` argument
 - Do NOT use `expect(response.status()).toBe(200)` — use `await response.assertStatus(200)`
 - Do NOT construct `ApiClient` directly in test bodies — use provided fixtures
-- Do NOT import from `@config/base-test` — import from `../../src/api/ApiTest`
-- Do NOT omit `test.describe.configure({ mode: 'serial' })`
+- Do NOT import from `@config/base-test` — import `graTest` from `./gra-test` (GRA specs) or `apiTest` from `../../src/api/ApiTest` (other API specs)
+- Do NOT add `test.describe.configure({ mode: 'serial' })` — see Execution Mode above
 
 ---
 

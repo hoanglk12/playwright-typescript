@@ -5,7 +5,7 @@ description: Use when mocking, testing, or validating GraphQL APIs in Playwright
 
 # GraphQL Testing
 
-This project has a built-in `GraphQLClient` (extends `ApiClient`) with full query, mutation, and assertion support. All GraphQL tests live in `tests/api/` and use `apiTest` from `../../src/api/ApiTest`.
+This project has a built-in `GraphQLClient` (extends `ApiClient`) with full query, mutation, and assertion support. All GraphQL tests live in `tests/api/`. GRA specs (`gra-*.spec.ts`, `security-posture.spec.ts`) use `graTest` from `./gra-test`, which adds the per-brand `site`/`siteState` fixtures; other GraphQL specs use `apiTest` from `../../src/api/ApiTest`.
 
 ---
 
@@ -13,18 +13,19 @@ This project has a built-in `GraphQLClient` (extends `ApiClient`) with full quer
 
 ```ts
 // API tests: NEVER use @config/base-test or @playwright/test directly
+// GRA specs (gra-*.spec.ts, security-posture.spec.ts):
+import { graTest as test, expect, softExpect } from './gra-test';
+// Other GraphQL specs:
 import { apiTest as test, expect } from '../../src/api/ApiTest';
 import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 ```
 
-## Serial Mode — Mandatory
+## Execution Mode — No Serial Mode
 
-Every API spec file must declare this at the top, outside all `test.describe` blocks:
+Do **not** add `test.describe.configure({ mode: 'serial' })`. GRA specs are GraphQL specs, and they use default mode: `fullyParallel: false` in `api.config.ts` already runs each file's tests in order, while serial mode only adds cascade-skips (one failure skips the rest of the file).
 
-```ts
-test.describe.configure({ mode: 'serial' });
-```
+Put setup that later tests depend on (token, cart, address) in `beforeAll`, not in an earlier test — after a failure the replacement worker re-runs `beforeAll` but not the tests that already ran.
 
 ---
 
@@ -253,8 +254,6 @@ import { AuthType } from '../../src/api/ApiClient';
 import { createTestLogger } from '../../src/utils/test-logger';
 import { MyGraphQLData } from '../../src/data/my-graphql-data';
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('User GraphQL API @api @graphql', () => {
 
   test('TC_01 - Should fetch user by ID', async ({ graphqlClient }) => {
@@ -340,9 +339,9 @@ export const MyGraphQLData: MyGraphQLDataShape = {
 
 | Wrong | Correct |
 |---|---|
-| `import { test } from '@playwright/test'` | `import { apiTest as test } from '../../src/api/ApiTest'` |
-| `import { test } from '@config/base-test'` | `import { apiTest as test } from '../../src/api/ApiTest'` |
+| `import { test } from '@playwright/test'` | `graTest as test` from `./gra-test` (GRA specs) or `apiTest as test` from `../../src/api/ApiTest` |
+| `import { test } from '@config/base-test'` | `graTest as test` from `./gra-test` (GRA specs) or `apiTest as test` from `../../src/api/ApiTest` |
 | Skip `assertNoErrors()` on happy-path | Always call `await response.assertNoErrors()` first |
 | String-interpolate variables | Pass typed object as second arg |
 | `const r = await graphqlClient.query(...)` without wrapping | Use `queryWrapped` for automatic assertion support |
-| Miss `test.describe.configure({ mode: 'serial' })` | Required at top of every API spec file |
+| Add `test.describe.configure({ mode: 'serial' })` | Leave it out — `fullyParallel: false` already keeps file order; serial only cascade-skips |

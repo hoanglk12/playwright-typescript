@@ -23,7 +23,7 @@ Target: $ARGUMENTS
      - `BasePage` helper composition (`this.elements`, `this.waits`, etc.) — never introduce direct `page.locator()` / `page.click()`
      - Locators stay `private readonly` class fields, never inlined
      - No comments that restate the code (see CLAUDE.md comment policy)
-     - Preserve existing test names (`TC_XX` / `E2E-{DOMAIN}-{NNN}`) and import rules (`@config/base-test` for UI, `../../src/api/ApiTest` for API)
+     - Preserve existing test names (`TC_XX` / `E2E-{DOMAIN}-{NNN}`) and import rules (`@config/base-test` for UI, `./gra-test` for GRA API specs, `../../src/api/ApiTest` for other API specs)
 
 4. After the agent finishes, run `npm run lint`.
    - If lint fails, restore every touched file to the content captured in step 2 (via the `Write` tool), and treat the result as **rolled back** — never leave a lint-broken file in place.

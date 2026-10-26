@@ -22,7 +22,7 @@ $ARGUMENTS
    - Exact spec file path
    - Any error messages or stack traces from test-results/
    - The test area
-   - For API tests: reminder that import must be from `../../src/api/ApiTest` and `test.describe.configure({ mode: 'serial' })` must be present
+   - For API tests: reminder that the import must be `graTest` from `./gra-test` (GRA specs) or `apiTest` from `../../src/api/ApiTest` (other API specs), and that `test.describe.configure({ mode: 'serial' })` must NOT be added as a fix (API specs use default mode; move shared setup into `beforeAll` instead)
 
 6. After the healer completes and reports what it fixed, invoke **qa-code-reviewer** on the modified files only.
 

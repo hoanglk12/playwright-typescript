@@ -18,7 +18,7 @@ Target: $ARGUMENTS
 3. Dispatch **qa-code-reviewer** with the file list and instruct it to check all categories:
 
    **For all files:**
-   - Import conventions (@config/base-test for UI, ../../src/api/ApiTest for API)
+   - Import conventions (@config/base-test for UI, ./gra-test for GRA API specs, ../../src/api/ApiTest for other API specs)
    - Page object architecture (BasePage helpers, private readonly locators at class level)
    - Test structure (TC_XX format, createTestLogger, logger.step/verify/action)
    - Test data (typed interfaces, no hardcoded strings in specs)
@@ -31,8 +31,8 @@ Target: $ARGUMENTS
    - Dead code (unused imports, orphaned methods, commented-out tests)
 
    **For files under tests/api/ additionally:**
-   - `apiTest as test` import (NEVER @config/base-test)
-   - `test.describe.configure({ mode: 'serial' })` present
+   - `graTest as test` from `./gra-test` in GRA specs (`gra-*.spec.ts`, `security-posture.spec.ts`), `apiTest as test` from `../../src/api/ApiTest` elsewhere (NEVER @config/base-test)
+   - No `test.describe.configure({ mode: 'serial' })` (API specs use default mode; the legacy `restful-booker` / `objects-crud` declarations are not findings)
    - ApiResponseWrapper chain used (not raw expect(response.status()))
    - assertNoErrors() before data assertions in GraphQL happy-path tests
    - No string-interpolated GraphQL variables

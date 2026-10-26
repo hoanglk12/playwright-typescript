@@ -27,7 +27,7 @@ You do not have the `Skill` tool. Instead, `Read` the relevant file(s) directly 
 - Overall test structure for the raw spec → `core/test-suite-structure.md`
 - Assertions/waiting on recorded actions → `core/assertions-waiting.md`
 
-This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI) / `../../src/api/ApiTest` (API).
+This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI), `./gra-test` (GRA API specs: `gra-*.spec.ts`, `security-posture.spec.ts`) or `../../src/api/ApiTest` (other API specs).
 
 ---
 

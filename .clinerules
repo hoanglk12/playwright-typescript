@@ -232,7 +232,15 @@ static generateCustomerData() { return { customerName: 'Test' }; }
 
 ### Import — Critical Difference from UI Tests
 
-API tests use a separate base test — **never import from `@config/base-test` in API test files**:
+API tests use a separate base test — **never import from `@config/base-test` in API test files**.
+
+**GRA specs** — every `gra-*.spec.ts`, plus any spec that runs once per GRA brand+region such as `security-posture.spec.ts` — import `graTest` from `tests/api/gra-test.ts`. It extends `apiTest` with the per-brand `site` (`SiteContext`) and `siteState` (`TestState`) fixtures:
+
+```ts
+import { graTest as test, expect, softExpect } from './gra-test';
+```
+
+**All other API specs** (dummyjson, `restful-booker`, `objects-crud`) import `apiTest` directly:
 
 ```ts
 import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
@@ -244,7 +252,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 
 GRA spec files (`gra-*.spec.ts`) use **default mode** — do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential execution is guaranteed by `fullyParallel: false` in `api.config.ts`. Serial mode causes cascade-skips on failure which hides test signal.
 
-Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain serial mode.
+Every other API spec uses default mode too (dummyjson, `security-posture`). Put setup that later tests depend on in `beforeAll`, not in an earlier test — after a failure Playwright's replacement worker re-runs `beforeAll` but not the tests that already ran. Only the legacy specs `restful-booker.spec.ts` and `objects-crud.spec.ts` still declare serial mode; leave them as they are and don't add it to new specs.
 
 ### Fixtures (defined in `src/api/ApiTest.ts`)
 
@@ -374,8 +382,6 @@ await graphqlClient.queryWrapped(
 import { apiTest as test, expect } from '../../src/api/ApiTest';
 import { MyApiData } from '../../src/data/my-api-data';
 import { createTestLogger } from '../../src/utils/test-logger';
-
-test.describe.configure({ mode: 'serial' });
 
 test.describe('Resource API @api @regression', () => {
   test('TC_01 - Should fetch resource by ID', async ({ apiClientExt }) => {

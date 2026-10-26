@@ -37,7 +37,7 @@
 
 ## Ecommerce Smoke Coverage (as of 2026-05-31)
 
-All 6 ecommerce specs run serially (`test.describe.serial`). Each scenario repeats across all 8 storefronts. Total: ~192 tests.
+Ecommerce specs use plain `test.describe`, not serial mode (removed 2026-06-07 — each test gets its own browser context). Each scenario repeats across all 8 storefronts. Total: ~192 tests.
 
 ### homepage-smoke.spec.ts — 3 × 8 = 24 tests
 

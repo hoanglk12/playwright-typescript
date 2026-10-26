@@ -25,6 +25,11 @@ try {
 }
 const RECALL_LOG = path.join(__dirname, '..', '.state', 'lightrag-recall-log.jsonl');
 
+// Pasted text is material the user is showing, not their request — a file path or ticket key
+// inside a pasted log must not drive routing. Matching the id means a closing tag forged inside
+// the paste can't end the block early.
+const PASTED_CONTENT_RE = /<pasted_content id="([^"]*)">[\s\S]*?<\/pasted_content id="\1">/g;
+
 async function queryLightRAG(prompt) {
   if (typeof fetch === 'undefined') return { outcome: 'error', ms: 0, text: null };
   const started = Date.now();
@@ -69,11 +74,17 @@ process.stdin.on('end', async () => {
   }
 
   const prompt = (input.prompt || '').trim();
+  const ownWords = prompt.replace(PASTED_CONTENT_RE, '').trim();
   const cwd = input.cwd || process.cwd();
 
   // Background-task notification turns aren't user prompts: querying them wastes a 9s LLM
   // call, and logging them would skew the real recall hit rate.
   const isNotification = prompt.includes('<task-notification>');
+  // Neither is a compaction summary. Automated turns quote files and keywords the user never asked
+  // about, so only a real user message gets routed or starts a new advisor-nudge episode.
+  const isContinuation = prompt.startsWith('This session is being continued from a previous conversation');
+  const isUserMessage = !isNotification && !isContinuation;
+  if (isUserMessage) resetAdvisorNudge(input.session_id);
 
   // Fire LightRAG query immediately so it runs in parallel with git/section work below
   const lrQueryPromise =
@@ -91,11 +102,11 @@ process.stdin.on('end', async () => {
   // but the lookbehind sees the preceding '-' and rejects SRCH-001.
   const JIRA_BARE_RE = /(?<!-)\b([A-Z][A-Z0-9]+-\d+)\b/;
 
-  const hasCodingIntent = codingIntentRe.test(prompt);
-  const hasExistingSpec = existingSpecRe.test(prompt);
+  const hasCodingIntent = codingIntentRe.test(ownWords);
+  const hasExistingSpec = existingSpecRe.test(ownWords);
 
-  const jiraUrlMatch = JIRA_URL_RE.exec(prompt);
-  const jiraBareMatch = !jiraUrlMatch ? JIRA_BARE_RE.exec(prompt) : null;
+  const jiraUrlMatch = JIRA_URL_RE.exec(ownWords);
+  const jiraBareMatch = !jiraUrlMatch ? JIRA_BARE_RE.exec(ownWords) : null;
   const jiraFromUrl = jiraUrlMatch?.[1] ?? null;
   const jiraFromBare = jiraBareMatch?.[1] ?? null;
 
@@ -105,7 +116,8 @@ process.stdin.on('end', async () => {
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
   const log = git(['log', '--oneline', '-3'], cwd);
   const statusOut = git(['status', '--short'], cwd);
-  const dirtyCount = statusOut ? statusOut.split('\n').filter(l => l.trim()).length : 0;
+  const dirtyCount =
+    statusOut === null ? 'unknown (git status failed)' : statusOut.split('\n').filter(l => l.trim()).length;
 
   let liveState = '## Live Project State\n';
   liveState += `- Branch: ${branch || 'unknown'}\n`;
@@ -181,8 +193,9 @@ PLAYWRIGHT RULES:
 - Register every new page object as a fixture in src/config/base-test.ts
 
 API TESTING RULES (when writing tests/api/ files):
-- Import: import { apiTest as test, expect } from '../../src/api/ApiTest' — NEVER from @config/base-test
-- Serial mode: test.describe.configure({ mode: 'serial' }) at top of every API spec (outside all describe blocks)
+- Import (GRA specs: gra-*.spec.ts, security-posture.spec.ts): import { graTest as test, expect, softExpect } from './gra-test' — adds the per-brand site/siteState fixtures
+- Import (other API specs): import { apiTest as test, expect } from '../../src/api/ApiTest' — NEVER from @config/base-test in any API spec
+- No serial mode: never add test.describe.configure({ mode: 'serial' }) — fullyParallel: false already keeps file order, serial only cascade-skips; shared setup goes in beforeAll
 - Use ApiResponseWrapper chain: await response.assertStatus(200); await response.assertJsonPath('field', value)
 - GraphQL happy path: always call await response.assertNoErrors() before any data assertions
 - No page objects in API tests — use service/client fixtures (bookingService, graphqlClient, apiClientExt)
@@ -191,7 +204,9 @@ API TESTING RULES (when writing tests/api/ files):
   }
 
   // Step 3 — Intelligent routing (no blocking)
-  const routingSection = buildRoutingSection(prompt, cwd, jiraFromUrl, jiraFromBare, hasExistingSpec);
+  const routingSection = isUserMessage
+    ? buildRoutingSection(ownWords, cwd, jiraFromUrl, jiraFromBare, hasExistingSpec)
+    : null;
   if (routingSection) sections.push(routingSection);
 
   // Step 4 — Emit context + session title
@@ -229,7 +244,17 @@ const ROUTING_RULES = [
     type: 'agent',
     name: 'playwright-test-healer',
     reason: 'failing or broken test detected — needs diagnosis and repair',
-    keywords: ['\\bfix\\b', 'broken', 'failing', 'flaky', '\\bdebug\\b', 'heal', 'not passing', 'test fail'],
+    // fix/debug/broken/failing route here only next to a test noun — on their own they also
+    // describe hooks, scripts and CI, which aren't the healer's job
+    keywords: [
+      '\\b(fix|debug)\\b[^!?\\n]{0,60}\\b(tests?|specs?|E2E-\\w+-\\d+|TC_\\d+)\\b',
+      '\\b(tests?|specs?|E2E-\\w+-\\d+|TC_\\d+)\\b[^!?\\n]{0,60}\\b(broken|failing)\\b',
+      '\\b(broken|failing)\\s+(tests?|specs?)\\b',
+      'flaky',
+      '\\bheal\\b',
+      'not passing',
+      'test fail',
+    ],
   },
   {
     type: 'agent',
@@ -358,8 +383,10 @@ function buildRoutingSection(prompt, cwd, jiraFromUrl, jiraFromBare, hasExisting
   const jiraTicket = jiraFromUrl ?? (planResult.found ? null : jiraFromBare);
   const hasJira = jiraTicket !== null;
 
-  // 3. Non-plan document found → document routing wins over everything else
-  if (planResult.found && !planResult.isPlan) {
+  // 3. Non-plan document found and the user wants tests from it → document routing wins over
+  //    everything else. Without test intent the doc is being edited or discussed, not used as a
+  //    test source (e.g. "/humanizer pass on Guideline/E2E_DISCOVERY_REPORT.md").
+  if (planResult.found && !planResult.isPlan && TEST_INTENT_RE.test(prompt)) {
     return buildDocumentRoutingSection(planResult.docPath);
   }
 
@@ -405,20 +432,33 @@ function buildRoutingSection(prompt, cwd, jiraFromUrl, jiraFromBare, hasExisting
 // Helpers (unchanged)
 // ---------------------------------------------------------------------------
 
+// null rather than '' on failure — a timed-out `git status` must not read as a clean tree
 function git(args, cwd) {
   try {
     const r = spawnSync('git', args, { cwd, encoding: 'utf8', timeout: 5000 });
-    return (r.stdout || '').trim();
+    return r.status === 0 ? (r.stdout || '').trim() : null;
   } catch {
-    return '';
+    return null;
   }
 }
 
 // DOC_EXTS covers all common document/spreadsheet/data formats that may contain test specs
 const DOC_EXTS = ['.md', '.txt', '.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv'];
 
-// Directories to probe when resolving bare filenames (relative to cwd)
-const DOC_DIRS = ['', 'Guideline', 'docs', 'documentation', 'specs', '.claude/plans'];
+// The only folders that hold test-source documents (relative to cwd). A document named anywhere
+// else — CLAUDE.md, README.md, TECH_DEBT_REPORT.md, a vault note — is something the user is talking
+// about, not a spec to build tests from, so it must not trigger the document route.
+const DOC_DIRS = ['Guideline', 'docs', 'documentation', 'specs', '.claude/plans'];
+
+const TEST_INTENT_RE = /\b(tests?|scenarios?|specs?|automate|automation|coverage|cover)\b/i;
+
+// A new user message ends any stuck-loop episode: a loop is Claude retrying on its own within one
+// turn, and the user replying is itself the check. Name must match stateFile() in advisor-nudge.js.
+function resetAdvisorNudge(sessionId) {
+  try {
+    fs.unlinkSync(path.join(__dirname, '..', '.state', `advisor-nudge-${sessionId || 'default'}.json`));
+  } catch {}
+}
 
 function findPlan(cwd, prompt, jiraTicket) {
   // 1. Explicit references with a recognised document extension
@@ -475,7 +515,7 @@ function findPlan(cwd, prompt, jiraTicket) {
 
 function resolveDocPath(cwd, ref) {
   const resolved = path.isAbsolute(ref) ? ref : path.join(cwd, ref);
-  if (fs.existsSync(resolved)) {
+  if (fs.existsSync(resolved) && isInDocDir(cwd, resolved)) {
     return { found: true, isPlan: isInPlansDir(cwd, resolved), docPath: resolved };
   }
   // Also check directly inside .claude/plans/
@@ -484,6 +524,11 @@ function resolveDocPath(cwd, ref) {
     return { found: true, isPlan: true, docPath: inPlans };
   }
   return null;
+}
+
+function isInDocDir(cwd, filePath) {
+  const rel = path.relative(cwd, filePath).split(path.sep).join('/').toLowerCase();
+  return DOC_DIRS.some(d => rel.startsWith(d.toLowerCase() + '/'));
 }
 
 function isInPlansDir(cwd, filePath) {

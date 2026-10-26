@@ -392,15 +392,15 @@ Every Task dispatch must include this structured block — populate every field:
 
 ### Codebase State (read by orchestrator)
 - Existing page objects in src/pages/{area}/: [list filenames]  (n/a for api area)
-- Relevant fixtures in base-test.ts: [list fixture names]  (n/a for api area — fixtures in src/api/ApiTest.ts)
+- Relevant fixtures in base-test.ts: [list fixture names]  (n/a for api area — fixtures in src/api/ApiTest.ts and tests/api/gra-test.ts)
 - Relevant data modules in src/data/: [list filenames]
 - Spec files to work on: [list paths or "new files to be created"]
 
 ### API Test Area Notes (populate when Test Area = api)
-- Fixtures defined in: src/api/ApiTest.ts (apiTest extends Playwright base)
-- Import in test files: `import { apiTest as test, expect } from '../../src/api/ApiTest'`
+- Fixtures defined in: src/api/ApiTest.ts (apiTest extends Playwright base); tests/api/gra-test.ts (graTest extends apiTest with the per-brand site/siteState fixtures)
+- Import in test files: GRA specs (`gra-*.spec.ts`, `security-posture.spec.ts`) use `import { graTest as test, expect, softExpect } from './gra-test'`; other API specs use `import { apiTest as test, expect } from '../../src/api/ApiTest'`
 - Services: src/api/services/{service-name}/ (models live alongside service)
-- Serial mode required: `test.describe.configure({ mode: 'serial' })` at top of every spec
+- Execution mode: default — do NOT add `test.describe.configure({ mode: 'serial' })` (`fullyParallel: false` already keeps file order; serial only adds cascade-skips). Setup later tests depend on goes in `beforeAll`
 - REST assertions: use apiClientExt.*WithWrapper() → ApiResponseWrapper chain
 - GQL assertions: use graphqlClient.queryWrapped/mutateWrapped → GraphQLResponseWrapper chain
 - Always call assertNoErrors() first on happy-path GraphQL tests
@@ -415,7 +415,7 @@ Every Task dispatch must include this structured block — populate every field:
 ### Constraints
 - Composition-based POM (8 helper classes, no direct page.* calls) — UI tests only
 - UI imports: from @config/base-test, never @playwright/test
-- API imports: from ../../src/api/ApiTest, never @config/base-test
+- API imports: ./gra-test (GRA specs) or ../../src/api/ApiTest (other API specs), never @config/base-test
 - Path aliases: @pages/*, @tests/*, @utils/*, @config/*, @data/*
 - No hardcoded data in spec files — all data in src/data/
 - No magic timeout numbers — use TIMEOUTS.* constants

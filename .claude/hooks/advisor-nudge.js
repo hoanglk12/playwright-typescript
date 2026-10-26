@@ -5,11 +5,15 @@ const path = require('path');
 // Tunable constants
 const THRESHOLD = 3;                  // repetitions of the same signature before nudging
 const TIME_FLOOR_MS = 90 * 1000;     // 90s floor — suppresses fast intentional TDD re-runs
-const EXPIRY_MS = 10 * 60 * 1000;   // 10 min — self-heal if advisor tool call doesn't reset state
+const EXPIRY_MS = 10 * 60 * 1000;   // 10 min — ends a nudged episode; see the advisor branch below
+const BATCH_WINDOW_MS = 30 * 1000;  // repeats this close to the last counted one are one batched change, not a retry
+                                    // (slow PostToolUse hooks between batched edits can stretch a batch past 10s)
+const STALE_GAP_MS = 10 * 60 * 1000; // a signature idle this long starts counting from zero
 
 const STATE_DIR = path.join(__dirname, '..', '.state');
 const TEST_RUN_RE = /npm (run )?test|npx playwright test/i;
 
+// user-prompt-submit.js deletes this file on every real user message (resetAdvisorNudge)
 function stateFile(sessionId) {
   return path.join(STATE_DIR, `advisor-nudge-${sessionId}.json`);
 }
@@ -18,7 +22,7 @@ function loadState(sessionId) {
   try {
     return JSON.parse(fs.readFileSync(stateFile(sessionId), 'utf8'));
   } catch {
-    return { signatures: {}, firstSignalTs: null, notified: false, notifiedAt: null };
+    return { signatures: {}, notified: false, notifiedAt: null };
   }
 }
 
@@ -46,7 +50,8 @@ process.stdin.on('end', () => {
   const toolName = input.tool_name || '';
   const toolInput = input.tool_input || {};
 
-  // Reset counter whenever Claude consults the advisor
+  // advisor currently runs server-side (server_tool_use), so it never reaches PostToolUse and this
+  // branch doesn't fire — EXPIRY_MS is what actually ends an episode. Kept for a client-side advisor.
   if (toolName === 'advisor') {
     clearState(sessionId);
     process.exit(0);
@@ -85,12 +90,23 @@ process.stdin.on('end', () => {
     process.exit(0);
   }
 
-  // Increment count and record first-signal timestamp
-  state.signatures[signature] = (state.signatures[signature] || 0) + 1;
-  if (!state.firstSignalTs) state.firstSignalTs = now;
+  // Timing is per signature so an earlier, unrelated file's edits can't satisfy the time floor.
+  const prev = state.signatures[signature];
+  // The batch window runs from the last *counted* call, so a steady stream of calls under 30s
+  // apart still counts once per window instead of never.
+  const entry =
+    prev && typeof prev.countedTs === 'number' && now - prev.lastTs <= STALE_GAP_MS
+      ? prev
+      : { count: 0, firstTs: now, countedTs: 0, lastTs: 0 };
+  if (now - entry.countedTs > BATCH_WINDOW_MS) {
+    entry.count++;
+    entry.countedTs = now;
+  }
+  entry.lastTs = now;
+  state.signatures[signature] = entry;
 
-  const count = state.signatures[signature];
-  const elapsed = now - state.firstSignalTs;
+  const count = entry.count;
+  const elapsed = now - entry.firstTs;
 
   if (count >= THRESHOLD && elapsed >= TIME_FLOOR_MS) {
     state.notified = true;
@@ -112,7 +128,7 @@ process.stdin.on('end', () => {
           `**STOP. Call the \`advisor()\` tool before any further edits, test runs, or diagnostic scripts.** ` +
           `It forwards your full conversation history to a stronger reviewer and will identify the root cause ` +
           `faster than another iteration cycle.\n\n` +
-          `After calling advisor(), the counter resets automatically.`,
+          `This nudge stays silent for the next 10 minutes.`,
       },
     });
   } else {

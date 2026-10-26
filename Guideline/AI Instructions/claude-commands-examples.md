@@ -8,14 +8,14 @@ Usage: Type `/command-name [arguments]` in the Claude Code prompt
 
 ## Scaffolding Commands
 
-These commands create files with all the correct boilerplate pre-wired — imports, serial mode, logger setup, data module structure, and fixture registration.
+These commands create files with all the correct boilerplate pre-wired — imports, logger setup, data module structure, and fixture registration.
 
 ---
 
 ### `/new-api-test`
 
 Scaffold a new REST or GraphQL API test file under `tests/api/`.  
-Encodes: correct `apiTest as test` import, `test.describe.configure({ mode: 'serial' })`, response chain assertions, `assertNoErrors()` first on GraphQL.
+Encodes: correct `apiTest as test` import, default execution mode (no `test.describe.configure({ mode: 'serial' })`), response chain assertions, `assertNoErrors()` first on GraphQL.
 
 **Examples:**
 

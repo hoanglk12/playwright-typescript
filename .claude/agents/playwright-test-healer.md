@@ -28,7 +28,7 @@ You do not have the `Skill` tool. Instead, `Read` the relevant file(s) directly 
 - Console/JS errors → `debugging/console-errors.md`
 - Network/error-state failures → `debugging/error-testing.md`, `advanced/network-advanced.md`
 
-This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI) / `../../src/api/ApiTest` (API).
+This project's own framework conventions (below) always take precedence if they conflict with the generic guidance in these reference files. In particular: ignore the `@playwright/test` import shown in these examples; always use `@config/base-test` (UI), `./gra-test` (GRA API specs: `gra-*.spec.ts`, `security-posture.spec.ts`) or `../../src/api/ApiTest` (other API specs).
 
 ---
 

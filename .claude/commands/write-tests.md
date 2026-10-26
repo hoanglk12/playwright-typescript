@@ -12,12 +12,12 @@ Use **WORKFLOW-1** (automation-test-architect → qa-code-reviewer).
 
 Before dispatching the architect, read:
 1. `src/config/base-test.ts` — existing UI fixtures
-2. `src/api/ApiTest.ts` — existing API fixtures
+2. `src/api/ApiTest.ts` and `tests/api/gra-test.ts` — existing API fixtures (GRA specs get `site`/`siteState` from `graTest`)
 3. `src/pages/` — existing page objects (do not recreate what exists)
 4. `src/data/` — existing data modules (reuse if relevant)
 
 Determine from the requirement whether this is:
-- An **API test** → `tests/api/`, uses `apiTest as test` from `../../src/api/ApiTest`
+- An **API test** → `tests/api/`, uses `graTest as test` from `./gra-test` for a GRA spec, otherwise `apiTest as test` from `../../src/api/ApiTest`
 - A **UI test** → `tests/{frontsite|admin|ecommerce}/`, uses `test` from `@config/base-test`
 
 Include in the architect handoff:

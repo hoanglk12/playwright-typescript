@@ -354,13 +354,7 @@ import { apiTest as test, expect } from '../../src/api/ApiTest';
 import { graTest as test, expect, softExpect } from './gra-test';
 ```
 
-- [ ] **[CRITICAL]** `test.describe.configure({ mode: 'serial' })` is declared at the top of every **non-GRA** API spec file (outside all `test.describe` blocks) — e.g. `restful-booker.spec.ts`, `objects-crud.spec.ts`
-
-```ts
-// CRITICAL — missing serial declaration causes parallel execution and rate-limit failures
-test.describe.configure({ mode: 'serial' });  // required
-test.describe('My API Tests', () => { ... });
-```
+- [ ] **[WARNING]** A new or changed API spec does **not** add `test.describe.configure({ mode: 'serial' })` — `fullyParallel: false` in `api.config.ts` already runs each file's tests in order, so serial mode only adds cascade-skips. Setup that later tests depend on belongs in `beforeAll` (a replacement worker re-runs it after a failure, but not earlier tests). The legacy `restful-booker.spec.ts` / `objects-crud.spec.ts` declarations are not findings.
 
 - [ ] **[CRITICAL]** `gra-*.spec.ts` files do **NOT** add `test.describe.configure({ mode: 'serial' })` — GRA specs use default mode; `fullyParallel: false` in `api.config.ts` already guarantees sequential execution within a file, and serial mode cascades skips on failure, hiding test signal (see `tests/api/CLAUDE.md`)
 

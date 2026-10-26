@@ -254,7 +254,15 @@ static generateCustomerData() { return { customerName: 'Test' }; }
 
 ### Import — Critical Difference from UI Tests
 
-API tests use a separate base test — **never import from `@config/base-test` in API test files**:
+API tests use a separate base test — **never import from `@config/base-test` in API test files**.
+
+**GRA specs** — every `gra-*.spec.ts`, plus any spec that runs once per GRA brand+region such as `security-posture.spec.ts` — import `graTest` from `tests/api/gra-test.ts`. It extends `apiTest` with the per-brand `site` (`SiteContext`) and `siteState` (`TestState`) fixtures:
+
+```ts
+import { graTest as test, expect, softExpect } from './gra-test';
+```
+
+**All other API specs** (dummyjson, `restful-booker`, `objects-crud`) import `apiTest` directly:
 
 ```ts
 import { apiTest as test, expect, softExpect } from '../../src/api/ApiTest';
@@ -266,7 +274,7 @@ import { createTestLogger } from '../../src/utils/test-logger';
 
 GRA spec files (`gra-*.spec.ts`) use **default mode** — do NOT add `test.describe.configure({ mode: 'serial' })`. Sequential execution is guaranteed by `fullyParallel: false` in `api.config.ts`. Serial mode causes cascade-skips on failure which hides test signal.
 
-Non-GRA specs (`restful-booker.spec.ts`, `objects-crud.spec.ts`) may retain serial mode.
+Every other API spec uses default mode too (dummyjson, `security-posture`). Put setup that later tests depend on in `beforeAll`, not in an earlier test — after a failure Playwright's replacement worker re-runs `beforeAll` but not the tests that already ran. Only the legacy specs `restful-booker.spec.ts` and `objects-crud.spec.ts` still declare serial mode; leave them as they are and don't add it to new specs.
 
 ### Fixtures (defined in `src/api/ApiTest.ts`)
 
@@ -411,8 +419,6 @@ await graphqlClient.queryWrapped(
 import { apiTest as test, expect } from '../../src/api/ApiTest';
 import { MyApiData } from '../../src/data/my-api-data';
 import { createTestLogger } from '../../src/utils/test-logger';
-
-test.describe.configure({ mode: 'serial' });
 
 test.describe('Resource API @api @regression', () => {
   test('TC_01 - Should fetch resource by ID', async ({ apiClientExt }) => {
@@ -719,7 +725,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 - **A precondition check passes but the guarded step still fails.** The check is likely vacuously true (e.g., `isAddToCartEnabled()` on DM NZ is always `true` regardless of size selection). Do not continue iterating on the guarded step — call advisor to verify whether the precondition is a valid proxy.
 
-**The advisor counter resets automatically** after you call `advisor()`. The stuck-loop hook (`advisor-nudge.js`) is a backstop for general loops, not a replacement for this list.
+The stuck-loop hook (`advisor-nudge.js`) is a backstop for general loops, not a replacement for this list. It **cannot see `advisor()` calls** (advisor runs server-side, so it never reaches `PostToolUse`) — after it fires once it stays silent for 10 minutes rather than resetting on the call. Each new user message does reset it (`user-prompt-submit.js` deletes its state), since a stuck loop is Claude retrying on its own within one turn.
 
 ### 6. Comments — Route Through the Humanizer
 

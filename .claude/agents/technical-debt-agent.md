@@ -179,7 +179,7 @@ grep -rn "from '@config/base-test'\|from '.*base-test'" \
   --include="*.ts" tests/api/ 2>/dev/null
 ```
 
-Each match is **Critical** — API tests must import from `../../src/api/ApiTest`.
+Each match is **Critical** — API tests must import `graTest` from `./gra-test` (GRA specs: `gra-*.spec.ts`, `security-posture.spec.ts`) or `apiTest` from `../../src/api/ApiTest` (other API specs).
 
 #### 4c. @constants alias used (alias does not exist)
 
@@ -286,20 +286,15 @@ Any unawaited async helper call is a **Warning**.
 
 ### Step 7 — API Test Pattern Violations
 
-#### 7a. Missing serial mode declaration
+#### 7a. Serial mode declared on a GRA spec
 
 ```bash
-for f in tests/api/*.spec.ts; do
-  grep -L "test\.describe\.configure.*mode.*serial" "$f" 2>/dev/null
-done
+grep -l "mode: *'serial'" tests/api/gra-*.spec.ts 2>/dev/null
 ```
 
-Or equivalently:
-```bash
-grep -rL "test\.describe\.configure" --include="*.spec.ts" tests/api/ 2>/dev/null
-```
+Each `gra-*.spec.ts` that declares `test.describe.configure({ mode: 'serial' })` is **Critical** — one failing test would skip every later test in the file (see CLAUDE.md § API Tests → Execution Mode).
 
-Each API spec file missing `test.describe.configure({ mode: 'serial' })` is **Critical**.
+A spec **without** serial mode is never a finding: `fullyParallel: false` in `api.config.ts` already runs each file's tests in order. The legacy `restful-booker.spec.ts` / `objects-crud.spec.ts` declarations are not findings either.
 
 #### 7b. Missing assertNoErrors() on GraphQL happy path
 
