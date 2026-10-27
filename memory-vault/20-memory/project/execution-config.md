@@ -39,14 +39,21 @@ No manual flag needed when running in GitHub Actions. `forbidOnly: !!process.env
 ## Firefox Ecommerce Skipped in CI
 
 ```ts
-// playwright.config.ts — Firefox project
+// playwright.config.ts — Firefox project (CI branch)
 {
   name: 'firefox',
-  testIgnore: ['**/ecommerce/smoke/**'],  // CI only
+  testIgnore: ['**/api/**', '**/tests/manual/**', '**/ecommerce/smoke/**',
+    '**/ecommerce/regression/**', '**/ecommerce/integration/**', '**/ecommerce/accessibility/**'],
 }
 ```
 
-Ecommerce smoke tests run **Chromium-only in CI**. Firefox is excluded to avoid SPA service-worker teardown flakiness. Firefox smoke tests only run locally where the about:blank workaround in fixtures is more reliable.
+All ecommerce UI dirs (smoke, regression, integration, accessibility) run **Chromium-only in CI**. Firefox is excluded to avoid SPA service-worker teardown flakiness.
+
+**When verifying any new/changed ecommerce spec, run `--project=chromium` only — do not run Firefox.** The user confirmed Firefox is ignored for ecommerce (2026-10-27, GRA-3403 wishlist spec): local Firefox runs fail on shared navigation (`page.goto: NS_BINDING_ABORTED`, PLP `waitForURL` timeouts) before any spec-specific code, and those failures are pre-existing and out of scope.
+
+## Headed Runs — Use `--workers=2`
+
+For `--headed` ecommerce runs, pass `--workers=2` (user-confirmed approach, 2026-10-27). With `NODE_ENV=testing`, `TIMEOUTS.PAGE_LOAD` is 15s, and running 8 headed Chromium windows at once caused CPU/GPU contention that pushed a Vans NZ PDP h1 past 15s (the page itself was fine). With 2 workers: 8/8 passed in 1.5m, and each test took 17–28s instead of 39–55s. Do not raise `PAGE_LOAD` or `waitForPdpLoad()` timeouts for this — the 15s local value is a deliberate fast-fail, and CI already uses 60s.
 
 ## API Suite Setup Timeout Gotcha
 
