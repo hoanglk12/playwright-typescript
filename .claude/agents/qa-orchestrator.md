@@ -13,7 +13,7 @@ description: >
   is self-contained ("just fix test X" → use playwright-test-healer directly;
   "just review this file" → use qa-code-reviewer directly).
 tools: Glob, Grep, Read, LS, Task, mcp__lightrag__check_lightrag_health, mcp__lightrag__query_document
-model: sonnet
+model: opus
 color: khaki
 ---
 
