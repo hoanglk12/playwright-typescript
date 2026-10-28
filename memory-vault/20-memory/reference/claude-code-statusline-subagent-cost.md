@@ -6,7 +6,7 @@ tags: [memory, reference]
 last_verified: 2026-10-28
 ---
 
-Set up 2026-10-28 in user-global config, outside the repo. `~/.claude/statusline-command.js` is wired to both `statusLine` (with `refreshInterval: 10`) and `subagentStatusLine` in `~/.claude/settings.json`. If stdin has a `tasks` array, the script renders subagent rows. Otherwise it renders the main line. Backups: `*.bak-20261028-133840` next to each file.
+Set up 2026-10-28 in user-global config, outside the repo. `~/.claude/statusline-command.js` is wired to both `statusLine` (with `refreshInterval: 10`) and `subagentStatusLine` in `~/.claude/settings.json`. If stdin has a `tasks` array, the script renders subagent rows. Otherwise it renders the main line, plus a second row with session-wide token totals (main + subagents + advisor) summed from the transcripts, because stdin only carries the current context size. Backups: `*.bak-20261028-133840` next to each file.
 
 Verified on Claude Code 2.1.312:
 
@@ -41,7 +41,7 @@ Testing gotcha: piping JSON from Windows PowerShell 5.1 into `node` mangles stdi
 
 3. Restart Claude Code, or wait for the next status refresh. Spawn any subagent to see a row.
 
-Script as of 2026-10-28 (316 lines). The live copy in `~/.claude/` wins if they differ:
+Script as of 2026-10-28 (356 lines). The live copy in `~/.claude/` wins if they differ:
 
 ```js
 #!/usr/bin/env node
@@ -113,14 +113,16 @@ function renderMainLine(input) {
   const usedPct = input.context_window && input.context_window.used_percentage;
   if (usedPct != null) ctxDisplay = `${Math.round(100 - usedPct)}% ctx`;
 
+  let usage = { main: null, agents: { count: 0 } };
+  try { usage = sessionUsage(input); } catch (_) {}
+  const { agents } = usage;
+
   // total_cost_usd already includes subagent spend (verified against transcripts), so the
   // agent figure is a breakdown of the session total, not an addition to it.
   let costDisplay = '';
   const total = input.cost && input.cost.total_cost_usd;
   if (total) {
     costDisplay = `${BLUE}${fmtCost(total)} session${RESET}`;
-    let agents = { count: 0 };
-    try { agents = sessionSubagentCost(input); } catch (_) {}
     if (agents.count) {
       // "+" marks a lower bound: at least one agent ran on a model missing from PRICES.
       const share = agents.cost ? ` ~${fmtCost(agents.cost)}${agents.priced ? '' : '+'}` : '';
@@ -136,25 +138,50 @@ function renderMainLine(input) {
   if (costDisplay) parts.push(costDisplay);
 
   const sep = `${DIM} | ${RESET}`;
-  process.stdout.write(parts.join(sep) + '\n');
+  const tokenLine = sessionTokenLine(usage);
+  process.stdout.write(parts.join(sep) + '\n' + (tokenLine ? tokenLine + '\n' : ''));
 }
 
-function sessionSubagentCost(input) {
-  const result = { count: 0, cost: 0, priced: true };
-  const dir = subagentDir(input);
-  if (!dir) return result;
-  let files = [];
-  try { files = fs.readdirSync(dir).filter(f => f.endsWith('.jsonl')); } catch (_) { return result; }
-
+// The stdin JSON only carries the current context size, so cumulative tokens come from the
+// transcripts. They include advisor calls but not Claude Code's own background requests, so
+// totals can run slightly under /usage.
+function sessionUsage(input) {
   const cache = loadCache('main');
+  const main = input.transcript_path ? transcriptStats(cache, input.transcript_path) : null;
+  const agents = { count: 0, cost: 0, priced: true, tokens: [0, 0, 0, 0] };
+  let files = [];
+  try { files = fs.readdirSync(subagentDir(input)).filter(f => f.endsWith('.jsonl')); } catch (_) {}
   for (const f of files) {
-    const stats = transcriptStats(cache, path.join(dir, f));
-    result.count++;
-    if (stats.unpriced) result.priced = false;
-    result.cost += stats.cost;
+    const stats = transcriptStats(cache, path.join(subagentDir(input), f));
+    agents.count++;
+    if (stats.unpriced) agents.priced = false;
+    agents.cost += stats.cost;
+    stats.tokens.forEach((n, i) => (agents.tokens[i] += n));
   }
   saveCache('main', cache);
-  return result;
+  return { main, agents };
+}
+
+function sessionTokenLine({ main, agents }) {
+  const totals = [0, 0, 0, 0];
+  for (const src of [main && main.tokens, agents.tokens]) {
+    if (src) src.forEach((n, i) => (totals[i] += n));
+  }
+  const sum = totals.reduce((a, n) => a + n, 0);
+  if (!sum) return '';
+
+  const [input, output, read, write] = totals;
+  const field = (label, n) => `${DIM}${label} ${RESET}${fmtTokens(n)}`;
+  const parts = [
+    `${YELLOW}${BOLD}Σ ${fmtTokens(sum)} tokens${RESET}`,
+    field('in', input),
+    field('out', output),
+    field('cache read', read),
+    field('cache write', write),
+  ];
+  const agentSum = agents.tokens ? agents.tokens.reduce((a, n) => a + n, 0) : 0;
+  if (agentSum) parts.push(field('agents', agentSum));
+  return parts.join(`${DIM} · ${RESET}`);
 }
 
 // --- Subagent rows (subagentStatusLine) ---
@@ -249,12 +276,18 @@ function ingestLine(entry, line) {
   if (!msg || !msg.usage || !msg.id) return;
 
   let cost = priceUsage(msg.model, msg.usage);
+  const tokens = tokenCounts(msg.usage);
   // Advisor calls bill on their own model and only show up under usage.iterations.
   for (const it of msg.usage.iterations || []) {
-    if (it.type === 'advisor_message') cost += priceUsage(it.model, it);
+    if (it.type !== 'advisor_message') continue;
+    cost += priceUsage(it.model, it);
+    tokenCounts(it).forEach((n, i) => (tokens[i] += n));
   }
-  if (Number.isNaN(cost)) entry.unpriced = true;
-  else entry.msgs[msg.id] = cost;
+  if (Number.isNaN(cost)) {
+    entry.unpriced = true;
+    cost = 0;
+  }
+  entry.msgs[msg.id] = [cost, ...tokens];
 
   if (normalizeModel(msg.model)) entry.model = msg.model;
   if (o.gitBranch) entry.branch = o.gitBranch;
@@ -262,9 +295,15 @@ function ingestLine(entry, line) {
 }
 
 function summarize(entry) {
-  let cost = 0;
-  for (const c of Object.values(entry.msgs)) cost += c;
-  return { cost, unpriced: entry.unpriced, model: entry.model, branch: entry.branch, lastTs: entry.lastTs };
+  const totals = [0, 0, 0, 0, 0];
+  for (const m of Object.values(entry.msgs)) m.forEach((n, i) => (totals[i] += n));
+  const [cost, ...tokens] = totals;
+  return { cost, tokens, unpriced: entry.unpriced, model: entry.model, branch: entry.branch, lastTs: entry.lastTs };
+}
+
+// [input, output, cache read, cache write]
+function tokenCounts(u) {
+  return [u.input_tokens || 0, u.output_tokens || 0, u.cache_read_input_tokens || 0, u.cache_creation_input_tokens || 0];
 }
 
 function priceUsage(model, u) {
@@ -297,8 +336,9 @@ function shortModel(model) {
 }
 
 // --- Cache (one file per mode so main and subagent runs never race on the same file) ---
+// Versioned name: v1 caches stored a bare cost per message and would break summarize().
 function cachePath(mode) {
-  return path.join(os.tmpdir(), `claude-statusline-${mode}.json`);
+  return path.join(os.tmpdir(), `claude-statusline-v2-${mode}.json`);
 }
 
 function loadCache(mode) {
