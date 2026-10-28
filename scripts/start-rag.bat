@@ -19,8 +19,9 @@ REM --- lightrag-server >=1.5.3 prints a Unicode banner that crashes on the
 REM     default Windows console codepage (cp1252) unless forced to UTF-8 ---
 set PYTHONIOENCODING=utf-8
 
+REM --- Wrapper masks the LLM/embedding endpoint hostnames in console + lightrag.log ---
 call .lightrag-venv\Scripts\activate
-lightrag-server ^
+python scripts\lightrag-server-masked.py ^
     --host 127.0.0.1 ^
     --port 9621 ^
     --working-dir .lightrag ^

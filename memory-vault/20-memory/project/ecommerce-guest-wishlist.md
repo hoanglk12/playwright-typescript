@@ -3,7 +3,7 @@ name: ecommerce-guest-wishlist
 description: Guest wishlist flow on all 8 GRA storefronts — PDP add button, session guest wishlist, header badge gate, wishlist card DOM quirks (GRA-3403 / E2E-WISH-001)
 type: project
 tags: [memory, project, ecommerce, wishlist]
-last_verified: 2026-10-28
+last_verified: 2026-10-29
 ---
 
 **Status (2026-10-27):** the spec and its page-object methods (`addToWishlist()`, `getHeaderWishlistCount()`, item/header/footer helpers) were built, passed 8/8 on Chromium (headless, and headed with `--workers=2`), then **removed from the repo at the user's request** — this note is kept for a demo. Re-implement from the facts below; the methods do not currently exist.
@@ -22,5 +22,5 @@ Guests CAN add to wishlist on all 8 GRA staging storefronts (confirmed live 2026
 - **Exit-intent survey popup** `#surveyPopup` (`popup-container`, fixed, z-index 99, "Why did you decide to leave today?") intercepted the wishlist click. Close via `#closeBtn` (`aria-label="Close popup"`). Scope the close locator to `#surveyPopup`, because Vans' Bloomreach `#popup-close` has the same aria-label.
 - Top-nav links are probably collapsed on mobile, so reach a PDP through `{site.url}search?q={searchTerm}` (product `.html` links render at 390px), not `navigateToPlp()`.
 - Xray steps for GRA tickets are in a cross-origin iframe: `get_page_text`/`read_page` return nothing, so scroll to "Test details" and screenshot it instead.
-
+- **GRA-3214 Xray content (read 2026-10-29, Manual, no preconditions, Jira description empty):** one step. Action "1. Visit PDP 2. Click Add to Wishlist CTA", Data "Mobile + Desktop", Expected "Product is added to Wishlist". No need to re-open Jira for it.
 Related: [[ecommerce-pdp-page-gotchas]], [[execution-config]], [[fixture-registry]]
