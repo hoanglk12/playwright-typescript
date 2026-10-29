@@ -3,8 +3,10 @@ name: gra-card-checkout-placeorder-blocker
 description: "E2E-PLAORD-003 blocked — Platypus AU staging server rejects placeOrder after successful Braintree tokenization; full recon findings for a future build"
 type: project
 tags: [memory, project, ecommerce, checkout, payment, blocker]
-last_verified: 2026-09-12
+last_verified: 2026-10-29
 ---
+
+> **Root cause confirmed 2026-10-29. See [[gra-card-checkout-forter-decline-rca]].** The `Unable to place order: We are sorry, but we could not process your order at this time.` rejection is a **Forter pre-authorization fraud decline** (`PaymentPlaceStart.php:304` → `Decline::handlePreTransactionDescision()`, logged in staging `system.log`). The hypothesis below that "the UI never calls `setPaymentMethodOnCart`" is **refuted**: CI run #355 traces show the UI sends `setPaymentMethodOnCart` with `code: "braintree"` before `placeOrder`. Sections below are kept for history; the recon facts about Hosted Fields and sandbox still hold.
 
 E2E-PLAORD-003 (Place order via Credit Card, guest user) recon and build completed 2026-09-12. **Spec built for all 8 storefronts at `tests/ecommerce/regression/creditcard-checkout.spec.ts`; the card-checkout defect is an intermittent app-side race, not a test-code problem.** All recon below is confirmed live against Platypus AU staging (`stag-platypus-au.accentgra.com`).
 
@@ -111,13 +113,13 @@ Checked 2026-09-12 against `api-results/results.json` (run dated 2026-08-15, so 
 
 **This includes `pla-au` — the exact brand and staging environment where the UI flow fails.** Card payment rails, Braintree merchant config, and `placeOrder` all work server-side on Platypus AU. The UI failure is therefore not a backend defect.
 
-**Strongly implicated root cause:** the UI never calls `setPaymentMethodOnCart`, so `placeOrder` runs against a cart with no payment method. `tests/api/gra-place-order.spec.ts` **TC_03 — "placeOrder without payment method → error returned"** independently proves that exact sequence returns a GraphQL error, which matches the observed UI symptom. TC_03 asserts only that an error message is non-empty, not its exact text, so the message match is not byte-confirmed — but the structural fit is exact.
+**REFUTED 2026-10-29 (see [[gra-card-checkout-forter-decline-rca]]):** the UI does call `setPaymentMethodOnCart` (`selected_payment_method.code = "braintree"`) ~3 s before `placeOrder`; the rejection is Forter's pre-auth decline. Original text follows. **Strongly implicated root cause:** the UI never calls `setPaymentMethodOnCart`, so `placeOrder` runs against a cart with no payment method. `tests/api/gra-place-order.spec.ts` **TC_03 — "placeOrder without payment method → error returned"** independently proves that exact sequence returns a GraphQL error, which matches the observed UI symptom. TC_03 asserts only that an error message is non-empty, not its exact text, so the message match is not byte-confirmed — but the structural fit is exact.
 
 This relocates the defect from "server rejects orders" to "the checkout UI fails to set the payment method after tokenization." The first all-8 UI run (table above) confirmed the rejection on 4 further brands — Platypus NZ, Skechers NZ, Vans AU, Dr. Martens AU — so it is platform-wide, not Platypus-AU-specific. The 3 remaining brands never reached the payment step (add-to-cart preconditions), so their card-checkout state is still unobserved.
 
 ## Open sub-questions
 
-- **`setPaymentMethodOnCart` was never captured** by a sniffer running from before the card radio was selected. Either a different operation name, batched into the `placeOrder` request, or genuinely never fired as a separate call. Now the leading root-cause candidate, corroborated by TC_01/TC_03 above.
+- ~~**`setPaymentMethodOnCart` was never captured**~~ **Closed 2026-10-29:** it is a separate POST captured in the CI trace (response root `setPaymentMethodOnCart`; server transaction name `setSelectedPaymentMethod`). The recon sniffer likely missed it because Playwright traces and request sniffers don't record POST bodies; identify mutations by the response `data` root key instead.
 - **Framebus channel id** (`d82b3700-...`, `69f328e8-...`) is per-session, same shape as the iframe `src` fragment. Must never be hard-coded.
 - `localStorage.M2_VENIA_BROWSER_PERSISTENCE__cartId` confirms standard Magento PWA Studio (Venia) storage — useful for reading cart state via GraphQL directly.
 
