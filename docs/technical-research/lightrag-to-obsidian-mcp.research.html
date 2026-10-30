@@ -496,11 +496,12 @@
     <h1>Replacing LightRAG<br>with an Obsidian MCP server</h1>
     <p>Can this repo drop LightRAG and use an Obsidian MCP server as its memory layer, along with every script, hook, agent and doc that depends on it? Mostly yes, but an MCP server only covers the agents. The recall hook that runs on every prompt can't call an MCP server, so it needs its own fix, and that fix carries most of the value.</p>
     <div class="meta-row">
-      <div class="meta-pill">Status <span>awaiting approval</span></div>
-      <div class="meta-pill">Recommended <span>Option A</span></div>
+      <div class="meta-pill">Status <span>Phase 0 passed on one machine</span></div>
+      <div class="meta-pill">Chosen <span>Option A</span></div>
       <div class="meta-pill">Recall <span>in-process BM25F</span></div>
       <div class="meta-pill">MCP <span>@bitbonsai/mcpvault 0.17.1</span></div>
       <div class="meta-pill">Researched <span>2026-10-29</span></div>
+      <div class="meta-pill">Updated <span>2026-10-30</span></div>
     </div>
   </div>
 
@@ -523,7 +524,7 @@
     <div class="card accent-green">
       <div class="card-figure">None</div>
       <h4>Data only in LightRAG</h4>
-      <p>All 64 indexed docs are vault notes</p>
+      <p>67 notes plus 1 deleted note still in git (section 11)</p>
     </div>
   </div>
 
@@ -551,7 +552,20 @@
       <ul>
         <li>No repo file changed because of this research. The only working-tree changes during the run were <code>Guideline/E2E_DISCOVERY_REPORT.md</code> and an untracked merge copy of it. Both were still changing after the agent finished and came from other work.</li>
         <li>Commits <code>98fba87</code> and <code>d9cca51</code> were pulled in during the session. They added the three notes the agent found missing from the LightRAG index. <code>main</code> stayed level with <code>origin/main</code>.</li>
-        <li>The agent's attempt to launch both MCP servers was blocked by the permission checker. The main session didn't run it on the agent's behalf. It is Phase 0 step 4 and needs your approval.</li>
+        <li>The agent's attempt to launch both MCP servers was blocked by the permission checker. The main session didn't run it on the agent's behalf. It is Phase 0 step 4 and needs your approval. It was approved and run on 2026-10-30 (section 11).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <div class="icon"></div>
+    <div>
+      <div class="callout-title">Updated by the main session (2026-10-30)</div>
+      <ul>
+        <li>All eight open questions are answered. Section 11 lists each answer and what it changes.</li>
+        <li>Phase 0 ran on the <code>Lincoln.Pham</code> machine and passed. The billed LightRAG eval was declined and skipped. The other machine still needs its Phase 0 checks.</li>
+        <li>The sections that depended on those answers are updated to match. The main changes: obsidian-mcp is no longer the fallback, the same-set comparison with LightRAG is gone from Phase 1 and from the section 8 gate, and archived notes go to <code>memory-vault/90-archive/lightrag/</code>.</li>
+        <li>No repo file other than this report changed. The Phase 0 servers ran against a scratchpad copy of the vault, and the temporary <code>cwd-probe</code> server was removed from <code>~/.claude.json</code> afterwards.</li>
       </ul>
     </div>
   </div>
@@ -569,7 +583,7 @@
       <a href="#s8">8. Validation</a>
       <a href="#s9">9. Risks</a>
       <a href="#s10">10. Follow-up questions</a>
-      <a href="#s11">11. Open questions</a>
+      <a href="#s11">11. Decisions and Phase 0 results</a>
       <a href="#s12">12. Sources and files</a>
     </div>
   </div>
@@ -616,7 +630,7 @@
       <div class="card accent-purple">
         <span class="badge badge-purple">2 &middot; Agents</span>
         <h4>An optional read-only filesystem MCP server</h4>
-        <p>The pick is <code>@bitbonsai/mcpvault@0.17.1</code>, pinned in <code>package.json</code> and the lockfile and launched with <code>node</code>. The fallback is <code>obsidian-mcp@2.0.1</code>, which the GRA-vault project already uses but which takes more setup. Writes stay on the built-in Write and Edit tools so the vault hooks keep firing. Agents already have Grep, Read and Glob, and the vault's own <code>memory-vault/.claude/CLAUDE.md</code> says exact lookups don't need an MCP server. What the server adds is ranked search, frontmatter-only reads and a tag list, so skipping it (Option C) is a fair choice too.</p>
+        <p>The pick is <code>@bitbonsai/mcpvault@0.17.1</code>, pinned in <code>package.json</code> and the lockfile and launched with <code>node</code>. If it ever breaks, agents fall back to Grep and Read. <code>obsidian-mcp@2.0.1</code>, the original fallback, was ruled out on 2026-10-30 (section 11). Writes stay on the built-in Write and Edit tools so the vault hooks keep firing. Agents already have Grep, Read and Glob, and the vault's own <code>memory-vault/.claude/CLAUDE.md</code> says exact lookups don't need an MCP server. What the server adds is ranked search, frontmatter-only reads and a tag list, so skipping it (Option C) was a fair choice too. Option A, with the server, was chosen on 2026-10-30.</p>
       </div>
       <div class="card accent-green">
         <span class="badge badge-green">3 &middot; Sync</span>
@@ -626,17 +640,17 @@
       <div class="card accent-green">
         <span class="badge badge-green">4 &middot; Data</span>
         <h4>No data lives only in LightRAG</h4>
-        <p>All 64 indexed documents are vault notes. Three of the newest notes are missing from the live index even though the server was healthy and idle, which shows how easily sync falls behind.</p>
+        <p>On 2026-10-29 all 64 indexed documents were vault notes, and three of the newest notes were missing from the live index even though the server was healthy and idle, which shows how easily sync falls behind. On 2026-10-30 all 67 notes were indexed, plus one note that commit <code>2d0a940</code> deleted from the vault. LightRAG never drops deleted notes, and that one is still in git history.</p>
       </div>
       <div class="card accent-orange">
         <span class="badge badge-orange">5 &middot; Eval</span>
         <h4>Reuse the golden set, retire the old harness</h4>
-        <p>Reuse the golden-set code in a new eval and retire the 887-line LightRAG harness at decommission. Run one billed LightRAG eval in Phase 0, because no saved run covers the current question set.</p>
+        <p>Reuse the golden-set code in a new eval and retire the 887-line LightRAG harness at decommission. No billed LightRAG eval will run (section 11), so the cutover gate uses fixed thresholds and a week of live recall data instead of a same-set comparison.</p>
       </div>
       <div class="card accent-orange">
         <span class="badge badge-orange">6 &middot; Cutover</span>
         <h4>Run both systems side by side</h4>
-        <p>Cut over only once the eval scores match. Deleting <code>.lightrag/</code> and <code>.lightrag-venv/</code> is a separate final phase, done one machine at a time.</p>
+        <p>Cut over only once the section 8 gate passes. Deleting <code>.lightrag/</code> and <code>.lightrag-venv/</code> is a separate final phase, done one machine at a time.</p>
       </div>
     </div>
   </section>
@@ -716,14 +730,14 @@
     <div class="callout warn">
       <div class="icon"></div>
       <div>
-        <div class="callout-title">Each of these is a Phase 0 step</div>
+        <div class="callout-title">Each of these was a Phase 0 step (status on 2026-10-30)</div>
         <ol>
-          <li>Which working directory a project <code>.mcp.json</code> stdio server starts in. The docs don't say.</li>
-          <li>How mcpvault behaves on Windows: whether it takes a drive or relative path, and how <code>--read-only</code> and <code>--exclude</code> behave in practice. The agent's stdio probe of both servers was denied.</li>
-          <li>Whether obsidian-mcp v2 creates <code>.obsidian-mcp/</code> at startup or only on the first write.</li>
-          <li>Whether <code>permissions.deny</code> still applies under <code>bypassPermissions</code>. The evaluation order suggests it does, but the docs don't say so.</li>
-          <li>On the <code>Lincoln.Pham</code> machine: the Node version, and whether the repo path sits under OneDrive folder redirection or another reparse point. obsidian-mcp v2 rejects reparse points (its README, line 120).</li>
-          <li>Whether Obsidian Sync, enabled in <code>core-plugins.json</code>, is actually set up for this vault alongside git.</li>
+          <li>Which working directory a project <code>.mcp.json</code> stdio server starts in. The docs don't say. <span class="badge badge-green">Resolved</span>The repo root, with <code>CLAUDE_PROJECT_DIR</code> set to the same path.</li>
+          <li>How mcpvault behaves on Windows: whether it takes a drive or relative path, and how <code>--read-only</code> and <code>--exclude</code> behave in practice. The agent's stdio probe of both servers was denied. <span class="badge badge-green">Resolved</span>Relative and absolute paths both work, <code>--read-only</code> hides and rejects the write tools, and <code>--exclude __parsed__</code> keeps those copies out of search.</li>
+          <li>Whether obsidian-mcp v2 creates <code>.obsidian-mcp/</code> at startup or only on the first write. <span class="badge badge-green">Resolved</span>At startup, along with <code>.obsidian-mcp/locks</code>.</li>
+          <li>Whether <code>permissions.deny</code> still applies under <code>bypassPermissions</code>. The evaluation order suggests it does, but the docs don't say so. <span class="badge badge-purple">Not needed</span>It only mattered for obsidian-mcp's write tools, and obsidian-mcp is no longer the fallback.</li>
+          <li>On the <code>Lincoln.Pham</code> machine: the Node version, and whether the repo path sits under OneDrive folder redirection or another reparse point. obsidian-mcp v2 rejects reparse points (its README, line 120). <span class="badge badge-green">Resolved</span>Node 22.18.0, no reparse point, Documents not redirected. A OneDrive policy to move Documents is set but hasn't applied (section 9).</li>
+          <li>Whether Obsidian Sync, enabled in <code>core-plugins.json</code>, is actually set up for this vault alongside git. <span class="badge badge-yellow">Partly open</span>No sign of it on the <code>Lincoln.Pham</code> machine. The other machine hasn't been checked.</li>
         </ol>
       </div>
     </div>
@@ -775,9 +789,9 @@
     <p>If a semantic layer is wanted later, the lightest option is <code>smart-connections-mcp@2.0.1</code> (npm, 2026-08-22, Node 20 or later, three versions so far). It reuses embeddings built by the Smart Connections community plugin, so it needs the Obsidian app, the vault's first community plugin and a gitignored <code>.smart-env/</code>. Add it only if the eval shows paraphrase misses that matter.</p>
 
     <h3>Q3. Which MCP server</h3>
-    <p><strong><code>@bitbonsai/mcpvault@0.17.1</code></strong>, pinned exactly and run read-only, with <code>obsidian-mcp@2.0.1</code> as the fallback. Section 5.2 compares them in full.</p>
+    <p><strong><code>@bitbonsai/mcpvault@0.17.1</code></strong>, pinned exactly and run read-only, with <code>obsidian-mcp@2.0.1</code> as the fallback (ruled out on 2026-10-30, section 11). Section 5.2 compares them in full.</p>
     <p>mcpvault suits a read-only setup on two machines better. It has a server-level <code>--read-only</code> flag and <code>--exclude</code> for <code>__parsed__</code>. Its <code>search_notes</code> ranks results with BM25, and <code>get_frontmatter</code> and <code>list_all_tags</code> are cheap reads. It doesn't need <code>.obsidian/</code>, writes no journal into the vault and needs Node 20 or later (CI runs 22, per the <code>setup-node</code> lines in <code>.github/workflows/*.yml</code>).</p>
-    <p>Its risks: it is still 0.x and moves fast, from 0.8.2 to 0.17.1 in seven months. It was renamed without an announcement: <code>@mauricio.wolff/mcp-obsidian</code> stopped at 0.8.2 on 2026-03-08 while the same GitHub repo carried on as <code>@bitbonsai/mcpvault</code> (inferred from the repo's <code>package.json</code>). It installs 69 packages, and nobody has tested it on Windows yet.</p>
+    <p>Its risks: it is still 0.x and moves fast, from 0.8.2 to 0.17.1 in seven months. It was renamed without an announcement: <code>@mauricio.wolff/mcp-obsidian</code> stopped at 0.8.2 on 2026-03-08 while the same GitHub repo carried on as <code>@bitbonsai/mcpvault</code> (inferred from the repo's <code>package.json</code>). It installs 69 packages, and it hadn't been tested on Windows when this research ran. It has since passed Phase 0 on Windows (section 11).</p>
     <p>obsidian-mcp, the incumbent, installs 5 packages and has a stable 2.x. But it needs <code>.obsidian/</code> in the vault root (verified: <code>VAULT_NOT_INITIALIZED</code> on a copy without one) and an absolute <code>--vault id=&lt;abs&gt;</code> (<code>VAULT_PATH_NOT_ABSOLUTE</code>). It writes <code>.obsidian-mcp/{trash,transactions}</code> at the vault root (<code>src/constants.ts</code> <code>INTERNAL_DIRECTORY</code>, README lines 93-95), which <code>memory-vault/.gitignore</code> doesn't cover. It documents no read-only or exclude option, and it rejects reparse points. The GRA-vault project's unpinned <code>npx -y obsidian-mcp &lt;path&gt;</code> now resolves 2.0.1, which runs in the deprecated v1 mode with renamed tools (<code>search-vault</code> became <code>obsidian_search_vault</code>).</p>
     <div class="callout info">
       <div class="icon"></div>
@@ -790,6 +804,7 @@
     <h3>Q4. Two machines</h3>
     <p><code>.mcp.json</code> supports <code>${VAR:-default}</code>, but <code>${CLAUDE_PROJECT_DIR:-.}</code> in <code>args</code> just becomes <code>.</code> because the variable isn't in Claude Code's own environment. That's no better than a plain relative path. obsidian-mcp would need a launcher script or a separate entry on each machine, and a launcher's own path is relative to the working directory too. mcpvault takes a positional path that defaults to the working directory.</p>
     <p>The first choice is a committed <code>.mcp.json</code> with relative paths (<code>node</code>, <code>node_modules/@bitbonsai/mcpvault/dist/server.js</code>, <code>memory-vault/20-memory</code>), provided Phase 0 confirms the server starts in the repo root on both machines. The hooks already assume that root through <code>$CLAUDE_PROJECT_DIR</code>. Otherwise, add a local-scope entry on each machine with absolute paths (<code>claude mcp add --scope local ...</code>, nothing committed), which is how GRA-vault does it, and document it in <code>memory-vault/SETUP.md</code>. Either way, each machine adds the server to <code>enabledMcpjsonServers</code> in its gitignored <code>.claude/settings.local.json</code>, or approves the prompt once. With <code>node</code> as the command, <code>cmd /c</code> isn't needed.</p>
+    <p><strong>Decided 2026-10-30:</strong> commit <code>.mcp.json</code>, the same way the <code>lightrag</code> entry is kept today. Phase 0 confirmed that the server starts in the repo root on the <code>Lincoln.Pham</code> machine (section 11).</p>
 
     <h3>Q5. Sync</h3>
     <div class="table-wrap"><table>
@@ -804,19 +819,19 @@
     <p>The replacement is <code>scripts/check-vault.mjs</code>, run as a warn-only PostToolUse hook on vault <code>.md</code> writes and as <code>npm run vault:check</code>. It checks the required frontmatter (<code>name</code>, <code>description</code>, <code>type</code>, <code>tags</code>, <code>last_verified</code>), that wikilink targets exist and that filenames are unique across folders, skipping <code>__parsed__</code>. After the filename, <code>description</code> is the most heavily weighted recall field, so the two notes without one hurt recall directly. With in-process search, notes from a <code>git pull</code> are searchable right away, which closes the gap seen today.</p>
 
     <h3>Q6. Data that exists only in LightRAG</h3>
-    <p>None. All 64 documents map one-to-one to vault filenames, checked against both the on-disk stores and the live API. <code>.remember/</code> was never indexed (<code>lightrag-sync-lifecycle.md:38-41</code>). Repeat the comparison before decommissioning in case something gets inserted during the parallel run.</p>
+    <p>None. All 64 documents map one-to-one to vault filenames, checked against both the on-disk stores and the live API. <code>.remember/</code> was never indexed (<code>lightrag-sync-lifecycle.md:38-41</code>). Repeat the comparison before decommissioning in case something gets inserted during the parallel run. A recheck on 2026-10-30 still found no data that exists only in LightRAG. The index held one extra document, a note deleted in commit <code>2d0a940</code> that is still in git history (section 11).</p>
 
     <h3>Q7. Validation through the existing eval</h3>
     <ul class="arrow-list">
-      <li><span>Reuse <code>readVault</code>, <code>validateGolden</code> (lines 120-180), <code>wilson</code>, <code>mcnemar</code> and the golden JSON by moving them into a shared module.</span></li>
-      <li><span>Add <code>scripts/eval-vault-recall.mjs</code>, about 200 lines. Its main metric is hit@1, hit@3 and hit@5. It also reports facts found in the actual injected text (the same first-1500-characters rule as <code>scoreRow</code>, <code>eval-lightrag.mjs:350-357</code>), abstention at the configured floor, in-process and cold-start latency, and a suggested floor. A <code>--compare-lightrag &lt;saved run&gt;</code> mode scores a saved LightRAG run on the same questions and runs McNemar's test on the per-question "delivered" results.</span></li>
+      <li><span>Reuse <code>readVault</code>, <code>validateGolden</code> (lines 120-180), <code>wilson</code> and the golden JSON by moving them into a shared module. <code>mcnemar</code> stays in <code>eval-lightrag.mjs</code>, since nothing new uses it.</span></li>
+      <li><span>Add <code>scripts/eval-vault-recall.mjs</code>, about 200 lines. Its main metric is hit@1, hit@3 and hit@5. It also reports facts found in the actual injected text (the same first-1500-characters rule as <code>scoreRow</code>, <code>eval-lightrag.mjs:350-357</code>), abstention at the configured floor, in-process and cold-start latency, and a suggested floor. The planned <code>--compare-lightrag</code> mode was dropped on 2026-10-30, because no billed LightRAG run will be made on the current set.</span></li>
       <li><span>Retire the LightRAG-only parts at decommission: the <code>/query/data</code> diagnosis, the <code>lightrag.log</code> phase join, the cache-busting nonce, the index-status checks and the budget sweep.</span></li>
     </ul>
     <div class="callout warn">
       <div class="icon"></div>
       <div>
         <div class="callout-title">Read the numbers with care</div>
-        <p>The golden questions were written from each note's own wording, which suits keyword search, so the prototype results are an upper bound. The two engines also inject different things (a written answer against excerpts), so a headline like "75% against 54%" wouldn't compare like with like. One billed <code>npm run eval:lightrag</code> (about 10 minutes) in Phase 0 gives a comparison on the same questions.</p>
+        <p>The golden questions were written from each note's own wording, which suits keyword search, so the prototype results are an upper bound. The two engines also inject different things (a written answer against excerpts), so a headline like "75% against 54%" wouldn't compare like with like. A billed same-set LightRAG run was declined on 2026-10-30, so the cutover gate relies on fixed thresholds and a week of live recall data instead.</p>
       </div>
     </div>
   </section>
@@ -949,7 +964,7 @@
         <tr><td>Read-only</td><td><code>--read-only</code> hides the write tools</td><td>Not documented; needs <code>permissions.deny</code></td><td><code>OBSIDIAN_READ_ONLY</code></td></tr>
         <tr><td>Excluding <code>__parsed__</code></td><td><code>--exclude</code> (repeatable)</td><td>Not documented; delete <code>__parsed__</code> instead</td><td><code>OBSIDIAN_READ_PATHS</code></td></tr>
         <tr><td>Search</td><td><code>search_notes</code>: multi-word, BM25 reranking, frontmatter search, limit</td><td>Content, filename and tag search, case sensitivity, limit, cursor; ranking not documented</td><td>Obsidian fuzzy search, JSONLogic, Omnisearch</td></tr>
-        <tr><td>Windows</td><td><span class="badge badge-yellow">Untested</span>Probe denied</td><td>Accepted a drive path (verified); rejects reparse points</td><td>CRLF caveat with plugin v4</td></tr>
+        <tr><td>Windows</td><td><span class="badge badge-green">Passed</span>Phase 0 on 2026-10-30, relative and absolute paths</td><td>Accepted a drive path (verified); rejects reparse points</td><td>CRLF caveat with plugin v4</td></tr>
         <tr><td>Write safety (matters only if writes are on)</td><td><code>confirmPath</code>; deletes are permanent by default</td><td>Etag checks, trash, transactions, moves that update backlinks</td><td>Overwrite guard; delete confirmation off by default</td></tr>
       </tbody>
     </table></div>
@@ -967,13 +982,13 @@
     </div>
     <ol>
       <li><strong>Recall hook.</strong> In-process BM25F with no dependencies, in <code>scripts/vault-search.cjs</code>, designed as in Q1. It sits behind <code>engine: "bm25f" | "lightrag"</code> so the parallel run can roll back instantly. minisearch can drop in later if fuzzy or prefix matching is wanted. It scored about the same (hit@5 of 68 against 67) and adds a 95 ms index build.</li>
-      <li><strong>Agents.</strong> mcpvault 0.17.1 as an exact devDependency with a lockfile, launched as <code>node node_modules/@bitbonsai/mcpvault/dist/server.js memory-vault/20-memory --read-only --exclude __parsed__</code>. The server is named <code>memory-vault</code> so it doesn't clash with <code>obsidian</code> in the other project. The five scoped agents get <code>search_notes</code>, <code>read_note</code>, <code>read_multiple_notes</code>, <code>get_frontmatter</code> and <code>list_all_tags</code>, with exact names confirmed through <code>tools/list</code> in Phase 0. Their vault lookup becomes <code>search_notes</code> (limit 5) then <code>read_multiple_notes</code> when the server is available, and Grep over <code>memory-vault/20-memory/</code> when it isn't. The health-check step goes away.</li>
-      <li><strong>Fallback.</strong> If mcpvault fails Phase 0, use obsidian-mcp 2.0.1. That means rooting it at <code>memory-vault/</code> (it needs <code>.obsidian/</code>), deleting <code>__parsed__</code> (safe per <code>lightrag-vault-parsed-dir-false-alarm.md:14</code>, with your confirmation), keeping the archive outside <code>memory-vault/</code> and gitignoring <code>memory-vault/.obsidian-mcp/</code>. Its eight write tools get bare-name deny rules in <code>settings.json</code>. Because it needs an absolute path, it is either committed with a launcher script or set up per machine.</li>
+      <li><strong>Agents.</strong> mcpvault 0.17.1 as an exact devDependency with a lockfile, launched as <code>node node_modules/@bitbonsai/mcpvault/dist/server.js memory-vault/20-memory --read-only --exclude __parsed__</code>. The server is named <code>memory-vault</code> so it doesn't clash with <code>obsidian</code> in the other project. The five scoped agents get <code>search_notes</code>, <code>read_note</code>, <code>read_multiple_notes</code>, <code>get_frontmatter</code> and <code>list_all_tags</code>, and Phase 0 confirmed those exact names through <code>tools/list</code>. Their vault lookup becomes <code>search_notes</code> (limit 5) then <code>read_multiple_notes</code> when the server is available, and Grep over <code>memory-vault/20-memory/</code> when it isn't. The health-check step goes away.</li>
+      <li><strong>Fallback.</strong> If mcpvault breaks, agents use Grep and Read over <code>memory-vault/20-memory/</code>, as in Option C. They already do that whenever the server is unavailable. obsidian-mcp 2.0.1 was the original fallback and was ruled out on 2026-10-30: it needs <code>__parsed__</code> deleted, which was declined, and Phase 0 showed it has 9 write tools and no read-only mode (section 11).</li>
       <li><strong>Sync.</strong> The warn-only validator replaces it. There is no index.</li>
       <li><strong>Eval.</strong> The shared code is reused and the old harness retired at decommission.</li>
     </ol>
     <p>This fixes the measured failure (81% timeouts) at about 79 ms and no cost, and stops sending prompts to a third-party LLM. The hook-based safety nets (capture nudge, YAML check, validator) stay in place. It also follows the vault's own lessons about pinned tools that fail open.</p>
-    <p>It depends on Phase 0 passing on both machines and on the eval cutover gate in section 8.</p>
+    <p>Phase 0 has passed on the <code>Lincoln.Pham</code> machine (section 11). The plan still depends on Phase 0 on the other machine and on the cutover gate in section 8.</p>
     <div class="callout warn">
       <div class="icon"></div>
       <div>
@@ -991,22 +1006,23 @@
       <li>
         <div class="step-num">0</div>
         <div class="step-body">
-          <div class="step-title">Phase 0: checks only, nothing committed, on both machines</div>
+          <div class="step-title">Phase 0: checks only, nothing committed, on both machines (done on the <code>Lincoln.Pham</code> machine, results in section 11)</div>
           <ol>
             <li>Record <code>node --version</code>. mcpvault needs Node 20 or later, obsidian-mcp 22 or later.</li>
             <li>Run <code>fsutil reparsepoint query "&lt;repo&gt;\memory-vault"</code> and expect "not a reparse point". On the <code>Lincoln.Pham</code> machine, also check for OneDrive folder redirection.</li>
             <li>Find the server's working directory. Add a throwaway local server, for example <code>claude mcp add --scope local cwd-probe -- node -e "&lt;write process.cwd() and CLAUDE_PROJECT_DIR to %TEMP%\mcp-cwd.json&gt;"</code>. Start Claude Code from the repo root, read the file, then run <code>claude mcp remove cwd-probe</code>.</li>
             <li>Smoke-test the server against a scratch copy of <code>memory-vault/20-memory</code>. <code>initialize</code> and <code>tools/list</code> should show no write tools with <code>--read-only</code>. <code>search_notes "Bloomreach"</code> should return <code>ecommerce-auth-modal-gotchas.md</code> and no <code>__parsed__</code> hits with <code>--exclude</code>. A relative vault path should resolve.</li>
-            <li>Run one billed <code>npm run eval:lightrag</code> (about 10 minutes) on the current 78-question set and keep the saved run.</li>
+            <li><span class="badge badge-purple">Skipped</span>Declined on 2026-10-30. This would have run one billed <code>npm run eval:lightrag</code> (about 10 minutes) on the current 78-question set.</li>
             <li>Compare LightRAG's document list with the vault again. Expect no LightRAG-only documents.</li>
           </ol>
+          <p>On the other machine, steps 1, 2 and 6 still need to run. Steps 3 and 4 test Claude Code and mcpvault rather than the machine, so repeat them there only if it runs a different OS or Claude Code version.</p>
         </div>
       </li>
       <li>
         <div class="step-num">1</div>
         <div class="step-body">
           <div class="step-title">Phase 1: measurement only, no behaviour change (one commit)</div>
-          <p>Add <code>scripts/vault-golden.mjs</code> (<code>readVault</code>, <code>validateGolden</code>, <code>wilson</code>, <code>mcnemar</code>) and switch <code>eval-lightrag.mjs</code> to import it. Add <code>scripts/vault-search.cjs</code> (BM25F plus frontmatter parsing, skipping <code>__parsed__</code>), <code>scripts/eval-vault-recall.mjs</code> with <code>--compare-lightrag &lt;run&gt;</code>, and <code>npm run eval:vault</code>.</p>
+          <p>Add <code>scripts/vault-golden.mjs</code> (<code>readVault</code>, <code>validateGolden</code>, <code>wilson</code>) and switch <code>eval-lightrag.mjs</code> to import it. Add <code>scripts/vault-search.cjs</code> (BM25F plus frontmatter parsing, skipping <code>__parsed__</code>), <code>scripts/eval-vault-recall.mjs</code> and <code>npm run eval:vault</code>. There is no <code>--compare-lightrag</code> mode, and <code>mcnemar</code> stays in <code>eval-lightrag.mjs</code> (section 11, decision 5).</p>
         </div>
       </li>
       <li>
@@ -1028,7 +1044,7 @@
         <div class="step-body">
           <div class="step-title">Phase 4: cutover, only after the section 8 gate (small commits, in order)</div>
           <ul class="arrow-list">
-            <li><span><strong>4a.</strong> In <code>settings.json</code>, remove the PostToolUse and Stop sync hooks and add the validator hook. Delete <code>sync-memory.js</code> and <code>lightrag-sync-status.js</code>, add <code>scripts/check-vault.mjs</code> and <code>npm run vault:check</code>, and remove <code>sync-memory</code> and <code>sync:vault</code> from <code>package.json</code>.</span></li>
+            <li><span><strong>4a.</strong> In <code>settings.json</code>, remove the PostToolUse and Stop sync hooks and add the validator hook. Delete <code>sync-memory.js</code> and <code>lightrag-sync-status.js</code>, add <code>scripts/check-vault.mjs</code> and <code>npm run vault:check</code> (the validator resolves wikilink targets across all of <code>memory-vault/</code>, so links into <code>90-archive/</code> aren't reported as broken), and remove <code>sync-memory</code> and <code>sync:vault</code> from <code>package.json</code>.</span></li>
             <li><span><strong>4b.</strong> In the agents, skill and command, drop <code>mcp__lightrag__*</code>, rewrite <code>vault-updater</code> Step 6, delete <code>commands/sync-vault.md</code> and update the <code>bulk-ingest-jira.mjs</code> messages.</span></li>
             <li><span><strong>4c.</strong> Remove <code>lightrag</code> from <code>.mcp.json</code> and the allow rule on line 29 of <code>settings.json</code>.</span></li>
             <li><span><strong>4d.</strong> Update the docs: <code>CLAUDE.md</code>, <code>.clinerules</code>, <code>README.md</code>, <code>docs/ARCHITECTURE.md</code>, <code>memory-vault/.claude/CLAUDE.md</code>, <code>SETUP.md</code> and <code>00-index.md</code>.</span></li>
@@ -1055,7 +1071,7 @@
         <tr><td>Types and syntax</td><td><code>npm run lint</code>; <code>node --check .claude/hooks/user-prompt-submit.js</code></td><td>Exit 0</td></tr>
         <tr><td>Golden set integrity</td><td><code>npm run eval:vault</code></td><td>0 invalid and 0 stale questions</td></tr>
         <tr><td>Retrieval</td><td><code>npm run eval:vault</code></td><td>hit@3 at least 62/69 (90%; the prototype got 66) and hit@5 at least 65/69 (prototype 67)</td></tr>
-        <tr><td>Delivery against LightRAG on the same set</td><td><code>npm run eval:vault -- --compare-lightrag &lt;Phase 0 run&gt;</code></td><td>BM25 delivers at least as many as LightRAG, and McNemar shows no significant loss</td></tr>
+        <tr><td>Delivery against LightRAG on the same set</td><td>None</td><td><span class="badge badge-purple">Dropped</span>No billed LightRAG run on the current set (section 11, decision 5). The retrieval, abstention and live-recall rows make up the gate.</td></tr>
         <tr><td>Abstention</td><td><code>npm run eval:vault</code></td><td>At least 7 of 9 unanswerable questions blocked at the configured floor</td></tr>
         <tr><td>Hook latency and fail-open</td><td>Pipe a sample JSON prompt into a scratchpad copy of the hook, and run it once from a folder with no vault</td><td>Under 1 s; emits the "Relevant" block for a golden question; with no vault it still emits Live State and exits 0</td></tr>
         <tr><td>Live recall over one week</td><td><code>npm run eval:lightrag:recall</code> (group <code>mode=bm25f</code>)</td><td>0 timeouts; p90 at most 500 ms; memory injected on 20 to 50% of queried prompts; at most one acknowledgement injected</td></tr>
@@ -1082,11 +1098,12 @@
         <tr><td>Keyword recall misses paraphrased or task-style prompts</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-yellow">Medium</span></td><td>Track task-style hit@k in the eval. Agents can still Read and Grep. Add a semantic layer only if the misses are measured.</td></tr>
         <tr><td>No clean abstention, so irrelevant notes get injected</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-orange">High</span>3 of 6 acknowledgements pass the gate</td><td>Query <code>ownWords</code>, skip short and acknowledgement prompts, require two terms and the score floor, label the block "possibly relevant", and watch the recall log.</td></tr>
         <tr><td>Prototype numbers overstate real quality, since the golden questions share the notes' wording</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-yellow">Medium</span></td><td>Treat them as an upper bound. The cutover gate also needs a week of live recall-log data.</td></tr>
-        <tr><td>The MCP server ships a breaking release or a dependency floats</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-yellow">Medium</span>0.x churn, the rename</td><td>Exact pin plus lockfile, launch with <code>node</code>, upgrade on purpose. The fallback server is documented and Option C is always available.</td></tr>
-        <tr><td>Setup breaks on one machine (working directory, relative path, <code>enabledMcpjsonServers</code>)</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-yellow">Medium</span></td><td>Phase 0 checks on both machines, with per-machine local scope as the fallback.</td></tr>
+        <tr><td>The MCP server ships a breaking release or a dependency floats</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-yellow">Medium</span>0.x churn, the rename</td><td>Exact pin plus lockfile, launch with <code>node</code>, upgrade on purpose. Option C (Grep and Read) is the fallback. obsidian-mcp was ruled out (section 11).</td></tr>
+        <tr><td>Setup breaks on one machine (working directory, relative path, <code>enabledMcpjsonServers</code>)</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-green">Low</span>Passed on one machine</td><td>Phase 0 passed on the <code>Lincoln.Pham</code> machine. The other machine still needs its checks, with per-machine local scope as the fallback.</td></tr>
         <tr><td>Agents write through the MCP server and bypass the hooks</td><td><span class="badge badge-orange">High</span></td><td><span class="badge badge-green">Low</span>With read-only</td><td>Server-level <code>--read-only</code>. Writes stay on Edit and Write.</td></tr>
         <tr><td>A bug in the recall hook affects every prompt</td><td><span class="badge badge-orange">High</span></td><td><span class="badge badge-green">Low</span></td><td>try/catch so it fails open, scratchpad testing first, and a run time far under the 15 s timeout.</td></tr>
-        <tr><td>The <code>Lincoln.Pham</code> machine's path is a reparse point (OneDrive) or its Node is older than 20</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-purple">Unknown</span></td><td>Phase 0 items 1 and 2.</td></tr>
+        <tr><td>The <code>Lincoln.Pham</code> machine's path is a reparse point (OneDrive) or its Node is older than 20</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-green">Low</span>Checked 2026-10-30</td><td>Node 22.18.0, no reparse point, Documents not redirected (section 11).</td></tr>
+        <tr><td>A OneDrive policy later moves Documents, and the repo with it, into OneDrive</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-purple">Unknown</span>The policy is set on the <code>Lincoln.Pham</code> machine but hasn't applied</td><td>Relative paths in the committed <code>.mcp.json</code> survive the move. Re-run the Phase 0 step 2 check if the repo path changes. LightRAG has the same exposure today.</td></tr>
         <tr><td>The golden set goes stale after archiving</td><td><span class="badge badge-green">Low</span></td><td><span class="badge badge-orange">High</span>If forgotten</td><td>Edit the golden set in the same commit (4e).</td></tr>
         <tr><td><code>.lightrag/</code> deleted too early</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-green">Low</span></td><td>Separate Phase 5. Rename first, delete later, never in the same change.</td></tr>
         <tr><td>Archived notes still show up in search</td><td><span class="badge badge-green">Low</span></td><td><span class="badge badge-yellow">Medium</span></td><td>The archive lives outside <code>20-memory/</code>, which is the root for both the hook and mcpvault.</td></tr>
@@ -1149,7 +1166,7 @@
       <div class="icon"></div>
       <div>
         <div class="callout-title">Obsidian Sync</div>
-        <p><code>.obsidian/core-plugins.json</code> has Obsidian Sync turned on. If Sync is also moving this vault, two systems are syncing the same files and can conflict (open question 6). Git alone is enough.</p>
+        <p><code>.obsidian/core-plugins.json</code> has Obsidian Sync turned on. If Sync is also moving this vault, two systems are syncing the same files and can conflict (section 11, decision 6). Git alone is enough. On 2026-10-30 there was no sign of Sync on the <code>Lincoln.Pham</code> machine. The other machine hasn't been checked.</p>
       </div>
     </div>
 
@@ -1175,7 +1192,7 @@
     <div class="card-grid">
       <div class="card accent-purple">
         <h4>Setup on two machines</h4>
-        <p>mcpvault takes a path that can point at <code>memory-vault/20-memory</code>, and whether a relative path works is a Phase 0 check. obsidian-mcp needs an absolute path and a <code>.obsidian/</code> folder in its root, so it has to sit at <code>memory-vault/</code> with a separate entry on each machine.</p>
+        <p>mcpvault takes a path that can point at <code>memory-vault/20-memory</code>, and Phase 0 confirmed that a relative path works. obsidian-mcp needs an absolute path and a <code>.obsidian/</code> folder in its root, so it has to sit at <code>memory-vault/</code> with a separate entry on each machine.</p>
       </div>
       <div class="card accent-purple">
         <h4>Read-only</h4>
@@ -1183,7 +1200,7 @@
       </div>
       <div class="card accent-purple">
         <h4>Footprint in the vault</h4>
-        <p>mcpvault writes nothing unless its write tools are used. obsidian-mcp creates <code>.obsidian-mcp/trash</code> and <code>.obsidian-mcp/transactions</code> at the vault root.</p>
+        <p>mcpvault writes nothing unless its write tools are used. obsidian-mcp creates <code>.obsidian-mcp/trash</code>, <code>.obsidian-mcp/transactions</code> and <code>.obsidian-mcp/locks</code> at the vault root as soon as it starts (Phase 0).</p>
       </div>
       <div class="card accent-green">
         <h4>Write safety</h4>
@@ -1195,7 +1212,7 @@
       </div>
       <div class="card accent-orange">
         <h4>Windows</h4>
-        <p>obsidian-mcp accepted a drive path in testing but rejects reparse points, which matters if the <code>Lincoln.Pham</code> machine's Documents folder is redirected to OneDrive. mcpvault hasn't been tested on Windows. That is the biggest unknown, and Phase 0 step 4 covers it.</p>
+        <p>obsidian-mcp accepted a drive path in testing but rejects reparse points, which would matter if the <code>Lincoln.Pham</code> machine's Documents folder were redirected to OneDrive. Phase 0 found it isn't, and mcpvault passed on Windows with relative and absolute paths (section 11).</p>
       </div>
     </div>
     <p>Watch the names. mcpvault's GitHub repo is called <code>bitbonsai/mcp-obsidian</code> and it used to publish as <code>@mauricio.wolff/mcp-obsidian</code>. Neither is related to the abandoned npm package <code>mcp-obsidian@1.0.0</code> or to MarkusPfundstein's Python <code>mcp-obsidian</code>, which uses the REST plugin.</p>
@@ -1203,17 +1220,45 @@
 
 
   <section id="s11">
-    <h2><span class="sec-icon">11</span> Open questions</h2>
-    <ol>
-      <li>Option A (with the MCP server) or Option C (without)? The server's concrete gain is ranked search and frontmatter-only reads for agents, and <code>qa-orchestrator</code> has no Bash.</li>
-      <li>If you'd rather use obsidian-mcp to match the GRA-vault project, may <code>memory-vault/20-memory/__parsed__/</code> be deleted? It's a tracked, inert duplicate, and that option requires removing it.</li>
-      <li>On the <code>Lincoln.Pham</code> machine, which Node version is installed, and is the Documents folder redirected to OneDrive?</li>
-      <li>Does <code>.mcp.json</code> have to be committed, or is a documented per-machine <code>claude mcp add --scope local</code> acceptable?</li>
-      <li>Do you approve one billed <code>npm run eval:lightrag</code> run (about 10 minutes) in Phase 0 for a same-set comparison?</li>
-      <li>Is Obsidian Sync actually configured on this vault? The core plugin is enabled, git is the cross-machine channel, and syncing twice risks conflicts.</li>
-      <li>Should archived notes go to <code>memory-vault/90-archive/</code> (visible in the Obsidian graph, excluded from search) or outside the vault?</li>
-      <li>The GRA-vault project's <code>npx -y obsidian-mcp &lt;path&gt;</code> now quietly runs 2.0.1 in the deprecated v1 mode with renamed tools. Do you want that fixed separately? It's outside this repo.</li>
-    </ol>
+    <h2><span class="sec-icon">11</span> Decisions and Phase 0 results</h2>
+    <p>The eight open questions were answered on 2026-10-30, and Phase 0 ran the same day on the <code>Lincoln.Pham</code> machine.</p>
+
+    <h3>11.1 Decisions</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Question</th><th>Answer</th><th>What it changes</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Option A (with the MCP server) or Option C (without)?</td><td><span class="badge badge-green">Option A</span></td><td>Phase 3 adds mcpvault as planned.</td></tr>
+        <tr><td>2</td><td>May <code>memory-vault/20-memory/__parsed__/</code> be deleted so obsidian-mcp could be used?</td><td><span class="badge badge-orange">No</span></td><td>obsidian-mcp is no longer the fallback. If mcpvault breaks, agents use Grep and Read, as in Option C. <code>__parsed__</code> stays, and mcpvault's <code>--exclude</code> keeps it out of search.</td></tr>
+        <tr><td>3</td><td>On the <code>Lincoln.Pham</code> machine, which Node version is installed, and is Documents redirected to OneDrive?</td><td><span class="badge badge-green">Checked</span>Node 22.18.0. Neither <code>memory-vault</code> nor Documents is a reparse point, and Documents is not redirected.</td><td>No blocker. A OneDrive policy (<code>KFMSilentOptInDocuments=1</code>) is set to move Documents but hasn't applied. It is a new row in section 9.</td></tr>
+        <tr><td>4</td><td>Commit <code>.mcp.json</code>, or set the server up per machine?</td><td><span class="badge badge-green">Commit</span></td><td>Matches the existing <code>lightrag</code> entry, which is already committed. Phase 0 step 3 confirmed that relative paths work.</td></tr>
+        <tr><td>5</td><td>Run one billed <code>npm run eval:lightrag</code> in Phase 0?</td><td><span class="badge badge-orange">No</span></td><td>Phase 0 step 5 is skipped. Phase 1 has no <code>--compare-lightrag</code> mode and leaves <code>mcnemar</code> in <code>eval-lightrag.mjs</code>. The section 8 gate drops the same-set comparison and relies on the fixed retrieval and abstention thresholds plus a week of live recall data.</td></tr>
+        <tr><td>6</td><td>Is Obsidian Sync set up for this vault?</td><td><span class="badge badge-yellow">Not on this machine</span>Obsidian last opened this vault on 2026-06-13 and wasn't running. Its app config for the vault holds only window state, <code>obsidian.log</code> has no sync entries, and GRA-vault carries the same <code>"sync": true</code> flag, so the flag looks like Obsidian's default.</td><td>Check the other machine. Setting <code>"sync": false</code> in <code>core-plugins.json</code> would rule it out; that change hasn't been made.</td></tr>
+        <tr><td>7</td><td>Archive to <code>memory-vault/90-archive/</code> or outside the vault?</td><td><span class="badge badge-yellow">Recommended</span><code>memory-vault/90-archive/lightrag/</code>. A recommendation was asked for; confirm it before Phase 4e.</td><td>Both the hook and mcpvault read only <code>20-memory/</code>, so archived notes stay out of search. The only reason to keep the archive outside the vault was obsidian-mcp, which reads all of <code>memory-vault/</code>. Moving with <code>git mv</code> keeps each note's history, the notes stay in Obsidian's graph, and the section 8 leftover-reference check already excludes this folder. <code>check-vault.mjs</code> must resolve wikilinks across all of <code>memory-vault/</code> (Phase 4a).</td></tr>
+        <tr><td>8</td><td>Fix the GRA-vault project's unpinned <code>npx -y obsidian-mcp</code>?</td><td><span class="badge badge-purple">Out of scope</span></td><td>None for this repo.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>11.2 Phase 0 results on the <code>Lincoln.Pham</code> machine</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Step</th><th>Result</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>1. Node version</td><td><span class="badge badge-green">Pass</span></td><td>v22.18.0, enough for both servers.</td></tr>
+        <tr><td>2. Reparse point and OneDrive</td><td><span class="badge badge-green">Pass</span></td><td><code>fsutil reparsepoint query</code> reports "not a reparse point" for <code>memory-vault</code> and Documents. Documents still points at the local profile folder.</td></tr>
+        <tr><td>3. Server working directory</td><td><span class="badge badge-green">Pass</span></td><td>A throwaway local-scope server recorded both its working directory and <code>CLAUDE_PROJECT_DIR</code> as the repo root. It was started by <code>claude mcp list</code> run from the repo root rather than by a full session. Both start servers from the folder <code>claude</code> is launched in. The probe was removed afterwards.</td></tr>
+        <tr><td>4a. mcpvault 0.17.1</td><td><span class="badge badge-green">Pass</span></td><td>Started with a relative vault path, <code>--read-only</code> and <code>--exclude __parsed__</code>, and initialised in about 0.45 s. <code>tools/list</code> showed 11 read tools: <code>read_note</code>, <code>list_directory</code>, <code>search_notes</code>, <code>read_multiple_notes</code>, <code>get_notes_info</code>, <code>get_frontmatter</code>, <code>get_vault_stats</code>, <code>list_all_tags</code>, <code>wiki_link</code>, <code>get_note_outline</code> and <code>read_note_lines</code>. <code>search_notes "Bloomreach"</code> returned <code>ecommerce-auth-modal-gotchas.md</code> second of five, with no <code>__parsed__</code> hits. <code>write_note</code> was rejected ("disabled because MCPVault is running in read-only mode") and no file was created. An absolute path with backslashes also works. Given no vault path, it indexes its working directory, so the path in <code>.mcp.json</code> must stay explicit.</td></tr>
+        <tr><td>4a. mcpvault search on the golden set</td><td><span class="badge badge-green">Pass</span></td><td>Each golden question's literal text as the query, limit 5: hit@1 47/69, hit@5 67/69, no empty results, no <code>__parsed__</code> hits, about 25 ms per query. The misses were <code>typescript-coding-rules.md</code> and <code>memory_vault_authority.md</code>. These numbers are for the agents' search. The recall hook uses the separate BM25F scorer that Phase 1 builds.</td></tr>
+        <tr><td>4b. obsidian-mcp 2.0.1</td><td><span class="badge badge-orange">Not usable</span></td><td>Started with <code>serve --vault notes=&lt;absolute path&gt;</code> and listed 12 tools, 9 of which change the vault. It created <code>.obsidian-mcp/{locks,transactions,trash}</code> at startup and logged a <code>LEGACY_MCP_PROTOCOL</code> warning for a 2025-06-18 handshake. Ruled out by decision 2.</td></tr>
+        <tr><td>5. Billed LightRAG eval</td><td><span class="badge badge-purple">Skipped</span></td><td>Decision 5.</td></tr>
+        <tr><td>6. LightRAG documents against the vault</td><td><span class="badge badge-green">Pass</span></td><td>The server was down, so this read <code>.lightrag/kv_store_doc_status.json</code>: 68 documents, all processed. All 67 vault notes are indexed, including the three missing on 2026-10-29. The one extra, <code>council-review-transcript-vs-console.md</code>, was deleted from the vault in commit <code>2d0a940</code> and is still in git history.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>11.3 Before Phase 1</h3>
+    <ul class="arrow-list">
+      <li><span>Run Phase 0 steps 1, 2 and 6 on the other machine, and answer decision 6 there. Steps 3 and 4 only need repeating if that machine runs a different OS or Claude Code version.</span></li>
+      <li><span>Approve Phase 1 explicitly. It goes through <code>qa-orchestrator</code> WORKFLOW-10.</span></li>
+      <li><span>Confirm decision 7 before Phase 4e. It doesn't block Phase 1.</span></li>
+    </ul>
   </section>
 
 
@@ -1248,6 +1293,7 @@
       <li><span><code>memory-vault/.claude/CLAUDE.md</code></span></li>
       <li><span><code>.claude/.state/lightrag-recall-log.jsonl</code></span></li>
       <li><span>Prototype scripts <code>recall-proto.cjs</code> (scorer and golden eval), <code>real-prompts2.cjs</code> (gate check on real prompts) and <code>mcp-probe.cjs</code> (stdio probe, whose run was denied), kept in the research session's temporary scratchpad and not in the repo</span></li>
+      <li><span>Phase 0 scripts <code>mcp-probe.cjs</code> (stdio probe), <code>mcpvault-golden.cjs</code> (golden set through <code>search_notes</code>), <code>cwd-probe.cjs</code> (server working directory) and <code>index-vs-vault.cjs</code> (LightRAG documents against the vault), kept in the 2026-10-30 session's temporary scratchpad and not in the repo</span></li>
     </ul>
 
     <div class="callout info">
@@ -1260,7 +1306,7 @@
 
   <div class="footer">
     <span>Technical research report &middot; technical-research-agent &middot; Replacing LightRAG with an Obsidian MCP server</span>
-    <span>Awaiting approval, 2026-10-29</span>
+    <span>Researched 2026-10-29 &middot; updated 2026-10-30 &middot; Phase 1 awaiting approval</span>
   </div>
 
 </div>

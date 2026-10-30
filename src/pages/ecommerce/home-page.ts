@@ -6,7 +6,8 @@ export class EcommerceHomePage extends BasePage {
   private readonly mainElement: Locator;
   private readonly mainRegion: Locator;
   private readonly heroImage: Locator;
-  private readonly topHeaderSelector = '.top-header-desktop';
+  // The storefront renders only one of these, chosen by viewport width.
+  private readonly topHeaderSelector = '.top-header-desktop, .top-header-mobile';
   private readonly promoBannerSelectors: readonly string[] = [
     '[class*="top-header"]',
     '[class*="announcement"]',
@@ -68,7 +69,7 @@ export class EcommerceHomePage extends BasePage {
   /**
    * E2E-HOME-003 — AU sites only.
    *
-   * The top bar (.top-header-desktop) on AU storefronts contains an anchor link
+   * The top bar (.top-header-desktop or .top-header-mobile) on AU storefronts contains an anchor link
    * "Earn 2 Qantas Points per $1 spent*". We poll until the bar has hydrated
    * (React may not have rendered it yet when <main> first appears) and then
    * assert the Qantas text is present.
