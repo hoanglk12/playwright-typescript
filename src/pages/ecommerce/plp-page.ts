@@ -148,6 +148,18 @@ export class EcommercePLPPage extends BasePage {
     await this.waits.waitForUrlMatches(this.PDP_URL_PATTERN, TIMEOUTS.PAGE_LOAD_SLOW);
   }
 
+  // One link per card, in grid order. A card can hold several anchors, so this is not the same
+  // indexing as clickProductCard().
+  async getProductCardHrefs(limit: number): Promise<string[]> {
+    const hrefs = await this.elements
+      .locator(this.productCardSelector)
+      .evaluateAll(
+        (cards, anchorSel) => cards.map((card) => (card.querySelector(anchorSel) as HTMLAnchorElement | null)?.href ?? ''),
+        this.cardAnchorSelector,
+      );
+    return [...new Set(hrefs.filter(Boolean))].slice(0, limit);
+  }
+
   async getProductCount(): Promise<number> {
     return this.dom.count(this.productCardSelector);
   }

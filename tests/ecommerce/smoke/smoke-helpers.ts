@@ -387,8 +387,8 @@ export async function ensureCartOverlayOpen(cartOverlayPage: EcommerceCartOverla
 }
 
 /**
- * Fast in-loop check per product; post-loop waitForSizeButtonsToRender() covers async rendering lag.
- * Products with sizes but a hidden Add to Cart (presale / members-only) are skipped.
+ * Opens the PLP's product cards one by one from their links and returns the in-stock sizes of the
+ * first product that has any and a visible Add to Cart (presale / members-only products hide it).
  * An empty result means no purchasable product found; caller must test.skip().
  */
 export async function findProductWithAvailableSizes(
@@ -396,27 +396,18 @@ export async function findProductWithAvailableSizes(
   pdpPage: EcommercePDPPage,
   maxProducts = 10,
 ): Promise<string[]> {
-  let availableSizes: string[] = [];
-  for (let i = 0; i < maxProducts; i++) {
-    if (i > 0) {
-      // WHY: return-to-PLP after goBack(), not initial nav from homepage.
-      // navigateToPlp() would break the scan loop by re-navigating from the homepage.
-      await pdpPage.goBack();
-      await plpPage.waitForPlpUrl();
-      await plpPage.waitForProductGrid();
-    }
-    await plpPage.clickProductCard(i);
+  // WHY: links instead of goBack(). On staging, Back sometimes leaves the Skechers grid blank or
+  // stays on a Platypus AU PDP behind an exit survey. Sizes render after the PDP loads, so wait
+  // for them per product or an in-stock product gets skipped.
+  for (const productUrl of await plpPage.getProductCardHrefs(maxProducts)) {
+    await pdpPage.openProduct(productUrl);
     await pdpPage.waitForPdpLoad();
     await pdpPage.ensureNoOverlay();
-    availableSizes = await pdpPage.getAvailableSizes();
-    if (availableSizes.length > 0 && (await pdpPage.hasVisibleAddToCart())) break;
-    availableSizes = [];
-  }
-  if (availableSizes.length === 0 && (await pdpPage.hasVisibleAddToCart())) {
     await pdpPage.waitForSizeButtonsToRender();
-    availableSizes = await pdpPage.getAvailableSizes();
+    const availableSizes = await pdpPage.getAvailableSizes();
+    if (availableSizes.length > 0 && (await pdpPage.hasVisibleAddToCart())) return availableSizes;
   }
-  return availableSizes;
+  return [];
 }
 
 /**

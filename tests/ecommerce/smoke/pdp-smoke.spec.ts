@@ -3,6 +3,7 @@ import { storefronts } from '@data/ecommerce/storefronts';
 import { createTestLogger } from '@utils/test-logger';
 import {
   findPdpWithColourSwatches,
+  findProductWithAvailableSizes,
   getPreferredNavLabel,
   navigateToPlp,
   shouldPreferMens,
@@ -382,44 +383,12 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
       });
 
-      // The first PDP may be fully OOS (all sizes disabled). Retry up to MAX_PRODUCTS_TO_TRY
-      // products before giving up — mirrors the colour-swatch retry in E2E-PDP-002.
-      const MAX_PRODUCTS_TO_TRY = 10;
       let availableSizes: string[] = [];
-
-      for (let productIndex = 0; productIndex < MAX_PRODUCTS_TO_TRY; productIndex++) {
-        if (productIndex > 0) {
-          await ecommercePDPPage.goBack();
-          await ecommercePLPPage.waitForPlpUrl();
-          await ecommercePLPPage.waitForProductGrid();
-        }
-
-        await logger.step(`Step 6 - Click product card #${productIndex + 1}`, async () => {
-          await ecommercePLPPage.clickProductCard(productIndex);
-        });
-
-        await logger.step('Step 7 - Wait for PDP to fully load', async () => {
-          await ecommercePDPPage.waitForPdpLoad();
-        });
-
-        await logger.step('Step 8 - Dismiss any overlay before size interaction', async () => {
-          await ecommercePDPPage.ensureNoOverlay();
-        });
-
-        await logger.step('Step 8b - Wait for size buttons to render (best-effort; times out silently for non-footwear)', async () => {
-          await ecommercePDPPage.waitForSizeButtonsToRender();
-        });
-
-        const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
-        if (!sizeSelectorVisible) continue;
-
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0 && (await ecommercePDPPage.hasVisibleAddToCart())) break;
-        availableSizes = [];
-      }
-
+      await logger.step('Steps 6-8 - Scan PLP for a product with sizes in stock', async () => {
+        availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
+      });
       if (availableSizes.length === 0) {
-        test.skip(true, `${site.name}: no enabled sizes found in first ${MAX_PRODUCTS_TO_TRY} PDPs`);
+        test.skip(true, `${site.name}: no product with sizes in stock found in first 10 ${navLabel} PLP products`);
         return;
       }
 
@@ -467,28 +436,14 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
       });
 
-      await logger.step('Step 6 - Click first product card', async () => {
-        await ecommercePLPPage.clickProductCard(0);
+      // The first card can be a one-size product (Platypus NZ MENS starts with a socks 3-pack),
+      // where Add to Cart succeeds without a size and the validation check can never pass.
+      let availableSizes: string[] = [];
+      await logger.step('Steps 6-9 - Scan PLP for a product with sizes in stock', async () => {
+        availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
       });
-
-      await logger.step('Step 7 - Wait for PDP to fully load', async () => {
-        await ecommercePDPPage.waitForPdpLoad();
-      });
-
-      await logger.step('Step 8 - Dismiss any overlay before interaction', async () => {
-        await ecommercePDPPage.ensureNoOverlay();
-      });
-
-      await logger.step('Step 8b - Wait for size buttons to render (best-effort)', async () => {
-        await ecommercePDPPage.waitForSizeButtonsToRender();
-      });
-
-      let sizeSelectorVisible = false;
-      await logger.step('Step 9 - Assert size selector is visible (hard precondition)', async () => {
-        sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
-      });
-      if (!sizeSelectorVisible) {
-        test.skip(true, `${site.name}: size selector not visible — product may have no sizes`);
+      if (availableSizes.length === 0) {
+        test.skip(true, `${site.name}: no product with sizes in stock found in first 10 ${navLabel} PLP products`);
         return;
       }
 
@@ -561,44 +516,12 @@ test.describe('Ecommerce PDP Smoke @ecommerce @smoke @pdp', () => {
         await navigateToPlp(ecommerceNavPage, ecommercePLPPage, site, navLabel);
       });
 
-      // The first PDP may be fully OOS (all sizes disabled). Retry up to MAX_PRODUCTS_TO_TRY
-      // products before giving up — mirrors the colour-swatch retry in E2E-PDP-002.
-      const MAX_PRODUCTS_TO_TRY = 10;
       let availableSizes: string[] = [];
-
-      for (let productIndex = 0; productIndex < MAX_PRODUCTS_TO_TRY; productIndex++) {
-        if (productIndex > 0) {
-          await ecommercePDPPage.goBack();
-          await ecommercePLPPage.waitForPlpUrl();
-          await ecommercePLPPage.waitForProductGrid();
-        }
-
-        await logger.step(`Step 6 - Click product card #${productIndex + 1}`, async () => {
-          await ecommercePLPPage.clickProductCard(productIndex);
-        });
-
-        await logger.step('Step 7 - Wait for PDP to fully load', async () => {
-          await ecommercePDPPage.waitForPdpLoad();
-        });
-
-        await logger.step('Step 8 - Dismiss any overlay before size interaction', async () => {
-          await ecommercePDPPage.ensureNoOverlay();
-        });
-
-        await logger.step('Step 8b - Wait for size buttons to render (best-effort)', async () => {
-          await ecommercePDPPage.waitForSizeButtonsToRender();
-        });
-
-        const sizeSelectorVisible = await ecommercePDPPage.isSizeSelectorVisible();
-        if (!sizeSelectorVisible) continue;
-
-        availableSizes = await ecommercePDPPage.getAvailableSizes();
-        if (availableSizes.length > 0 && (await ecommercePDPPage.hasVisibleAddToCart())) break;
-        availableSizes = [];
-      }
-
+      await logger.step('Steps 6-8 - Scan PLP for a product with sizes in stock', async () => {
+        availableSizes = await findProductWithAvailableSizes(ecommercePLPPage, ecommercePDPPage);
+      });
       if (availableSizes.length === 0) {
-        test.skip(true, `${site.name}: no enabled sizes found in first ${MAX_PRODUCTS_TO_TRY} PDPs`);
+        test.skip(true, `${site.name}: no product with sizes in stock found in first 10 ${navLabel} PLP products`);
         return;
       }
 

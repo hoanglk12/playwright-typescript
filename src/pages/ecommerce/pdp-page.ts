@@ -16,6 +16,11 @@ export class EcommercePDPPage extends BasePage {
   private readonly colorScrollerContainerSelector =
     '[class*="swiper-container"]:has([class*="colorScroller-next"])';
   private readonly acquisitionPopupSelector = '[class*="bloomreach-acquisition-popup"][class*="state-open"]';
+  // The "Join The Crew" dialog is a sibling of the popup container, not a child, so its close
+  // button can't be found by searching inside the container.
+  private readonly acquisitionDialogClose = this.page
+    .getByRole('dialog', { name: /join the crew|10% off/i })
+    .getByRole('button', { name: 'Close popup' });
   // Vans post-ATC Bloomreach popup (#popup.popup.visible, z-index 200) — a DIFFERENT popup
   // from acquisitionPopupSelector's swatch overlay. It appears after add-to-cart and
   // intercepts the cart icon click.
@@ -25,6 +30,9 @@ export class EcommercePDPPage extends BasePage {
   private readonly addToCartBtnLocator = this.page.locator('button', { hasText: /add to (cart|bag)/i });
   private readonly visibleAddToCartBtn = this.addToCartBtnLocator.filter({ visible: true });
   private readonly sizePatternSource = '^(US\\s+|UK\\s+|EU\\s+)?\\d+(\\.\\d+)?$';
+  // Sold-out sizes are drawn crossed out but stay enabled buttons, so `disabled` can't tell them
+  // apart; only in-stock sizes carry this class (all 8 GRA storefronts, 2026-10-31).
+  private readonly inStockSizeClass = 'available';
   private readonly genderPatternSource =
     '\\b(mens?|womens?|male|female|us\\s+mens?|us\\s+womens?|uk\\s+mens?|uk\\s+womens?)\\b';
   // [role="alert"] and [aria-live] are the preferred signals. Storefronts that don't use ARIA
@@ -120,6 +128,10 @@ export class EcommercePDPPage extends BasePage {
 
   private async dismissAcquisitionPopup(): Promise<void> {
     try {
+      if (await this.acquisitionDialogClose.isVisible()) {
+        await this.acquisitionDialogClose.click({ timeout: TIMEOUTS.ELEMENT_CLICKABLE });
+        await this.acquisitionDialogClose.waitFor({ state: 'hidden', timeout: TIMEOUTS.DIALOG_DISMISS });
+      }
       const popup = this.elements.locator(this.acquisitionPopupSelector);
       if ((await popup.count()) === 0) return;
       const closeBtn = popup.getByRole('button').first();
@@ -246,6 +258,10 @@ export class EcommercePDPPage extends BasePage {
     );
   }
 
+  async openProduct(url: string): Promise<void> {
+    await this.gotoWithOptions(url, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.PAGE_LOAD_SLOW });
+  }
+
   async goBack(): Promise<void> {
     await this.page.goBack({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.PAGE_LOAD_SLOW });
   }
@@ -361,13 +377,14 @@ export class EcommercePDPPage extends BasePage {
   }
 
   async getAvailableSizes(): Promise<string[]> {
-    return this.page.evaluate((sizePatSrc) => {
+    return this.page.evaluate(({ sizePatSrc, inStockClass }) => {
       const sizePattern = new RegExp(sizePatSrc, 'i');
       const buttons = Array.from(document.querySelectorAll('button'));
       const results: string[] = [];
       for (const btn of buttons) {
         const btnEl = btn as HTMLButtonElement;
         if (btnEl.disabled) continue;
+        if (!btnEl.classList.contains(inStockClass)) continue;
         if (btnEl.getAttribute('aria-hidden') === 'true') continue;
         const text = btnEl.textContent?.trim() ?? '';
         if (!text || !sizePattern.test(text)) continue;
@@ -376,7 +393,7 @@ export class EcommercePDPPage extends BasePage {
         results.push(text);
       }
       return results;
-    }, this.sizePatternSource);
+    }, { sizePatSrc: this.sizePatternSource, inStockClass: this.inStockSizeClass });
   }
 
   async getVisibleSizeLabels(): Promise<string[]> {
@@ -498,7 +515,9 @@ export class EcommercePDPPage extends BasePage {
       );
     }
     // force: true only skips the actionability wait; it does not get past an element covering
-    // the button.
+    // the button. Skipping that wait also skips the Bloomreach locator handler, and the Vans AU
+    // popup reopens on a timer, so close it right before clicking.
+    await this.dismissAcquisitionPopup();
     await this.visibleAddToCartBtn.first().click({ timeout: TIMEOUTS.ELEMENT_VISIBLE, force: true });
   }
 
